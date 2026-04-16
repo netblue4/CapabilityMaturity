@@ -194,6 +194,14 @@ body {
 .empty-state h3 { color: var(--text); font-size: 1.1rem; }
 .hint { font-size: .85rem; }
 
+/* ── Trend Chart ─────────────────────────────────────────── */
+.trend-card { margin-bottom: 1.25rem; }
+.trend-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: .75rem; }
+.trend-toggle { display: flex; gap: .4rem; }
+.trend-btn { font-size: .72rem; padding: .3rem .75rem; }
+.trend-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+#trend-chart { display: block; width: 100%; }
+
 /* ── Form ────────────────────────────────────────────────── */
 .form-meta { margin-bottom: 1.25rem; }
 .form-row { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .9rem; }

@@ -68,6 +68,17 @@
 
         <div id="measure-summary-row" class="measure-summary-row"></div>
 
+        <div class="card trend-card" id="trend-card" style="display:none">
+          <div class="trend-card-header">
+            <h3 class="card-title" style="margin-bottom:0">Maturity Trends</h3>
+            <div class="trend-toggle">
+              <button class="btn btn-outline trend-btn active" id="trend-btn-cap" onclick="setTrendMode('capability')">By Capability</button>
+              <button class="btn btn-outline trend-btn" id="trend-btn-dim" onclick="setTrendMode('dimension')">By Dimension</button>
+            </div>
+          </div>
+          <canvas id="trend-chart" height="280"></canvas>
+        </div>
+
         <div class="card history-card">
           <h3 class="card-title">Assessment History</h3>
           <div id="history-table-wrap">

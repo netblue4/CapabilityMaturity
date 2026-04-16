@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
       loadFromLocalStorage();
       setDefaultDate();
       buildCapabilityFields();
+      buildDimensionSelector();
       renderDashboard();
       bindEvents();
       document.getElementById("loading-overlay").style.display = "none";
@@ -335,7 +336,7 @@ function buildCapabilityFields() {
 
       <div class="measures-grid">
         ${CONFIG.measures.map(m => `
-          <div class="measure-block" style="--m-color:${m.color}">
+          <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
             <div class="measure-block-header">
               <span class="measure-icon-sm">${m.icon}</span>
               <span class="measure-block-name">${m.name}</span>
@@ -384,11 +385,35 @@ function buildCapabilityFields() {
   `).join("");
 }
 
+// ── Dimension Selector ───────────────────────────────────────
+function buildDimensionSelector() {
+  const container = document.getElementById("dimension-checkboxes");
+  container.innerHTML = CONFIG.measures.map(m => `
+    <label class="dimension-check-label">
+      <input type="checkbox" class="dimension-check" value="${m.id}" checked
+        onchange="updateDimensionVisibility()" />
+      <span>${m.icon}</span> ${m.name}
+    </label>
+  `).join("");
+}
+
+function updateDimensionVisibility() {
+  const checked = new Set(
+    [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
+  );
+  document.querySelectorAll(".measure-block").forEach(block => {
+    block.style.display = checked.has(block.dataset.measure) ? "" : "none";
+  });
+}
+
 function openAssessmentForm(id) {
   editingId = id;
   document.getElementById("assessment-form").reset();
   document.getElementById("assessment-form-title").textContent = id ? "Edit Assessment" : "New Assessment";
   setDefaultDate();
+
+  // Default all dimension checkboxes to checked
+  document.querySelectorAll(".dimension-check").forEach(cb => cb.checked = true);
 
   if (id) {
     const a = db.assessments.find(x => x.id === id);
@@ -411,6 +436,12 @@ function openAssessmentForm(id) {
           updateTargetDisplay(cap.id, m.id, target);
         });
       });
+      // Pre-check only dimensions that have scores in this assessment
+      CONFIG.measures.forEach(m => {
+        const hasScore = CONFIG.capabilities.some(cap => getMeasureScore(a, cap.id, m.id) > 0);
+        const cb = document.querySelector(`.dimension-check[value="${m.id}"]`);
+        if (cb) cb.checked = hasScore;
+      });
     }
   } else {
     CONFIG.capabilities.forEach(cap => {
@@ -422,6 +453,7 @@ function openAssessmentForm(id) {
       });
     });
   }
+  updateDimensionVisibility();
   showView("assessment");
 }
 
@@ -455,6 +487,10 @@ function updateTargetDisplay(capId, measureId, value) {
 function saveAssessment(e) {
   e.preventDefault();
 
+  const selectedMeasures = new Set(
+    [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
+  );
+
   // measureScores[capId][measureId] = score
   const measureScores = {}, measureTargets = {}, measureNotes = {}, capNotes = {};
   CONFIG.capabilities.forEach(cap => {
@@ -463,9 +499,15 @@ function saveAssessment(e) {
     measureNotes[cap.id] = {};
     capNotes[cap.id] = document.getElementById("capnote-" + cap.id).value.trim();
     CONFIG.measures.forEach(m => {
-      measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
-      measureTargets[cap.id][m.id] = parseInt(document.getElementById(`target-${cap.id}-${m.id}`).value);
-      measureNotes[cap.id][m.id] = document.getElementById(`note-${cap.id}-${m.id}`).value.trim();
+      if (selectedMeasures.has(m.id)) {
+        measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
+        measureTargets[cap.id][m.id] = parseInt(document.getElementById(`target-${cap.id}-${m.id}`).value);
+        measureNotes[cap.id][m.id] = document.getElementById(`note-${cap.id}-${m.id}`).value.trim();
+      } else {
+        measureScores[cap.id][m.id] = 0;
+        measureTargets[cap.id][m.id] = 0;
+        measureNotes[cap.id][m.id] = "";
+      }
     });
   });
 

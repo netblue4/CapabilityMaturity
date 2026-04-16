@@ -213,6 +213,28 @@ input[type="text"], input[type="date"], textarea {
 input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 textarea { resize: vertical; }
 
+/* ── Dimension Filter ────────────────────────────────────── */
+.dimension-checks { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: .25rem; }
+.dimension-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  cursor: pointer;
+  padding: .4rem .85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: .85rem;
+  transition: border-color .15s, background .15s;
+  user-select: none;
+}
+.dimension-check-label:hover { border-color: var(--accent); background: rgba(52,152,219,0.06); }
+.dimension-check-label input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
 /* ── Capability Cards in Form ────────────────────────────── */
 .cap-card { margin-bottom: 1.25rem; }
 .cap-card-header { margin-bottom: 1rem; }

@@ -1,0 +1,109 @@
+{
+  "appTitle": "ICT Capability Maturity Tracker",
+
+  "levels": [
+    {
+      "level": 1,
+      "name": "Initial",
+      "color": "#e74c3c",
+      "description": "Ad-hoc and reactive. No formal processes. Issues addressed as they arise."
+    },
+    {
+      "level": 2,
+      "name": "Managed",
+      "color": "#e67e22",
+      "description": "Basic processes exist but are inconsistently applied. Dependent on individuals."
+    },
+    {
+      "level": 3,
+      "name": "Defined",
+      "color": "#f1c40f",
+      "description": "Standardised, documented processes applied organisation-wide."
+    },
+    {
+      "level": 4,
+      "name": "Quantitative",
+      "color": "#2ecc71",
+      "description": "Data-driven. KPIs tracked. Management uses metrics to drive decisions."
+    },
+    {
+      "level": 5,
+      "name": "Optimising",
+      "color": "#3498db",
+      "description": "Continuous improvement culture. Predictive analytics. Proactive excellence."
+    }
+  ],
+
+  "measures": [
+    {
+      "id": "governance",
+      "name": "Governance",
+      "icon": "⚖️",
+      "color": "#9b59b6",
+      "description": "Tracks the policy statements associated with the capability and whether they have owners assigned.",
+      "levels": [
+        { "level": 1, "label": "No policy exists" },
+        { "level": 2, "label": "Policy drafted, no owner" },
+        { "level": 3, "label": "Policy approved, owner assigned" },
+        { "level": 4, "label": "Policy reviewed regularly, owner accountable" },
+        { "level": 5, "label": "Policy continuously improved, embedded in culture" }
+      ]
+    },
+    {
+      "id": "ict_risk",
+      "name": "ICT Risk",
+      "icon": "🛡️",
+      "color": "#e74c3c",
+      "description": "Tracks the residual risk score of the risks associated with the capability.",
+      "levels": [
+        { "level": 1, "label": "Risks not identified or documented" },
+        { "level": 2, "label": "Risks identified, residual risk not assessed" },
+        { "level": 3, "label": "Residual risk assessed and accepted" },
+        { "level": 4, "label": "Residual risk tracked, mitigations in place" },
+        { "level": 5, "label": "Residual risk trending down, proactively managed" }
+      ]
+    },
+    {
+      "id": "reporting",
+      "name": "Reporting",
+      "icon": "📊",
+      "color": "#2ecc71",
+      "description": "Tracks whether there are KPIs associated with the capability and whether they are reported.",
+      "levels": [
+        { "level": 1, "label": "No KPIs defined" },
+        { "level": 2, "label": "KPIs defined but not reported" },
+        { "level": 3, "label": "KPIs reported periodically" },
+        { "level": 4, "label": "KPIs reported to management on schedule" },
+        { "level": 5, "label": "KPIs drive decisions, trends analysed proactively" }
+      ]
+    }
+  ],
+
+  "capabilities": [
+    {
+      "id": "vulnerability_mgmt",
+      "name": "ICT Vulnerability Management",
+      "description": "Identification, assessment, and remediation of security vulnerabilities across ICT infrastructure."
+    },
+    {
+      "id": "performance_capacity",
+      "name": "ICT Performance & Capacity Management",
+      "description": "Monitoring and planning of ICT resource performance and capacity to meet current and future demands."
+    },
+    {
+      "id": "incident_mgmt",
+      "name": "Incident Management",
+      "description": "Restoration of normal service operation as quickly as possible following unplanned disruptions."
+    },
+    {
+      "id": "change_mgmt",
+      "name": "Change Management",
+      "description": "Controlled management of changes to ICT services and infrastructure to minimise risk."
+    },
+    {
+      "id": "disaster_recovery",
+      "name": "Disaster Recovery",
+      "description": "Plans, procedures and capabilities to recover ICT services following a major disruption or disaster."
+    }
+  ]
+}

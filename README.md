@@ -1,6 +1,6 @@
 # ICT Capability Maturity Tracker
 
-A lightweight web app for tracking the maturity of your ICT capabilities over time — hosted free on GitHub Pages.
+A lightweight web app for tracking the maturity of your ICT capabilities across three measures — hosted free on GitHub Pages.
 
 **Live app:** https://netblue4.github.io/CapabilityMaturity/
 
@@ -10,11 +10,25 @@ A lightweight web app for tracking the maturity of your ICT capabilities over ti
 
 | Capability | Description |
 |---|---|
-| ICT Vulnerability Management | Identification, assessment, and remediation of security vulnerabilities |
+| ICT Vulnerability Management | Identification, assessment and remediation of security vulnerabilities |
 | ICT Performance & Capacity Management | Monitoring and planning of ICT resource performance and capacity |
 | Incident Management | Restoration of normal service following unplanned disruptions |
 | Change Management | Controlled management of changes to ICT services and infrastructure |
 | Disaster Recovery | Plans and capabilities to recover ICT services following a major disruption |
+
+---
+
+## Three Measures Per Capability
+
+Each capability is scored across **three measures**:
+
+| Measure | Icon | What it tracks |
+|---|---|---|
+| **Governance** | ⚖️ | Policy statements associated with the capability and whether they have owners assigned |
+| **ICT Risk** | 🛡️ | The residual risk score of the risks associated with the capability |
+| **Reporting** | 📊 | Whether KPIs are defined for the capability and whether they are reported |
+
+---
 
 ## Maturity Levels (ITIL 4 / CMMI inspired)
 
@@ -30,54 +44,100 @@ A lightweight web app for tracking the maturity of your ICT capabilities over ti
 
 ## Features
 
-- ✅ Score each capability on a 1–5 maturity scale
-- ✅ Set target levels per capability
-- ✅ Add notes per capability and per assessment
-- ✅ Radar / spider chart visualisation
-- ✅ Assessment history with trend tracking
-- ✅ Export data as JSON (your database)
+- ✅ Score each capability across **Governance, ICT Risk and Reporting** measures
+- ✅ Set target levels per capability per measure
+- ✅ Add notes per measure and per capability
+- ✅ Radar chart showing measure polygons + overall average
+- ✅ Measure summary cards with per-capability mini bar charts
+- ✅ Assessment history table with full drill-down
+- ✅ Export data as JSON (your portable database)
 - ✅ Import previously saved JSON files
-- ✅ Works entirely in the browser — no server needed
+- ✅ Works entirely in the browser — no server, no login
+
+---
+
+## Configuration — config.json
+
+All configuration lives in **`config.json`**. This is a plain JSON file — edit it in any text editor (Notepad, VS Code, etc.).
+
+### Adding a new capability
+
+Open `config.json` and add an entry to the `"capabilities"` array:
+
+```json
+{
+  "id": "service_desk",
+  "name": "Service Desk",
+  "description": "Front-line support and user request fulfilment."
+}
+```
+
+- `id` must be unique and contain no spaces (use underscores)
+- `name` is displayed in the app
+- `description` is shown on the assessment form
+
+### Adding or editing a measure
+
+Edit the `"measures"` array. Each measure has per-level labels that appear when scoring:
+
+```json
+{
+  "id": "compliance",
+  "name": "Compliance",
+  "icon": "📋",
+  "color": "#e67e22",
+  "description": "Tracks compliance with relevant standards and regulations.",
+  "levels": [
+    { "level": 1, "label": "No compliance activity" },
+    { "level": 2, "label": "Awareness only" },
+    { "level": 3, "label": "Partially compliant" },
+    { "level": 4, "label": "Fully compliant, evidence maintained" },
+    { "level": 5, "label": "Continuous compliance monitoring" }
+  ]
+}
+```
+
+> ⚠️ If you change a measure `id` or capability `id`, existing assessment data using the old id will no longer match. Rename ids before recording assessments, or update your JSON database manually.
 
 ---
 
 ## Database
 
 This app uses a **JSON file as its database**. Your data is:
-- Stored in your browser's `localStorage` automatically as you work
+- Stored in your **browser's localStorage** automatically as you work
 - Exported as a `.json` file when you click **↓ Export**
-- Re-imported using the **↑ Import** button
+- Re-imported using the **↑ Import** button (merges with existing data)
 
-> **Tip:** Export your JSON regularly and save it somewhere safe (e.g. your repo, OneDrive, or email it to yourself).
+> **Tip:** Export regularly and save your JSON file to a safe location (OneDrive, your repo, email).
 
-The `sample-data.json` file in this repo shows the expected format.
+The `sample-data.json` file shows the expected format for assessments.
 
 ---
 
 ## Getting Started on GitHub Pages
 
-1. **Fork or push this repo** to your GitHub account at `github.com/netblue4/CapabilityMaturity`
+1. **Push all files** to `github.com/netblue4/CapabilityMaturity`
 
 2. **Enable GitHub Pages:**
-   - Go to your repo → **Settings** → **Pages**
-   - Under *Source*, select `main` branch and `/ (root)` folder
+   - Repo → **Settings** → **Pages**
+   - Source: `main` branch, `/ (root)`
    - Click **Save**
-   - Your app will be live at: `https://netblue4.github.io/CapabilityMaturity/`
+   - Live at: `https://netblue4.github.io/CapabilityMaturity/`
 
-3. **Open the app** and click **+ New Assessment** to score your first assessment.
+3. **Open the app** and click **+ New Assessment**
 
-4. Optionally, **↑ Import** the `sample-data.json` to see example data.
+4. Optionally **↑ Import** `sample-data.json` to see example data
 
 ---
 
-## Customising Capabilities
+## Important: Running Locally
 
-Edit `config.js` to:
-- Add or remove capabilities from the `capabilities` array
-- Change the maturity level descriptions
-- Update the app title
+Because `config.json` is loaded via `fetch()`, the app must be served over HTTP — it will not work if you open `index.html` directly as a `file://` URL.
 
-No other files need to change.
+**Easy options:**
+- **VS Code:** Install the *Live Server* extension → right-click `index.html` → *Open with Live Server*
+- **Python:** Run `python -m http.server 8080` in the project folder, then open `http://localhost:8080`
+- **GitHub Pages:** Always works once deployed
 
 ---
 
@@ -85,12 +145,12 @@ No other files need to change.
 
 ```
 CapabilityMaturity/
-├── index.html        — Main app page
-├── style.css         — All styling (dark industrial theme)
-├── app.js            — All application logic
-├── config.js         — Capability definitions & level descriptions
-├── sample-data.json  — Example JSON database
-└── README.md         — This file
+├── index.html          — Main app page
+├── style.css           — Styling (dark industrial theme)
+├── app.js              — All application logic
+├── config.json         — Edit this to customise capabilities & measures
+├── sample-data.json    — Example assessment data
+└── README.md           — This file
 ```
 
 ---
@@ -99,4 +159,4 @@ CapabilityMaturity/
 
 - Plain HTML, CSS, and JavaScript — no frameworks, no build tools
 - Hosted on GitHub Pages (free)
-- No backend, no API keys required
+- No backend, no API keys, no dependencies

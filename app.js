@@ -1,18 +1,43 @@
 // ============================================================
 // app.js — ICT Capability Maturity Tracker
+// Loads config from config.json, stores data in localStorage
+// with JSON export/import as the user's portable database.
 // ============================================================
 
-// ── State ────────────────────────────────────────────────────
+let CONFIG = null;
 let db = { assessments: [] };
 let editingId = null;
+let currentDetailId = null;
 
-// ── Init ─────────────────────────────────────────────────────
+// ── Bootstrap ────────────────────────────────────────────────
+// Load config.json first, then initialise the app.
 document.addEventListener("DOMContentLoaded", () => {
-  loadFromLocalStorage();
-  setDefaultDate();
-  buildCapabilityFields();
-  renderDashboard();
-  bindEvents();
+  fetch("config.json")
+    .then(r => {
+      if (!r.ok) throw new Error("Could not load config.json");
+      return r.json();
+    })
+    .then(cfg => {
+      CONFIG = cfg;
+      document.getElementById("app-title").textContent = CONFIG.appTitle || "ICT Capability Maturity Tracker";
+      document.title = CONFIG.appTitle || "ICT Capability Maturity Tracker";
+      loadFromLocalStorage();
+      setDefaultDate();
+      buildCapabilityFields();
+      renderDashboard();
+      bindEvents();
+      document.getElementById("loading-overlay").style.display = "none";
+      document.getElementById("app-main").style.display = "block";
+    })
+    .catch(err => {
+      document.getElementById("loading-overlay").innerHTML =
+        `<div class="loading-inner" style="color:#e74c3c">
+           <span style="font-size:2rem">⚠️</span>
+           <p><strong>Could not load config.json</strong></p>
+           <p style="font-size:.85rem">${err.message}</p>
+           <p style="font-size:.8rem;opacity:.6">Make sure config.json is in the same folder as index.html.</p>
+         </div>`;
+    });
 });
 
 // ── Storage ──────────────────────────────────────────────────
@@ -20,14 +45,14 @@ function loadFromLocalStorage() {
   try {
     const saved = localStorage.getItem("ict_maturity_db");
     if (saved) db = JSON.parse(saved);
-  } catch (e) { console.warn("Could not load local storage", e); }
+  } catch (e) { console.warn("Could not load localStorage", e); }
 }
 
 function saveToLocalStorage() {
   localStorage.setItem("ict_maturity_db", JSON.stringify(db));
 }
 
-// ── Event Bindings ───────────────────────────────────────────
+// ── Events ───────────────────────────────────────────────────
 function bindEvents() {
   document.getElementById("btn-new-assessment").addEventListener("click", () => openAssessmentForm(null));
   document.getElementById("btn-back").addEventListener("click", () => showView("dashboard"));
@@ -37,6 +62,9 @@ function bindEvents() {
   document.getElementById("import-file").addEventListener("change", importJSON);
   document.getElementById("assessment-form").addEventListener("submit", saveAssessment);
   document.getElementById("btn-delete-assessment").addEventListener("click", deleteCurrentAssessment);
+  document.getElementById("btn-edit-from-detail").addEventListener("click", () => {
+    if (currentDetailId) openAssessmentForm(currentDetailId);
+  });
 }
 
 // ── Views ────────────────────────────────────────────────────
@@ -48,6 +76,7 @@ function showView(name) {
 
 // ── Dashboard ────────────────────────────────────────────────
 function renderDashboard() {
+  if (!CONFIG) return;
   const hasData = db.assessments.length > 0;
   document.getElementById("no-data-message").style.display = hasData ? "none" : "flex";
   document.getElementById("dashboard-content").style.display = hasData ? "block" : "none";
@@ -55,57 +84,116 @@ function renderDashboard() {
 
   const latest = db.assessments[db.assessments.length - 1];
   renderScoreList(latest);
-  renderRadar(latest);
+  renderRadar("radar-chart", latest);
+  renderMeasureSummary(latest);
   renderHistory();
 }
 
+// Overall score list (average of measures per capability)
 function renderScoreList(assessment) {
   const container = document.getElementById("score-list");
   container.innerHTML = CONFIG.capabilities.map(cap => {
-    const score = assessment.scores[cap.id] || 0;
-    const level = CONFIG.levels[score - 1];
+    const avg = capAvgScore(assessment, cap.id);
+    const level = levelForScore(avg);
     return `
       <div class="score-row">
-        <span class="score-cap-name">${cap.name}</span>
+        <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
         <div class="score-bar-wrap">
-          <div class="score-bar" style="width:${(score/5)*100}%; background:${level ? level.color : '#ccc'}"></div>
+          <div class="score-bar" style="width:${(avg/5)*100}%; background:${level ? level.color : '#ccc'}"></div>
         </div>
-        <span class="score-badge" style="background:${level ? level.color : '#ccc'}">${score > 0 ? score + ' · ' + level.name : '—'}</span>
+        <span class="score-badge" style="background:${level ? level.color : '#555'}">
+          ${avg > 0 ? avg.toFixed(1) + ' · ' + level.name : '—'}
+        </span>
       </div>`;
   }).join("");
 
-  const meta = document.getElementById("latest-meta");
-  const avg = calcAvg(assessment);
-  const avgLevel = CONFIG.levels[Math.round(avg) - 1] || CONFIG.levels[0];
-  meta.innerHTML = `
+  const overall = overallAvg(assessment);
+  const avgLevel = levelForScore(overall);
+  document.getElementById("latest-meta").innerHTML = `
     <div class="avg-score">
-      <span class="avg-label">Average Score</span>
-      <span class="avg-value" style="color:${avgLevel.color}">${avg} / 5</span>
-      <span class="avg-level-name">${avgLevel.name}</span>
+      <span class="avg-label">Overall Average</span>
+      <span class="avg-value" style="color:${avgLevel ? avgLevel.color : '#fff'}">${overall.toFixed(1)} / 5</span>
+      <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
     </div>
     <div class="latest-info">📅 ${formatDate(assessment.date)} &nbsp;·&nbsp; ${assessment.label}</div>`;
 }
 
+// Three measure summary cards
+function renderMeasureSummary(assessment) {
+  const row = document.getElementById("measure-summary-row");
+  row.innerHTML = CONFIG.measures.map(m => {
+    const scores = CONFIG.capabilities.map(cap => {
+      const s = getMeasureScore(assessment, cap.id, m.id);
+      return s || 0;
+    });
+    const valid = scores.filter(s => s > 0);
+    const avg = valid.length ? valid.reduce((a,b) => a+b, 0) / valid.length : 0;
+    const level = levelForScore(avg);
+    const bars = CONFIG.capabilities.map((cap, i) => {
+      const s = scores[i];
+      const lv = levelForScore(s);
+      return `<div class="mini-bar-row">
+        <span class="mini-bar-label">${shortName(cap.name)}</span>
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : '#444'}"></div>
+        </div>
+        <span class="mini-bar-val">${s || '—'}</span>
+      </div>`;
+    }).join("");
+
+    return `
+      <div class="card measure-card">
+        <div class="measure-card-header">
+          <span class="measure-icon">${m.icon}</span>
+          <div>
+            <h3 class="measure-card-title">${m.name}</h3>
+            <p class="measure-card-desc">${m.description}</p>
+          </div>
+          <span class="measure-avg-badge" style="background:${level ? level.color : '#555'}">
+            ${avg > 0 ? avg.toFixed(1) : '—'}
+          </span>
+        </div>
+        <div class="mini-bars">${bars}</div>
+      </div>`;
+  }).join("");
+}
+
+// History table
 function renderHistory() {
   const caps = CONFIG.capabilities;
-  document.getElementById("th-caps").colSpan = caps.length;
-  document.getElementById("th-caps").innerHTML = caps.map(c => `<span class="th-cap">${shortName(c.name)}</span>`).join("");
+  const measures = CONFIG.measures;
+
+  // Build thead
+  document.getElementById("history-thead").innerHTML = `
+    <tr>
+      <th rowspan="2">Date</th>
+      <th rowspan="2">Label</th>
+      ${caps.map(c => `<th colspan="${measures.length}" class="th-cap-group">${shortName(c.name)}</th>`).join("")}
+      <th rowspan="2">Avg</th>
+      <th rowspan="2">Actions</th>
+    </tr>
+    <tr>
+      ${caps.map(() => measures.map(m => `<th class="th-measure" title="${m.name}">${m.icon}</th>`).join("")).join("")}
+    </tr>`;
 
   const tbody = document.getElementById("history-tbody");
   const rows = [...db.assessments].reverse();
   tbody.innerHTML = rows.map((a, i) => {
     const isLatest = i === 0;
-    const capCells = caps.map(cap => {
-      const s = a.scores[cap.id] || 0;
-      const lv = CONFIG.levels[s - 1];
-      return `<td><span class="level-dot" style="background:${lv ? lv.color : '#ddd'}" title="${lv ? lv.name : 'Not scored'}">${s || '—'}</span></td>`;
-    }).join("");
+    const capCells = caps.map(cap =>
+      measures.map(m => {
+        const s = getMeasureScore(a, cap.id, m.id);
+        const lv = levelForScore(s);
+        return `<td><span class="level-dot" style="background:${lv ? lv.color : '#333'}" title="${lv ? lv.name : 'Not scored'}">${s || '—'}</span></td>`;
+      }).join("")
+    ).join("");
+
     return `
       <tr class="${isLatest ? 'row-latest' : ''}">
         <td>${formatDate(a.date)}</td>
         <td>${a.label}${isLatest ? ' <span class="tag-latest">latest</span>' : ''}</td>
         ${capCells}
-        <td><strong>${calcAvg(a)}</strong></td>
+        <td><strong>${overallAvg(a).toFixed(1)}</strong></td>
         <td>
           <button class="btn-link" onclick="viewAssessment('${a.id}')">View</button>
           <button class="btn-link" onclick="openAssessmentForm('${a.id}')">Edit</button>
@@ -114,13 +202,14 @@ function renderHistory() {
   }).join("");
 }
 
-// ── Radar Chart ──────────────────────────────────────────────
-function renderRadar(assessment) {
-  const canvas = document.getElementById("radar-chart");
+// ── Radar (average score per capability) ─────────────────────
+function renderRadar(canvasId, assessment) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const cx = W / 2, cy = H / 2;
-  const maxR = Math.min(cx, cy) - 50;
+  const maxR = Math.min(cx, cy) - 52;
   const caps = CONFIG.capabilities;
   const N = caps.length;
   const angleStep = (2 * Math.PI) / N;
@@ -134,18 +223,17 @@ function renderRadar(assessment) {
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const a = startAngle + i * angleStep;
-      const x = cx + r * Math.cos(a);
-      const y = cy + r * Math.sin(a);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
+              : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
     }
     ctx.closePath();
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = "rgba(255,255,255,0.07)";
     ctx.lineWidth = 1;
     ctx.stroke();
-    // Level label
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.font = "10px Space Mono, monospace";
-    ctx.fillText(lvl, cx + r * Math.cos(startAngle) + 4, cy + r * Math.sin(startAngle) - 4);
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.font = "9px Space Mono, monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(lvl, cx + r * Math.cos(startAngle) + 3, cy + r * Math.sin(startAngle) - 3);
   }
 
   // Spokes
@@ -154,33 +242,50 @@ function renderRadar(assessment) {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(cx + maxR * Math.cos(a), cy + maxR * Math.sin(a));
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 1;
     ctx.stroke();
   }
 
-  // Data polygon
-  const scores = caps.map(c => assessment.scores[c.id] || 0);
+  // Draw one polygon per measure (semi-transparent)
+  CONFIG.measures.forEach(m => {
+    const scores = caps.map(c => getMeasureScore(assessment, c.id, m.id) || 0);
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const a = startAngle + i * angleStep;
+      const r = (scores[i] / 5) * maxR;
+      i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
+              : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.fillStyle = hexToRgba(m.color, 0.1);
+    ctx.fill();
+    ctx.strokeStyle = hexToRgba(m.color, 0.6);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // Average polygon (bold)
+  const avgScores = caps.map(c => capAvgScore(assessment, c.id));
   ctx.beginPath();
   for (let i = 0; i < N; i++) {
     const a = startAngle + i * angleStep;
-    const r = (scores[i] / 5) * maxR;
-    const x = cx + r * Math.cos(a);
-    const y = cy + r * Math.sin(a);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    const r = (avgScores[i] / 5) * maxR;
+    i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
+            : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
   }
   ctx.closePath();
-  ctx.fillStyle = "rgba(52, 152, 219, 0.25)";
+  ctx.fillStyle = "rgba(52,152,219,0.15)";
   ctx.fill();
   ctx.strokeStyle = "#3498db";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // Dots
+  // Average dots
   for (let i = 0; i < N; i++) {
     const a = startAngle + i * angleStep;
-    const r = (scores[i] / 5) * maxR;
-    const lv = CONFIG.levels[scores[i] - 1];
+    const r = (avgScores[i] / 5) * maxR;
+    const lv = levelForScore(avgScores[i]);
     ctx.beginPath();
     ctx.arc(cx + r * Math.cos(a), cy + r * Math.sin(a), 5, 0, 2 * Math.PI);
     ctx.fillStyle = lv ? lv.color : "#888";
@@ -188,129 +293,180 @@ function renderRadar(assessment) {
   }
 
   // Labels
-  ctx.font = "bold 11px DM Sans, sans-serif";
   for (let i = 0; i < N; i++) {
     const a = startAngle + i * angleStep;
-    const labelR = maxR + 30;
+    const labelR = maxR + 28;
     const x = cx + labelR * Math.cos(a);
     const y = cy + labelR * Math.sin(a);
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.font = "bold 10px DM Sans, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const words = shortName(caps[i].name).split(" ");
     words.forEach((w, wi) => {
-      ctx.fillText(w, x, y + (wi - (words.length - 1) / 2) * 14);
+      ctx.fillText(w, x, y + (wi - (words.length - 1) / 2) * 13);
     });
   }
+
+  // Legend
+  const legendX = 8, legendY = H - CONFIG.measures.length * 16 - 8;
+  CONFIG.measures.forEach((m, i) => {
+    ctx.fillStyle = m.color;
+    ctx.fillRect(legendX, legendY + i * 16, 10, 10);
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.font = "9px DM Sans, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(m.name, legendX + 14, legendY + i * 16);
+  });
 }
 
 // ── Assessment Form ──────────────────────────────────────────
-function openAssessmentForm(id) {
-  editingId = id;
-  const form = document.getElementById("assessment-form");
-  form.reset();
-  document.getElementById("assessment-form-title").textContent = id ? "Edit Assessment" : "New Assessment";
-  setDefaultDate();
-
-  if (id) {
-    const a = db.assessments.find(x => x.id === id);
-    if (a) {
-      document.getElementById("assessment-label").value = a.label;
-      document.getElementById("assessment-date").value = a.date;
-      document.getElementById("assessment-notes").value = a.notes || "";
-      CONFIG.capabilities.forEach(cap => {
-        const slider = document.getElementById("score-" + cap.id);
-        const note = document.getElementById("note-" + cap.id);
-        const target = document.getElementById("target-" + cap.id);
-        if (slider) slider.value = a.scores[cap.id] || 1;
-        if (note) note.value = (a.capNotes && a.capNotes[cap.id]) || "";
-        if (target) target.value = (a.targets && a.targets[cap.id]) || 3;
-        updateSliderDisplay(cap.id, a.scores[cap.id] || 1);
-        updateTargetDisplay(cap.id, (a.targets && a.targets[cap.id]) || 3);
-      });
-    }
-  } else {
-    CONFIG.capabilities.forEach(cap => {
-      updateSliderDisplay(cap.id, 1);
-      updateTargetDisplay(cap.id, 3);
-    });
-  }
-  showView("assessment");
-}
-
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
   container.innerHTML = CONFIG.capabilities.map(cap => `
-    <div class="card cap-card">
+    <div class="card cap-card" id="capcard-${cap.id}">
       <div class="cap-card-header">
         <div>
           <h3 class="cap-name">${cap.name}</h3>
           <p class="cap-desc">${cap.description}</p>
         </div>
       </div>
-      ${cap.questions ? `
-      <details class="guiding-questions">
-        <summary>Guiding questions</summary>
-        <ul>${cap.questions.map(q => `<li>${q}</li>`).join("")}</ul>
-      </details>` : ""}
-      <div class="score-section">
-        <div class="slider-row">
-          <label>Current Maturity Level</label>
-          <div class="slider-wrap">
-            <input type="range" min="1" max="5" value="1" id="score-${cap.id}"
-              oninput="updateSliderDisplay('${cap.id}', this.value)" />
-            <div class="slider-labels">
-              ${CONFIG.levels.map(l => `<span>${l.level}</span>`).join("")}
+
+      <div class="measures-grid">
+        ${CONFIG.measures.map(m => `
+          <div class="measure-block" style="--m-color:${m.color}">
+            <div class="measure-block-header">
+              <span class="measure-icon-sm">${m.icon}</span>
+              <span class="measure-block-name">${m.name}</span>
+            </div>
+            <p class="measure-block-desc">${m.description}</p>
+
+            <div class="slider-row">
+              <div class="slider-wrap">
+                <input type="range" min="1" max="5" value="1"
+                  id="score-${cap.id}-${m.id}"
+                  oninput="updateMeasureDisplay('${cap.id}','${m.id}',this.value)" />
+                <div class="slider-labels">
+                  <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                </div>
+              </div>
+              <div id="display-${cap.id}-${m.id}" class="level-display"></div>
+            </div>
+
+            <div class="form-row" style="margin-top:.5rem">
+              <label>Target Level</label>
+              <div class="slider-wrap">
+                <input type="range" min="1" max="5" value="3"
+                  id="target-${cap.id}-${m.id}"
+                  oninput="updateTargetDisplay('${cap.id}','${m.id}',this.value)" />
+                <div class="slider-labels">
+                  <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                </div>
+              </div>
+              <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
+            </div>
+
+            <div class="form-row" style="margin-top:.5rem">
+              <label>Notes</label>
+              <textarea id="note-${cap.id}-${m.id}" rows="2"
+                placeholder="${m.name} observations for ${cap.name}…"></textarea>
             </div>
           </div>
-          <div id="display-${cap.id}" class="level-display"></div>
-        </div>
-        <div class="slider-row">
-          <label>Target Level</label>
-          <div class="slider-wrap">
-            <input type="range" min="1" max="5" value="3" id="target-${cap.id}"
-              oninput="updateTargetDisplay('${cap.id}', this.value)" />
-            <div class="slider-labels">
-              ${CONFIG.levels.map(l => `<span>${l.level}</span>`).join("")}
-            </div>
-          </div>
-          <div id="target-display-${cap.id}" class="level-display target"></div>
-        </div>
-        <div class="form-row">
-          <label>Notes for this capability</label>
-          <textarea id="note-${cap.id}" rows="2" placeholder="Observations, gaps, actions..."></textarea>
-        </div>
+        `).join("")}
+      </div>
+
+      <div class="form-row" style="margin-top:1rem">
+        <label>Overall notes for this capability</label>
+        <textarea id="capnote-${cap.id}" rows="2" placeholder="General observations…"></textarea>
       </div>
     </div>
   `).join("");
 }
 
-function updateSliderDisplay(capId, value) {
+function openAssessmentForm(id) {
+  editingId = id;
+  document.getElementById("assessment-form").reset();
+  document.getElementById("assessment-form-title").textContent = id ? "Edit Assessment" : "New Assessment";
+  setDefaultDate();
+
+  if (id) {
+    const a = db.assessments.find(x => x.id === id);
+    if (a) {
+      document.getElementById("assessment-label").value = a.label || "";
+      document.getElementById("assessment-date").value = a.date || "";
+      document.getElementById("assessment-notes").value = a.notes || "";
+      CONFIG.capabilities.forEach(cap => {
+        document.getElementById("capnote-" + cap.id).value =
+          (a.capNotes && a.capNotes[cap.id]) || "";
+        CONFIG.measures.forEach(m => {
+          const score = getMeasureScore(a, cap.id, m.id) || 1;
+          const target = getMeasureTarget(a, cap.id, m.id) || 3;
+          const note = getMeasureNote(a, cap.id, m.id) || "";
+          setSlider(`score-${cap.id}-${m.id}`, score);
+          setSlider(`target-${cap.id}-${m.id}`, target);
+          const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
+          if (noteEl) noteEl.value = note;
+          updateMeasureDisplay(cap.id, m.id, score);
+          updateTargetDisplay(cap.id, m.id, target);
+        });
+      });
+    }
+  } else {
+    CONFIG.capabilities.forEach(cap => {
+      CONFIG.measures.forEach(m => {
+        setSlider(`score-${cap.id}-${m.id}`, 1);
+        setSlider(`target-${cap.id}-${m.id}`, 3);
+        updateMeasureDisplay(cap.id, m.id, 1);
+        updateTargetDisplay(cap.id, m.id, 3);
+      });
+    });
+  }
+  showView("assessment");
+}
+
+function setSlider(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+
+function updateMeasureDisplay(capId, measureId, value) {
   const v = parseInt(value);
-  const level = CONFIG.levels[v - 1];
-  const el = document.getElementById("display-" + capId);
-  if (el && level) {
-    el.innerHTML = `<span class="lvl-badge" style="background:${level.color}">${v} · ${level.name}</span><span class="lvl-desc">${level.description}</span>`;
+  const measure = CONFIG.measures.find(m => m.id === measureId);
+  const levelLabel = measure ? (measure.levels.find(l => l.level === v) || {}).label : null;
+  const lv = CONFIG.levels[v - 1];
+  const el = document.getElementById(`display-${capId}-${measureId}`);
+  if (el && lv) {
+    el.innerHTML = `<span class="lvl-badge" style="background:${lv.color}">${v} · ${lv.name}</span>
+      ${levelLabel ? `<span class="lvl-desc">${levelLabel}</span>` : ""}`;
   }
 }
 
-function updateTargetDisplay(capId, value) {
+function updateTargetDisplay(capId, measureId, value) {
   const v = parseInt(value);
-  const level = CONFIG.levels[v - 1];
-  const el = document.getElementById("target-display-" + capId);
-  if (el && level) {
-    el.innerHTML = `<span class="lvl-badge target-badge" style="border-color:${level.color};color:${level.color}">${v} · ${level.name}</span>`;
+  const lv = CONFIG.levels[v - 1];
+  const el = document.getElementById(`target-display-${capId}-${measureId}`);
+  if (el && lv) {
+    el.innerHTML = `<span class="lvl-badge target-badge" style="border-color:${lv.color};color:${lv.color}">${v} · ${lv.name}</span>`;
   }
 }
 
 // ── Save / Delete ────────────────────────────────────────────
 function saveAssessment(e) {
   e.preventDefault();
-  const scores = {}, capNotes = {}, targets = {};
+
+  // measureScores[capId][measureId] = score
+  const measureScores = {}, measureTargets = {}, measureNotes = {}, capNotes = {};
   CONFIG.capabilities.forEach(cap => {
-    scores[cap.id] = parseInt(document.getElementById("score-" + cap.id).value);
-    capNotes[cap.id] = document.getElementById("note-" + cap.id).value.trim();
-    targets[cap.id] = parseInt(document.getElementById("target-" + cap.id).value);
+    measureScores[cap.id] = {};
+    measureTargets[cap.id] = {};
+    measureNotes[cap.id] = {};
+    capNotes[cap.id] = document.getElementById("capnote-" + cap.id).value.trim();
+    CONFIG.measures.forEach(m => {
+      measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
+      measureTargets[cap.id][m.id] = parseInt(document.getElementById(`target-${cap.id}-${m.id}`).value);
+      measureNotes[cap.id][m.id] = document.getElementById(`note-${cap.id}-${m.id}`).value.trim();
+    });
   });
 
   const assessment = {
@@ -318,9 +474,10 @@ function saveAssessment(e) {
     label: document.getElementById("assessment-label").value.trim(),
     date: document.getElementById("assessment-date").value,
     notes: document.getElementById("assessment-notes").value.trim(),
-    scores,
-    capNotes,
-    targets
+    measureScores,
+    measureTargets,
+    measureNotes,
+    capNotes
   };
 
   if (editingId) {
@@ -329,69 +486,97 @@ function saveAssessment(e) {
   } else {
     db.assessments.push(assessment);
   }
-
-  // Sort by date
   db.assessments.sort((a, b) => a.date.localeCompare(b.date));
   saveToLocalStorage();
   editingId = null;
   showView("dashboard");
 }
 
-let currentDetailId = null;
-
+// ── Detail View ──────────────────────────────────────────────
 function viewAssessment(id) {
   currentDetailId = id;
   const a = db.assessments.find(x => x.id === id);
   if (!a) return;
   document.getElementById("detail-title").textContent = `${a.label} — ${formatDate(a.date)}`;
+
   const content = document.getElementById("detail-content");
-  const avg = calcAvg(a);
-  const avgLevel = CONFIG.levels[Math.round(avg) - 1] || CONFIG.levels[0];
+  const overall = overallAvg(a);
+  const avgLevel = levelForScore(overall);
+
+  // Per-capability detail rows
+  const capRows = CONFIG.capabilities.map(cap => {
+    const measureCells = CONFIG.measures.map(m => {
+      const score = getMeasureScore(a, cap.id, m.id) || 0;
+      const target = getMeasureTarget(a, cap.id, m.id) || 0;
+      const note = getMeasureNote(a, cap.id, m.id) || "";
+      const lv = levelForScore(score);
+      const tlv = levelForScore(target);
+      const mlabel = m.levels.find(l => l.level === score);
+      return `
+        <div class="detail-measure-cell">
+          <div class="detail-measure-header">
+            <span class="measure-icon-sm">${m.icon}</span>
+            <span class="detail-measure-name">${m.name}</span>
+          </div>
+          <div class="detail-measure-scores">
+            <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score > 0 ? score + ' · ' + lv.name : '—'}</span>
+            ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#888'};color:${tlv ? tlv.color : '#888'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
+          </div>
+          ${mlabel ? `<div class="detail-measure-label">${mlabel.label}</div>` : ''}
+          ${note ? `<div class="detail-cap-note">${note}</div>` : ''}
+        </div>`;
+    }).join("");
+
+    const capNote = a.capNotes ? a.capNotes[cap.id] : "";
+    const capAvg = capAvgScore(a, cap.id);
+    const capLv = levelForScore(capAvg);
+
+    return `
+      <div class="card detail-cap-card">
+        <div class="detail-cap-card-header">
+          <div>
+            <h3 class="detail-cap-title">${cap.name}</h3>
+            ${capNote ? `<p class="detail-cap-note">${capNote}</p>` : ""}
+          </div>
+          <span class="lvl-badge" style="background:${capLv ? capLv.color : '#555'};font-size:.8rem">
+            Avg ${capAvg > 0 ? capAvg.toFixed(1) : '—'}
+          </span>
+        </div>
+        <div class="detail-measures-grid">${measureCells}</div>
+      </div>`;
+  }).join("");
 
   content.innerHTML = `
-    <div class="dashboard-grid">
+    <div class="dashboard-grid" style="margin-bottom:1.25rem">
       <div class="card radar-card">
         <h3 class="card-title">Maturity Radar</h3>
-        <canvas id="detail-radar" width="380" height="380"></canvas>
+        <canvas id="detail-radar-canvas" width="360" height="360"></canvas>
       </div>
-      <div class="card summary-card">
-        <h3 class="card-title">Scores</h3>
+      <div class="card">
+        <h3 class="card-title">Summary</h3>
         ${CONFIG.capabilities.map(cap => {
-          const score = a.scores[cap.id] || 0;
-          const target = a.targets ? (a.targets[cap.id] || 0) : 0;
-          const lv = CONFIG.levels[score - 1];
-          const tlv = CONFIG.levels[target - 1];
-          const note = a.capNotes ? a.capNotes[cap.id] : "";
-          return `
-            <div class="detail-cap-row">
-              <div class="detail-cap-name">${cap.name}</div>
-              <div class="detail-cap-scores">
-                <span class="lvl-badge" style="background:${lv ? lv.color : '#888'}">${score} · ${lv ? lv.name : '—'}</span>
-                ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#888'};color:${tlv ? tlv.color : '#888'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
-              </div>
-              ${note ? `<div class="detail-cap-note">${note}</div>` : ''}
-            </div>`;
+          const avg = capAvgScore(a, cap.id);
+          const lv = levelForScore(avg);
+          return `<div class="score-row">
+            <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
+            <div class="score-bar-wrap">
+              <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
+            </div>
+            <span class="score-badge" style="background:${lv ? lv.color : '#555'}">${avg > 0 ? avg.toFixed(1) + ' · ' + lv.name : '—'}</span>
+          </div>`;
         }).join("")}
-        <div class="avg-score" style="margin-top:1rem">
-          <span class="avg-label">Average</span>
-          <span class="avg-value" style="color:${avgLevel.color}">${avg} / 5</span>
-          <span class="avg-level-name">${avgLevel.name}</span>
+        <div class="avg-score">
+          <span class="avg-label">Overall</span>
+          <span class="avg-value" style="color:${avgLevel ? avgLevel.color : '#fff'}">${overall.toFixed(1)} / 5</span>
+          <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
         </div>
+        ${a.notes ? `<p style="margin-top:.75rem;font-size:.85rem;color:var(--text-muted);border-top:1px solid var(--border);padding-top:.75rem">${a.notes}</p>` : ''}
       </div>
     </div>
-    ${a.notes ? `<div class="card"><h3 class="card-title">Notes</h3><p>${a.notes}</p></div>` : ''}`;
+    ${capRows}`;
 
   showView("detail");
-  setTimeout(() => {
-    const detailCanvas = document.getElementById("detail-radar");
-    if (detailCanvas) renderRadar(a);
-    // swap canvas id temporarily
-    const orig = document.getElementById("radar-chart");
-    detailCanvas.id = "radar-chart";
-    renderRadar(a);
-    detailCanvas.id = "detail-radar";
-    if (orig) orig.id = "radar-chart";
-  }, 50);
+  setTimeout(() => renderRadar("detail-radar-canvas", a), 60);
 }
 
 function deleteCurrentAssessment() {
@@ -422,8 +607,7 @@ function importJSON(e) {
     try {
       const imported = JSON.parse(evt.target.result);
       if (imported.assessments) {
-        if (confirm(`Import ${imported.assessments.length} assessment(s)? This will merge with existing data.`)) {
-          // Merge: add records that don't already exist by id
+        if (confirm(`Import ${imported.assessments.length} assessment(s)? Existing records with the same ID will be skipped.`)) {
           imported.assessments.forEach(a => {
             if (!db.assessments.find(x => x.id === a.id)) db.assessments.push(a);
           });
@@ -433,27 +617,58 @@ function importJSON(e) {
           alert("Import successful!");
         }
       } else {
-        alert("Invalid file: missing assessments array.");
+        alert("Invalid file: expected an object with an 'assessments' array.");
       }
-    } catch {
-      alert("Could not parse JSON file.");
-    }
+    } catch { alert("Could not parse the JSON file. Please check it is valid."); }
   };
   reader.readAsText(file);
   e.target.value = "";
 }
 
-// ── Helpers ──────────────────────────────────────────────────
-function calcAvg(assessment) {
-  const vals = CONFIG.capabilities.map(c => assessment.scores[c.id] || 0).filter(v => v > 0);
-  if (!vals.length) return 0;
-  return (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1);
+// ── Data Helpers ─────────────────────────────────────────────
+function getMeasureScore(assessment, capId, measureId) {
+  return assessment.measureScores && assessment.measureScores[capId]
+    ? assessment.measureScores[capId][measureId] || 0
+    : 0;
 }
 
+function getMeasureTarget(assessment, capId, measureId) {
+  return assessment.measureTargets && assessment.measureTargets[capId]
+    ? assessment.measureTargets[capId][measureId] || 0
+    : 0;
+}
+
+function getMeasureNote(assessment, capId, measureId) {
+  return assessment.measureNotes && assessment.measureNotes[capId]
+    ? assessment.measureNotes[capId][measureId] || ""
+    : "";
+}
+
+// Average of all measure scores for a capability
+function capAvgScore(assessment, capId) {
+  const vals = CONFIG.measures.map(m => getMeasureScore(assessment, capId, m.id)).filter(v => v > 0);
+  return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
+}
+
+// Overall average across all capabilities and measures
+function overallAvg(assessment) {
+  const vals = CONFIG.capabilities.flatMap(cap =>
+    CONFIG.measures.map(m => getMeasureScore(assessment, cap.id, m.id))
+  ).filter(v => v > 0);
+  return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;
+}
+
+function levelForScore(score) {
+  if (!score || score < 1) return null;
+  return CONFIG.levels[Math.round(score) - 1] || CONFIG.levels[CONFIG.levels.length - 1];
+}
+
+// ── UI Helpers ───────────────────────────────────────────────
 function formatDate(dateStr) {
   if (!dateStr) return "";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric"
+  });
 }
 
 function shortName(name) {
@@ -465,7 +680,13 @@ function shortName(name) {
 }
 
 function setDefaultDate() {
-  const today = new Date().toISOString().slice(0, 10);
-  const dateInput = document.getElementById("assessment-date");
-  if (dateInput && !dateInput.value) dateInput.value = today;
+  const el = document.getElementById("assessment-date");
+  if (el && !el.value) el.value = new Date().toISOString().slice(0, 10);
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }

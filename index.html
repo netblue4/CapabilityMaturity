@@ -15,14 +15,14 @@
       <div class="logo-block">
         <span class="logo-icon">◈</span>
         <div>
-          <h1 class="site-title">Capability Maturity</h1>
+          <h1 class="site-title" id="app-title">ICT Capability Maturity Tracker</h1>
           <p class="site-subtitle">ICT Process Excellence Tracker</p>
         </div>
       </div>
       <div class="header-actions">
         <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
-        <button id="btn-export" class="btn btn-outline" title="Export JSON">↓ Export</button>
-        <label class="btn btn-outline" title="Import JSON">
+        <button id="btn-export" class="btn btn-outline">↓ Export</button>
+        <label class="btn btn-outline">
           ↑ Import
           <input type="file" id="import-file" accept=".json" style="display:none" />
         </label>
@@ -30,9 +30,16 @@
     </div>
   </header>
 
-  <main class="main-content">
+  <div id="loading-overlay">
+    <div class="loading-inner">
+      <span class="logo-icon" style="font-size:2.5rem">◈</span>
+      <p>Loading configuration…</p>
+    </div>
+  </div>
 
-    <!-- Dashboard View -->
+  <main class="main-content" id="app-main" style="display:none">
+
+    <!-- Dashboard -->
     <section id="view-dashboard" class="view active">
       <div class="section-header">
         <h2>Dashboard</h2>
@@ -42,36 +49,30 @@
       <div id="no-data-message" class="empty-state" style="display:none">
         <div class="empty-icon">◈</div>
         <h3>No assessments yet</h3>
-        <p>Click <strong>+ New Assessment</strong> to score your first capability assessment.</p>
+        <p>Click <strong>+ New Assessment</strong> to begin tracking your ICT capabilities.</p>
         <p class="hint">Or <strong>↑ Import</strong> a previously saved JSON file.</p>
       </div>
 
       <div id="dashboard-content">
-        <!-- Radar + summary injected by JS -->
         <div class="dashboard-grid">
           <div class="card radar-card">
-            <h3 class="card-title">Maturity Radar</h3>
-            <canvas id="radar-chart" width="380" height="380"></canvas>
+            <h3 class="card-title">Overall Maturity Radar</h3>
+            <canvas id="radar-chart" width="360" height="360"></canvas>
           </div>
           <div class="card summary-card">
-            <h3 class="card-title">Latest Scores</h3>
+            <h3 class="card-title">Latest Capability Scores</h3>
             <div id="score-list"></div>
-            <div class="latest-meta" id="latest-meta"></div>
+            <div id="latest-meta"></div>
           </div>
         </div>
+
+        <div id="measure-summary-row" class="measure-summary-row"></div>
+
         <div class="card history-card">
           <h3 class="card-title">Assessment History</h3>
           <div id="history-table-wrap">
             <table id="history-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Label</th>
-                  <th id="th-caps"></th>
-                  <th>Avg Score</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+              <thead id="history-thead"></thead>
               <tbody id="history-tbody"></tbody>
             </table>
           </div>
@@ -79,17 +80,17 @@
       </div>
     </section>
 
-    <!-- Assessment Form View -->
+    <!-- Assessment Form -->
     <section id="view-assessment" class="view">
       <div class="section-header">
         <button id="btn-back" class="btn btn-ghost">← Back</button>
         <h2 id="assessment-form-title">New Assessment</h2>
       </div>
-      <form id="assessment-form">
+      <form id="assessment-form" autocomplete="off">
         <div class="form-meta card">
           <div class="form-row">
             <label for="assessment-label">Assessment Label</label>
-            <input type="text" id="assessment-label" placeholder="e.g. Q1 2026 Review" required />
+            <input type="text" id="assessment-label" placeholder="e.g. Q1 2026 Baseline Review" required />
           </div>
           <div class="form-row">
             <label for="assessment-date">Date</label>
@@ -97,7 +98,7 @@
           </div>
           <div class="form-row">
             <label for="assessment-notes">Overall Notes</label>
-            <textarea id="assessment-notes" rows="2" placeholder="General observations..."></textarea>
+            <textarea id="assessment-notes" rows="2" placeholder="General observations…"></textarea>
           </div>
         </div>
 
@@ -115,7 +116,10 @@
       <div class="section-header">
         <button id="btn-back-detail" class="btn btn-ghost">← Back</button>
         <h2 id="detail-title">Assessment Detail</h2>
-        <button id="btn-delete-assessment" class="btn btn-danger">Delete</button>
+        <div class="detail-actions">
+          <button id="btn-edit-from-detail" class="btn btn-outline">Edit</button>
+          <button id="btn-delete-assessment" class="btn btn-danger">Delete</button>
+        </div>
       </div>
       <div id="detail-content"></div>
     </section>
@@ -125,10 +129,9 @@
   <footer class="site-footer">
     <span>ICT Capability Maturity Tracker</span>
     <span class="footer-sep">|</span>
-    <span>Data stored locally in JSON · <a href="https://github.com/netblue4/CapabilityMaturity" target="_blank">GitHub</a></span>
+    <span>Data stored in JSON · <a href="https://github.com/netblue4/CapabilityMaturity" target="_blank">GitHub</a></span>
   </footer>
 
-  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

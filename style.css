@@ -144,6 +144,56 @@ body {
 .radar-card { display: flex; flex-direction: column; align-items: center; }
 .radar-card canvas { max-width: 100%; height: auto; }
 
+/* ── Radar Cap Filter ────────────────────────────────────── */
+.cap-filter { width: 100%; margin-bottom: 1rem; }
+.cap-filter-toggle {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  padding: .4rem .5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  user-select: none;
+  transition: border-color .15s, color .15s;
+}
+.cap-filter-toggle::-webkit-details-marker { display: none; }
+.cap-filter-toggle::before { content: "▶"; font-size: .6rem; transition: transform .2s; }
+details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
+.cap-filter-toggle:hover { border-color: var(--accent); color: var(--text); }
+.cap-filter-count {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: .65rem;
+  padding: .1rem .4rem;
+  border-radius: 4px;
+}
+.cap-filter-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: .4rem;
+  padding: .75rem .5rem .25rem;
+}
+.cap-filter-label {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .8rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color .15s;
+}
+.cap-filter-label:hover { color: var(--text); }
+.cap-filter-label input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+
 /* ── Score List ──────────────────────────────────────────── */
 .score-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }
 .score-cap-name { font-size: .8rem; color: var(--text-muted); width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -57,6 +57,10 @@
         <div class="dashboard-grid">
           <div class="card radar-card">
             <h3 class="card-title">Overall Maturity Radar</h3>
+            <details class="cap-filter" id="radar-cap-filter">
+              <summary class="cap-filter-toggle">Filter Capabilities <span class="cap-filter-count" id="cap-filter-count"></span></summary>
+              <div id="radar-cap-checkboxes" class="cap-filter-checks"></div>
+            </details>
             <canvas id="radar-chart" width="360" height="360"></canvas>
           </div>
           <div class="card summary-card">

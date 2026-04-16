@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setDefaultDate();
       buildCapabilityFields();
       buildDimensionSelector();
+      buildRadarFilter();
       renderDashboard();
       bindEvents();
       document.getElementById("loading-overlay").style.display = "none";
@@ -85,7 +86,7 @@ function renderDashboard() {
 
   const latest = db.assessments[db.assessments.length - 1];
   renderScoreList(latest);
-  renderRadar("radar-chart", latest);
+  renderRadar("radar-chart", latest, getSelectedRadarCaps());
   renderMeasureSummary(latest);
   renderHistory();
 }
@@ -203,15 +204,51 @@ function renderHistory() {
   }).join("");
 }
 
+// ── Radar Cap Filter ─────────────────────────────────────────
+function buildRadarFilter() {
+  const container = document.getElementById("radar-cap-checkboxes");
+  if (!container) return;
+  container.innerHTML = CONFIG.capabilities.map(cap => `
+    <label class="cap-filter-label">
+      <input type="checkbox" class="radar-cap-check" value="${cap.id}" checked
+        onchange="updateRadarFilter()" />
+      ${cap.name}
+    </label>
+  `).join("");
+  updateCapFilterCount();
+}
+
+function updateCapFilterCount() {
+  const total = CONFIG.capabilities.length;
+  const checked = document.querySelectorAll(".radar-cap-check:checked").length;
+  const el = document.getElementById("cap-filter-count");
+  if (el) el.textContent = checked < total ? `${checked} / ${total}` : total;
+}
+
+function getSelectedRadarCaps() {
+  const checked = new Set(
+    [...document.querySelectorAll(".radar-cap-check:checked")].map(el => el.value)
+  );
+  const selected = CONFIG.capabilities.filter(cap => checked.has(cap.id));
+  return selected.length > 0 ? selected : CONFIG.capabilities;
+}
+
+function updateRadarFilter() {
+  updateCapFilterCount();
+  if (db.assessments.length === 0) return;
+  const latest = db.assessments[db.assessments.length - 1];
+  renderRadar("radar-chart", latest, getSelectedRadarCaps());
+}
+
 // ── Radar (average score per capability) ─────────────────────
-function renderRadar(canvasId, assessment) {
+function renderRadar(canvasId, assessment, capsOverride) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const cx = W / 2, cy = H / 2;
   const maxR = Math.min(cx, cy) - 52;
-  const caps = CONFIG.capabilities;
+  const caps = capsOverride || CONFIG.capabilities;
   const N = caps.length;
   const angleStep = (2 * Math.PI) / N;
   const startAngle = -Math.PI / 2;

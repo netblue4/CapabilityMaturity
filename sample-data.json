@@ -1,0 +1,31 @@
+{
+  "assessments": [
+    {
+      "id": "sample-2026-q1",
+      "label": "Q1 2026 Baseline Assessment",
+      "date": "2026-01-15",
+      "notes": "First formal maturity assessment. Baseline established for all five ICT capabilities. Focus areas identified for Q2 improvement plan.",
+      "scores": {
+        "vulnerability_mgmt": 2,
+        "performance_capacity": 2,
+        "incident_mgmt": 3,
+        "change_mgmt": 3,
+        "disaster_recovery": 1
+      },
+      "targets": {
+        "vulnerability_mgmt": 4,
+        "performance_capacity": 3,
+        "incident_mgmt": 4,
+        "change_mgmt": 4,
+        "disaster_recovery": 3
+      },
+      "capNotes": {
+        "vulnerability_mgmt": "Ad-hoc scanning in place but no formal remediation SLA. Patching is reactive.",
+        "performance_capacity": "Basic monitoring exists but no capacity planning process. Thresholds not defined.",
+        "incident_mgmt": "ServiceDesk in place. Incidents logged and categorised. SLAs defined but not consistently met.",
+        "change_mgmt": "CAB exists and meets weekly. Change success rate not formally tracked yet.",
+        "disaster_recovery": "DRP document exists but is outdated. No DR test has been performed in 18 months."
+      }
+    }
+  ]
+}

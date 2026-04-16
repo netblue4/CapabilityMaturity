@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ICT Capability Maturity Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-block">
+        <span class="logo-icon">◈</span>
+        <div>
+          <h1 class="site-title">Capability Maturity</h1>
+          <p class="site-subtitle">ICT Process Excellence Tracker</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
+        <button id="btn-export" class="btn btn-outline" title="Export JSON">↓ Export</button>
+        <label class="btn btn-outline" title="Import JSON">
+          ↑ Import
+          <input type="file" id="import-file" accept=".json" style="display:none" />
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- Dashboard View -->
+    <section id="view-dashboard" class="view active">
+      <div class="section-header">
+        <h2>Dashboard</h2>
+        <p class="section-desc">Overview of your latest capability maturity scores</p>
+      </div>
+
+      <div id="no-data-message" class="empty-state" style="display:none">
+        <div class="empty-icon">◈</div>
+        <h3>No assessments yet</h3>
+        <p>Click <strong>+ New Assessment</strong> to score your first capability assessment.</p>
+        <p class="hint">Or <strong>↑ Import</strong> a previously saved JSON file.</p>
+      </div>
+
+      <div id="dashboard-content">
+        <!-- Radar + summary injected by JS -->
+        <div class="dashboard-grid">
+          <div class="card radar-card">
+            <h3 class="card-title">Maturity Radar</h3>
+            <canvas id="radar-chart" width="380" height="380"></canvas>
+          </div>
+          <div class="card summary-card">
+            <h3 class="card-title">Latest Scores</h3>
+            <div id="score-list"></div>
+            <div class="latest-meta" id="latest-meta"></div>
+          </div>
+        </div>
+        <div class="card history-card">
+          <h3 class="card-title">Assessment History</h3>
+          <div id="history-table-wrap">
+            <table id="history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Label</th>
+                  <th id="th-caps"></th>
+                  <th>Avg Score</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Assessment Form View -->
+    <section id="view-assessment" class="view">
+      <div class="section-header">
+        <button id="btn-back" class="btn btn-ghost">← Back</button>
+        <h2 id="assessment-form-title">New Assessment</h2>
+      </div>
+      <form id="assessment-form">
+        <div class="form-meta card">
+          <div class="form-row">
+            <label for="assessment-label">Assessment Label</label>
+            <input type="text" id="assessment-label" placeholder="e.g. Q1 2026 Review" required />
+          </div>
+          <div class="form-row">
+            <label for="assessment-date">Date</label>
+            <input type="date" id="assessment-date" required />
+          </div>
+          <div class="form-row">
+            <label for="assessment-notes">Overall Notes</label>
+            <textarea id="assessment-notes" rows="2" placeholder="General observations..."></textarea>
+          </div>
+        </div>
+
+        <div id="capability-fields"></div>
+
+        <div class="form-actions">
+          <button type="button" id="btn-cancel" class="btn btn-ghost">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Assessment</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Detail View -->
+    <section id="view-detail" class="view">
+      <div class="section-header">
+        <button id="btn-back-detail" class="btn btn-ghost">← Back</button>
+        <h2 id="detail-title">Assessment Detail</h2>
+        <button id="btn-delete-assessment" class="btn btn-danger">Delete</button>
+      </div>
+      <div id="detail-content"></div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <span>ICT Capability Maturity Tracker</span>
+    <span class="footer-sep">|</span>
+    <span>Data stored locally in JSON · <a href="https://github.com/netblue4/CapabilityMaturity" target="_blank">GitHub</a></span>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

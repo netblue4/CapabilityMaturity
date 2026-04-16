@@ -8,7 +8,6 @@ let CONFIG = null;
 let db = { assessments: [] };
 let editingId = null;
 let currentDetailId = null;
-let trendMode = "capability";
 
 // ── Bootstrap ────────────────────────────────────────────────
 // Load config.json first, then initialise the app.
@@ -88,7 +87,6 @@ function renderDashboard() {
   renderScoreList(latest);
   renderRadar("radar-chart", latest);
   renderMeasureSummary(latest);
-  renderTrendChart();
   renderHistory();
 }
 
@@ -726,146 +724,6 @@ function shortName(name) {
 function setDefaultDate() {
   const el = document.getElementById("assessment-date");
   if (el && !el.value) el.value = new Date().toISOString().slice(0, 10);
-}
-
-// ── Trend Chart ──────────────────────────────────────────────
-function setTrendMode(mode) {
-  trendMode = mode;
-  document.getElementById("trend-btn-cap").classList.toggle("active", mode === "capability");
-  document.getElementById("trend-btn-dim").classList.toggle("active", mode === "dimension");
-  renderTrendChart();
-}
-
-function renderTrendChart() {
-  const card = document.getElementById("trend-card");
-  if (db.assessments.length < 2) { card.style.display = "none"; return; }
-  card.style.display = "block";
-
-  const canvas = document.getElementById("trend-chart");
-  canvas.width = card.clientWidth - 48; // card has 1.5rem padding each side
-  const W = canvas.width, H = canvas.height;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, W, H);
-
-  const PAD = { top: 20, right: 24, bottom: 62, left: 44 };
-  const chartW = W - PAD.left - PAD.right;
-  const chartH = H - PAD.top - PAD.bottom;
-  const assessments = db.assessments;
-  const N = assessments.length;
-
-  const xPos = i => PAD.left + (N < 2 ? chartW / 2 : i * (chartW / (N - 1)));
-  const yPos = score => PAD.top + chartH - ((score - 1) / 4) * chartH;
-
-  // Maturity level background bands
-  CONFIG.levels.forEach((lv, i) => {
-    const yTop = yPos(Math.min(i + 2, 5));
-    const yBot = yPos(i + 1);
-    ctx.fillStyle = hexToRgba(lv.color, 0.045);
-    ctx.fillRect(PAD.left, yTop, chartW, yBot - yTop);
-  });
-
-  // Horizontal grid lines + Y-axis labels
-  for (let lvl = 1; lvl <= 5; lvl++) {
-    const y = yPos(lvl);
-    ctx.beginPath();
-    ctx.moveTo(PAD.left, y);
-    ctx.lineTo(PAD.left + chartW, y);
-    ctx.strokeStyle = "rgba(255,255,255,0.07)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    const lv = CONFIG.levels[lvl - 1];
-    ctx.fillStyle = lv.color;
-    ctx.font = "bold 9px Space Mono, monospace";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    ctx.fillText(lvl, PAD.left - 7, y);
-  }
-
-  // X-axis labels
-  assessments.forEach((a, i) => {
-    const x = xPos(i);
-    const d = new Date(a.date + "T00:00:00");
-    const dateLabel = d.toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.font = "9px DM Sans, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillText(dateLabel, x, PAD.top + chartH + 8);
-    const shortLabel = a.label.length > 14 ? a.label.slice(0, 13) + "…" : a.label;
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.font = "8px DM Sans, sans-serif";
-    ctx.fillText(shortLabel, x, PAD.top + chartH + 20);
-  });
-
-  // Build series
-  const CAP_COLORS = ["#3498db", "#2ecc71", "#e67e22", "#9b59b6", "#1abc9c"];
-  let series;
-  if (trendMode === "capability") {
-    series = CONFIG.capabilities.map((cap, i) => ({
-      label: shortName(cap.name),
-      color: CAP_COLORS[i % CAP_COLORS.length],
-      scores: assessments.map(a => capAvgScore(a, cap.id))
-    }));
-  } else {
-    series = CONFIG.measures.map(m => ({
-      label: m.name,
-      color: m.color,
-      scores: assessments.map(a => {
-        const vals = CONFIG.capabilities.map(cap => getMeasureScore(a, cap.id, m.id)).filter(v => v > 0);
-        return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
-      })
-    }));
-  }
-  const overallSeries = {
-    label: "Overall",
-    color: "#ffffff",
-    scores: assessments.map(a => overallAvg(a)),
-    bold: true
-  };
-
-  // Draw lines
-  [...series, overallSeries].forEach(s => {
-    const pts = s.scores.map((score, i) => ({ score, i })).filter(p => p.score > 0);
-    if (pts.length < 1) return;
-
-    ctx.beginPath();
-    pts.forEach((p, pi) => {
-      const x = xPos(p.i), y = yPos(p.score);
-      pi === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = s.bold ? "rgba(255,255,255,0.6)" : hexToRgba(s.color, 0.85);
-    ctx.lineWidth = s.bold ? 2.5 : 1.8;
-    if (s.bold) ctx.setLineDash([6, 3]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Dots
-    pts.forEach(p => {
-      const x = xPos(p.i), y = yPos(p.score);
-      ctx.beginPath();
-      ctx.arc(x, y, s.bold ? 4 : 3.5, 0, 2 * Math.PI);
-      ctx.fillStyle = s.bold ? "#fff" : s.color;
-      ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.35)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    });
-  });
-
-  // Legend
-  const allSeries = [...series, overallSeries];
-  const legendY = H - 14;
-  const itemW = Math.floor((W - PAD.left - PAD.right) / allSeries.length);
-  allSeries.forEach((s, i) => {
-    const x = PAD.left + i * itemW;
-    ctx.fillStyle = s.bold ? "rgba(255,255,255,0.6)" : s.color;
-    ctx.fillRect(x, legendY - 1, 12, 3);
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = "8.5px DM Sans, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(s.label, x + 16, legendY + 1);
-  });
 }
 
 function hexToRgba(hex, alpha) {

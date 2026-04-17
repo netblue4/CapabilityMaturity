@@ -983,7 +983,7 @@ function startRadarAnimation() {
 
     if (cycleT < HOLD_MS) {
       renderRadar("radar-chart", null, caps, [curr]);
-      drawAnimLabel(curr.label + curr.notes, formatDate(curr.date), 1);
+      drawAnimLabel(curr.label, formatDate(curr.date), 1);
     } else {
       const p = easeInOut((cycleT - HOLD_MS) / TRANS_MS);
       renderRadar("radar-chart", null, caps, [interpolateAssessment(curr, next, p)]);

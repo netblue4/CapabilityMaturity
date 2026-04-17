@@ -149,6 +149,30 @@ body {
 .play-btn { align-self: flex-start; flex-shrink: 0; font-size: .72rem; padding: .38rem .85rem; white-space: nowrap; }
 .play-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+/* ── Radar Animation Label ───────────────────────────────── */
+.radar-anim-label {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  padding: .45rem .85rem;
+  margin-bottom: .6rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  transition: opacity .05s linear;
+}
+.radar-anim-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #fff;
+}
+.radar-anim-date {
+  font-family: 'Space Mono', monospace;
+  font-size: .72rem;
+  color: rgba(255,255,255,0.45);
+}
+
 /* ── Radar Cap Filter ────────────────────────────────────── */
 .cap-filter { width: 100%; margin-bottom: 1rem; }
 .cap-filter-toggle {

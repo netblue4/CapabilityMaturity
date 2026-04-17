@@ -983,12 +983,15 @@ function startRadarAnimation() {
 
     if (cycleT < HOLD_MS) {
       renderRadar("radar-chart", null, caps, [curr]);
-      drawAnimLabel(canvas, curr.label, formatDate(curr.date), 1);
+      drawAnimLabel(curr.label, formatDate(curr.date), 1);
     } else {
       const p = easeInOut((cycleT - HOLD_MS) / TRANS_MS);
       renderRadar("radar-chart", null, caps, [interpolateAssessment(curr, next, p)]);
-      drawAnimLabel(canvas, curr.label, formatDate(curr.date), 1 - p);
-      drawAnimLabel(canvas, next.label, formatDate(next.date), p);
+      if (p < 0.5) {
+        drawAnimLabel(curr.label, formatDate(curr.date), 1 - p * 2);
+      } else {
+        drawAnimLabel(next.label, formatDate(next.date), (p - 0.5) * 2);
+      }
     }
     animationFrameId = requestAnimationFrame(frame);
   }
@@ -1001,6 +1004,8 @@ function stopRadarAnimation() {
   animationFrameId = null;
   const btn = document.getElementById("btn-animate-radar");
   if (btn) { btn.textContent = "▶ All"; btn.classList.remove("active"); }
+  const lbl = document.getElementById("radar-anim-label");
+  if (lbl) { lbl.style.display = "none"; lbl.innerHTML = ""; }
 }
 
 function interpolateAssessment(fromA, toA, t) {
@@ -1016,45 +1021,16 @@ function interpolateAssessment(fromA, toA, t) {
   return { id: "_anim", measureScores };
 }
 
-function drawAnimLabel(canvas, label, date, opacity) {
-  if (opacity <= 0) return;
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width;
-  ctx.save();
-  ctx.globalAlpha = opacity;
-
-  // Measure text to size the pill
-  ctx.font = "bold 18px DM Sans, sans-serif";
-  const labelW = ctx.measureText(label).width;
-  ctx.font = "11px Space Mono, monospace";
-  const dateW = ctx.measureText(date).width;
-  const pillW = Math.max(labelW, dateW) + 40;
-  const pillH = 52;
-  const pillX = (W - pillW) / 2;
-  const pillY = 14;
-
-  // Background pill
-  ctx.fillStyle = "rgba(13,17,23,0.82)";
-  ctx.strokeStyle = "rgba(255,255,255,0.13)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(pillX, pillY, pillW, pillH, 10);
-  ctx.fill();
-  ctx.stroke();
-
-  // Quarter title — large and readable
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 18px DM Sans, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillText(label, W / 2, pillY + 9);
-
-  // Date — smaller, muted
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.font = "10px Space Mono, monospace";
-  ctx.fillText(date, W / 2, pillY + 33);
-
-  ctx.restore();
+function drawAnimLabel(label, date, opacity) {
+  const el = document.getElementById("radar-anim-label");
+  if (!el) return;
+  if (opacity <= 0) {
+    el.style.opacity = 0;
+    return;
+  }
+  el.style.display = "flex";
+  el.style.opacity = opacity;
+  el.innerHTML = `<span class="radar-anim-title">${label}</span><span class="radar-anim-date">${date}</span>`;
 }
 
 function easeInOut(t) {

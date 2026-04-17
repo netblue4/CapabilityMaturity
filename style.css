@@ -209,7 +209,7 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .latest-info { font-size: .78rem; color: var(--text-muted); margin-top: .4rem; }
 
 /* ── Measure Summary Row ─────────────────────────────────── */
-.measure-summary-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; }
+.measure-summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.25rem; }
 
 .ratings-link { display: block; font-size: .72rem; margin-bottom: .6rem; text-align: right; opacity: .7; }
 .ratings-link:hover { opacity: 1; }

@@ -59,8 +59,7 @@ body {
   z-index: 100;
 }
 .header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
   padding: 1rem 1.5rem;
   display: flex;
   align-items: center;
@@ -103,7 +102,7 @@ body {
 .btn-link:hover { color: #fff; }
 
 /* ── Main ────────────────────────────────────────────────── */
-.main-content { flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 2rem 1.5rem; }
+.main-content { flex: 1; max-width: 100%; margin: 0; width: 100%; padding: 1.5rem 1.5rem; }
 
 /* ── Views ───────────────────────────────────────────────── */
 .view { display: none; }

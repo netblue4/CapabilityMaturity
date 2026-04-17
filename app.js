@@ -85,50 +85,53 @@ function renderDashboard() {
   if (!hasData) return;
 
   const latest = db.assessments[db.assessments.length - 1];
-  renderScoreList(latest);
   buildAssessmentFilter();
   renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments());
   renderMeasureSummary(latest);
   renderHistory();
 }
 
-// Overall score list (average of measures per capability)
-function renderScoreList(assessment) {
-  const container = document.getElementById("score-list");
-  container.innerHTML = CONFIG.capabilities.map(cap => {
-    const avg = capAvgScore(assessment, cap.id);
-    const level = levelForScore(avg);
-    return `
-      <div class="score-row">
-        <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
-        <div class="score-bar-wrap">
-          <div class="score-bar" style="width:${(avg/5)*100}%; background:${level ? level.color : '#ccc'}"></div>
-        </div>
-        <span class="score-badge" style="background:${level ? level.color : '#555'}">
-          ${avg > 0 ? avg.toFixed(1) + ' · ' + level.name : '—'}
-        </span>
-      </div>`;
-  }).join("");
-
-  const overall = overallAvg(assessment);
-  const avgLevel = levelForScore(overall);
-  document.getElementById("latest-meta").innerHTML = `
-    <div class="avg-score">
-      <span class="avg-label">Overall Average</span>
-      <span class="avg-value" style="color:${avgLevel ? avgLevel.color : '#fff'}">${overall.toFixed(1)} / 5</span>
-      <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
-    </div>
-    <div class="latest-info">📅 ${formatDate(assessment.date)} &nbsp;·&nbsp; ${assessment.label}</div>`;
-}
-
-// Three measure summary cards
+// Capability scores card + dimension measure cards
 function renderMeasureSummary(assessment) {
   const row = document.getElementById("measure-summary-row");
-  row.innerHTML = CONFIG.measures.map(m => {
-    const scores = CONFIG.capabilities.map(cap => {
-      const s = getMeasureScore(assessment, cap.id, m.id);
-      return s || 0;
-    });
+
+  // — Scores card (first in row) —
+  const overall = overallAvg(assessment);
+  const avgLevel = levelForScore(overall);
+  const scoresCard = `
+    <div class="card measure-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">📋</span>
+        <div>
+          <h3 class="measure-card-title">Latest Capability Scores</h3>
+          <p class="measure-card-desc">${assessment.label} · ${formatDate(assessment.date)}</p>
+        </div>
+        <span class="measure-avg-badge" style="background:${avgLevel ? avgLevel.color : '#555'}">
+          ${overall > 0 ? overall.toFixed(1) : '—'}
+        </span>
+      </div>
+      <button class="btn-link ratings-link" onclick="showRatingsModal(null)">ℹ Ratings</button>
+      ${CONFIG.capabilities.map(cap => {
+        const avg = capAvgScore(assessment, cap.id);
+        const lv = levelForScore(avg);
+        return `<div class="score-row">
+          <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
+          <div class="score-bar-wrap">
+            <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
+          </div>
+          <span class="score-badge" style="background:${lv ? lv.color : '#555'}">${avg > 0 ? avg.toFixed(1) + ' · ' + lv.name : '—'}</span>
+        </div>`;
+      }).join("")}
+      <div class="avg-score">
+        <span class="avg-label">Overall Average</span>
+        <span class="avg-value" style="color:${avgLevel ? avgLevel.color : '#fff'}">${overall.toFixed(1)} / 5</span>
+        <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
+      </div>
+    </div>`;
+
+  // — Dimension measure cards —
+  const measureCards = CONFIG.measures.map(m => {
+    const scores = CONFIG.capabilities.map(cap => getMeasureScore(assessment, cap.id, m.id) || 0);
     const valid = scores.filter(s => s > 0);
     const avg = valid.length ? valid.reduce((a,b) => a+b, 0) / valid.length : 0;
     const level = levelForScore(avg);
@@ -156,9 +159,44 @@ function renderMeasureSummary(assessment) {
             ${avg > 0 ? avg.toFixed(1) : '—'}
           </span>
         </div>
+        <button class="btn-link ratings-link" onclick="showRatingsModal('${m.id}')">ℹ Ratings</button>
         <div class="mini-bars">${bars}</div>
       </div>`;
   }).join("");
+
+  row.innerHTML = scoresCard + measureCards;
+}
+
+// ── Ratings Modal ────────────────────────────────────────────
+function showRatingsModal(measureId) {
+  const m = measureId ? CONFIG.measures.find(x => x.id === measureId) : null;
+  document.getElementById("modal-title").textContent = m
+    ? `${m.name} — Rating Scale`
+    : "Overall Score — Rating Scale";
+  document.getElementById("modal-body").innerHTML = `
+    <p class="modal-desc">${m
+      ? `Each capability is rated 1–5 for <strong>${m.name}</strong>. The score shown is the average across all rated capabilities.`
+      : `The overall score is the average of all dimension ratings (${CONFIG.measures.map(x => x.name).join(", ")}) across all rated capabilities.`
+    }</p>
+    <div class="modal-levels">
+      ${CONFIG.levels.map(lv => {
+        const label = m ? (m.levels.find(l => l.level === lv.level) || {}).label : null;
+        return `<div class="modal-level-row">
+          <span class="lvl-badge" style="background:${lv.color};min-width:105px;text-align:center">${lv.level} · ${lv.name}</span>
+          <div>
+            <div class="modal-level-desc">${lv.description}</div>
+            ${label ? `<div class="modal-level-label">${label}</div>` : ""}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  document.getElementById("ratings-modal").style.display = "flex";
+}
+
+function closeRatingsModal(e) {
+  if (e.target.id === "ratings-modal") {
+    document.getElementById("ratings-modal").style.display = "none";
+  }
 }
 
 // History table

@@ -1019,17 +1019,41 @@ function interpolateAssessment(fromA, toA, t) {
 function drawAnimLabel(canvas, label, date, opacity) {
   if (opacity <= 0) return;
   const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height;
+  const W = canvas.width;
   ctx.save();
   ctx.globalAlpha = opacity;
+
+  // Measure text to size the pill
+  ctx.font = "bold 18px DM Sans, sans-serif";
+  const labelW = ctx.measureText(label).width;
+  ctx.font = "11px Space Mono, monospace";
+  const dateW = ctx.measureText(date).width;
+  const pillW = Math.max(labelW, dateW) + 40;
+  const pillH = 52;
+  const pillX = (W - pillW) / 2;
+  const pillY = 14;
+
+  // Background pill
+  ctx.fillStyle = "rgba(13,17,23,0.82)";
+  ctx.strokeStyle = "rgba(255,255,255,0.13)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillW, pillH, 10);
+  ctx.fill();
+  ctx.stroke();
+
+  // Quarter title — large and readable
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 18px DM Sans, sans-serif";
   ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 13px DM Sans, sans-serif";
-  ctx.fillText(label, W / 2, H - 18);
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  ctx.font = "10px DM Sans, sans-serif";
-  ctx.fillText(date, W / 2, H - 5);
+  ctx.textBaseline = "top";
+  ctx.fillText(label, W / 2, pillY + 9);
+
+  // Date — smaller, muted
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.font = "10px Space Mono, monospace";
+  ctx.fillText(date, W / 2, pillY + 33);
+
   ctx.restore();
 }
 

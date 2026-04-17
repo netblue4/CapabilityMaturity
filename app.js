@@ -86,7 +86,8 @@ function renderDashboard() {
 
   const latest = db.assessments[db.assessments.length - 1];
   renderScoreList(latest);
-  renderRadar("radar-chart", latest, getSelectedRadarCaps());
+  buildAssessmentFilter();
+  renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments());
   renderMeasureSummary(latest);
   renderHistory();
 }
@@ -233,15 +234,50 @@ function getSelectedRadarCaps() {
   return selected.length > 0 ? selected : CONFIG.capabilities;
 }
 
+function buildAssessmentFilter() {
+  const container = document.getElementById("radar-assessment-checkboxes");
+  if (!container) return;
+  const prev = new Set(
+    [...document.querySelectorAll(".radar-assessment-check:checked")].map(el => el.value)
+  );
+  const hasPrev = document.querySelectorAll(".radar-assessment-check").length > 0;
+  container.innerHTML = db.assessments.map(a => {
+    const checked = !hasPrev || prev.has(a.id);
+    const d = new Date(a.date + "T00:00:00").toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
+    return `
+      <label class="cap-filter-label">
+        <input type="checkbox" class="radar-assessment-check" value="${a.id}" ${checked ? "checked" : ""}
+          onchange="updateRadarFilter()" />
+        ${a.label} <span class="assessment-filter-date">${d}</span>
+      </label>`;
+  }).join("");
+  updateAssessmentFilterCount();
+}
+
+function updateAssessmentFilterCount() {
+  const total = db.assessments.length;
+  const checked = document.querySelectorAll(".radar-assessment-check:checked").length;
+  const el = document.getElementById("assessment-filter-count");
+  if (el) el.textContent = checked < total ? `${checked} / ${total}` : total;
+}
+
+function getSelectedAssessments() {
+  const checked = new Set(
+    [...document.querySelectorAll(".radar-assessment-check:checked")].map(el => el.value)
+  );
+  const selected = db.assessments.filter(a => checked.has(a.id));
+  return selected.length > 0 ? selected : [db.assessments[db.assessments.length - 1]];
+}
+
 function updateRadarFilter() {
   updateCapFilterCount();
+  updateAssessmentFilterCount();
   if (db.assessments.length === 0) return;
-  const latest = db.assessments[db.assessments.length - 1];
-  renderRadar("radar-chart", latest, getSelectedRadarCaps());
+  renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments());
 }
 
 // ── Radar (average score per capability) ─────────────────────
-function renderRadar(canvasId, assessment, capsOverride) {
+function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
@@ -252,6 +288,10 @@ function renderRadar(canvasId, assessment, capsOverride) {
   const N = caps.length;
   const angleStep = (2 * Math.PI) / N;
   const startAngle = -Math.PI / 2;
+
+  // Resolve which assessments to draw
+  const assessmentList = assessmentsOverride || (assessment ? [assessment] : []);
+  const multiMode = assessmentList.length > 1;
 
   ctx.clearRect(0, 0, W, H);
 
@@ -285,52 +325,111 @@ function renderRadar(canvasId, assessment, capsOverride) {
     ctx.stroke();
   }
 
-  // Draw one polygon per measure (semi-transparent)
-  CONFIG.measures.forEach(m => {
-    const scores = caps.map(c => getMeasureScore(assessment, c.id, m.id) || 0);
+  if (multiMode) {
+    // ── Multi-assessment: one polygon per assessment, colour-coded ──
+    const COLORS = ["#94a3b8", "#a78bfa", "#34d399", "#fb923c", "#f472b6", "#60a5fa", "#fbbf24", "#f87171", "#4ade80", "#38bdf8"];
+    assessmentList.forEach((a, i) => {
+      const isLatest = i === assessmentList.length - 1;
+      const color = COLORS[i % COLORS.length];
+      const avgScores = caps.map(c => capAvgScore(a, c.id));
+      ctx.beginPath();
+      for (let j = 0; j < N; j++) {
+        const ang = startAngle + j * angleStep;
+        const r = (avgScores[j] / 5) * maxR;
+        j === 0 ? ctx.moveTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang))
+                : ctx.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
+      }
+      ctx.closePath();
+      ctx.fillStyle = hexToRgba(color, isLatest ? 0.15 : 0.07);
+      ctx.fill();
+      ctx.strokeStyle = isLatest ? color : hexToRgba(color, 0.65);
+      ctx.lineWidth = isLatest ? 2.5 : 1.5;
+      ctx.stroke();
+      for (let j = 0; j < N; j++) {
+        const ang = startAngle + j * angleStep;
+        const r = (avgScores[j] / 5) * maxR;
+        ctx.beginPath();
+        ctx.arc(cx + r * Math.cos(ang), cy + r * Math.sin(ang), isLatest ? 5 : 3.5, 0, 2 * Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+    });
+    // Legend: one entry per assessment
+    const legendX = 8, legendY = H - assessmentList.length * 16 - 8;
+    assessmentList.forEach((a, i) => {
+      const color = COLORS[i % COLORS.length];
+      const isLatest = i === assessmentList.length - 1;
+      ctx.fillStyle = color;
+      ctx.fillRect(legendX, legendY + i * 16, 10, 10);
+      ctx.fillStyle = isLatest ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.5)";
+      ctx.font = `${isLatest ? "bold " : ""}9px DM Sans, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      const label = a.label.length > 22 ? a.label.slice(0, 21) + "…" : a.label;
+      ctx.fillText(label, legendX + 14, legendY + i * 16);
+    });
+
+  } else {
+    // ── Single assessment: measure polygons + average polygon ──
+    const a = assessmentList[0];
+    if (!a) return;
+
+    CONFIG.measures.forEach(m => {
+      const scores = caps.map(c => getMeasureScore(a, c.id, m.id) || 0);
+      ctx.beginPath();
+      for (let i = 0; i < N; i++) {
+        const ang = startAngle + i * angleStep;
+        const r = (scores[i] / 5) * maxR;
+        i === 0 ? ctx.moveTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang))
+                : ctx.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
+      }
+      ctx.closePath();
+      ctx.fillStyle = hexToRgba(m.color, 0.1);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(m.color, 0.6);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+
+    const avgScores = caps.map(c => capAvgScore(a, c.id));
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
-      const a = startAngle + i * angleStep;
-      const r = (scores[i] / 5) * maxR;
-      i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
-              : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+      const ang = startAngle + i * angleStep;
+      const r = (avgScores[i] / 5) * maxR;
+      i === 0 ? ctx.moveTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang))
+              : ctx.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
     }
     ctx.closePath();
-    ctx.fillStyle = hexToRgba(m.color, 0.1);
+    ctx.fillStyle = "rgba(52,152,219,0.15)";
     ctx.fill();
-    ctx.strokeStyle = hexToRgba(m.color, 0.6);
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#3498db";
+    ctx.lineWidth = 2.5;
     ctx.stroke();
-  });
 
-  // Average polygon (bold)
-  const avgScores = caps.map(c => capAvgScore(assessment, c.id));
-  ctx.beginPath();
-  for (let i = 0; i < N; i++) {
-    const a = startAngle + i * angleStep;
-    const r = (avgScores[i] / 5) * maxR;
-    i === 0 ? ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
-            : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
-  }
-  ctx.closePath();
-  ctx.fillStyle = "rgba(52,152,219,0.15)";
-  ctx.fill();
-  ctx.strokeStyle = "#3498db";
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
+    for (let i = 0; i < N; i++) {
+      const ang = startAngle + i * angleStep;
+      const r = (avgScores[i] / 5) * maxR;
+      const lv = levelForScore(avgScores[i]);
+      ctx.beginPath();
+      ctx.arc(cx + r * Math.cos(ang), cy + r * Math.sin(ang), 5, 0, 2 * Math.PI);
+      ctx.fillStyle = lv ? lv.color : "#888";
+      ctx.fill();
+    }
 
-  // Average dots
-  for (let i = 0; i < N; i++) {
-    const a = startAngle + i * angleStep;
-    const r = (avgScores[i] / 5) * maxR;
-    const lv = levelForScore(avgScores[i]);
-    ctx.beginPath();
-    ctx.arc(cx + r * Math.cos(a), cy + r * Math.sin(a), 5, 0, 2 * Math.PI);
-    ctx.fillStyle = lv ? lv.color : "#888";
-    ctx.fill();
+    // Legend: measures
+    const legendX = 8, legendY = H - CONFIG.measures.length * 16 - 8;
+    CONFIG.measures.forEach((m, i) => {
+      ctx.fillStyle = m.color;
+      ctx.fillRect(legendX, legendY + i * 16, 10, 10);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "9px DM Sans, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(m.name, legendX + 14, legendY + i * 16);
+    });
   }
 
-  // Labels
+  // Labels (always drawn)
   for (let i = 0; i < N; i++) {
     const a = startAngle + i * angleStep;
     const labelR = maxR + 28;
@@ -345,18 +444,6 @@ function renderRadar(canvasId, assessment, capsOverride) {
       ctx.fillText(w, x, y + (wi - (words.length - 1) / 2) * 13);
     });
   }
-
-  // Legend
-  const legendX = 8, legendY = H - CONFIG.measures.length * 16 - 8;
-  CONFIG.measures.forEach((m, i) => {
-    ctx.fillStyle = m.color;
-    ctx.fillRect(legendX, legendY + i * 16, 10, 10);
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.font = "9px DM Sans, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    ctx.fillText(m.name, legendX + 14, legendY + i * 16);
-  });
 }
 
 // ── Assessment Form ──────────────────────────────────────────

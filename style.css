@@ -144,6 +144,10 @@ body {
 .radar-card { display: flex; flex-direction: column; align-items: center; }
 .radar-card canvas { max-width: 100%; height: auto; }
 
+/* ── Radar Filters ───────────────────────────────────────── */
+.radar-filters { display: flex; gap: .5rem; margin-bottom: 1rem; width: 100%; }
+.radar-filters .cap-filter { flex: 1; min-width: 0; margin-bottom: 0; }
+
 /* ── Radar Cap Filter ────────────────────────────────────── */
 .cap-filter { width: 100%; margin-bottom: 1rem; }
 .cap-filter-toggle {
@@ -193,6 +197,7 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 }
 .cap-filter-label:hover { color: var(--text); }
 .cap-filter-label input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.assessment-filter-date { font-size: .72em; opacity: .5; margin-left: .2rem; }
 
 /* ── Score List ──────────────────────────────────────────── */
 .score-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; }

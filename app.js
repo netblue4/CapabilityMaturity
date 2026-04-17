@@ -238,6 +238,7 @@ function renderHistory() {
         <td>
           <button class="btn-link" onclick="viewAssessment('${a.id}')">View</button>
           <button class="btn-link" onclick="openAssessmentForm('${a.id}')">Edit</button>
+          <button class="btn-link" onclick="copyAssessment('${a.id}')">Copy</button>
         </td>
       </tr>`;
   }).join("");
@@ -790,6 +791,45 @@ function deleteCurrentAssessment() {
   saveToLocalStorage();
   currentDetailId = null;
   showView("dashboard");
+}
+
+function copyAssessment(id) {
+  const source = db.assessments.find(a => a.id === id);
+  if (!source) return;
+
+  editingId = null;
+  document.getElementById("assessment-form").reset();
+  document.getElementById("assessment-form-title").textContent = "New Assessment";
+  document.getElementById("assessment-label").value = "";
+  document.getElementById("assessment-date").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("assessment-notes").value = source.notes || "";
+
+  // Pre-check dimensions that had scores in the source
+  document.querySelectorAll(".dimension-check").forEach(cb => cb.checked = true);
+  CONFIG.measures.forEach(m => {
+    const hasScore = CONFIG.capabilities.some(cap => getMeasureScore(source, cap.id, m.id) > 0);
+    const cb = document.querySelector(`.dimension-check[value="${m.id}"]`);
+    if (cb) cb.checked = hasScore;
+  });
+
+  // Load all scores, targets and notes from the source assessment
+  CONFIG.capabilities.forEach(cap => {
+    document.getElementById("capnote-" + cap.id).value = (source.capNotes && source.capNotes[cap.id]) || "";
+    CONFIG.measures.forEach(m => {
+      const score = getMeasureScore(source, cap.id, m.id) || 1;
+      const target = getMeasureTarget(source, cap.id, m.id) || 3;
+      const note = getMeasureNote(source, cap.id, m.id) || "";
+      setSlider(`score-${cap.id}-${m.id}`, score);
+      setSlider(`target-${cap.id}-${m.id}`, target);
+      const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
+      if (noteEl) noteEl.value = note;
+      updateMeasureDisplay(cap.id, m.id, score);
+      updateTargetDisplay(cap.id, m.id, target);
+    });
+  });
+
+  updateDimensionVisibility();
+  showView("assessment");
 }
 
 // ── Import / Export ──────────────────────────────────────────

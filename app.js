@@ -8,6 +8,7 @@ let CONFIG = null;
 let db = { assessments: [] };
 let editingId = null;
 let currentDetailId = null;
+let animationFrameId = null;
 
 // ── Bootstrap ────────────────────────────────────────────────
 // Load config.json first, then initialise the app.
@@ -79,6 +80,7 @@ function showView(name) {
 // ── Dashboard ────────────────────────────────────────────────
 function renderDashboard() {
   if (!CONFIG) return;
+  stopRadarAnimation();
   const hasData = db.assessments.length > 0;
   document.getElementById("no-data-message").style.display = hasData ? "none" : "flex";
   document.getElementById("dashboard-content").style.display = hasData ? "block" : "none";
@@ -945,6 +947,94 @@ function shortName(name) {
 function setDefaultDate() {
   const el = document.getElementById("assessment-date");
   if (el && !el.value) el.value = new Date().toISOString().slice(0, 10);
+}
+
+// ── Radar Animation ──────────────────────────────────────────
+function toggleRadarAnimation() {
+  if (animationFrameId) {
+    stopRadarAnimation();
+  } else {
+    startRadarAnimation();
+  }
+}
+
+function startRadarAnimation() {
+  if (db.assessments.length < 2) return;
+  const btn = document.getElementById("btn-animate-radar");
+  if (btn) { btn.textContent = "⏹ Stop"; btn.classList.add("active"); }
+
+  const caps = getSelectedRadarCaps();
+  const assessments = db.assessments; // already sorted chronologically
+  const canvas = document.getElementById("radar-chart");
+  const HOLD_MS = 1500;
+  const TRANS_MS = 700;
+  const CYCLE_MS = HOLD_MS + TRANS_MS;
+  let startTime = null;
+
+  function frame(ts) {
+    if (!startTime) startTime = ts;
+    const elapsed = ts - startTime;
+    const total = assessments.length * CYCLE_MS;
+    const t = elapsed % total;
+    const idx = Math.floor(t / CYCLE_MS);
+    const cycleT = t % CYCLE_MS;
+    const curr = assessments[idx];
+    const next = assessments[(idx + 1) % assessments.length];
+
+    if (cycleT < HOLD_MS) {
+      renderRadar("radar-chart", null, caps, [curr]);
+      drawAnimLabel(canvas, curr.label, formatDate(curr.date), 1);
+    } else {
+      const p = easeInOut((cycleT - HOLD_MS) / TRANS_MS);
+      renderRadar("radar-chart", null, caps, [interpolateAssessment(curr, next, p)]);
+      drawAnimLabel(canvas, curr.label, formatDate(curr.date), 1 - p);
+      drawAnimLabel(canvas, next.label, formatDate(next.date), p);
+    }
+    animationFrameId = requestAnimationFrame(frame);
+  }
+  animationFrameId = requestAnimationFrame(frame);
+}
+
+function stopRadarAnimation() {
+  if (!animationFrameId) return;
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
+  const btn = document.getElementById("btn-animate-radar");
+  if (btn) { btn.textContent = "▶ All"; btn.classList.remove("active"); }
+}
+
+function interpolateAssessment(fromA, toA, t) {
+  const measureScores = {};
+  CONFIG.capabilities.forEach(cap => {
+    measureScores[cap.id] = {};
+    CONFIG.measures.forEach(m => {
+      const f = getMeasureScore(fromA, cap.id, m.id) || 0;
+      const s = getMeasureScore(toA, cap.id, m.id) || 0;
+      measureScores[cap.id][m.id] = f + (s - f) * t;
+    });
+  });
+  return { id: "_anim", measureScores };
+}
+
+function drawAnimLabel(canvas, label, date, opacity) {
+  if (opacity <= 0) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 13px DM Sans, sans-serif";
+  ctx.fillText(label, W / 2, H - 18);
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.font = "10px DM Sans, sans-serif";
+  ctx.fillText(date, W / 2, H - 5);
+  ctx.restore();
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 }
 
 function hexToRgba(hex, alpha) {

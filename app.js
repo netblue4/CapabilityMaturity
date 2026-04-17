@@ -129,23 +129,42 @@ function renderMeasureSummary(assessment) {
       </div>
     </div>`;
 
-  // — Dimension measure cards —
+  // — Dimension measure cards (with previous assessment comparison) —
+  const prev = db.assessments.length > 1 ? db.assessments[db.assessments.length - 2] : null;
+
   const measureCards = CONFIG.measures.map(m => {
     const scores = CONFIG.capabilities.map(cap => getMeasureScore(assessment, cap.id, m.id) || 0);
+    const prevScores = prev ? CONFIG.capabilities.map(cap => getMeasureScore(prev, cap.id, m.id) || 0) : null;
+
     const valid = scores.filter(s => s > 0);
     const avg = valid.length ? valid.reduce((a,b) => a+b, 0) / valid.length : 0;
+    const prevValid = prevScores ? prevScores.filter(s => s > 0) : [];
+    const prevAvg = prevValid.length ? prevValid.reduce((a,b) => a+b, 0) / prevValid.length : 0;
     const level = levelForScore(avg);
+    const avgDelta = prev && prevAvg > 0 && avg > 0 ? avg - prevAvg : null;
+
     const bars = CONFIG.capabilities.map((cap, i) => {
       const s = scores[i];
+      const ps = prevScores ? prevScores[i] : 0;
       const lv = levelForScore(s);
+      const delta = s > 0 && ps > 0 ? s - ps : null;
+      const deltaHtml = delta !== null
+        ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}">
+             ${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta).toFixed(1) : ''}
+           </span>`
+        : '';
       return `<div class="mini-bar-row">
         <span class="mini-bar-label">${shortName(cap.name)}</span>
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : '#444'}"></div>
         </div>
-        <span class="mini-bar-val">${s || '—'}</span>
+        <span class="mini-bar-val">${s || '—'}</span>${deltaHtml}
       </div>`;
     }).join("");
+
+    const badgeInner = prev && prevAvg > 0 && avg > 0
+      ? `${prevAvg.toFixed(1)}<span class="badge-arrow">→</span>${avg.toFixed(1)}${avgDelta !== null ? `<span class="badge-delta ${avgDelta > 0 ? 'delta-up' : avgDelta < 0 ? 'delta-down' : ''}">${avgDelta > 0 ? ' ▲' : avgDelta < 0 ? ' ▼' : ''}</span>` : ''}`
+      : avg > 0 ? avg.toFixed(1) : '—';
 
     return `
       <div class="card measure-card">
@@ -156,7 +175,7 @@ function renderMeasureSummary(assessment) {
             <p class="measure-card-desc">${m.description}</p>
           </div>
           <span class="measure-avg-badge" style="background:${level ? level.color : '#555'}">
-            ${avg > 0 ? avg.toFixed(1) : '—'}
+            ${badgeInner}
           </span>
         </div>
         <button class="btn-link ratings-link" onclick="showRatingsModal('${m.id}')">ℹ Ratings</button>

@@ -40,7 +40,7 @@
       "name": "Governance",
       "icon": "⚖️",
       "color": "#9b59b6",
-      "description": "Tracks the policy statements associated with the capability and whether they have owners assigned.",
+      "description": "Tracks the repeatability of processes associated with the capability and consistency of their outputs.",
       "levels": [
         { "level": 1, "label": "No policy exists" },
         { "level": 2, "label": "Policy drafted, no owner" },
@@ -54,7 +54,7 @@
       "name": "ICT Risk",
       "icon": "🛡️",
       "color": "#e74c3c",
-      "description": "Tracks the residual risk score of the risks associated with the capability.",
+      "description": "Tracks the residual risk score of risks associated with the capability and their mitigation status.",
       "levels": [
         { "level": 1, "label": "Risks not identified or documented" },
         { "level": 2, "label": "Risks identified, residual risk not assessed" },
@@ -68,7 +68,7 @@
       "name": "Reporting",
       "icon": "📊",
       "color": "#2ecc71",
-      "description": "Tracks whether there are KPIs associated with the capability and whether they are reported.",
+      "description": "Tracks KPI efficacy, reporting cadence and whether outputs drive informed decisions for the capability.",
       "levels": [
         { "level": 1, "label": "No KPIs defined" },
         { "level": 2, "label": "KPIs defined but not reported" },

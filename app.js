@@ -10,6 +10,13 @@ let editingId = null;
 let currentDetailId = null;
 let animationFrameId = null;
 
+const RISK_COLORS = {
+  'Critical': '#e74c3c', 'High': '#e67e22', 'Medium': '#f1c40f', 'Low': '#2ecc71',
+  'Exceeds Appetite': '#e74c3c', 'Within Appetite': '#2ecc71',
+  'Worsening': '#e74c3c', 'Stable': '#8b949e', 'Improving': '#2ecc71'
+};
+const RISK_TREND_ICONS = { 'Worsening': '↓', 'Stable': '→', 'Improving': '↑' };
+
 // ── Bootstrap ────────────────────────────────────────────────
 // Load config.json first, then initialise the app.
 document.addEventListener("DOMContentLoaded", () => {
@@ -90,6 +97,7 @@ function renderDashboard() {
   buildAssessmentFilter();
   renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments());
   renderMeasureSummary(latest);
+  renderRiskProfileSummary(latest);
   renderHistory();
 }
 
@@ -186,6 +194,63 @@ function renderMeasureSummary(assessment) {
   }).join("");
 
   row.innerHTML = scoresCard + measureCards;
+}
+
+// ── Risk Profile Summary Table ────────────────────────────────
+function renderRiskProfileSummary(assessment) {
+  const container = document.getElementById("risk-profile-summary");
+  if (!container) return;
+
+  const riskMeasure = CONFIG.measures.find(m => m.type === 'risk_profile');
+  if (!riskMeasure) { container.innerHTML = ''; return; }
+
+  const capsWithData = CONFIG.capabilities.filter(cap => {
+    const raw = assessment.measureScores?.[cap.id]?.[riskMeasure.id];
+    return raw && typeof raw === 'object' && (raw.residualRating || raw.appetiteStatus || raw.trend);
+  });
+
+  if (capsWithData.length === 0) { container.innerHTML = ''; return; }
+
+  const rows = CONFIG.capabilities.map(cap => {
+    const raw = assessment.measureScores?.[cap.id]?.[riskMeasure.id];
+    const rd = (raw && typeof raw === 'object') ? raw : null;
+    const score = getMeasureScore(assessment, cap.id, riskMeasure.id);
+    const lv = levelForScore(score);
+
+    const residualStyle = rd?.residualRating ? `color:${RISK_COLORS[rd.residualRating]};font-weight:600` : '';
+    const appetiteStyle = rd?.appetiteStatus ? `color:${RISK_COLORS[rd.appetiteStatus]}` : '';
+    const trendStyle    = rd?.trend ? `color:${RISK_COLORS[rd.trend]}` : '';
+
+    return `
+      <tr>
+        <td class="rpt-cap-name">${shortName(cap.name)}</td>
+        <td class="rpt-cell" style="${residualStyle}">${rd?.residualRating || '—'}</td>
+        <td class="rpt-cell" style="${appetiteStyle}">${rd?.appetiteStatus || '—'}</td>
+        <td class="rpt-cell" style="${trendStyle}">${rd?.trend ? RISK_TREND_ICONS[rd.trend] + ' ' + rd.trend : '—'}</td>
+        <td class="rpt-cell">${rd?.openRisks !== undefined && rd?.openRisks !== null ? rd.openRisks : '—'}</td>
+        <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>` : '—'}</td>
+      </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="card" style="margin-bottom:1.25rem">
+      <h3 class="card-title">Risk Profile Summary — ${assessment.label}</h3>
+      <div style="overflow-x:auto">
+        <table class="risk-profile-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>Residual Risk</th>
+              <th>Appetite Status</th>
+              <th>Trend</th>
+              <th>Open Risks</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 // ── Ratings Modal ────────────────────────────────────────────
@@ -508,6 +573,129 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
 }
 
 // ── Assessment Form ──────────────────────────────────────────
+function buildMeasureBlock(cap, m) {
+  if (m.type === 'risk_profile') {
+    return `
+      <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
+        <div class="measure-block-header">
+          <span class="measure-icon-sm">${m.icon}</span>
+          <span class="measure-block-name">${m.name}</span>
+        </div>
+        <p class="measure-block-desc">${m.description}</p>
+
+        <input type="hidden" id="risk-residual-${cap.id}" value="">
+        <input type="hidden" id="risk-appetite-${cap.id}" value="">
+        <input type="hidden" id="risk-trend-${cap.id}" value="">
+
+        <div class="form-row" style="margin-top:.5rem">
+          <label>Residual Risk Rating</label>
+          <div class="risk-btn-group" id="risk-group-residual-${cap.id}">
+            <button type="button" class="risk-btn" data-value="Critical"
+              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#e74c3c">Critical</button>
+            <button type="button" class="risk-btn" data-value="High"
+              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#e67e22">High</button>
+            <button type="button" class="risk-btn" data-value="Medium"
+              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#f1c40f">Medium</button>
+            <button type="button" class="risk-btn" data-value="Low"
+              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#2ecc71">Low</button>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:.35rem">
+          <label>Risk Appetite Status</label>
+          <div class="risk-btn-group" id="risk-group-appetite-${cap.id}">
+            <button type="button" class="risk-btn" data-value="Exceeds Appetite"
+              onclick="selectRiskBtn(this,'${cap.id}','appetite')" style="--risk-color:#e74c3c">Exceeds Appetite</button>
+            <button type="button" class="risk-btn" data-value="Within Appetite"
+              onclick="selectRiskBtn(this,'${cap.id}','appetite')" style="--risk-color:#2ecc71">Within Appetite</button>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:.35rem">
+          <label>Risk Trend</label>
+          <div class="risk-btn-group" id="risk-group-trend-${cap.id}">
+            <button type="button" class="risk-btn" data-value="Worsening"
+              onclick="selectRiskBtn(this,'${cap.id}','trend')" style="--risk-color:#e74c3c">↓ Worsening</button>
+            <button type="button" class="risk-btn" data-value="Stable"
+              onclick="selectRiskBtn(this,'${cap.id}','trend')" style="--risk-color:#8b949e">→ Stable</button>
+            <button type="button" class="risk-btn" data-value="Improving"
+              onclick="selectRiskBtn(this,'${cap.id}','trend')" style="--risk-color:#2ecc71">↑ Improving</button>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:.35rem">
+          <label>Open Risks</label>
+          <input type="number" id="risk-openrisks-${cap.id}" min="0" step="1" value="0"
+            style="width:90px" oninput="updateRiskScoreDisplay('${cap.id}')">
+        </div>
+
+        <div id="risk-score-display-${cap.id}" class="risk-score-display">
+          <span style="color:var(--text-muted);font-size:.8rem">Select all options to calculate score</span>
+        </div>
+
+        <div class="form-row" style="margin-top:.75rem">
+          <label>Target Level</label>
+          <div class="slider-wrap">
+            <input type="range" min="1" max="5" value="3"
+              id="target-${cap.id}-${m.id}"
+              oninput="updateTargetDisplay('${cap.id}','${m.id}',this.value)" />
+            <div class="slider-labels">
+              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+            </div>
+          </div>
+          <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
+        </div>
+
+        <div class="form-row" style="margin-top:.5rem">
+          <label>Notes</label>
+          <textarea id="note-${cap.id}-${m.id}" rows="2"
+            placeholder="${m.name} observations for ${cap.name}…"></textarea>
+        </div>
+      </div>`;
+  }
+
+  // Standard slider block
+  return `
+    <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
+      <div class="measure-block-header">
+        <span class="measure-icon-sm">${m.icon}</span>
+        <span class="measure-block-name">${m.name}</span>
+      </div>
+      <p class="measure-block-desc">${m.description}</p>
+
+      <div class="slider-row">
+        <div class="slider-wrap">
+          <input type="range" min="1" max="5" value="1"
+            id="score-${cap.id}-${m.id}"
+            oninput="updateMeasureDisplay('${cap.id}','${m.id}',this.value)" />
+          <div class="slider-labels">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+          </div>
+        </div>
+        <div id="display-${cap.id}-${m.id}" class="level-display"></div>
+      </div>
+
+      <div class="form-row" style="margin-top:.5rem">
+        <label>Target Level</label>
+        <div class="slider-wrap">
+          <input type="range" min="1" max="5" value="3"
+            id="target-${cap.id}-${m.id}"
+            oninput="updateTargetDisplay('${cap.id}','${m.id}',this.value)" />
+          <div class="slider-labels">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+          </div>
+        </div>
+        <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
+      </div>
+
+      <div class="form-row" style="margin-top:.5rem">
+        <label>Notes</label>
+        <textarea id="note-${cap.id}-${m.id}" rows="2"
+          placeholder="${m.name} observations for ${cap.name}…"></textarea>
+      </div>
+    </div>`;
+}
+
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
   container.innerHTML = CONFIG.capabilities.map(cap => `
@@ -520,46 +708,7 @@ function buildCapabilityFields() {
       </div>
 
       <div class="measures-grid">
-        ${CONFIG.measures.map(m => `
-          <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
-            <div class="measure-block-header">
-              <span class="measure-icon-sm">${m.icon}</span>
-              <span class="measure-block-name">${m.name}</span>
-            </div>
-            <p class="measure-block-desc">${m.description}</p>
-
-            <div class="slider-row">
-              <div class="slider-wrap">
-                <input type="range" min="1" max="5" value="1"
-                  id="score-${cap.id}-${m.id}"
-                  oninput="updateMeasureDisplay('${cap.id}','${m.id}',this.value)" />
-                <div class="slider-labels">
-                  <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-                </div>
-              </div>
-              <div id="display-${cap.id}-${m.id}" class="level-display"></div>
-            </div>
-
-            <div class="form-row" style="margin-top:.5rem">
-              <label>Target Level</label>
-              <div class="slider-wrap">
-                <input type="range" min="1" max="5" value="3"
-                  id="target-${cap.id}-${m.id}"
-                  oninput="updateTargetDisplay('${cap.id}','${m.id}',this.value)" />
-                <div class="slider-labels">
-                  <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-                </div>
-              </div>
-              <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
-            </div>
-
-            <div class="form-row" style="margin-top:.5rem">
-              <label>Notes</label>
-              <textarea id="note-${cap.id}-${m.id}" rows="2"
-                placeholder="${m.name} observations for ${cap.name}…"></textarea>
-            </div>
-          </div>
-        `).join("")}
+        ${CONFIG.measures.map(m => buildMeasureBlock(cap, m)).join("")}
       </div>
 
       <div class="form-row" style="margin-top:1rem">
@@ -610,15 +759,28 @@ function openAssessmentForm(id) {
         document.getElementById("capnote-" + cap.id).value =
           (a.capNotes && a.capNotes[cap.id]) || "";
         CONFIG.measures.forEach(m => {
-          const score = getMeasureScore(a, cap.id, m.id) || 1;
-          const target = getMeasureTarget(a, cap.id, m.id) || 3;
-          const note = getMeasureNote(a, cap.id, m.id) || "";
-          setSlider(`score-${cap.id}-${m.id}`, score);
-          setSlider(`target-${cap.id}-${m.id}`, target);
-          const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
-          if (noteEl) noteEl.value = note;
-          updateMeasureDisplay(cap.id, m.id, score);
-          updateTargetDisplay(cap.id, m.id, target);
+          if (m.type === 'risk_profile') {
+            const raw = a.measureScores?.[cap.id]?.[m.id];
+            const riskData = (raw && typeof raw === 'object') ? raw : null;
+            if (riskData) populateRiskProfileFields(cap.id, riskData);
+            else resetRiskProfileFields(cap.id);
+            const target = getMeasureTarget(a, cap.id, m.id) || 3;
+            const note = getMeasureNote(a, cap.id, m.id) || "";
+            setSlider(`target-${cap.id}-${m.id}`, target);
+            const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
+            if (noteEl) noteEl.value = note;
+            updateTargetDisplay(cap.id, m.id, target);
+          } else {
+            const score = getMeasureScore(a, cap.id, m.id) || 1;
+            const target = getMeasureTarget(a, cap.id, m.id) || 3;
+            const note = getMeasureNote(a, cap.id, m.id) || "";
+            setSlider(`score-${cap.id}-${m.id}`, score);
+            setSlider(`target-${cap.id}-${m.id}`, target);
+            const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
+            if (noteEl) noteEl.value = note;
+            updateMeasureDisplay(cap.id, m.id, score);
+            updateTargetDisplay(cap.id, m.id, target);
+          }
         });
       });
       // Pre-check only dimensions that have scores in this assessment
@@ -631,10 +793,16 @@ function openAssessmentForm(id) {
   } else {
     CONFIG.capabilities.forEach(cap => {
       CONFIG.measures.forEach(m => {
-        setSlider(`score-${cap.id}-${m.id}`, 1);
-        setSlider(`target-${cap.id}-${m.id}`, 3);
-        updateMeasureDisplay(cap.id, m.id, 1);
-        updateTargetDisplay(cap.id, m.id, 3);
+        if (m.type === 'risk_profile') {
+          resetRiskProfileFields(cap.id);
+          setSlider(`target-${cap.id}-${m.id}`, 3);
+          updateTargetDisplay(cap.id, m.id, 3);
+        } else {
+          setSlider(`score-${cap.id}-${m.id}`, 1);
+          setSlider(`target-${cap.id}-${m.id}`, 3);
+          updateMeasureDisplay(cap.id, m.id, 1);
+          updateTargetDisplay(cap.id, m.id, 3);
+        }
       });
     });
   }
@@ -668,6 +836,66 @@ function updateTargetDisplay(capId, measureId, value) {
   }
 }
 
+// ── Risk Profile Helpers ─────────────────────────────────────
+function selectRiskBtn(btn, capId, field) {
+  const group = btn.closest('.risk-btn-group');
+  group.querySelectorAll('.risk-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const el = document.getElementById(`risk-${field}-${capId}`);
+  if (el) el.value = btn.dataset.value;
+  updateRiskScoreDisplay(capId);
+}
+
+function updateRiskScoreDisplay(capId) {
+  const el = document.getElementById(`risk-score-display-${capId}`);
+  if (!el) return;
+  const score = calcRiskScore(capId);
+  if (score === 0) {
+    el.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Select all options to calculate score</span>`;
+    return;
+  }
+  const lv = levelForScore(score);
+  el.innerHTML = `<span class="risk-score-label">Calculated Score:</span>
+    <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>`;
+}
+
+function calcRiskScore(capId) {
+  const residual = document.getElementById(`risk-residual-${capId}`)?.value;
+  const appetite = document.getElementById(`risk-appetite-${capId}`)?.value;
+  const trend    = document.getElementById(`risk-trend-${capId}`)?.value;
+  if (!residual || !appetite || !trend) return 0;
+  return CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[trend] || 0;
+}
+
+function populateRiskProfileFields(capId, riskData) {
+  const fieldMap = {
+    residual: riskData.residualRating,
+    appetite: riskData.appetiteStatus,
+    trend:    riskData.trend
+  };
+  Object.entries(fieldMap).forEach(([field, value]) => {
+    const hidden = document.getElementById(`risk-${field}-${capId}`);
+    if (hidden) hidden.value = value || '';
+    document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
+      .forEach(b => b.classList.toggle('selected', b.dataset.value === value));
+  });
+  const openEl = document.getElementById(`risk-openrisks-${capId}`);
+  if (openEl) openEl.value = riskData.openRisks ?? 0;
+  updateRiskScoreDisplay(capId);
+}
+
+function resetRiskProfileFields(capId) {
+  ['residual', 'appetite', 'trend'].forEach(field => {
+    const el = document.getElementById(`risk-${field}-${capId}`);
+    if (el) el.value = '';
+    document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
+      .forEach(b => b.classList.remove('selected'));
+  });
+  const openEl = document.getElementById(`risk-openrisks-${capId}`);
+  if (openEl) openEl.value = 0;
+  updateRiskScoreDisplay(capId);
+}
+
 // ── Save / Delete ────────────────────────────────────────────
 function saveAssessment(e) {
   e.preventDefault();
@@ -676,7 +904,7 @@ function saveAssessment(e) {
     [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
   );
 
-  // measureScores[capId][measureId] = score
+  // measureScores[capId][measureId] = score (or risk profile object)
   const measureScores = {}, measureTargets = {}, measureNotes = {}, capNotes = {};
   CONFIG.capabilities.forEach(cap => {
     measureScores[cap.id] = {};
@@ -685,13 +913,24 @@ function saveAssessment(e) {
     capNotes[cap.id] = document.getElementById("capnote-" + cap.id).value.trim();
     CONFIG.measures.forEach(m => {
       if (selectedMeasures.has(m.id)) {
-        measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
+        if (m.type === 'risk_profile') {
+          const residual  = document.getElementById(`risk-residual-${cap.id}`)?.value || '';
+          const appetite  = document.getElementById(`risk-appetite-${cap.id}`)?.value || '';
+          const trend     = document.getElementById(`risk-trend-${cap.id}`)?.value || '';
+          const openRisks = parseInt(document.getElementById(`risk-openrisks-${cap.id}`)?.value) || 0;
+          const score = calcRiskScore(cap.id);
+          measureScores[cap.id][m.id] = (residual || appetite || trend)
+            ? { score, residualRating: residual, appetiteStatus: appetite, trend, openRisks }
+            : 0;
+        } else {
+          measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
+        }
         measureTargets[cap.id][m.id] = parseInt(document.getElementById(`target-${cap.id}-${m.id}`).value);
-        measureNotes[cap.id][m.id] = document.getElementById(`note-${cap.id}-${m.id}`).value.trim();
+        measureNotes[cap.id][m.id]   = document.getElementById(`note-${cap.id}-${m.id}`).value.trim();
       } else {
-        measureScores[cap.id][m.id] = 0;
+        measureScores[cap.id][m.id]  = 0;
         measureTargets[cap.id][m.id] = 0;
-        measureNotes[cap.id][m.id] = "";
+        measureNotes[cap.id][m.id]   = "";
       }
     });
   });
@@ -733,11 +972,37 @@ function viewAssessment(id) {
   // Per-capability detail rows
   const capRows = CONFIG.capabilities.map(cap => {
     const measureCells = CONFIG.measures.map(m => {
-      const score = getMeasureScore(a, cap.id, m.id) || 0;
+      const score  = getMeasureScore(a, cap.id, m.id) || 0;
       const target = getMeasureTarget(a, cap.id, m.id) || 0;
-      const note = getMeasureNote(a, cap.id, m.id) || "";
-      const lv = levelForScore(score);
-      const tlv = levelForScore(target);
+      const note   = getMeasureNote(a, cap.id, m.id) || "";
+      const lv     = levelForScore(score);
+      const tlv    = levelForScore(target);
+
+      if (m.type === 'risk_profile') {
+        const raw    = a.measureScores?.[cap.id]?.[m.id];
+        const rd     = (raw && typeof raw === 'object') ? raw : null;
+        return `
+          <div class="detail-measure-cell">
+            <div class="detail-measure-header">
+              <span class="measure-icon-sm">${m.icon}</span>
+              <span class="detail-measure-name">${m.name}</span>
+            </div>
+            <div class="detail-measure-scores">
+              <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score > 0 ? score + ' · ' + lv.name : '—'}</span>
+              ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#888'};color:${tlv ? tlv.color : '#888'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
+            </div>
+            ${rd ? `
+              <div class="risk-detail-fields">
+                ${rd.residualRating ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.residualRating] || '#888'}">${rd.residualRating} Risk</span>` : ''}
+                ${rd.appetiteStatus ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.appetiteStatus] || '#888'}">${rd.appetiteStatus}</span>` : ''}
+                ${rd.trend ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.trend] || '#888'}">${RISK_TREND_ICONS[rd.trend] || ''} ${rd.trend}</span>` : ''}
+                ${rd.openRisks !== undefined && rd.openRisks !== null ? `<span class="risk-detail-badge" style="--risk-color:#8b949e">${rd.openRisks} Open ${rd.openRisks === 1 ? 'Risk' : 'Risks'}</span>` : ''}
+              </div>` : ''}
+            ${note ? `<div class="detail-cap-note">${note}</div>` : ''}
+          </div>`;
+      }
+
+      // Standard measure cell
       const mlabel = m.levels.find(l => l.level === score);
       return `
         <div class="detail-measure-cell">
@@ -755,8 +1020,8 @@ function viewAssessment(id) {
     }).join("");
 
     const capNote = a.capNotes ? a.capNotes[cap.id] : "";
-    const capAvg = capAvgScore(a, cap.id);
-    const capLv = levelForScore(capAvg);
+    const capAvg  = capAvgScore(a, cap.id);
+    const capLv   = levelForScore(capAvg);
 
     return `
       <div class="card detail-cap-card">
@@ -845,15 +1110,28 @@ function copyAssessment(id) {
   CONFIG.capabilities.forEach(cap => {
     document.getElementById("capnote-" + cap.id).value = (source.capNotes && source.capNotes[cap.id]) || "";
     CONFIG.measures.forEach(m => {
-      const score = getMeasureScore(source, cap.id, m.id) || 1;
-      const target = getMeasureTarget(source, cap.id, m.id) || 3;
-      const note = getMeasureNote(source, cap.id, m.id) || "";
-      setSlider(`score-${cap.id}-${m.id}`, score);
-      setSlider(`target-${cap.id}-${m.id}`, target);
-      const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
-      if (noteEl) noteEl.value = note;
-      updateMeasureDisplay(cap.id, m.id, score);
-      updateTargetDisplay(cap.id, m.id, target);
+      if (m.type === 'risk_profile') {
+        const raw = source.measureScores?.[cap.id]?.[m.id];
+        const riskData = (raw && typeof raw === 'object') ? raw : null;
+        if (riskData) populateRiskProfileFields(cap.id, riskData);
+        else resetRiskProfileFields(cap.id);
+        const target = getMeasureTarget(source, cap.id, m.id) || 3;
+        const note   = getMeasureNote(source, cap.id, m.id) || "";
+        setSlider(`target-${cap.id}-${m.id}`, target);
+        const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
+        if (noteEl) noteEl.value = note;
+        updateTargetDisplay(cap.id, m.id, target);
+      } else {
+        const score  = getMeasureScore(source, cap.id, m.id) || 1;
+        const target = getMeasureTarget(source, cap.id, m.id) || 3;
+        const note   = getMeasureNote(source, cap.id, m.id) || "";
+        setSlider(`score-${cap.id}-${m.id}`, score);
+        setSlider(`target-${cap.id}-${m.id}`, target);
+        const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
+        if (noteEl) noteEl.value = note;
+        updateMeasureDisplay(cap.id, m.id, score);
+        updateTargetDisplay(cap.id, m.id, target);
+      }
     });
   });
 
@@ -900,9 +1178,10 @@ function importJSON(e) {
 
 // ── Data Helpers ─────────────────────────────────────────────
 function getMeasureScore(assessment, capId, measureId) {
-  return assessment.measureScores && assessment.measureScores[capId]
-    ? assessment.measureScores[capId][measureId] || 0
-    : 0;
+  if (!assessment.measureScores || !assessment.measureScores[capId]) return 0;
+  const val = assessment.measureScores[capId][measureId];
+  if (val && typeof val === 'object') return val.score || 0;
+  return val || 0;
 }
 
 function getMeasureTarget(assessment, capId, measureId) {

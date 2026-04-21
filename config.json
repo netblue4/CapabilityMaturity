@@ -54,6 +54,7 @@
       "name": "ICT Risk",
       "icon": "🛡️",
       "color": "#e74c3c",
+      "type": "risk_profile",
       "description": "Tracks the residual risk score of risks associated with the capability and their mitigation status.",
       "levels": [
         { "level": 1, "label": "Risks not identified or documented" },
@@ -78,6 +79,32 @@
       ]
     }
   ],
+
+  "riskProfile": {
+    "residualRating": ["Critical", "High", "Medium", "Low"],
+    "appetiteStatus": ["Exceeds Appetite", "Within Appetite"],
+    "trend": ["Worsening", "Stable", "Improving"],
+    "openRisks": { "type": "number", "min": 0 }
+  },
+
+  "riskScoreMatrix": {
+    "Critical": {
+      "Exceeds Appetite": { "Worsening": 1, "Stable": 1, "Improving": 2 },
+      "Within Appetite": { "Worsening": 2, "Stable": 2, "Improving": 2 }
+    },
+    "High": {
+      "Exceeds Appetite": { "Worsening": 1, "Stable": 2, "Improving": 2 },
+      "Within Appetite": { "Worsening": 2, "Stable": 3, "Improving": 3 }
+    },
+    "Medium": {
+      "Exceeds Appetite": { "Worsening": 3, "Stable": 3, "Improving": 3 },
+      "Within Appetite": { "Worsening": 3, "Stable": 3, "Improving": 4 }
+    },
+    "Low": {
+      "Exceeds Appetite": { "Worsening": 3, "Stable": 3, "Improving": 3 },
+      "Within Appetite": { "Worsening": 5, "Stable": 5, "Improving": 5 }
+    }
+  },
 
   "capabilities": [
     {

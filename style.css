@@ -409,6 +409,108 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
 .site-footer a:hover { text-decoration: underline; }
 .footer-sep { opacity: .3; }
 
+/* ── Risk Profile — Form Buttons ─────────────────────────── */
+.risk-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-top: .25rem;
+}
+.risk-btn {
+  background: transparent;
+  border: 1.5px solid var(--risk-color, var(--border));
+  color: var(--risk-color, var(--text-muted));
+  border-radius: 6px;
+  padding: .3rem .75rem;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  white-space: nowrap;
+}
+.risk-btn:hover {
+  background: color-mix(in srgb, var(--risk-color, #fff) 15%, transparent);
+}
+.risk-btn.selected {
+  background: var(--risk-color, var(--accent));
+  color: #fff;
+  border-color: var(--risk-color, var(--accent));
+}
+
+/* ── Risk Profile — Calculated Score Display ─────────────── */
+.risk-score-display {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 36px;
+  margin-top: .35rem;
+}
+.risk-score-label {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ── Risk Profile — Detail View Badges ───────────────────── */
+.risk-detail-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin: .4rem 0 .25rem;
+}
+.risk-detail-badge {
+  display: inline-block;
+  padding: .18rem .55rem;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  background: color-mix(in srgb, var(--risk-color, #666) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--risk-color, #666) 45%, transparent);
+  color: var(--risk-color, var(--text-muted));
+  white-space: nowrap;
+}
+
+/* ── Risk Profile — Dashboard Summary Table ──────────────── */
+.risk-profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+}
+.risk-profile-table th {
+  text-align: left;
+  padding: .45rem .7rem;
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.risk-profile-table td {
+  padding: .5rem .7rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.risk-profile-table tr:last-child td { border-bottom: none; }
+.risk-profile-table tr:hover td { background: rgba(255,255,255,0.02); }
+.rpt-cap-name {
+  font-size: .8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.rpt-cell {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  white-space: nowrap;
+}
+
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }

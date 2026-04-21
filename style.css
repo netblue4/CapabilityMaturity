@@ -510,6 +510,42 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   font-size: .75rem;
   white-space: nowrap;
 }
+.rpt-vs-label {
+  font-family: var(--font-body);
+  font-size: .65rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: .3rem;
+  opacity: .7;
+}
+
+/* ── Trend Direction Icons ───────────────────────────────── */
+.trend-icon {
+  display: inline-block;
+  font-size: .8rem;
+  font-weight: 700;
+  margin-left: .35rem;
+  vertical-align: middle;
+}
+.trend-up   { color: #2ecc71; }
+.trend-down { color: #e74c3c; }
+.trend-flat { color: #8b949e; }
+
+/* ── Auto-suggest Hint (form) ────────────────────────────── */
+.risk-trend-hint {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .3rem;
+  min-height: 1.2rem;
+}
+.risk-trend-hint-text {
+  font-size: .72rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

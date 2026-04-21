@@ -204,6 +204,10 @@ function renderRiskProfileSummary(assessment) {
   const riskMeasure = CONFIG.measures.find(m => m.type === 'risk_profile');
   if (!riskMeasure) { container.innerHTML = ''; return; }
 
+  // Find the previous assessment for score comparison
+  const idx = db.assessments.indexOf(assessment);
+  const prevAssessment = idx > 0 ? db.assessments[idx - 1] : null;
+
   const capsWithData = CONFIG.capabilities.filter(cap => {
     const raw = assessment.measureScores?.[cap.id]?.[riskMeasure.id];
     return raw && typeof raw === 'object' && (raw.residualRating || raw.appetiteStatus || raw.trend);
@@ -214,12 +218,20 @@ function renderRiskProfileSummary(assessment) {
   const rows = CONFIG.capabilities.map(cap => {
     const raw = assessment.measureScores?.[cap.id]?.[riskMeasure.id];
     const rd = (raw && typeof raw === 'object') ? raw : null;
-    const score = getMeasureScore(assessment, cap.id, riskMeasure.id);
+    const score     = getMeasureScore(assessment, cap.id, riskMeasure.id);
+    const prevScore = prevAssessment ? getMeasureScore(prevAssessment, cap.id, riskMeasure.id) : 0;
     const lv = levelForScore(score);
 
     const residualStyle = rd?.residualRating ? `color:${RISK_COLORS[rd.residualRating]};font-weight:600` : '';
     const appetiteStyle = rd?.appetiteStatus ? `color:${RISK_COLORS[rd.appetiteStatus]}` : '';
     const trendStyle    = rd?.trend ? `color:${RISK_COLORS[rd.trend]}` : '';
+
+    let deltaHtml = '';
+    if (score > 0 && prevScore > 0) {
+      if (score > prevScore)      deltaHtml = `<span class="trend-icon trend-up" title="Improved from ${prevScore}">▲</span>`;
+      else if (score < prevScore) deltaHtml = `<span class="trend-icon trend-down" title="Degraded from ${prevScore}">▼</span>`;
+      else                        deltaHtml = `<span class="trend-icon trend-flat" title="No change">→</span>`;
+    }
 
     return `
       <tr>
@@ -228,7 +240,7 @@ function renderRiskProfileSummary(assessment) {
         <td class="rpt-cell" style="${appetiteStyle}">${rd?.appetiteStatus || '—'}</td>
         <td class="rpt-cell" style="${trendStyle}">${rd?.trend ? RISK_TREND_ICONS[rd.trend] + ' ' + rd.trend : '—'}</td>
         <td class="rpt-cell">${rd?.openRisks !== undefined && rd?.openRisks !== null ? rd.openRisks : '—'}</td>
-        <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>` : '—'}</td>
+        <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>${deltaHtml}` : '—'}</td>
       </tr>`;
   }).join('');
 
@@ -244,7 +256,7 @@ function renderRiskProfileSummary(assessment) {
               <th>Appetite Status</th>
               <th>Trend</th>
               <th>Open Risks</th>
-              <th>Score</th>
+              <th>Score ${prevAssessment ? `<span class="rpt-vs-label">vs ${prevAssessment.label}</span>` : ''}</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -621,6 +633,7 @@ function buildMeasureBlock(cap, m) {
             <button type="button" class="risk-btn" data-value="Improving"
               onclick="selectRiskBtn(this,'${cap.id}','trend')" style="--risk-color:#2ecc71">↑ Improving</button>
           </div>
+          <div id="risk-trend-hint-${cap.id}" class="risk-trend-hint"></div>
         </div>
 
         <div class="form-row" style="margin-top:.35rem">
@@ -795,6 +808,7 @@ function openAssessmentForm(id) {
       CONFIG.measures.forEach(m => {
         if (m.type === 'risk_profile') {
           resetRiskProfileFields(cap.id);
+          autoSuggestRiskTrend(cap.id);
           setSlider(`target-${cap.id}-${m.id}`, 3);
           updateTargetDisplay(cap.id, m.id, 3);
         } else {
@@ -893,7 +907,30 @@ function resetRiskProfileFields(capId) {
   });
   const openEl = document.getElementById(`risk-openrisks-${capId}`);
   if (openEl) openEl.value = 0;
+  const hintEl = document.getElementById(`risk-trend-hint-${capId}`);
+  if (hintEl) hintEl.innerHTML = '';
   updateRiskScoreDisplay(capId);
+}
+
+function autoSuggestRiskTrend(capId) {
+  if (db.assessments.length < 2) return;
+  const riskMeasure = CONFIG.measures.find(m => m.type === 'risk_profile');
+  if (!riskMeasure) return;
+  const prev     = db.assessments[db.assessments.length - 1];
+  const prevPrev = db.assessments[db.assessments.length - 2];
+  const s1 = getMeasureScore(prev, capId, riskMeasure.id);
+  const s2 = getMeasureScore(prevPrev, capId, riskMeasure.id);
+  if (!s1 || !s2) return;
+  const trend = s1 > s2 ? 'Improving' : s1 < s2 ? 'Worsening' : 'Stable';
+  const btn = document.querySelector(`#risk-group-trend-${capId} .risk-btn[data-value="${trend}"]`);
+  if (btn) selectRiskBtn(btn, capId, 'trend');
+  const hintEl = document.getElementById(`risk-trend-hint-${capId}`);
+  if (hintEl) {
+    const cls  = trend === 'Improving' ? 'trend-up' : trend === 'Worsening' ? 'trend-down' : 'trend-flat';
+    const icon = trend === 'Improving' ? '▲' : trend === 'Worsening' ? '▼' : '→';
+    hintEl.innerHTML = `<span class="trend-icon ${cls}">${icon}</span>
+      <span class="risk-trend-hint-text">Auto-suggested from ${prev.label}</span>`;
+  }
 }
 
 // ── Save / Delete ────────────────────────────────────────────

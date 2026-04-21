@@ -260,6 +260,7 @@ function renderHistory() {
           <button class="btn-link" onclick="viewAssessment('${a.id}')">View</button>
           <button class="btn-link" onclick="openAssessmentForm('${a.id}')">Edit</button>
           <button class="btn-link" onclick="copyAssessment('${a.id}')">Copy</button>
+          <button class="btn-link btn-link-danger" onclick="deleteAssessment('${a.id}')">Delete</button>
         </td>
       </tr>`;
   }).join("");
@@ -812,6 +813,13 @@ function deleteCurrentAssessment() {
   saveToLocalStorage();
   currentDetailId = null;
   showView("dashboard");
+}
+
+function deleteAssessment(id) {
+  if (!confirm("Delete this assessment? This cannot be undone.")) return;
+  db.assessments = db.assessments.filter(a => a.id !== id);
+  saveToLocalStorage();
+  renderHistory();
 }
 
 function copyAssessment(id) {

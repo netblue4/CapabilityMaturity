@@ -808,7 +808,6 @@ function openAssessmentForm(id) {
       CONFIG.measures.forEach(m => {
         if (m.type === 'risk_profile') {
           resetRiskProfileFields(cap.id);
-          autoSuggestRiskTrend(cap.id);
           setSlider(`target-${cap.id}-${m.id}`, 3);
           updateTargetDisplay(cap.id, m.id, 3);
         } else {
@@ -857,6 +856,8 @@ function selectRiskBtn(btn, capId, field) {
   btn.classList.add('selected');
   const el = document.getElementById(`risk-${field}-${capId}`);
   if (el) el.value = btn.dataset.value;
+  // Re-compute trend whenever residual rating or appetite changes
+  if (field === 'residual' || field === 'appetite') autoComputeTrend(capId);
   updateRiskScoreDisplay(capId);
 }
 
@@ -912,24 +913,39 @@ function resetRiskProfileFields(capId) {
   updateRiskScoreDisplay(capId);
 }
 
-function autoSuggestRiskTrend(capId) {
-  if (db.assessments.length < 2) return;
+function autoComputeTrend(capId) {
   const riskMeasure = CONFIG.measures.find(m => m.type === 'risk_profile');
-  if (!riskMeasure) return;
-  const prev     = db.assessments[db.assessments.length - 1];
-  const prevPrev = db.assessments[db.assessments.length - 2];
-  const s1 = getMeasureScore(prev, capId, riskMeasure.id);
-  const s2 = getMeasureScore(prevPrev, capId, riskMeasure.id);
-  if (!s1 || !s2) return;
-  const trend = s1 > s2 ? 'Improving' : s1 < s2 ? 'Worsening' : 'Stable';
-  const btn = document.querySelector(`#risk-group-trend-${capId} .risk-btn[data-value="${trend}"]`);
-  if (btn) selectRiskBtn(btn, capId, 'trend');
+  if (!riskMeasure || !CONFIG.riskScoreMatrix) return;
+
+  const residual = document.getElementById(`risk-residual-${capId}`)?.value;
+  const appetite = document.getElementById(`risk-appetite-${capId}`)?.value;
+  if (!residual || !appetite) return;
+
+  // Score this cap would get with a neutral (Stable) trend
+  const stableScore = CONFIG.riskScoreMatrix[residual]?.[appetite]?.['Stable'] || 0;
+  if (!stableScore) return;
+
+  // Compare against the most recent saved assessment
+  const prevAssessment = db.assessments.length > 0 ? db.assessments[db.assessments.length - 1] : null;
+  if (!prevAssessment) return;
+  const prevScore = getMeasureScore(prevAssessment, capId, riskMeasure.id);
+  if (!prevScore) return;
+
+  const trend = stableScore > prevScore ? 'Improving' : stableScore < prevScore ? 'Worsening' : 'Stable';
+
+  // Select the trend button (directly, without recursing into autoComputeTrend)
+  document.querySelectorAll(`#risk-group-trend-${capId} .risk-btn`)
+    .forEach(b => b.classList.toggle('selected', b.dataset.value === trend));
+  const hiddenTrend = document.getElementById(`risk-trend-${capId}`);
+  if (hiddenTrend) hiddenTrend.value = trend;
+
+  // Show the hint label
   const hintEl = document.getElementById(`risk-trend-hint-${capId}`);
   if (hintEl) {
     const cls  = trend === 'Improving' ? 'trend-up' : trend === 'Worsening' ? 'trend-down' : 'trend-flat';
     const icon = trend === 'Improving' ? '▲' : trend === 'Worsening' ? '▼' : '→';
     hintEl.innerHTML = `<span class="trend-icon ${cls}">${icon}</span>
-      <span class="risk-trend-hint-text">Auto-suggested from ${prev.label}</span>`;
+      <span class="risk-trend-hint-text">Auto-computed vs ${prevAssessment.label}</span>`;
   }
 }
 

@@ -409,6 +409,58 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
 .site-footer a:hover { text-decoration: underline; }
 .footer-sep { opacity: .3; }
 
+/* ── Control Effectiveness Count Inputs ──────────────────── */
+.control-counts-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+}
+.control-count-field {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  align-items: center;
+}
+.control-count-label {
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.control-count-input {
+  width: 64px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: .95rem;
+  padding: .4rem .5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+}
+.control-count-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.derived-rating-display {
+  margin-top: .5rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-height: 28px;
+  flex-wrap: wrap;
+  font-size: .78rem;
+  color: var(--text-muted);
+}
+.control-tally {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  display: inline-flex;
+  gap: .5rem;
+}
+
 /* ── Risk Profile — Form Buttons ─────────────────────────── */
 .risk-btn-group {
   display: flex;

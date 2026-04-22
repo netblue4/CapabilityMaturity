@@ -209,7 +209,7 @@ function renderRiskProfileSummary(assessment) {
 
   const capsWithData = CONFIG.capabilities.filter(cap => {
     const raw = assessment.measureScores?.[cap.id]?.[riskMeasure.id];
-    return raw && typeof raw === 'object' && (raw.residualRating || raw.appetiteStatus || raw.controlEffectiveness);
+    return raw && typeof raw === 'object' && (raw.residualRating || raw.appetiteStatus || raw.controlCounts || raw.controlEffectiveness);
   });
 
   if (capsWithData.length === 0) { container.innerHTML = ''; return; }
@@ -224,6 +224,17 @@ function renderRiskProfileSummary(assessment) {
     const residualStyle = rd?.residualRating ? `color:${RISK_COLORS[rd.residualRating]};font-weight:600` : '';
     const appetiteStyle = rd?.appetiteStatus ? `color:${RISK_COLORS[rd.appetiteStatus]}` : '';
     const note = assessment.measureNotes?.[cap.id]?.[riskMeasure.id] || '';
+    const cc = rd?.controlCounts;
+    const derivedCtrl = cc
+      ? (cc.derivedRating || deriveControlRating(cc.notAssessed || 0, cc.partial || 0, cc.effective || 0))
+      : (rd?.controlEffectiveness || null);
+    const ctrlColor = RISK_COLORS[derivedCtrl] || '#8b949e';
+    const ctrlBadge = derivedCtrl
+      ? `<span class="lvl-badge" style="background:${ctrlColor}">${derivedCtrl}</span>`
+      : '—';
+    const tallyHtml = cc && (cc.notAssessed || cc.partial || cc.effective)
+      ? `<span class="control-tally"><span style="color:#2ecc71">✓ ${cc.effective || 0}</span><span style="color:#e67e22">◑ ${cc.partial || 0}</span><span style="color:#e74c3c">○ ${cc.notAssessed || 0}</span></span>`
+      : '—';
 
     let deltaHtml = '';
     if (score > 0 && prevScore > 0) {
@@ -237,6 +248,8 @@ function renderRiskProfileSummary(assessment) {
         <td class="rpt-cap-name">${shortName(cap.name)}</td>
         <td class="rpt-cell" style="${residualStyle}">${rd?.residualRating || '—'}</td>
         <td class="rpt-cell" style="${appetiteStyle}">${rd?.appetiteStatus || '—'}</td>
+        <td class="rpt-cell">${ctrlBadge}</td>
+        <td class="rpt-cell">${tallyHtml}</td>
         <td class="rpt-cell">${rd?.openRisks !== undefined && rd?.openRisks !== null ? rd.openRisks : '—'}</td>
         <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>${deltaHtml}` : '—'}</td>
         <td class="rpt-notes-cell">${note || '—'}</td>
@@ -256,6 +269,8 @@ function renderRiskProfileSummary(assessment) {
               <th>Capability</th>
               <th>Residual Risk</th>
               <th>Appetite Status</th>
+              <th>Controls</th>
+              <th>Control Counts</th>
               <th>Open Risks</th>
               <th>Score ${prevAssessment ? `<span class="rpt-vs-label">vs ${prevAssessment.label}</span>` : ''}</th>
               <th>Notes</th>
@@ -336,7 +351,7 @@ function showRiskMatrixModal() {
         <h3>Risk Profile Score Calculation</h3>
         <button class="modal-close" id="risk-matrix-modal-close">✕</button>
       </div>
-      <p class="modal-desc">Scores are auto-calculated from Residual Risk Rating, Risk Appetite Status and Control Effectiveness. Open Risks of 5 or more reduce the score by 1 (minimum 1). Open Risks of 10 or more reduce the score by 2 (minimum 1).</p>
+      <p class="modal-desc">Scores are auto-calculated from Residual Risk Rating, Risk Appetite Status and a derived Control Effectiveness rating. The derived rating is calculated from control counts: 80%+ effective = Effective, 1–79% effective = Partially Effective, 0% effective or no controls entered = Not Assessed. Modifiers: Open Risks ≥5 reduces score by 1. Open Risks ≥10 reduces score by 2. More than 50% of controls Not Assessed reduces score by 1. Minimum score is 1.</p>
       <div style="overflow-x:auto">
         <table class="risk-profile-table">
           <thead>
@@ -657,7 +672,6 @@ function buildMeasureBlock(cap, m) {
 
         <input type="hidden" id="risk-residual-${cap.id}" value="">
         <input type="hidden" id="risk-appetite-${cap.id}" value="">
-        <input type="hidden" id="risk-ctrl-${cap.id}" value="">
 
         <div class="form-row" style="margin-top:.5rem">
           <label>Residual Risk Rating</label>
@@ -685,13 +699,28 @@ function buildMeasureBlock(cap, m) {
 
         <div class="form-row" style="margin-top:.35rem">
           <label>Control Effectiveness</label>
-          <div class="risk-btn-group" id="risk-group-ctrl-${cap.id}">
-            <button type="button" class="risk-btn" data-value="Not Assessed"
-              onclick="selectRiskBtn(this,'${cap.id}','ctrl')" style="--risk-color:#e74c3c">Not Assessed</button>
-            <button type="button" class="risk-btn" data-value="Partially Effective"
-              onclick="selectRiskBtn(this,'${cap.id}','ctrl')" style="--risk-color:#e67e22">Partially Effective</button>
-            <button type="button" class="risk-btn" data-value="Effective"
-              onclick="selectRiskBtn(this,'${cap.id}','ctrl')" style="--risk-color:#2ecc71">Effective</button>
+          <div class="control-counts-row">
+            <div class="control-count-field">
+              <span class="control-count-label" style="color:#e74c3c">Not Assessed</span>
+              <input type="number" class="control-count-input" id="controls-not-assessed-${cap.id}"
+                min="0" step="1" value="0"
+                oninput="updateControlCountsDisplay('${cap.id}')">
+            </div>
+            <div class="control-count-field">
+              <span class="control-count-label" style="color:#e67e22">Partially Effective</span>
+              <input type="number" class="control-count-input" id="controls-partial-${cap.id}"
+                min="0" step="1" value="0"
+                oninput="updateControlCountsDisplay('${cap.id}')">
+            </div>
+            <div class="control-count-field">
+              <span class="control-count-label" style="color:#2ecc71">Effective</span>
+              <input type="number" class="control-count-input" id="controls-effective-${cap.id}"
+                min="0" step="1" value="0"
+                oninput="updateControlCountsDisplay('${cap.id}')">
+            </div>
+          </div>
+          <div id="derived-ctrl-display-${cap.id}" class="derived-rating-display">
+            <span style="color:var(--text-muted);font-style:italic">— Enter control counts above</span>
           </div>
         </div>
 
@@ -918,6 +947,49 @@ function selectRiskBtn(btn, capId, field) {
   updateRiskScoreDisplay(capId);
 }
 
+function deriveControlRating(na, partial, effective) {
+  const total = na + partial + effective;
+  if (total === 0) return 'Not Assessed';
+  const effectivePct = (effective / total) * 100;
+  if (effectivePct >= 80) return 'Effective';
+  if (effectivePct >= 1)  return 'Partially Effective';
+  return 'Not Assessed';
+}
+
+function updateControlCountsDisplay(capId) {
+  const na      = parseInt(document.getElementById(`controls-not-assessed-${capId}`)?.value) || 0;
+  const partial = parseInt(document.getElementById(`controls-partial-${capId}`)?.value) || 0;
+  const eff     = parseInt(document.getElementById(`controls-effective-${capId}`)?.value) || 0;
+  const total   = na + partial + eff;
+  const derived = deriveControlRating(na, partial, eff);
+  const el = document.getElementById(`derived-ctrl-display-${capId}`);
+  if (el) {
+    if (total === 0) {
+      el.innerHTML = `<span style="color:var(--text-muted);font-style:italic">— Enter control counts above</span>`;
+    } else {
+      const effPct = Math.round((eff / total) * 100);
+      const color  = RISK_COLORS[derived] || '#888';
+      el.innerHTML = `<span style="color:var(--text-muted)">Total: ${total} · ${effPct}% effective</span>
+        <span class="lvl-badge" style="background:${color}">${derived}</span>`;
+    }
+  }
+  updateRiskScoreDisplay(capId);
+}
+
+function ctrlEffectivenessBadgeHtml(rd) {
+  if (!rd) return '';
+  const cc = rd.controlCounts;
+  const derived = cc
+    ? (cc.derivedRating || deriveControlRating(cc.notAssessed || 0, cc.partial || 0, cc.effective || 0))
+    : rd.controlEffectiveness;
+  if (!derived) return '';
+  const color = RISK_COLORS[derived] || '#888';
+  const tally = cc
+    ? ` <span style="opacity:.7;font-size:.85em">(✓${cc.effective || 0} ◑${cc.partial || 0} ○${cc.notAssessed || 0})</span>`
+    : '';
+  return `<span class="risk-detail-badge" style="--risk-color:${color}">${derived}${tally}</span>`;
+}
+
 function updateRiskScoreDisplay(capId) {
   const el = document.getElementById(`risk-score-display-${capId}`);
   if (!el) return;
@@ -934,44 +1006,71 @@ function updateRiskScoreDisplay(capId) {
 function calcRiskScore(capId) {
   const residual  = document.getElementById(`risk-residual-${capId}`)?.value;
   const appetite  = document.getElementById(`risk-appetite-${capId}`)?.value;
-  const ctrl      = document.getElementById(`risk-ctrl-${capId}`)?.value;
+  if (!residual || !appetite) return 0;
+
+  const na        = parseInt(document.getElementById(`controls-not-assessed-${capId}`)?.value) || 0;
+  const partial   = parseInt(document.getElementById(`controls-partial-${capId}`)?.value) || 0;
+  const eff       = parseInt(document.getElementById(`controls-effective-${capId}`)?.value) || 0;
+  const total     = na + partial + eff;
   const openRisks = parseInt(document.getElementById(`risk-openrisks-${capId}`)?.value) || 0;
-  if (!residual || !appetite || !ctrl) return 0;
-  let score = CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[ctrl] || 0;
-  if (score > 0) {
-    if (openRisks >= 10)     score = Math.max(1, score - 2);
-    else if (openRisks >= 5) score = Math.max(1, score - 1);
-  }
-  return score;
+
+  const derived = deriveControlRating(na, partial, eff);
+  let score = CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[derived] || 0;
+  if (score === 0) return 0;
+
+  if (openRisks >= 10)     score -= 2;
+  else if (openRisks >= 5) score -= 1;
+
+  if (total > 0 && (na / total) > 0.5) score -= 1;
+
+  return Math.min(5, Math.max(1, score));
 }
 
 function populateRiskProfileFields(capId, riskData) {
-  const fieldMap = {
-    residual: riskData.residualRating,
-    appetite: riskData.appetiteStatus,
-    ctrl:     riskData.controlEffectiveness
-  };
-  Object.entries(fieldMap).forEach(([field, value]) => {
+  ['residual', 'appetite'].forEach(field => {
+    const value = field === 'residual' ? riskData.residualRating : riskData.appetiteStatus;
     const hidden = document.getElementById(`risk-${field}-${capId}`);
     if (hidden) hidden.value = value || '';
     document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
       .forEach(b => b.classList.toggle('selected', b.dataset.value === value));
   });
+
+  let na = 0, partial = 0, eff = 0;
+  if (riskData.controlCounts) {
+    na      = riskData.controlCounts.notAssessed ?? 0;
+    partial = riskData.controlCounts.partial      ?? 0;
+    eff     = riskData.controlCounts.effective    ?? 0;
+  } else if (riskData.controlEffectiveness) {
+    console.info(`Legacy controlEffectiveness data detected for capability ${capId} — control counts set to 0.`);
+  }
+  const naEl = document.getElementById(`controls-not-assessed-${capId}`);
+  const partialEl = document.getElementById(`controls-partial-${capId}`);
+  const effEl = document.getElementById(`controls-effective-${capId}`);
+  if (naEl)      naEl.value      = na;
+  if (partialEl) partialEl.value = partial;
+  if (effEl)     effEl.value     = eff;
+
   const openEl = document.getElementById(`risk-openrisks-${capId}`);
   if (openEl) openEl.value = riskData.openRisks ?? 0;
-  updateRiskScoreDisplay(capId);
+  updateControlCountsDisplay(capId);
 }
 
 function resetRiskProfileFields(capId) {
-  ['residual', 'appetite', 'ctrl'].forEach(field => {
+  ['residual', 'appetite'].forEach(field => {
     const el = document.getElementById(`risk-${field}-${capId}`);
     if (el) el.value = '';
     document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
       .forEach(b => b.classList.remove('selected'));
   });
+  const naEl = document.getElementById(`controls-not-assessed-${capId}`);
+  const partialEl = document.getElementById(`controls-partial-${capId}`);
+  const effEl = document.getElementById(`controls-effective-${capId}`);
+  if (naEl)      naEl.value      = 0;
+  if (partialEl) partialEl.value = 0;
+  if (effEl)     effEl.value     = 0;
   const openEl = document.getElementById(`risk-openrisks-${capId}`);
   if (openEl) openEl.value = 0;
-  updateRiskScoreDisplay(capId);
+  updateControlCountsDisplay(capId);
 }
 
 // ── Save / Delete ────────────────────────────────────────────
@@ -994,11 +1093,16 @@ function saveAssessment(e) {
         if (m.type === 'risk_profile') {
           const residual  = document.getElementById(`risk-residual-${cap.id}`)?.value || '';
           const appetite  = document.getElementById(`risk-appetite-${cap.id}`)?.value || '';
-          const ctrl      = document.getElementById(`risk-ctrl-${cap.id}`)?.value || '';
+          const na        = parseInt(document.getElementById(`controls-not-assessed-${cap.id}`)?.value) || 0;
+          const partial   = parseInt(document.getElementById(`controls-partial-${cap.id}`)?.value) || 0;
+          const eff       = parseInt(document.getElementById(`controls-effective-${cap.id}`)?.value) || 0;
           const openRisks = parseInt(document.getElementById(`risk-openrisks-${cap.id}`)?.value) || 0;
+          const derivedRating = deriveControlRating(na, partial, eff);
           const score = calcRiskScore(cap.id);
-          measureScores[cap.id][m.id] = (residual || appetite || ctrl)
-            ? { score, residualRating: residual, appetiteStatus: appetite, controlEffectiveness: ctrl, openRisks }
+          measureScores[cap.id][m.id] = (residual || appetite || na || partial || eff)
+            ? { score, residualRating: residual, appetiteStatus: appetite,
+                controlCounts: { notAssessed: na, partial, effective: eff, derivedRating },
+                openRisks }
             : 0;
         } else {
           measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
@@ -1073,7 +1177,7 @@ function viewAssessment(id) {
               <div class="risk-detail-fields">
                 ${rd.residualRating ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.residualRating] || '#888'}">${rd.residualRating} Risk</span>` : ''}
                 ${rd.appetiteStatus ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.appetiteStatus] || '#888'}">${rd.appetiteStatus}</span>` : ''}
-                ${rd.controlEffectiveness ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.controlEffectiveness] || '#888'}">${rd.controlEffectiveness}</span>` : ''}
+                ${ctrlEffectivenessBadgeHtml(rd)}
                 ${rd.openRisks !== undefined && rd.openRisks !== null ? `<span class="risk-detail-badge" style="--risk-color:#8b949e">${rd.openRisks} Open ${rd.openRisks === 1 ? 'Risk' : 'Risks'}</span>` : ''}
               </div>` : ''}
             ${note ? `<div class="detail-cap-note">${note}</div>` : ''}

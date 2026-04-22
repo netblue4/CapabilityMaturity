@@ -120,15 +120,23 @@ function renderMeasureSummary(assessment) {
         </span>
       </div>
       <button class="btn-link ratings-link" onclick="showRatingsModal(null)">ℹ Ratings</button>
+      <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-bottom:.35rem">
+        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:100px;text-align:center">Score</span>
+        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);width:36px;text-align:center">Target</span>
+      </div>
       ${CONFIG.capabilities.map(cap => {
         const avg = capAvgScore(assessment, cap.id);
         const lv = levelForScore(avg);
+        const targets = CONFIG.measures.map(m => getMeasureTarget(assessment, cap.id, m.id)).filter(t => t > 0);
+        const targetAvg = targets.length ? Math.round(targets.reduce((a,b) => a+b,0) / targets.length) : 0;
+        const tlv = levelForScore(targetAvg);
         return `<div class="score-row">
           <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
           <div class="score-bar-wrap">
             <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
           </div>
           <span class="score-badge" style="background:${lv ? lv.color : '#555'}">${avg > 0 ? avg.toFixed(1) + ' · ' + lv.name : '—'}</span>
+          <span class="score-target-badge">${targetAvg > 0 ? `<span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'};min-width:0;padding:.15rem .45rem">${targetAvg}</span>` : '<span style="color:var(--text-muted)">—</span>'}</span>
         </div>`;
       }).join("")}
       <div class="avg-score">
@@ -192,7 +200,8 @@ function renderMeasureSummary(assessment) {
       </div>`;
   }).join("");
 
-  row.innerHTML = scoresCard + measureCards;
+  document.getElementById("scores-card-slot").innerHTML = scoresCard;
+  row.innerHTML = measureCards;
 }
 
 // ── Risk Profile Summary Table ────────────────────────────────

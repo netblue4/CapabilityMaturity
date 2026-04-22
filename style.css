@@ -232,14 +232,26 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .score-bar-wrap { flex: 1; background: var(--bg3); border-radius: 4px; height: 7px; overflow: hidden; }
 .score-bar { height: 100%; border-radius: 4px; transition: width .4s ease; }
 .score-badge { font-family: var(--font-mono); font-size: .7rem; padding: .2rem .5rem; border-radius: 4px; color: #fff; white-space: nowrap; min-width: 100px; text-align: center; }
+.score-target-badge { width: 36px; text-align: center; flex-shrink: 0; }
 .avg-score { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
 .avg-label { font-size: .78rem; color: var(--text-muted); }
 .avg-value { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; }
 .avg-level-name { font-size: .82rem; color: var(--text-muted); }
 .latest-info { font-size: .78rem; color: var(--text-muted); margin-top: .4rem; }
 
+/* ── Radar + Scores Row ──────────────────────────────────── */
+.radar-scores-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 900px) { .radar-scores-row { grid-template-columns: 1fr; } }
+
 /* ── Measure Summary Row ─────────────────────────────────── */
-.measure-summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.25rem; }
+.measure-summary-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 1.25rem; }
+@media (max-width: 900px) { .measure-summary-row { grid-template-columns: 1fr; } }
 
 .ratings-link { display: block; font-size: .72rem; margin-bottom: .6rem; text-align: right; opacity: .7; }
 .ratings-link:hover { opacity: 1; }

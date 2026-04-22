@@ -54,21 +54,24 @@
       </div>
 
       <div id="dashboard-content">
-        <div class="card radar-card">
-          <h3 class="card-title">Overall Maturity Radar</h3>
-          <div class="radar-filters">
-            <details class="cap-filter" id="radar-cap-filter">
-              <summary class="cap-filter-toggle">Capabilities <span class="cap-filter-count" id="cap-filter-count"></span></summary>
-              <div id="radar-cap-checkboxes" class="cap-filter-checks"></div>
-            </details>
-            <details class="cap-filter" id="radar-assessment-filter">
-              <summary class="cap-filter-toggle">Assessments <span class="cap-filter-count" id="assessment-filter-count"></span></summary>
-              <div id="radar-assessment-checkboxes" class="cap-filter-checks"></div>
-            </details>
-            <button class="btn btn-outline play-btn" id="btn-animate-radar" onclick="toggleRadarAnimation()" title="Animate through all assessments">▶ All</button>
+        <div class="radar-scores-row">
+          <div class="card radar-card">
+            <h3 class="card-title">Overall Maturity Radar</h3>
+            <div class="radar-filters">
+              <details class="cap-filter" id="radar-cap-filter">
+                <summary class="cap-filter-toggle">Capabilities <span class="cap-filter-count" id="cap-filter-count"></span></summary>
+                <div id="radar-cap-checkboxes" class="cap-filter-checks"></div>
+              </details>
+              <details class="cap-filter" id="radar-assessment-filter">
+                <summary class="cap-filter-toggle">Assessments <span class="cap-filter-count" id="assessment-filter-count"></span></summary>
+                <div id="radar-assessment-checkboxes" class="cap-filter-checks"></div>
+              </details>
+              <button class="btn btn-outline play-btn" id="btn-animate-radar" onclick="toggleRadarAnimation()" title="Animate through all assessments">▶ All</button>
+            </div>
+            <div id="radar-anim-label" class="radar-anim-label" style="display:none"></div>
+            <canvas id="radar-chart" width="900" height="500"></canvas>
           </div>
-          <div id="radar-anim-label" class="radar-anim-label" style="display:none"></div>
-          <canvas id="radar-chart" width="900" height="500"></canvas>
+          <div id="scores-card-slot"></div>
         </div>
 
         <div id="measure-summary-row" class="measure-summary-row"></div>

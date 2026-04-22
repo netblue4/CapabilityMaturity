@@ -108,24 +108,9 @@
 
   "capabilities": [
     {
-      "id": "vulnerability_mgmt",
-      "name": "ICT Vulnerability Management",
-      "description": "Identification, assessment, and remediation of security vulnerabilities across ICT infrastructure."
-    },
-    {
-      "id": "performance_capacity",
-      "name": "ICT Capacity & Performance Management",
-      "description": "Monitoring and planning of ICT resource performance and capacity to meet current and future demands."
-    },
-    {
-      "id": "incident_mgmt",
-      "name": "ICT Incident Management",
-      "description": "Restoration of normal service operation as quickly as possible following unplanned disruptions."
-    },
-    {
-      "id": "change_mgmt",
-      "name": "ICT Change Management",
-      "description": "Controlled management of changes to ICT services and infrastructure to minimise risk."
+      "id": "asset_mgmt",
+      "name": "ICT Asset Management",
+      "description": "Lifecycle management of ICT hardware, software, and cloud assets from procurement through to decommissioning."
     },
     {
       "id": "disaster_recovery",
@@ -133,9 +118,29 @@
       "description": "Plans, procedures and capabilities to recover ICT services following a major disruption or disaster."
     },
     {
-      "id": "asset_mgmt",
-      "name": "ICT Asset Management",
-      "description": "Lifecycle management of ICT hardware, software, and cloud assets from procurement through to decommissioning."
+      "id": "performance_capacity",
+      "name": "ICT Capacity & Performance Management",
+      "description": "Monitoring and planning of ICT resource performance and capacity to meet current and future demands."
+    },
+    {
+      "id": "change_mgmt",
+      "name": "ICT Change Management",
+      "description": "Controlled management of changes to ICT services and infrastructure to minimise risk."
+    },
+    {
+      "id": "data_mgmt",
+      "name": "ICT Data Management",
+      "description": "Management of data quality, classification, storage, retention, and governance to ensure data is accurate, secure, and accessible."
+    },
+    {
+      "id": "governance_mgmt",
+      "name": "ICT Governance Management",
+      "description": "Frameworks, policies, and oversight mechanisms that ensure ICT activities align with organisational strategy and compliance obligations."
+    },
+    {
+      "id": "incident_mgmt",
+      "name": "ICT Incident Management",
+      "description": "Restoration of normal service operation as quickly as possible following unplanned disruptions."
     },
     {
       "id": "major_incident_mgmt",
@@ -143,19 +148,9 @@
       "description": "Coordinated response to high-impact ICT incidents to minimise business disruption and enable rapid service restoration."
     },
     {
-      "id": "continual_improvement",
-      "name": "ICT Continual Improvement",
-      "description": "Structured approach to identifying, prioritising, and implementing improvements across ICT services and processes."
-    },
-    {
       "id": "third_party_risk",
       "name": "ICT Third-Party Risk Management",
       "description": "Assessment and ongoing management of risks introduced by third-party vendors, suppliers, and managed service providers."
-    },
-    {
-      "id": "governance_mgmt",
-      "name": "ICT Governance Management",
-      "description": "Frameworks, policies, and oversight mechanisms that ensure ICT activities align with organisational strategy and compliance obligations."
     },
     {
       "id": "transformation_mgmt",
@@ -168,9 +163,9 @@
       "description": "Governance of the secure acquisition, development, testing, and ongoing maintenance of ICT systems and applications."
     },
     {
-      "id": "data_mgmt",
-      "name": "ICT Data Management",
-      "description": "Management of data quality, classification, storage, retention, and governance to ensure data is accurate, secure, and accessible."
+      "id": "vulnerability_mgmt",
+      "name": "ICT Vulnerability Management",
+      "description": "Identification, assessment, and remediation of security vulnerabilities across ICT infrastructure."
     }
   ]
 }

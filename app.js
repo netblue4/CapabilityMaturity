@@ -234,13 +234,6 @@ function renderRiskProfileSummary(assessment) {
     const appetiteStyle = rd?.appetiteStatus ? `color:${RISK_COLORS[rd.appetiteStatus]}` : '';
     const note = assessment.measureNotes?.[cap.id]?.[riskMeasure.id] || '';
     const cc = rd?.controlCounts;
-    const derivedCtrl = cc
-      ? (cc.derivedRating || deriveControlRating(cc.notAssessed || 0, cc.partial || 0, cc.effective || 0))
-      : (rd?.controlEffectiveness || null);
-    const ctrlColor = RISK_COLORS[derivedCtrl] || '#8b949e';
-    const ctrlBadge = derivedCtrl
-      ? `<span class="lvl-badge" style="background:${ctrlColor}">${derivedCtrl}</span>`
-      : '—';
     const tallyHtml = cc && (cc.notAssessed || cc.partial || cc.effective)
       ? `<span class="control-tally"><span style="color:#2ecc71">✓ ${cc.effective || 0}</span><span style="color:#e67e22">◑ ${cc.partial || 0}</span><span style="color:#e74c3c">○ ${cc.notAssessed || 0}</span></span>`
       : '—';
@@ -260,7 +253,6 @@ function renderRiskProfileSummary(assessment) {
         <td class="rpt-cell" style="${residualStyle}">${rd?.residualRating || '—'}</td>
         <td class="rpt-cell" style="${appetiteStyle}">${rd?.appetiteStatus || '—'}</td>
         <td class="rpt-cell">${tallyHtml}</td>
-        <td class="rpt-cell">${ctrlBadge}</td>
         <td class="rpt-notes-cell">${note || '—'}</td>
       </tr>`;
   }).join('');
@@ -281,7 +273,6 @@ function renderRiskProfileSummary(assessment) {
               <th>Residual Risk</th>
               <th>Appetite Status</th>
               <th>Control Counts</th>
-              <th>Controls</th>
               <th>Notes</th>
             </tr>
           </thead>

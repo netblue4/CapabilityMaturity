@@ -10,13 +10,13 @@
     },
     {
       "level": 2,
-      "name": "Managed",
+      "name": "Defined",
       "color": "#e67e22",
       "description": "Basic processes exist but are inconsistently applied. Dependent on individuals."
     },
     {
       "level": 3,
-      "name": "Defined",
+      "name": "Managed",
       "color": "#f1c40f",
       "description": "Standardised, documented processes applied organisation-wide."
     },

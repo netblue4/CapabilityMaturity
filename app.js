@@ -255,12 +255,12 @@ function renderRiskProfileSummary(assessment) {
     return `
       <tr>
         <td class="rpt-cap-name">${shortName(cap.name)}</td>
+        <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>${deltaHtml}` : '—'}</td>
+        <td class="rpt-cell">${rd?.openRisks !== undefined && rd?.openRisks !== null ? rd.openRisks : '—'}</td>
         <td class="rpt-cell" style="${residualStyle}">${rd?.residualRating || '—'}</td>
         <td class="rpt-cell" style="${appetiteStyle}">${rd?.appetiteStatus || '—'}</td>
-        <td class="rpt-cell">${ctrlBadge}</td>
         <td class="rpt-cell">${tallyHtml}</td>
-        <td class="rpt-cell">${rd?.openRisks !== undefined && rd?.openRisks !== null ? rd.openRisks : '—'}</td>
-        <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>${deltaHtml}` : '—'}</td>
+        <td class="rpt-cell">${ctrlBadge}</td>
         <td class="rpt-notes-cell">${note || '—'}</td>
       </tr>`;
   }).join('');
@@ -277,11 +277,11 @@ function renderRiskProfileSummary(assessment) {
             <tr>
               <th>Capability</th>
               <th>Score ${prevAssessment ? `<span class="rpt-vs-label">vs ${prevAssessment.label}</span>` : ''}</th>
+              <th>Open Risks</th>
               <th>Residual Risk</th>
               <th>Appetite Status</th>
-              <th>Controls</th>
               <th>Control Counts</th>
-              <th>Open Risks</th>
+              <th>Controls</th>
               <th>Notes</th>
             </tr>
           </thead>

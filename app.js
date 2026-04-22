@@ -238,7 +238,6 @@ function renderRiskProfileSummary(assessment) {
         <td class="rpt-cap-name">${shortName(cap.name)}</td>
         <td class="rpt-cell" style="${residualStyle}">${rd?.residualRating || '—'}</td>
         <td class="rpt-cell" style="${appetiteStyle}">${rd?.appetiteStatus || '—'}</td>
-        <td class="rpt-cell" style="${trendStyle}">${rd?.trend ? RISK_TREND_ICONS[rd.trend] + ' ' + rd.trend : '—'}</td>
         <td class="rpt-cell">${rd?.openRisks !== undefined && rd?.openRisks !== null ? rd.openRisks : '—'}</td>
         <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>${deltaHtml}` : '—'}</td>
       </tr>`;
@@ -254,7 +253,6 @@ function renderRiskProfileSummary(assessment) {
               <th>Capability</th>
               <th>Residual Risk</th>
               <th>Appetite Status</th>
-              <th>Trend</th>
               <th>Open Risks</th>
               <th>Score ${prevAssessment ? `<span class="rpt-vs-label">vs ${prevAssessment.label}</span>` : ''}</th>
             </tr>

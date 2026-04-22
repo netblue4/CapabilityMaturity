@@ -276,12 +276,12 @@ function renderRiskProfileSummary(assessment) {
           <thead>
             <tr>
               <th>Capability</th>
+              <th>Score ${prevAssessment ? `<span class="rpt-vs-label">vs ${prevAssessment.label}</span>` : ''}</th>
               <th>Residual Risk</th>
               <th>Appetite Status</th>
               <th>Controls</th>
               <th>Control Counts</th>
               <th>Open Risks</th>
-              <th>Score ${prevAssessment ? `<span class="rpt-vs-label">vs ${prevAssessment.label}</span>` : ''}</th>
               <th>Notes</th>
             </tr>
           </thead>

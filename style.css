@@ -520,6 +520,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   margin-left: .3rem;
   opacity: .7;
 }
+.rpt-notes-cell {
+  font-size: .78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  max-width: 280px;
+}
 
 /* ── Trend Direction Icons ───────────────────────────────── */
 .trend-icon {

@@ -83,26 +83,26 @@
   "riskProfile": {
     "residualRating": ["Critical", "High", "Medium", "Low"],
     "appetiteStatus": ["Exceeds Appetite", "Within Appetite"],
-    "trend": ["Worsening", "Stable", "Improving"],
+    "controlEffectiveness": ["Not Assessed", "Partially Effective", "Effective"],
     "openRisks": { "type": "number", "min": 0 }
   },
 
   "riskScoreMatrix": {
     "Critical": {
-      "Exceeds Appetite": { "Worsening": 1, "Stable": 1, "Improving": 2 },
-      "Within Appetite": { "Worsening": 2, "Stable": 2, "Improving": 2 }
+      "Exceeds Appetite": { "Not Assessed": 1, "Partially Effective": 1, "Effective": 1 },
+      "Within Appetite":  { "Not Assessed": 1, "Partially Effective": 2, "Effective": 2 }
     },
     "High": {
-      "Exceeds Appetite": { "Worsening": 1, "Stable": 2, "Improving": 2 },
-      "Within Appetite": { "Worsening": 2, "Stable": 3, "Improving": 3 }
+      "Exceeds Appetite": { "Not Assessed": 1, "Partially Effective": 2, "Effective": 2 },
+      "Within Appetite":  { "Not Assessed": 2, "Partially Effective": 3, "Effective": 3 }
     },
     "Medium": {
-      "Exceeds Appetite": { "Worsening": 3, "Stable": 3, "Improving": 3 },
-      "Within Appetite": { "Worsening": 3, "Stable": 3, "Improving": 4 }
+      "Exceeds Appetite": { "Not Assessed": 2, "Partially Effective": 3, "Effective": 3 },
+      "Within Appetite":  { "Not Assessed": 3, "Partially Effective": 3, "Effective": 4 }
     },
     "Low": {
-      "Exceeds Appetite": { "Worsening": 3, "Stable": 3, "Improving": 3 },
-      "Within Appetite": { "Worsening": 5, "Stable": 5, "Improving": 5 }
+      "Exceeds Appetite": { "Not Assessed": 3, "Partially Effective": 3, "Effective": 4 },
+      "Within Appetite":  { "Not Assessed": 3, "Partially Effective": 4, "Effective": 5 }
     }
   },
 

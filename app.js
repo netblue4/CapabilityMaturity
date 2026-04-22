@@ -13,9 +13,8 @@ let animationFrameId = null;
 const RISK_COLORS = {
   'Critical': '#e74c3c', 'High': '#e67e22', 'Medium': '#f1c40f', 'Low': '#2ecc71',
   'Exceeds Appetite': '#e74c3c', 'Within Appetite': '#2ecc71',
-  'Worsening': '#e74c3c', 'Stable': '#8b949e', 'Improving': '#2ecc71'
+  'Not Assessed': '#e74c3c', 'Partially Effective': '#e67e22', 'Effective': '#2ecc71'
 };
-const RISK_TREND_ICONS = { 'Worsening': '↓', 'Stable': '→', 'Improving': '↑' };
 
 // ── Bootstrap ────────────────────────────────────────────────
 // Load config.json first, then initialise the app.
@@ -210,7 +209,7 @@ function renderRiskProfileSummary(assessment) {
 
   const capsWithData = CONFIG.capabilities.filter(cap => {
     const raw = assessment.measureScores?.[cap.id]?.[riskMeasure.id];
-    return raw && typeof raw === 'object' && (raw.residualRating || raw.appetiteStatus || raw.trend);
+    return raw && typeof raw === 'object' && (raw.residualRating || raw.appetiteStatus || raw.controlEffectiveness);
   });
 
   if (capsWithData.length === 0) { container.innerHTML = ''; return; }
@@ -224,7 +223,7 @@ function renderRiskProfileSummary(assessment) {
 
     const residualStyle = rd?.residualRating ? `color:${RISK_COLORS[rd.residualRating]};font-weight:600` : '';
     const appetiteStyle = rd?.appetiteStatus ? `color:${RISK_COLORS[rd.appetiteStatus]}` : '';
-    const trendStyle    = rd?.trend ? `color:${RISK_COLORS[rd.trend]}` : '';
+    const note = assessment.measureNotes?.[cap.id]?.[riskMeasure.id] || '';
 
     let deltaHtml = '';
     if (score > 0 && prevScore > 0) {
@@ -240,12 +239,16 @@ function renderRiskProfileSummary(assessment) {
         <td class="rpt-cell" style="${appetiteStyle}">${rd?.appetiteStatus || '—'}</td>
         <td class="rpt-cell">${rd?.openRisks !== undefined && rd?.openRisks !== null ? rd.openRisks : '—'}</td>
         <td class="rpt-cell">${score > 0 ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>${deltaHtml}` : '—'}</td>
+        <td class="rpt-notes-cell">${note || '—'}</td>
       </tr>`;
   }).join('');
 
   container.innerHTML = `
     <div class="card" style="margin-bottom:1.25rem">
-      <h3 class="card-title">Risk Profile Summary — ${assessment.label}</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <h3 class="card-title" style="margin-bottom:0">Risk Profile Summary — ${assessment.label}</h3>
+        <button class="btn-link ratings-link" style="margin-bottom:0" onclick="showRiskMatrixModal()">ℹ Ratings</button>
+      </div>
       <div style="overflow-x:auto">
         <table class="risk-profile-table">
           <thead>
@@ -255,6 +258,7 @@ function renderRiskProfileSummary(assessment) {
               <th>Appetite Status</th>
               <th>Open Risks</th>
               <th>Score ${prevAssessment ? `<span class="rpt-vs-label">vs ${prevAssessment.label}</span>` : ''}</th>
+              <th>Notes</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -293,6 +297,64 @@ function closeRatingsModal(e) {
   if (e.target.id === "ratings-modal") {
     document.getElementById("ratings-modal").style.display = "none";
   }
+}
+
+function showRiskMatrixModal() {
+  const residuals = CONFIG.riskProfile?.residualRating || [];
+  const appetites = CONFIG.riskProfile?.appetiteStatus || [];
+  const ctrls     = CONFIG.riskProfile?.controlEffectiveness || [];
+
+  let tableRows = '';
+  residuals.forEach(res => {
+    tableRows += `
+      <tr style="background:var(--bg3)">
+        <td colspan="4" style="padding:.4rem .7rem;font-family:var(--font-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text)">${res}</td>
+      </tr>`;
+    appetites.forEach(app => {
+      ctrls.forEach(ctrl => {
+        const baseScore = CONFIG.riskScoreMatrix?.[res]?.[app]?.[ctrl] || 0;
+        const lv = levelForScore(baseScore);
+        const badge = baseScore > 0
+          ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${baseScore} · ${lv ? lv.name : ''}</span>`
+          : '—';
+        tableRows += `
+          <tr>
+            <td style="padding:.4rem .7rem;font-size:.8rem"></td>
+            <td style="padding:.4rem .7rem;font-size:.8rem;color:var(--text-muted)">${app}</td>
+            <td style="padding:.4rem .7rem;font-size:.8rem">${ctrl}</td>
+            <td style="padding:.4rem .7rem">${badge}</td>
+          </tr>`;
+      });
+    });
+  });
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:640px">
+      <div class="modal-header">
+        <h3>Risk Profile Score Calculation</h3>
+        <button class="modal-close" id="risk-matrix-modal-close">✕</button>
+      </div>
+      <p class="modal-desc">Scores are auto-calculated from Residual Risk Rating, Risk Appetite Status and Control Effectiveness. Open Risks of 5 or more reduce the score by 1 (minimum 1). Open Risks of 10 or more reduce the score by 2 (minimum 1).</p>
+      <div style="overflow-x:auto">
+        <table class="risk-profile-table">
+          <thead>
+            <tr>
+              <th>Residual Risk</th>
+              <th>Appetite Status</th>
+              <th>Control Effectiveness</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#risk-matrix-modal-close').addEventListener('click', () => overlay.remove());
 }
 
 // History table
@@ -595,7 +657,7 @@ function buildMeasureBlock(cap, m) {
 
         <input type="hidden" id="risk-residual-${cap.id}" value="">
         <input type="hidden" id="risk-appetite-${cap.id}" value="">
-        <input type="hidden" id="risk-trend-${cap.id}" value="">
+        <input type="hidden" id="risk-ctrl-${cap.id}" value="">
 
         <div class="form-row" style="margin-top:.5rem">
           <label>Residual Risk Rating</label>
@@ -622,16 +684,15 @@ function buildMeasureBlock(cap, m) {
         </div>
 
         <div class="form-row" style="margin-top:.35rem">
-          <label>Risk Trend</label>
-          <div class="risk-btn-group" id="risk-group-trend-${cap.id}">
-            <button type="button" class="risk-btn" data-value="Worsening"
-              onclick="selectRiskBtn(this,'${cap.id}','trend')" style="--risk-color:#e74c3c">↓ Worsening</button>
-            <button type="button" class="risk-btn" data-value="Stable"
-              onclick="selectRiskBtn(this,'${cap.id}','trend')" style="--risk-color:#8b949e">→ Stable</button>
-            <button type="button" class="risk-btn" data-value="Improving"
-              onclick="selectRiskBtn(this,'${cap.id}','trend')" style="--risk-color:#2ecc71">↑ Improving</button>
+          <label>Control Effectiveness</label>
+          <div class="risk-btn-group" id="risk-group-ctrl-${cap.id}">
+            <button type="button" class="risk-btn" data-value="Not Assessed"
+              onclick="selectRiskBtn(this,'${cap.id}','ctrl')" style="--risk-color:#e74c3c">Not Assessed</button>
+            <button type="button" class="risk-btn" data-value="Partially Effective"
+              onclick="selectRiskBtn(this,'${cap.id}','ctrl')" style="--risk-color:#e67e22">Partially Effective</button>
+            <button type="button" class="risk-btn" data-value="Effective"
+              onclick="selectRiskBtn(this,'${cap.id}','ctrl')" style="--risk-color:#2ecc71">Effective</button>
           </div>
-          <div id="risk-trend-hint-${cap.id}" class="risk-trend-hint"></div>
         </div>
 
         <div class="form-row" style="margin-top:.35rem">
@@ -854,8 +915,6 @@ function selectRiskBtn(btn, capId, field) {
   btn.classList.add('selected');
   const el = document.getElementById(`risk-${field}-${capId}`);
   if (el) el.value = btn.dataset.value;
-  // Re-compute trend whenever residual rating or appetite changes
-  if (field === 'residual' || field === 'appetite') autoComputeTrend(capId);
   updateRiskScoreDisplay(capId);
 }
 
@@ -873,18 +932,24 @@ function updateRiskScoreDisplay(capId) {
 }
 
 function calcRiskScore(capId) {
-  const residual = document.getElementById(`risk-residual-${capId}`)?.value;
-  const appetite = document.getElementById(`risk-appetite-${capId}`)?.value;
-  const trend    = document.getElementById(`risk-trend-${capId}`)?.value;
-  if (!residual || !appetite || !trend) return 0;
-  return CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[trend] || 0;
+  const residual  = document.getElementById(`risk-residual-${capId}`)?.value;
+  const appetite  = document.getElementById(`risk-appetite-${capId}`)?.value;
+  const ctrl      = document.getElementById(`risk-ctrl-${capId}`)?.value;
+  const openRisks = parseInt(document.getElementById(`risk-openrisks-${capId}`)?.value) || 0;
+  if (!residual || !appetite || !ctrl) return 0;
+  let score = CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[ctrl] || 0;
+  if (score > 0) {
+    if (openRisks >= 10)     score = Math.max(1, score - 2);
+    else if (openRisks >= 5) score = Math.max(1, score - 1);
+  }
+  return score;
 }
 
 function populateRiskProfileFields(capId, riskData) {
   const fieldMap = {
     residual: riskData.residualRating,
     appetite: riskData.appetiteStatus,
-    trend:    riskData.trend
+    ctrl:     riskData.controlEffectiveness
   };
   Object.entries(fieldMap).forEach(([field, value]) => {
     const hidden = document.getElementById(`risk-${field}-${capId}`);
@@ -898,7 +963,7 @@ function populateRiskProfileFields(capId, riskData) {
 }
 
 function resetRiskProfileFields(capId) {
-  ['residual', 'appetite', 'trend'].forEach(field => {
+  ['residual', 'appetite', 'ctrl'].forEach(field => {
     const el = document.getElementById(`risk-${field}-${capId}`);
     if (el) el.value = '';
     document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
@@ -906,45 +971,7 @@ function resetRiskProfileFields(capId) {
   });
   const openEl = document.getElementById(`risk-openrisks-${capId}`);
   if (openEl) openEl.value = 0;
-  const hintEl = document.getElementById(`risk-trend-hint-${capId}`);
-  if (hintEl) hintEl.innerHTML = '';
   updateRiskScoreDisplay(capId);
-}
-
-function autoComputeTrend(capId) {
-  const riskMeasure = CONFIG.measures.find(m => m.type === 'risk_profile');
-  if (!riskMeasure || !CONFIG.riskScoreMatrix) return;
-
-  const residual = document.getElementById(`risk-residual-${capId}`)?.value;
-  const appetite = document.getElementById(`risk-appetite-${capId}`)?.value;
-  if (!residual || !appetite) return;
-
-  // Score this cap would get with a neutral (Stable) trend
-  const stableScore = CONFIG.riskScoreMatrix[residual]?.[appetite]?.['Stable'] || 0;
-  if (!stableScore) return;
-
-  // Compare against the most recent saved assessment
-  const prevAssessment = db.assessments.length > 0 ? db.assessments[db.assessments.length - 1] : null;
-  if (!prevAssessment) return;
-  const prevScore = getMeasureScore(prevAssessment, capId, riskMeasure.id);
-  if (!prevScore) return;
-
-  const trend = stableScore > prevScore ? 'Improving' : stableScore < prevScore ? 'Worsening' : 'Stable';
-
-  // Select the trend button (directly, without recursing into autoComputeTrend)
-  document.querySelectorAll(`#risk-group-trend-${capId} .risk-btn`)
-    .forEach(b => b.classList.toggle('selected', b.dataset.value === trend));
-  const hiddenTrend = document.getElementById(`risk-trend-${capId}`);
-  if (hiddenTrend) hiddenTrend.value = trend;
-
-  // Show the hint label
-  const hintEl = document.getElementById(`risk-trend-hint-${capId}`);
-  if (hintEl) {
-    const cls  = trend === 'Improving' ? 'trend-up' : trend === 'Worsening' ? 'trend-down' : 'trend-flat';
-    const icon = trend === 'Improving' ? '▲' : trend === 'Worsening' ? '▼' : '→';
-    hintEl.innerHTML = `<span class="trend-icon ${cls}">${icon}</span>
-      <span class="risk-trend-hint-text">Auto-computed vs ${prevAssessment.label}</span>`;
-  }
 }
 
 // ── Save / Delete ────────────────────────────────────────────
@@ -967,11 +994,11 @@ function saveAssessment(e) {
         if (m.type === 'risk_profile') {
           const residual  = document.getElementById(`risk-residual-${cap.id}`)?.value || '';
           const appetite  = document.getElementById(`risk-appetite-${cap.id}`)?.value || '';
-          const trend     = document.getElementById(`risk-trend-${cap.id}`)?.value || '';
+          const ctrl      = document.getElementById(`risk-ctrl-${cap.id}`)?.value || '';
           const openRisks = parseInt(document.getElementById(`risk-openrisks-${cap.id}`)?.value) || 0;
           const score = calcRiskScore(cap.id);
-          measureScores[cap.id][m.id] = (residual || appetite || trend)
-            ? { score, residualRating: residual, appetiteStatus: appetite, trend, openRisks }
+          measureScores[cap.id][m.id] = (residual || appetite || ctrl)
+            ? { score, residualRating: residual, appetiteStatus: appetite, controlEffectiveness: ctrl, openRisks }
             : 0;
         } else {
           measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
@@ -1046,7 +1073,7 @@ function viewAssessment(id) {
               <div class="risk-detail-fields">
                 ${rd.residualRating ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.residualRating] || '#888'}">${rd.residualRating} Risk</span>` : ''}
                 ${rd.appetiteStatus ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.appetiteStatus] || '#888'}">${rd.appetiteStatus}</span>` : ''}
-                ${rd.trend ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.trend] || '#888'}">${RISK_TREND_ICONS[rd.trend] || ''} ${rd.trend}</span>` : ''}
+                ${rd.controlEffectiveness ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.controlEffectiveness] || '#888'}">${rd.controlEffectiveness}</span>` : ''}
                 ${rd.openRisks !== undefined && rd.openRisks !== null ? `<span class="risk-detail-badge" style="--risk-color:#8b949e">${rd.openRisks} Open ${rd.openRisks === 1 ? 'Risk' : 'Risks'}</span>` : ''}
               </div>` : ''}
             ${note ? `<div class="detail-cap-note">${note}</div>` : ''}

@@ -10,7 +10,7 @@ function renderMeasureSummary(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">📋</span>
         <div>
-          <h3 class="measure-card-title">Latest Capability Scores</h3>
+          <h3 class="measure-card-title">Capability Maturity Profile across Governance, ICT Risk & Reporting</h3>
           <p class="measure-card-desc">${assessment.label} · ${formatDate(assessment.date)}</p>
         </div>
         <span class="measure-avg-badge" style="background:${avgLevel ? avgLevel.color : '#555'}">

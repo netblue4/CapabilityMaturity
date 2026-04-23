@@ -26,7 +26,7 @@ function renderMeasureSummary(assessment) {
         const avg = capAvgScore(assessment, cap.id);
         const lv = levelForScore(avg);
         const targets = CONFIG.measures.map(m => getMeasureTarget(assessment, cap.id, m.id)).filter(t => t > 0);
-        const targetAvg = targets.length ? Math.round(targets.reduce((a,b) => a+b,0) / targets.length) : 0;
+        const targetAvg = targets.length ? targets.reduce((a,b) => a+b,0) / targets.length : 0;
         const tlv = levelForScore(targetAvg);
         return `<div class="score-row">
           <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
@@ -34,7 +34,7 @@ function renderMeasureSummary(assessment) {
             <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
           </div>
           <span class="score-badge" style="background:${lv ? lv.color : '#555'}">${avg > 0 ? avg.toFixed(1) + ' · ' + lv.name : '—'}</span>
-          <span class="score-target-badge">${targetAvg > 0 ? `<span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'};min-width:0;padding:.15rem .45rem">${targetAvg}</span>` : '<span style="color:var(--text-muted)">—</span>'}</span>
+          <span class="score-target-badge">${targetAvg > 0 ? `<span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'};min-width:0;padding:.15rem .45rem">${targetAvg.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</span>
         </div>`;
       }).join("")}
       <div class="avg-score">
@@ -61,6 +61,7 @@ function renderMeasureSummary(assessment) {
     const bars = CONFIG.capabilities.map((cap, i) => {
       const s = scores[i];
       const ps = prevScores ? prevScores[i] : 0;
+      const t = getMeasureTarget(assessment, cap.id, m.id) || 0;
       const lv = levelForScore(s);
       const delta = s > 0 && ps > 0 ? s - ps : null;
       const deltaHtml = delta !== null
@@ -73,7 +74,7 @@ function renderMeasureSummary(assessment) {
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : '#444'}"></div>
         </div>
-        <span class="mini-bar-val">${s || '—'}</span>${deltaHtml}
+        <span class="mini-bar-val">${s || '—'}</span>${deltaHtml}<span class="mini-bar-target">${t > 0 ? t.toFixed(1) : '—'}</span>
       </div>`;
     }).join("");
 
@@ -94,6 +95,12 @@ function renderMeasureSummary(assessment) {
           </span>
         </div>
         <button class="btn-link ratings-link" onclick="showRatingsModal('${m.id}')">ℹ Ratings</button>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;padding-left:94px">
+          <span style="flex:1"></span>
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:14px;text-align:right">Sc</span>
+          ${prev ? `<span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:40px;text-align:right">Δ</span>` : ''}
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:28px;text-align:right">Tgt</span>
+        </div>
         <div class="mini-bars">${bars}</div>
       </div>`;
   }).join("");

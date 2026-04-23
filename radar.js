@@ -100,8 +100,8 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     ctx.strokeStyle = "rgba(255,255,255,0.07)";
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.2)";
-    ctx.font = "9px Space Mono, monospace";
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.font = "bold 10px DM Sans, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(lvl, cx + r * Math.cos(startAngle) + 3, cy + r * Math.sin(startAngle) - 3);
   }
@@ -145,18 +145,29 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
         ctx.fill();
       }
     });
-    const legendX = 8, legendY = H - assessmentList.length * 16 - 8;
+    const legendX = 8;
+    const levelsLegendY = H - CONFIG.levels.length * 16 - 8;
+    const assessLegendY = levelsLegendY - 16 - assessmentList.length * 16;
     assessmentList.forEach((a, i) => {
       const color = COLORS[i % COLORS.length];
       const isLatest = i === assessmentList.length - 1;
       ctx.fillStyle = color;
-      ctx.fillRect(legendX, legendY + i * 16, 10, 10);
+      ctx.fillRect(legendX, assessLegendY + i * 16, 10, 10);
       ctx.fillStyle = isLatest ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.5)";
       ctx.font = `${isLatest ? "bold " : ""}9px DM Sans, sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       const label = a.label.length > 22 ? a.label.slice(0, 21) + "…" : a.label;
-      ctx.fillText(label, legendX + 14, legendY + i * 16);
+      ctx.fillText(label, legendX + 14, assessLegendY + i * 16);
+    });
+    CONFIG.levels.forEach((lv, i) => {
+      ctx.fillStyle = lv.color;
+      ctx.fillRect(legendX, levelsLegendY + i * 16, 10, 10);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "9px DM Sans, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(`${lv.level}  ${lv.name}`, legendX + 14, levelsLegendY + i * 16);
     });
 
   } else {
@@ -205,15 +216,26 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
       ctx.fill();
     }
 
-    const legendX = 8, legendY = H - CONFIG.measures.length * 16 - 8;
+    const legendX = 8;
+    const levelsLegendY = H - CONFIG.levels.length * 16 - 8;
+    const measuresLegendY = levelsLegendY - 16 - CONFIG.measures.length * 16;
     CONFIG.measures.forEach((m, i) => {
       ctx.fillStyle = m.color;
-      ctx.fillRect(legendX, legendY + i * 16, 10, 10);
+      ctx.fillRect(legendX, measuresLegendY + i * 16, 10, 10);
       ctx.fillStyle = "rgba(255,255,255,0.55)";
       ctx.font = "9px DM Sans, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(m.name, legendX + 14, legendY + i * 16);
+      ctx.fillText(m.name, legendX + 14, measuresLegendY + i * 16);
+    });
+    CONFIG.levels.forEach((lv, i) => {
+      ctx.fillStyle = lv.color;
+      ctx.fillRect(legendX, levelsLegendY + i * 16, 10, 10);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "9px DM Sans, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(`${lv.level}  ${lv.name}`, legendX + 14, levelsLegendY + i * 16);
     });
   }
 

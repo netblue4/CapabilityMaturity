@@ -3,7 +3,8 @@ function renderMeasureSummary(assessment) {
   const row = document.getElementById("measure-summary-row");
 
   // — Scores card (first in row) —
-  const overall = overallAvg(assessment);
+  const capAvgs = CONFIG.capabilities.map(cap => capAvgScore(assessment, cap.id)).filter(v => v > 0);
+  const overall = capAvgs.length ? capAvgs.reduce((a, b) => a + b, 0) / capAvgs.length : 0;
   const avgLevel = levelForScore(overall);
   const scoresCard = `
     <div class="card measure-card">

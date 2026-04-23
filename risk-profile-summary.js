@@ -65,7 +65,7 @@ function renderRiskProfileSummary(assessment) {
               <th>Open Risks</th>
               <th>Residual Risk</th>
               <th>Appetite Status</th>
-              <th>Control Counts</th>
+              <th>Riskonnect RCSA</th>
               <th>Notes</th>
             </tr>
           </thead>

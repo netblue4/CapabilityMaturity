@@ -19,9 +19,11 @@ function renderMeasureSummary(assessment) {
         </span>
       </div>
       <button class="btn-link ratings-link" onclick="showRatingsModal(null)">ℹ Ratings</button>
-      <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-bottom:.35rem">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.35rem">
+        <span style="width:130px;flex-shrink:0"></span>
+        <span style="flex:1"></span>
         <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:100px;text-align:center">Score</span>
-        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);width:36px;text-align:center">Target</span>
+        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:100px;text-align:center">Target</span>
       </div>
       ${CONFIG.capabilities.map(cap => {
         const avg = capAvgScore(assessment, cap.id);

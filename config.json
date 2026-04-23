@@ -88,19 +88,19 @@
   },
 
   "riskScoreMatrix": {
-    "Critical": {
+    "Extreme (28 to 40)": {
       "Exceeds Appetite": { "Not Assessed": 1, "Partially Effective": 1, "Effective": 1 },
       "Within Appetite":  { "Not Assessed": 1, "Partially Effective": 2, "Effective": 2 }
     },
-    "High": {
+    "Significant (20 to 24)": {
       "Exceeds Appetite": { "Not Assessed": 1, "Partially Effective": 2, "Effective": 2 },
       "Within Appetite":  { "Not Assessed": 2, "Partially Effective": 3, "Effective": 3 }
     },
-    "Medium": {
+    "Moderate (12 to 16)": {
       "Exceeds Appetite": { "Not Assessed": 2, "Partially Effective": 3, "Effective": 3 },
       "Within Appetite":  { "Not Assessed": 3, "Partially Effective": 3, "Effective": 4 }
     },
-    "Low": {
+    "Low (4 to 10)": {
       "Exceeds Appetite": { "Not Assessed": 3, "Partially Effective": 3, "Effective": 4 },
       "Within Appetite":  { "Not Assessed": 3, "Partially Effective": 4, "Effective": 5 }
     }

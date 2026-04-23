@@ -64,17 +64,17 @@ function renderMeasureSummary(assessment) {
       const t = getMeasureTarget(assessment, cap.id, m.id) || 0;
       const lv = levelForScore(s);
       const delta = s > 0 && ps > 0 ? s - ps : null;
-      const deltaHtml = delta !== null
-        ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}">
-             ${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta).toFixed(1) : ''}
-           </span>`
-        : '';
+      const deltaInner = delta !== null
+        ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}">${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta).toFixed(1) : ''}</span>`
+        : `<span class="delta delta-flat">●</span>`;
       return `<div class="mini-bar-row">
         <span class="mini-bar-label">${shortName(cap.name)}</span>
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : '#444'}"></div>
         </div>
-        <span class="mini-bar-val">${s || '—'}</span>${deltaHtml}<span class="mini-bar-target">${t > 0 ? t.toFixed(1) : '—'}</span>
+        <span class="mini-bar-val">${s || '—'}</span>
+        <span class="mini-bar-delta">${deltaInner}</span>
+        <span class="mini-bar-target">${t > 0 ? t.toFixed(1) : '—'}</span>
       </div>`;
     }).join("");
 
@@ -95,11 +95,11 @@ function renderMeasureSummary(assessment) {
           </span>
         </div>
         <button class="btn-link ratings-link" onclick="showRatingsModal('${m.id}')">ℹ Ratings</button>
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;padding-left:94px">
+        <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
           <span style="flex:1"></span>
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:14px;text-align:right">Sc</span>
-          ${prev ? `<span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:40px;text-align:right">Δ</span>` : ''}
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:28px;text-align:right">Tgt</span>
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">Sc</span>
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:48px;text-align:center">Δ</span>
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:36px;text-align:right">Tgt</span>
         </div>
         <div class="mini-bars">${bars}</div>
       </div>`;

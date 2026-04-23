@@ -32,22 +32,25 @@ function closeRatingsModal(e) {
 
 // ── Risk Matrix Modal ─────────────────────────────────────────
 function showRiskMatrixModal() {
-  const residuals = CONFIG.riskProfile?.residualRating || [];
+  const residuals = Object.keys(CONFIG.riskScoreMatrix || {});
   const appetites = CONFIG.riskProfile?.appetiteStatus || [];
   const ctrls     = CONFIG.riskProfile?.controlEffectiveness || [];
 
   let tableRows = '';
-  residuals.forEach(res => {
+  residuals.forEach((res, ri) => {
+    const resColor = CONFIG.levels[ri]?.color || '#888';
     tableRows += `
       <tr style="background:var(--bg3)">
-        <td colspan="4" style="padding:.4rem .7rem;font-family:var(--font-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text)">${res}</td>
+        <td colspan="4" style="padding:.4rem .7rem;font-family:var(--font-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em">
+          <span class="lvl-badge" style="background:${resColor}">${res}</span>
+        </td>
       </tr>`;
     appetites.forEach(app => {
       ctrls.forEach(ctrl => {
-        const baseScore = CONFIG.riskScoreMatrix?.[res]?.[app]?.[ctrl] || 0;
-        const lv = levelForScore(baseScore);
-        const badge = baseScore > 0
-          ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${baseScore} · ${lv ? lv.name : ''}</span>`
+        const score = CONFIG.riskScoreMatrix?.[res]?.[app]?.[ctrl] || 0;
+        const lv = levelForScore(score);
+        const badge = score > 0
+          ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>`
           : '—';
         tableRows += `
           <tr>
@@ -65,10 +68,10 @@ function showRiskMatrixModal() {
   overlay.innerHTML = `
     <div class="modal-box" style="max-width:640px">
       <div class="modal-header">
-        <h3>Risk Profile Score Calculation</h3>
+        <h3>ICT Risk Score Calculation</h3>
         <button class="modal-close" id="risk-matrix-modal-close">✕</button>
       </div>
-      <p class="modal-desc">Scores are auto-calculated from Residual Risk Rating, Risk Appetite Status and a derived Control Effectiveness rating. The derived rating is calculated from control counts: 80%+ effective = Effective, 1–79% effective = Partially Effective, 0% effective or no controls entered = Not Assessed. Modifiers: Open Risks ≥5 reduces score by 1. Open Risks ≥10 reduces score by 2. More than 50% of controls Not Assessed reduces score by 1. Minimum score is 1.</p>
+      <p class="modal-desc">Scores are automatically calculated from the Residual Risk Rating, Risk Appetite Status, and Control Effectiveness selected in the assessment form. The target is the score achievable at the same Residual Risk Rating when appetite is Within Appetite and controls are Effective.</p>
       <div style="overflow-x:auto">
         <table class="risk-profile-table">
           <thead>

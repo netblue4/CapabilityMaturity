@@ -1,6 +1,11 @@
 // ── Assessment Form — Build ───────────────────────────────────
 function buildMeasureBlock(cap, m) {
   if (m.type === 'risk_profile') {
+    const residualKeys  = Object.keys(CONFIG.riskScoreMatrix || {});
+    const residualColors = residualKeys.map((_, i) => CONFIG.levels[i]?.color || '#888');
+    const ctrlOptions   = CONFIG.riskProfile?.controlEffectiveness || ['Not Assessed', 'Partially Effective', 'Effective'];
+    const ctrlColors    = { 'Not Assessed': '#e74c3c', 'Partially Effective': '#e67e22', 'Effective': '#2ecc71' };
+
     return `
       <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
         <div class="measure-block-header">
@@ -11,18 +16,13 @@ function buildMeasureBlock(cap, m) {
 
         <input type="hidden" id="risk-residual-${cap.id}" value="">
         <input type="hidden" id="risk-appetite-${cap.id}" value="">
+        <input type="hidden" id="risk-control-${cap.id}" value="">
 
         <div class="form-row" style="margin-top:.5rem">
           <label>Residual Risk Rating</label>
           <div class="risk-btn-group" id="risk-group-residual-${cap.id}">
-            <button type="button" class="risk-btn" data-value="Critical"
-              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#e74c3c">Critical</button>
-            <button type="button" class="risk-btn" data-value="High"
-              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#e67e22">High</button>
-            <button type="button" class="risk-btn" data-value="Medium"
-              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#f1c40f">Medium</button>
-            <button type="button" class="risk-btn" data-value="Low"
-              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:#2ecc71">Low</button>
+            ${residualKeys.map((key, i) => `<button type="button" class="risk-btn" data-value="${key}"
+              onclick="selectRiskBtn(this,'${cap.id}','residual')" style="--risk-color:${residualColors[i]}">${key}</button>`).join('')}
           </div>
         </div>
 
@@ -38,52 +38,14 @@ function buildMeasureBlock(cap, m) {
 
         <div class="form-row" style="margin-top:.35rem">
           <label>Control Effectiveness</label>
-          <div class="control-counts-row">
-            <div class="control-count-field">
-              <span class="control-count-label" style="color:#e74c3c">Not Assessed</span>
-              <input type="number" class="control-count-input" id="controls-not-assessed-${cap.id}"
-                min="0" step="1" value="0"
-                oninput="updateControlCountsDisplay('${cap.id}')">
-            </div>
-            <div class="control-count-field">
-              <span class="control-count-label" style="color:#e67e22">Partially Effective</span>
-              <input type="number" class="control-count-input" id="controls-partial-${cap.id}"
-                min="0" step="1" value="0"
-                oninput="updateControlCountsDisplay('${cap.id}')">
-            </div>
-            <div class="control-count-field">
-              <span class="control-count-label" style="color:#2ecc71">Effective</span>
-              <input type="number" class="control-count-input" id="controls-effective-${cap.id}"
-                min="0" step="1" value="0"
-                oninput="updateControlCountsDisplay('${cap.id}')">
-            </div>
+          <div class="risk-btn-group" id="risk-group-control-${cap.id}">
+            ${ctrlOptions.map(opt => `<button type="button" class="risk-btn" data-value="${opt}"
+              onclick="selectRiskBtn(this,'${cap.id}','control')" style="--risk-color:${ctrlColors[opt] || '#888'}">${opt}</button>`).join('')}
           </div>
-          <div id="derived-ctrl-display-${cap.id}" class="derived-rating-display">
-            <span style="color:var(--text-muted);font-style:italic">— Enter control counts above</span>
-          </div>
-        </div>
-
-        <div class="form-row" style="margin-top:.35rem">
-          <label>Open Risks</label>
-          <input type="number" id="risk-openrisks-${cap.id}" min="0" step="1" value="0"
-            style="width:90px" oninput="updateRiskScoreDisplay('${cap.id}')">
         </div>
 
         <div id="risk-score-display-${cap.id}" class="risk-score-display">
           <span style="color:var(--text-muted);font-size:.8rem">Select all options to calculate score</span>
-        </div>
-
-        <div class="form-row" style="margin-top:.75rem">
-          <label>Target Level</label>
-          <div class="slider-wrap">
-            <input type="range" min="1" max="5" value="3"
-              id="target-${cap.id}-${m.id}"
-              oninput="updateTargetDisplay('${cap.id}','${m.id}',this.value)" />
-            <div class="slider-labels">
-              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-            </div>
-          </div>
-          <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
         </div>
 
         <div class="form-row" style="margin-top:.5rem">
@@ -204,12 +166,8 @@ function openAssessmentForm(id) {
             const riskData = (raw && typeof raw === 'object') ? raw : null;
             if (riskData) populateRiskProfileFields(cap.id, riskData);
             else resetRiskProfileFields(cap.id);
-            const target = getMeasureTarget(a, cap.id, m.id) || 3;
-            const note = getMeasureNote(a, cap.id, m.id) || "";
-            setSlider(`target-${cap.id}-${m.id}`, target);
             const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
-            if (noteEl) noteEl.value = note;
-            updateTargetDisplay(cap.id, m.id, target);
+            if (noteEl) noteEl.value = getMeasureNote(a, cap.id, m.id) || "";
           } else {
             const score = getMeasureScore(a, cap.id, m.id) || 1;
             const target = getMeasureTarget(a, cap.id, m.id) || 3;
@@ -234,8 +192,6 @@ function openAssessmentForm(id) {
       CONFIG.measures.forEach(m => {
         if (m.type === 'risk_profile') {
           resetRiskProfileFields(cap.id);
-          setSlider(`target-${cap.id}-${m.id}`, 3);
-          updateTargetDisplay(cap.id, m.id, 3);
         } else {
           setSlider(`score-${cap.id}-${m.id}`, 1);
           setSlider(`target-${cap.id}-${m.id}`, 3);
@@ -337,78 +293,47 @@ function updateRiskScoreDisplay(capId) {
     return;
   }
   const lv = levelForScore(score);
-  el.innerHTML = `<span class="risk-score-label">Calculated Score:</span>
-    <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>`;
+  const target = calcRiskTarget(capId);
+  const tlv = levelForScore(target);
+  el.innerHTML = `<span class="risk-score-label">Score:</span>
+    <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>
+    <span class="risk-score-label" style="margin-left:.75rem">Target:</span>
+    <span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'}">${target} · ${tlv ? tlv.name : ''}</span>`;
 }
 
 function calcRiskScore(capId) {
-  const residual  = document.getElementById(`risk-residual-${capId}`)?.value;
-  const appetite  = document.getElementById(`risk-appetite-${capId}`)?.value;
-  if (!residual || !appetite) return 0;
+  const residual = document.getElementById(`risk-residual-${capId}`)?.value;
+  const appetite = document.getElementById(`risk-appetite-${capId}`)?.value;
+  const control  = document.getElementById(`risk-control-${capId}`)?.value;
+  if (!residual || !appetite || !control) return 0;
+  return CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[control] || 0;
+}
 
-  const na        = parseInt(document.getElementById(`controls-not-assessed-${capId}`)?.value) || 0;
-  const partial   = parseInt(document.getElementById(`controls-partial-${capId}`)?.value) || 0;
-  const eff       = parseInt(document.getElementById(`controls-effective-${capId}`)?.value) || 0;
-  const total     = na + partial + eff;
-  const openRisks = parseInt(document.getElementById(`risk-openrisks-${capId}`)?.value) || 0;
-
-  const derived = deriveControlRating(na, partial, eff);
-  let score = CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[derived] || 0;
-  if (score === 0) return 0;
-
-  if (openRisks >= 10)     score -= 2;
-  else if (openRisks >= 5) score -= 1;
-
-  if (total > 0 && (na / total) > 0.5) score -= 1;
-
-  return Math.min(5, Math.max(1, score));
+function calcRiskTarget(capId) {
+  const residual = document.getElementById(`risk-residual-${capId}`)?.value;
+  if (!residual) return 0;
+  return CONFIG.riskScoreMatrix?.[residual]?.['Within Appetite']?.['Effective'] || 0;
 }
 
 function populateRiskProfileFields(capId, riskData) {
-  ['residual', 'appetite'].forEach(field => {
-    const value = field === 'residual' ? riskData.residualRating : riskData.appetiteStatus;
+  const fieldMap = { residual: riskData.residualRating, appetite: riskData.appetiteStatus, control: riskData.controlEffectiveness };
+  Object.entries(fieldMap).forEach(([field, value]) => {
     const hidden = document.getElementById(`risk-${field}-${capId}`);
     if (hidden) hidden.value = value || '';
     document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
       .forEach(b => b.classList.toggle('selected', b.dataset.value === value));
   });
-
-  let na = 0, partial = 0, eff = 0;
-  if (riskData.controlCounts) {
-    na      = riskData.controlCounts.notAssessed ?? 0;
-    partial = riskData.controlCounts.partial      ?? 0;
-    eff     = riskData.controlCounts.effective    ?? 0;
-  } else if (riskData.controlEffectiveness) {
-    console.info(`Legacy controlEffectiveness data detected for capability ${capId} — control counts set to 0.`);
-  }
-  const naEl = document.getElementById(`controls-not-assessed-${capId}`);
-  const partialEl = document.getElementById(`controls-partial-${capId}`);
-  const effEl = document.getElementById(`controls-effective-${capId}`);
-  if (naEl)      naEl.value      = na;
-  if (partialEl) partialEl.value = partial;
-  if (effEl)     effEl.value     = eff;
-
-  const openEl = document.getElementById(`risk-openrisks-${capId}`);
-  if (openEl) openEl.value = riskData.openRisks ?? 0;
-  updateControlCountsDisplay(capId);
+  updateRiskScoreDisplay(capId);
 }
 
 function resetRiskProfileFields(capId) {
-  ['residual', 'appetite'].forEach(field => {
+  ['residual', 'appetite', 'control'].forEach(field => {
     const el = document.getElementById(`risk-${field}-${capId}`);
     if (el) el.value = '';
     document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
       .forEach(b => b.classList.remove('selected'));
   });
-  const naEl = document.getElementById(`controls-not-assessed-${capId}`);
-  const partialEl = document.getElementById(`controls-partial-${capId}`);
-  const effEl = document.getElementById(`controls-effective-${capId}`);
-  if (naEl)      naEl.value      = 0;
-  if (partialEl) partialEl.value = 0;
-  if (effEl)     effEl.value     = 0;
-  const openEl = document.getElementById(`risk-openrisks-${capId}`);
-  if (openEl) openEl.value = 0;
-  updateControlCountsDisplay(capId);
+  updateRiskScoreDisplay(capId);
 }
 
 // ── Assessment Form — Save ────────────────────────────────────
@@ -428,24 +353,20 @@ function saveAssessment(e) {
     CONFIG.measures.forEach(m => {
       if (selectedMeasures.has(m.id)) {
         if (m.type === 'risk_profile') {
-          const residual  = document.getElementById(`risk-residual-${cap.id}`)?.value || '';
-          const appetite  = document.getElementById(`risk-appetite-${cap.id}`)?.value || '';
-          const na        = parseInt(document.getElementById(`controls-not-assessed-${cap.id}`)?.value) || 0;
-          const partial   = parseInt(document.getElementById(`controls-partial-${cap.id}`)?.value) || 0;
-          const eff       = parseInt(document.getElementById(`controls-effective-${cap.id}`)?.value) || 0;
-          const openRisks = parseInt(document.getElementById(`risk-openrisks-${cap.id}`)?.value) || 0;
-          const derivedRating = deriveControlRating(na, partial, eff);
+          const residual = document.getElementById(`risk-residual-${cap.id}`)?.value || '';
+          const appetite = document.getElementById(`risk-appetite-${cap.id}`)?.value || '';
+          const control  = document.getElementById(`risk-control-${cap.id}`)?.value  || '';
           const score = calcRiskScore(cap.id);
-          measureScores[cap.id][m.id] = (residual || appetite || na || partial || eff)
-            ? { score, residualRating: residual, appetiteStatus: appetite,
-                controlCounts: { notAssessed: na, partial, effective: eff, derivedRating },
-                openRisks }
+          measureScores[cap.id][m.id] = (residual || appetite || control)
+            ? { score, residualRating: residual, appetiteStatus: appetite, controlEffectiveness: control }
             : 0;
+          measureTargets[cap.id][m.id] = calcRiskTarget(cap.id) || 0;
+          measureNotes[cap.id][m.id]   = document.getElementById(`note-${cap.id}-${m.id}`)?.value.trim() || '';
         } else {
-          measureScores[cap.id][m.id] = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
+          measureScores[cap.id][m.id]  = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value);
+          measureTargets[cap.id][m.id] = parseInt(document.getElementById(`target-${cap.id}-${m.id}`).value);
+          measureNotes[cap.id][m.id]   = document.getElementById(`note-${cap.id}-${m.id}`).value.trim();
         }
-        measureTargets[cap.id][m.id] = parseInt(document.getElementById(`target-${cap.id}-${m.id}`).value);
-        measureNotes[cap.id][m.id]   = document.getElementById(`note-${cap.id}-${m.id}`).value.trim();
       } else {
         measureScores[cap.id][m.id]  = 0;
         measureTargets[cap.id][m.id] = 0;

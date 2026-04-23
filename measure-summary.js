@@ -97,7 +97,7 @@ function renderMeasureSummary(assessment) {
             ${badgeInner}
           </span>
         </div>
-        <button class="btn-link ratings-link" onclick="showRatingsModal('${m.id}')">ℹ Ratings</button>
+        <button class="btn-link ratings-link" onclick="${m.type === 'risk_profile' ? 'showRiskMatrixModal()' : `showRatingsModal('${m.id}')`}">ℹ Ratings</button>
         <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
           <span style="flex:1"></span>
           <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">Sc</span>

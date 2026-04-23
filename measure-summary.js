@@ -34,8 +34,8 @@ function renderMeasureSummary(assessment) {
           <div class="score-bar-wrap">
             <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
           </div>
-          <span class="score-badge">${avg > 0 ? avg.toFixed(1) : '—'}</span>
-          <span class="score-badge">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span> 
+          <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+          <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span> 
         </div>`;
       }).join("")}
       <div class="avg-score">

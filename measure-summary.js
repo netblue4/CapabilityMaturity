@@ -73,7 +73,7 @@ function renderMeasureSummary(assessment) {
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : '#444'}"></div>
         </div>
-        <span class="mini-bar-val">${s || '—'}</span>
+        <span class="mini-bar-val">${s.toFixed(1) || '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>
         <span class="mini-bar-target">${t > 0 ? t.toFixed(1) : '—'}</span>
       </div>`;

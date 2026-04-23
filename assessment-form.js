@@ -338,7 +338,7 @@ function updateRiskScoreDisplay(capId) {
   el.innerHTML = `
     <span class="risk-score-label">Residual Risk maturity level:</span>
     ${rlv ? `<span class="lvl-badge" style="background:${rlv.color}">${residualMaturity} · ${rlv.name}</span>` : '<span style="color:var(--text-muted)">—</span>'}
-    <span class="risk-score-label" style="margin-left:.5rem">Appetite maturity level:</span></br>
+    <span class="risk-score-label" style="margin-left:.5rem">Appetite maturity level:</span><br/>
     ${alv ? `<span class="lvl-badge" style="background:${alv.color}">${appetiteMaturity} · ${alv.name}</span>` : '<span style="color:var(--text-muted)">—</span>'}
   `;
 }

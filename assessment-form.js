@@ -336,15 +336,10 @@ function updateRiskScoreDisplay(capId) {
   const target = calcRiskTarget(capId);
   const tlv    = levelForScore(target);
   el.innerHTML = `
-    <span class="risk-score-label">Residual:</span>
+    <span class="risk-score-label">Residual Risk maturity level:</span>
     ${rlv ? `<span class="lvl-badge" style="background:${rlv.color}">${residualMaturity} · ${rlv.name}</span>` : '<span style="color:var(--text-muted)">—</span>'}
-    <span class="risk-score-label" style="margin-left:.5rem">Appetite:</span>
+    <span class="risk-score-label" style="margin-left:.5rem">Appetite maturity level:</span>
     ${alv ? `<span class="lvl-badge" style="background:${alv.color}">${appetiteMaturity} · ${alv.name}</span>` : '<span style="color:var(--text-muted)">—</span>'}
-    ${score > 0 ? `
-      <span class="risk-score-label" style="margin-left:.5rem">Score:</span>
-      <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>
-      <span class="risk-score-label" style="margin-left:.5rem">Target:</span>
-      <span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'}">${target} · ${tlv ? tlv.name : ''}</span>` : ''}
   `;
 }
 

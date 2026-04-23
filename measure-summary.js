@@ -34,7 +34,7 @@ function renderMeasureSummary(assessment) {
           <div class="score-bar-wrap">
             <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
           </div>
-          <span class="score-badge" style="background:${lv ? lv.color : '#555'}">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+          <span class="score-cap-name">${avg > 0 ? avg.toFixed(1) : '—'}</span>
           <span class="score-target-badge">${targetAvg > 0 ? `<span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'};min-width:0;padding:.15rem .45rem">${targetAvg.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</span>
         </div>`;
       }).join("")}
@@ -98,9 +98,9 @@ function renderMeasureSummary(assessment) {
         <button class="btn-link ratings-link" onclick="showRatingsModal('${m.id}')">ℹ Ratings</button>
         <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
           <span style="flex:1"></span>
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;width:24px;text-align:right">Sc</span>
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;);width:48px;text-align:center">Δ</span>
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;width:36px;text-align:right">Tgt</span>
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">Sc</span>
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:48px;text-align:center">Δ</span>
+          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:36px;text-align:right">Tgt</span>
         </div>
         <div class="mini-bars">${bars}</div>
       </div>`;

@@ -34,7 +34,7 @@ function renderMeasureSummary(assessment) {
           <div class="score-bar-wrap">
             <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
           </div>
-          <span class="score-cap-name">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+          <span class="score-badge">${avg > 0 ? avg.toFixed(1) : '—'}</span>
           <span class="score-target-badge">${targetAvg > 0 ? `<span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'};min-width:0;padding:.15rem .45rem">${targetAvg.toFixed(1)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</span>
         </div>`;
       }).join("")}

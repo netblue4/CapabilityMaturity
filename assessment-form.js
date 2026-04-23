@@ -1,10 +1,8 @@
 // ── Assessment Form — Build ───────────────────────────────────
 function buildMeasureBlock(cap, m) {
   if (m.type === 'risk_profile') {
-    const residualKeys  = Object.keys(CONFIG.riskScoreMatrix || {});
+    const residualKeys   = Object.keys(CONFIG.riskScoreMatrix || {});
     const residualColors = residualKeys.map((_, i) => CONFIG.levels[i]?.color || '#888');
-    const ctrlOptions   = CONFIG.riskProfile?.controlEffectiveness || ['Not Assessed', 'Partially Effective', 'Effective'];
-    const ctrlColors    = { 'Not Assessed': '#e74c3c', 'Partially Effective': '#e67e22', 'Effective': '#2ecc71' };
 
     return `
       <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
@@ -16,7 +14,6 @@ function buildMeasureBlock(cap, m) {
 
         <input type="hidden" id="risk-residual-${cap.id}" value="">
         <input type="hidden" id="risk-appetite-${cap.id}" value="">
-        <input type="hidden" id="risk-control-${cap.id}" value="">
 
         <div class="form-row" style="margin-top:.5rem">
           <label>Residual Risk Rating</label>
@@ -27,25 +24,42 @@ function buildMeasureBlock(cap, m) {
         </div>
 
         <div class="form-row" style="margin-top:.35rem">
-          <label>Risk Appetite Status</label>
+          <label>Risk Appetite</label>
           <div class="risk-btn-group" id="risk-group-appetite-${cap.id}">
-            <button type="button" class="risk-btn" data-value="Exceeds Appetite"
-              onclick="selectRiskBtn(this,'${cap.id}','appetite')" style="--risk-color:#e74c3c">Exceeds Appetite</button>
-            <button type="button" class="risk-btn" data-value="Within Appetite"
-              onclick="selectRiskBtn(this,'${cap.id}','appetite')" style="--risk-color:#2ecc71">Within Appetite</button>
+            ${residualKeys.map((key, i) => `<button type="button" class="risk-btn" data-value="${key}"
+              onclick="selectRiskBtn(this,'${cap.id}','appetite')" style="--risk-color:${residualColors[i]}">${key}</button>`).join('')}
           </div>
         </div>
 
         <div class="form-row" style="margin-top:.35rem">
           <label>Control Effectiveness</label>
-          <div class="risk-btn-group" id="risk-group-control-${cap.id}">
-            ${ctrlOptions.map(opt => `<button type="button" class="risk-btn" data-value="${opt}"
-              onclick="selectRiskBtn(this,'${cap.id}','control')" style="--risk-color:${ctrlColors[opt] || '#888'}">${opt}</button>`).join('')}
+          <div class="risk-counts-grid">
+            <div class="risk-count-row">
+              <span class="risk-count-label">Open Risks</span>
+              <input type="number" min="0" value="0" id="risk-openrisks-${cap.id}" class="risk-count-input"
+                oninput="updateRiskScoreDisplay('${cap.id}')">
+            </div>
+            <div class="risk-count-row">
+              <span class="risk-count-label">Controls — Not Assessed</span>
+              <input type="number" min="0" value="0" id="risk-ctrl-na-${cap.id}" class="risk-count-input"
+                oninput="updateRiskScoreDisplay('${cap.id}')">
+            </div>
+            <div class="risk-count-row">
+              <span class="risk-count-label">Controls — Partially Effective</span>
+              <input type="number" min="0" value="0" id="risk-ctrl-partial-${cap.id}" class="risk-count-input"
+                oninput="updateRiskScoreDisplay('${cap.id}')">
+            </div>
+            <div class="risk-count-row">
+              <span class="risk-count-label">Controls — Effective</span>
+              <input type="number" min="0" value="0" id="risk-ctrl-eff-${cap.id}" class="risk-count-input"
+                oninput="updateRiskScoreDisplay('${cap.id}')">
+            </div>
           </div>
+          <div id="risk-ctrl-display-${cap.id}" class="risk-ctrl-display"></div>
         </div>
 
         <div id="risk-score-display-${cap.id}" class="risk-score-display">
-          <span style="color:var(--text-muted);font-size:.8rem">Select all options to calculate score</span>
+          <span style="color:var(--text-muted);font-size:.8rem">Select residual risk and appetite to calculate score</span>
         </div>
 
         <div class="form-row" style="margin-top:.5rem">
@@ -285,28 +299,69 @@ function ctrlEffectivenessBadgeHtml(rd) {
 }
 
 function updateRiskScoreDisplay(capId) {
+  // Update derived control effectiveness display
+  const ctrlEl = document.getElementById(`risk-ctrl-display-${capId}`);
+  if (ctrlEl) {
+    const na      = parseInt(document.getElementById(`risk-ctrl-na-${capId}`)?.value)      || 0;
+    const partial = parseInt(document.getElementById(`risk-ctrl-partial-${capId}`)?.value) || 0;
+    const eff     = parseInt(document.getElementById(`risk-ctrl-eff-${capId}`)?.value)     || 0;
+    const total   = na + partial + eff;
+    if (total > 0) {
+      const derived = deriveControlRating(na, partial, eff);
+      const color = { 'Effective': '#2ecc71', 'Partially Effective': '#e67e22', 'Not Assessed': '#e74c3c' }[derived] || '#888';
+      const effPct = Math.round((eff / total) * 100);
+      ctrlEl.innerHTML = `<span style="color:var(--text-muted);font-size:.75rem">${total} controls · ${effPct}% effective</span>
+        <span class="lvl-badge" style="background:${color};margin-left:.5rem">${derived}</span>`;
+    } else {
+      ctrlEl.innerHTML = '';
+    }
+  }
+
+  // Update score/target display
   const el = document.getElementById(`risk-score-display-${capId}`);
   if (!el) return;
-  const score = calcRiskScore(capId);
-  if (score === 0) {
-    el.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Select all options to calculate score</span>`;
+  const residual = document.getElementById(`risk-residual-${capId}`)?.value;
+  const appetite = document.getElementById(`risk-appetite-${capId}`)?.value;
+  if (!residual && !appetite) {
+    el.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Select residual risk and appetite to calculate score</span>`;
     return;
   }
-  const lv = levelForScore(score);
+  const residualKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+  const residualMaturity = residual ? residualKeys.indexOf(residual) + 1 : 0;
+  const appetiteMaturity = appetite ? residualKeys.indexOf(appetite) + 1 : 0;
+  const rlv = levelForScore(residualMaturity);
+  const alv = levelForScore(appetiteMaturity);
+  const score  = calcRiskScore(capId);
+  const lv     = levelForScore(score);
   const target = calcRiskTarget(capId);
-  const tlv = levelForScore(target);
-  el.innerHTML = `<span class="risk-score-label">Score:</span>
-    <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>
-    <span class="risk-score-label" style="margin-left:.75rem">Target:</span>
-    <span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'}">${target} · ${tlv ? tlv.name : ''}</span>`;
+  const tlv    = levelForScore(target);
+  el.innerHTML = `
+    <span class="risk-score-label">Residual:</span>
+    ${rlv ? `<span class="lvl-badge" style="background:${rlv.color}">${residualMaturity} · ${rlv.name}</span>` : '<span style="color:var(--text-muted)">—</span>'}
+    <span class="risk-score-label" style="margin-left:.5rem">Appetite:</span>
+    ${alv ? `<span class="lvl-badge" style="background:${alv.color}">${appetiteMaturity} · ${alv.name}</span>` : '<span style="color:var(--text-muted)">—</span>'}
+    ${score > 0 ? `
+      <span class="risk-score-label" style="margin-left:.5rem">Score:</span>
+      <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>
+      <span class="risk-score-label" style="margin-left:.5rem">Target:</span>
+      <span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#555'};color:${tlv ? tlv.color : '#555'}">${target} · ${tlv ? tlv.name : ''}</span>` : ''}
+  `;
 }
 
 function calcRiskScore(capId) {
   const residual = document.getElementById(`risk-residual-${capId}`)?.value;
   const appetite = document.getElementById(`risk-appetite-${capId}`)?.value;
-  const control  = document.getElementById(`risk-control-${capId}`)?.value;
-  if (!residual || !appetite || !control) return 0;
-  return CONFIG.riskScoreMatrix?.[residual]?.[appetite]?.[control] || 0;
+  if (!residual || !appetite) return 0;
+
+  const residualKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+  const residualIdx  = residualKeys.indexOf(residual);
+  const appetiteIdx  = residualKeys.indexOf(appetite);
+  if (residualIdx < 0 || appetiteIdx < 0) return 0;
+
+  // Higher index = lower risk severity. Residual within appetite when it is at same level or less severe.
+  const appetiteStatus = residualIdx >= appetiteIdx ? 'Within Appetite' : 'Exceeds Appetite';
+
+  return CONFIG.riskScoreMatrix?.[residual]?.[appetiteStatus]?.['Effective'] || 0;
 }
 
 function calcRiskTarget(capId) {
@@ -316,22 +371,37 @@ function calcRiskTarget(capId) {
 }
 
 function populateRiskProfileFields(capId, riskData) {
-  const fieldMap = { residual: riskData.residualRating, appetite: riskData.appetiteStatus, control: riskData.controlEffectiveness };
-  Object.entries(fieldMap).forEach(([field, value]) => {
+  ['residual', 'appetite'].forEach(field => {
+    const value = field === 'residual' ? riskData.residualRating : (riskData.appetiteRating || '');
     const hidden = document.getElementById(`risk-${field}-${capId}`);
     if (hidden) hidden.value = value || '';
     document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
       .forEach(b => b.classList.toggle('selected', b.dataset.value === value));
   });
+  const cc = riskData.controlCounts;
+  if (cc) {
+    const naEl      = document.getElementById(`risk-ctrl-na-${capId}`);
+    const partialEl = document.getElementById(`risk-ctrl-partial-${capId}`);
+    const effEl     = document.getElementById(`risk-ctrl-eff-${capId}`);
+    const openEl    = document.getElementById(`risk-openrisks-${capId}`);
+    if (naEl)      naEl.value      = cc.notAssessed ?? 0;
+    if (partialEl) partialEl.value = cc.partial      ?? 0;
+    if (effEl)     effEl.value     = cc.effective    ?? 0;
+    if (openEl)    openEl.value    = cc.openRisks    ?? riskData.openRisks ?? 0;
+  }
   updateRiskScoreDisplay(capId);
 }
 
 function resetRiskProfileFields(capId) {
-  ['residual', 'appetite', 'control'].forEach(field => {
+  ['residual', 'appetite'].forEach(field => {
     const el = document.getElementById(`risk-${field}-${capId}`);
     if (el) el.value = '';
     document.querySelectorAll(`#risk-group-${field}-${capId} .risk-btn`)
       .forEach(b => b.classList.remove('selected'));
+  });
+  ['risk-ctrl-na', 'risk-ctrl-partial', 'risk-ctrl-eff', 'risk-openrisks'].forEach(prefix => {
+    const el = document.getElementById(`${prefix}-${capId}`);
+    if (el) el.value = 0;
   });
   updateRiskScoreDisplay(capId);
 }
@@ -353,12 +423,21 @@ function saveAssessment(e) {
     CONFIG.measures.forEach(m => {
       if (selectedMeasures.has(m.id)) {
         if (m.type === 'risk_profile') {
-          const residual = document.getElementById(`risk-residual-${cap.id}`)?.value || '';
-          const appetite = document.getElementById(`risk-appetite-${cap.id}`)?.value || '';
-          const control  = document.getElementById(`risk-control-${cap.id}`)?.value  || '';
-          const score = calcRiskScore(cap.id);
-          measureScores[cap.id][m.id] = (residual || appetite || control)
-            ? { score, residualRating: residual, appetiteStatus: appetite, controlEffectiveness: control }
+          const residual  = document.getElementById(`risk-residual-${cap.id}`)?.value || '';
+          const appetite  = document.getElementById(`risk-appetite-${cap.id}`)?.value || '';
+          const na        = parseInt(document.getElementById(`risk-ctrl-na-${cap.id}`)?.value)      || 0;
+          const partial   = parseInt(document.getElementById(`risk-ctrl-partial-${cap.id}`)?.value) || 0;
+          const eff       = parseInt(document.getElementById(`risk-ctrl-eff-${cap.id}`)?.value)     || 0;
+          const openRisks = parseInt(document.getElementById(`risk-openrisks-${cap.id}`)?.value)    || 0;
+          const score     = calcRiskScore(cap.id);
+          const residualKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+          const appetiteStatus = (residual && appetite)
+            ? (residualKeys.indexOf(residual) >= residualKeys.indexOf(appetite) ? 'Within Appetite' : 'Exceeds Appetite')
+            : '';
+          measureScores[cap.id][m.id] = (residual || appetite)
+            ? { score, residualRating: residual, appetiteRating: appetite, appetiteStatus,
+                controlCounts: { openRisks, notAssessed: na, partial, effective: eff },
+                controlEffectiveness: deriveControlRating(na, partial, eff) }
             : 0;
           measureTargets[cap.id][m.id] = calcRiskTarget(cap.id) || 0;
           measureNotes[cap.id][m.id]   = document.getElementById(`note-${cap.id}-${m.id}`)?.value.trim() || '';

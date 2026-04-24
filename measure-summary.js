@@ -182,11 +182,11 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div class="mini-bar-track">
         <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
       </div>
-      <span class="mini-bar-res">
+      <span class=mini-bar-val">
         ${getAbbrev(residual)}
       </span>
       ${deltaHtml}
-      <span class="mini-bar-app">
+      <span class="mini-bar-val">
         ${getAbbrev(appetite)}
       </span>
     </div>`;

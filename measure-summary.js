@@ -206,9 +206,9 @@ function renderRiskMgmtSummaryCard(assessment) {
 
   const footerTally = hasTrendData
     ? `<span class="risk-tally">
-        <span class="risk-delta-improved">↓${improvedCount}</span>
-        <span class="risk-delta-unchanged">→${unchangedCount}</span>
-        <span class="risk-delta-worsened">↑${worsenedCount}</span>
+        <span class="risk-delta-improved">▼${improvedCount}</span>
+        <span class="risk-delta-unchanged">●${unchangedCount}</span>
+        <span class="risk-delta-worsened">▲${worsenedCount}</span>
       </span>`
     : `<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.72rem">First assessment — no trend data</span>`;
 

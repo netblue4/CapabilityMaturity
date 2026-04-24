@@ -158,11 +158,19 @@ function copyAssessment(id) {
 
       if (m.id === 'ict_risk') {
         const rp = source.riskProfile?.[cap.id];
-        if (rp) {
-          setRiskRatingBtns(cap.id, 'residual', rp.residualRating || '');
-          setRiskRatingBtns(cap.id, 'appetite', rp.appetiteRating || '');
+        const legacyRaw = source.measureScores?.[cap.id]?.['ict_risk'];
+        const legacy = (!rp && legacyRaw && typeof legacyRaw === 'object') ? legacyRaw : null;
+        const effectiveRp = rp || (legacy ? {
+          residualRating: legacy.residualRating || '',
+          appetiteRating: legacy.appetiteRating || '',
+          timeEstimate: ''
+        } : null);
+
+        if (effectiveRp) {
+          setRiskRatingBtns(cap.id, 'residual', effectiveRp.residualRating || '');
+          setRiskRatingBtns(cap.id, 'appetite', effectiveRp.appetiteRating || '');
           const timeEl = document.getElementById(`timeest-${cap.id}`);
-          if (timeEl) timeEl.value = rp.timeEstimate || '';
+          if (timeEl) timeEl.value = effectiveRp.timeEstimate || '';
         } else {
           clearRiskRatingBtns(cap.id, 'residual');
           clearRiskRatingBtns(cap.id, 'appetite');

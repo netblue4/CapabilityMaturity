@@ -251,12 +251,22 @@ function openAssessmentForm(id) {
 
           if (m.id === 'ict_risk') {
             const rp = a.riskProfile?.[cap.id];
-            if (rp) {
-              setRiskRatingBtns(cap.id, 'residual', rp.residualRating || '');
-              setRiskRatingBtns(cap.id, 'appetite', rp.appetiteRating || '');
+            // Legacy: old format stored residualRating/appetiteRating inside measureScores as an object
+            const legacyRaw = a.measureScores?.[cap.id]?.['ict_risk'];
+            const legacy = (!rp && legacyRaw && typeof legacyRaw === 'object') ? legacyRaw : null;
+            const effectiveRp = rp || (legacy ? {
+              residualRating: legacy.residualRating || '',
+              appetiteRating: legacy.appetiteRating || '',
+              timeEstimate: '',
+              controlCounts: legacy.controlCounts || {}
+            } : null);
+
+            if (effectiveRp) {
+              setRiskRatingBtns(cap.id, 'residual', effectiveRp.residualRating || '');
+              setRiskRatingBtns(cap.id, 'appetite', effectiveRp.appetiteRating || '');
               const timeEl = document.getElementById(`timeest-${cap.id}`);
-              if (timeEl) timeEl.value = rp.timeEstimate || '';
-              const cc = rp.controlCounts;
+              if (timeEl) timeEl.value = effectiveRp.timeEstimate || '';
+              const cc = effectiveRp.controlCounts;
               if (cc) {
                 const naEl      = document.getElementById(`risk-ctrl-na-${cap.id}`);
                 const partialEl = document.getElementById(`risk-ctrl-partial-${cap.id}`);
@@ -271,7 +281,6 @@ function openAssessmentForm(id) {
               clearRiskRatingBtns(cap.id, 'residual');
               clearRiskRatingBtns(cap.id, 'appetite');
               clearRiskCountInputs(cap.id);
-              console.info(`No riskProfile data for capability ${cap.id} — ICT Risk profile fields left at defaults.`);
             }
           }
         });

@@ -190,7 +190,7 @@ function renderRiskManagementCard(assessment) {
     const controlsHtml = hasControls ? `
       <div class="controls-summary">
         <span class="controls-summary-line"><span style="color:#e74c3c">○</span> Not Assessed: ${notAssessed}</span>
-        <span class="controls-summary-line"><span style="color:#e67e22">◑</span> Partial: ${partial}</span>
+        <span class="controls-summary-line"><span style="color:#e67e22">◑</span> Part. Effective: ${partial}</span>
         <span class="controls-summary-line"><span style="color:#2ecc71">✓</span> Effective: ${effective}</span>
       </div>` : `<span style="color:var(--text-muted)">—</span>`;
 
@@ -230,7 +230,6 @@ function renderRiskManagementCard(assessment) {
               <div class="profile-card-subtitle">Residual risk and control data from Riskonnect RCSA &amp; CSA cycle</div>
             </div>
           </div>
-          <button class="btn-link ratings-link" style="margin:0" onclick="event.stopPropagation();showIctRiskRatingsModal()">ℹ Ratings</button>
         </summary>
         <div style="overflow-x:auto;margin-top:1.25rem">
           <table class="profile-table">

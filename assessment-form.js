@@ -20,7 +20,6 @@ function buildMeasureBlock(cap, m) {
           <span class="measure-block-name">Capability Maturity · ICT Risk</span>
         </div>
         <p class="measure-block-desc">${m.description}</p>
-        <button class="btn-link ratings-link" type="button" onclick="showIctRiskRatingsModal()">ℹ Ratings</button>
 
         <div class="slider-row">
           <div class="slider-wrap">

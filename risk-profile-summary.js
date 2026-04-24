@@ -170,7 +170,8 @@ function renderRiskManagementCard(assessment) {
     const residual     = rp.residualRating || '';
     const appetite     = rp.appetiteRating || '';
     const timeEstimate = rp.timeEstimate   || '';
-    const note         = assessment.measureNotes?.[cap.id]?.['ict_risk'] || '';
+    // riskMgmtNotes is the new field; fall back to measureNotes for older saved data
+    const note         = rp.riskMgmtNotes || assessment.measureNotes?.[cap.id]?.['ict_risk'] || '';
     const score        = getMeasureScore(assessment, cap.id, 'ict_risk') || 0;
 
     // Status: severity distance between residual and appetite

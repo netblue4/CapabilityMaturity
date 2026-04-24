@@ -12,13 +12,15 @@ function buildRiskRatingBtns(capId, field) {
 // ── Assessment Form — Build ───────────────────────────────────
 function buildMeasureBlock(cap, m) {
   if (m.id === 'ict_risk') {
+    // Card 1: Maturity slider — identical structure to Governance/Reporting
     return `
-      <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
+      <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color || '#e74c3c'}">
         <div class="measure-block-header">
           <span class="measure-icon-sm">${m.icon}</span>
-          <span class="measure-block-name">${m.name}</span>
+          <span class="measure-block-name">Capability Maturity · ICT Risk</span>
         </div>
         <p class="measure-block-desc">${m.description}</p>
+        <button class="btn-link ratings-link" type="button" onclick="showIctRiskRatingsModal()">ℹ Ratings</button>
 
         <div class="slider-row">
           <div class="slider-wrap">
@@ -45,56 +47,10 @@ function buildMeasureBlock(cap, m) {
           <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
         </div>
 
-        <hr class="risk-section-divider">
-
-        <input type="hidden" id="residual-${cap.id}" value="">
-        <div class="form-row">
-          <label>Residual Risk Rating</label>
-          <div class="risk-btn-group" id="risk-group-residual-${cap.id}">
-            ${buildRiskRatingBtns(cap.id, 'residual')}
-          </div>
-        </div>
-
-        <input type="hidden" id="appetite-${cap.id}" value="">
-        <div class="form-row">
-          <label>Risk Appetite</label>
-          <div class="risk-btn-group" id="risk-group-appetite-${cap.id}">
-            ${buildRiskRatingBtns(cap.id, 'appetite')}
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Control Effectiveness</label>
-          <div class="risk-counts-grid">
-            <div class="risk-count-row">
-              <span class="risk-count-label">Open Risks</span>
-              <input type="number" min="0" value="0" id="risk-openrisks-${cap.id}" class="risk-count-input">
-            </div>
-            <div class="risk-count-row">
-              <span class="risk-count-label">Controls — Not Assessed</span>
-              <input type="number" min="0" value="0" id="risk-ctrl-na-${cap.id}" class="risk-count-input">
-            </div>
-            <div class="risk-count-row">
-              <span class="risk-count-label">Controls — Partially Effective</span>
-              <input type="number" min="0" value="0" id="risk-ctrl-partial-${cap.id}" class="risk-count-input">
-            </div>
-            <div class="risk-count-row">
-              <span class="risk-count-label">Controls — Effective</span>
-              <input type="number" min="0" value="0" id="risk-ctrl-eff-${cap.id}" class="risk-count-input">
-            </div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Time Estimate</label>
-          <textarea id="timeest-${cap.id}" rows="2"
-            placeholder="Describe how long you estimate it will take to treat the risk to within tolerance..."></textarea>
-        </div>
-
-        <div class="form-row">
+        <div class="form-row" style="margin-top:.5rem">
           <label>Notes</label>
           <textarea id="note-${cap.id}-${m.id}" rows="3"
-            placeholder="${m.name} observations for ${cap.name}…"></textarea>
+            placeholder="ICT Risk maturity observations for ${cap.name}…"></textarea>
         </div>
       </div>`;
   }
@@ -141,8 +97,71 @@ function buildMeasureBlock(cap, m) {
     </div>`;
 }
 
+// ── Card 2: ICT Risk Management (per capability) ──────────────
+function buildRiskMgmtCard(cap) {
+  return `
+    <div class="risk-mgmt-card" data-measure="ict_risk">
+      <div class="risk-mgmt-card-header">
+        <div class="risk-mgmt-card-title">
+          <span>🛡️</span>
+          <span>ICT Risk Management</span>
+        </div>
+        <p class="risk-mgmt-card-subtitle">Record the residual risk profile for this capability</p>
+      </div>
+
+      <div class="risk-mgmt-section">
+        <label>Residual Risk Rating</label>
+        <input type="hidden" id="residual-${cap.id}" value="">
+        <div class="risk-btn-group" id="risk-group-residual-${cap.id}">
+          ${buildRiskRatingBtns(cap.id, 'residual')}
+        </div>
+      </div>
+
+      <div class="risk-mgmt-section">
+        <label>Risk Appetite</label>
+        <input type="hidden" id="appetite-${cap.id}" value="">
+        <div class="risk-btn-group" id="risk-group-appetite-${cap.id}">
+          ${buildRiskRatingBtns(cap.id, 'appetite')}
+        </div>
+      </div>
+
+      <div class="risk-mgmt-section">
+        <label>Control Effectiveness</label>
+        <div class="control-row">
+          <span class="control-row-label">Open Risks</span>
+          <input type="number" min="0" value="0" id="ctrl-openrisks-${cap.id}" class="control-row-input">
+        </div>
+        <div class="control-row">
+          <span class="control-row-label">Controls — Not Assessed</span>
+          <input type="number" min="0" value="0" id="ctrl-not-${cap.id}" class="control-row-input">
+        </div>
+        <div class="control-row">
+          <span class="control-row-label">Controls — Partially Effective</span>
+          <input type="number" min="0" value="0" id="ctrl-partial-${cap.id}" class="control-row-input">
+        </div>
+        <div class="control-row">
+          <span class="control-row-label">Controls — Effective</span>
+          <input type="number" min="0" value="0" id="ctrl-effective-${cap.id}" class="control-row-input">
+        </div>
+      </div>
+
+      <div class="risk-mgmt-section">
+        <label>Time Estimate</label>
+        <textarea id="timeest-${cap.id}" rows="2"
+          placeholder="Describe how long you estimate it will take to treat the risk to within tolerance..."></textarea>
+      </div>
+
+      <div class="risk-mgmt-section">
+        <label>Notes</label>
+        <textarea id="note-risk-mgmt-${cap.id}" rows="3"
+          placeholder="Risk management observations for ${cap.name}..."></textarea>
+      </div>
+    </div>`;
+}
+
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
+  const hasIctRisk = CONFIG.measures.some(m => m.id === 'ict_risk');
   container.innerHTML = CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}">
       <div class="cap-card-header">
@@ -155,6 +174,8 @@ function buildCapabilityFields() {
       <div class="measures-grid">
         ${CONFIG.measures.map(m => buildMeasureBlock(cap, m)).join("")}
       </div>
+
+      ${hasIctRisk ? buildRiskMgmtCard(cap) : ''}
 
       <div class="form-row" style="margin-top:1rem">
         <label>Overall notes for this capability</label>
@@ -180,7 +201,8 @@ function updateDimensionVisibility() {
   const checked = new Set(
     [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
   );
-  document.querySelectorAll(".measure-block").forEach(block => {
+  // Targets both .measure-block and .risk-mgmt-card via data-measure attribute
+  document.querySelectorAll("[data-measure]").forEach(block => {
     block.style.display = checked.has(block.dataset.measure) ? "" : "none";
   });
 }
@@ -214,7 +236,7 @@ function clearRiskRatingBtns(capId, field) {
 }
 
 function clearRiskCountInputs(capId) {
-  ['risk-openrisks', 'risk-ctrl-na', 'risk-ctrl-partial', 'risk-ctrl-eff'].forEach(prefix => {
+  ['ctrl-openrisks', 'ctrl-not', 'ctrl-partial', 'ctrl-effective'].forEach(prefix => {
     const el = document.getElementById(`${prefix}-${capId}`);
     if (el) el.value = 0;
   });
@@ -250,34 +272,41 @@ function openAssessmentForm(id) {
           updateTargetDisplay(cap.id, m.id, target);
 
           if (m.id === 'ict_risk') {
-            const rp = a.riskProfile?.[cap.id];
-            // Legacy: old format stored residualRating/appetiteRating inside measureScores as an object
+            // rp: new flat structure; legacy: old object inside measureScores
+            const rp        = a.riskProfile?.[cap.id];
             const legacyRaw = a.measureScores?.[cap.id]?.['ict_risk'];
-            const legacy = (!rp && legacyRaw && typeof legacyRaw === 'object') ? legacyRaw : null;
-            const effectiveRp = rp || (legacy ? {
-              residualRating: legacy.residualRating || '',
-              appetiteRating: legacy.appetiteRating || '',
-              timeEstimate: '',
-              controlCounts: legacy.controlCounts || {}
-            } : null);
+            const legacy    = (!rp && legacyRaw && typeof legacyRaw === 'object') ? legacyRaw : null;
 
-            if (effectiveRp) {
-              setRiskRatingBtns(cap.id, 'residual', effectiveRp.residualRating || '');
-              setRiskRatingBtns(cap.id, 'appetite', effectiveRp.appetiteRating || '');
+            if (rp) {
+              setRiskRatingBtns(cap.id, 'residual', rp.residualRating || '');
+              setRiskRatingBtns(cap.id, 'appetite', rp.appetiteRating || '');
+
+              // Support both new flat fields and old controlCounts sub-object
+              const cc = rp.controlCounts || {};
+              const openEl    = document.getElementById(`ctrl-openrisks-${cap.id}`);
+              const notEl     = document.getElementById(`ctrl-not-${cap.id}`);
+              const partialEl = document.getElementById(`ctrl-partial-${cap.id}`);
+              const effEl     = document.getElementById(`ctrl-effective-${cap.id}`);
+              if (openEl)    openEl.value    = rp.openRisks           ?? cc.openRisks    ?? 0;
+              if (notEl)     notEl.value     = rp.controlsNotAssessed ?? cc.notAssessed  ?? 0;
+              if (partialEl) partialEl.value = rp.controlsPartial     ?? cc.partial      ?? 0;
+              if (effEl)     effEl.value     = rp.controlsEffective   ?? cc.effective    ?? 0;
+
+              const timeEl  = document.getElementById(`timeest-${cap.id}`);
+              if (timeEl) timeEl.value = rp.timeEstimate || '';
+              const notesEl = document.getElementById(`note-risk-mgmt-${cap.id}`);
+              if (notesEl) notesEl.value = rp.riskMgmtNotes || '';
+
+            } else if (legacy) {
+              console.info(`Legacy ICT Risk data (measureScores object) for capability ${cap.id} — restoring ratings.`);
+              setRiskRatingBtns(cap.id, 'residual', legacy.residualRating || '');
+              setRiskRatingBtns(cap.id, 'appetite', legacy.appetiteRating || '');
+              clearRiskCountInputs(cap.id);
               const timeEl = document.getElementById(`timeest-${cap.id}`);
-              if (timeEl) timeEl.value = effectiveRp.timeEstimate || '';
-              const cc = effectiveRp.controlCounts;
-              if (cc) {
-                const naEl      = document.getElementById(`risk-ctrl-na-${cap.id}`);
-                const partialEl = document.getElementById(`risk-ctrl-partial-${cap.id}`);
-                const effEl     = document.getElementById(`risk-ctrl-eff-${cap.id}`);
-                const openEl    = document.getElementById(`risk-openrisks-${cap.id}`);
-                if (naEl)      naEl.value      = cc.notAssessed ?? 0;
-                if (partialEl) partialEl.value = cc.partial      ?? 0;
-                if (effEl)     effEl.value     = cc.effective    ?? 0;
-                if (openEl)    openEl.value    = cc.openRisks    ?? 0;
-              }
+              if (timeEl) timeEl.value = '';
+
             } else {
+              console.info(`No riskProfile data for capability ${cap.id} — leaving Card 2 at defaults.`);
               clearRiskRatingBtns(cap.id, 'residual');
               clearRiskRatingBtns(cap.id, 'appetite');
               clearRiskCountInputs(cap.id);
@@ -302,8 +331,10 @@ function openAssessmentForm(id) {
           clearRiskRatingBtns(cap.id, 'residual');
           clearRiskRatingBtns(cap.id, 'appetite');
           clearRiskCountInputs(cap.id);
-          const timeEl = document.getElementById(`timeest-${cap.id}`);
+          const timeEl  = document.getElementById(`timeest-${cap.id}`);
           if (timeEl) timeEl.value = '';
+          const notesEl = document.getElementById(`note-risk-mgmt-${cap.id}`);
+          if (notesEl) notesEl.value = '';
         }
       });
     });
@@ -318,14 +349,17 @@ function setSlider(id, val) {
 }
 
 function updateMeasureDisplay(capId, measureId, value) {
-  const v = parseInt(value);
-  const measure = CONFIG.measures.find(m => m.id === measureId);
-  const levelLabel = measure ? (measure.levels.find(l => l.level === v) || {}).label : null;
+  const v         = parseInt(value);
+  const measure   = CONFIG.measures.find(m => m.id === measureId);
+  const levelSpec = measure ? measure.levels.find(l => l.level === v) : null;
+  const levelLabel = levelSpec?.label || null;
+  const exitText   = levelSpec?.exit  || null;
   const lv = CONFIG.levels[v - 1];
   const el = document.getElementById(`display-${capId}-${measureId}`);
   if (el && lv) {
     el.innerHTML = `<span class="lvl-badge" style="background:${lv.color}">${v} · ${lv.name}</span>
-      ${levelLabel ? `<span class="lvl-desc">${levelLabel}</span>` : ""}`;
+      ${levelLabel ? `<span class="lvl-desc">${levelLabel}</span>` : ""}
+      ${exitText ? `<div style="margin-top:.4rem;font-size:.74rem;color:var(--text-muted);font-style:italic;line-height:1.45"><span style="display:block;font-family:var(--font-mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;font-style:normal;margin-bottom:.1rem">Exit condition:</span>${exitText}</div>` : ""}`;
   }
 }
 
@@ -365,16 +399,15 @@ function saveAssessment(e) {
       }
     });
 
-    const na      = parseInt(document.getElementById(`risk-ctrl-na-${cap.id}`)?.value)      || 0;
-    const partial = parseInt(document.getElementById(`risk-ctrl-partial-${cap.id}`)?.value) || 0;
-    const eff     = parseInt(document.getElementById(`risk-ctrl-eff-${cap.id}`)?.value)     || 0;
-    const openRisks = parseInt(document.getElementById(`risk-openrisks-${cap.id}`)?.value)  || 0;
-
     riskProfile[cap.id] = {
-      residualRating: document.getElementById(`residual-${cap.id}`)?.value || '',
-      appetiteRating: document.getElementById(`appetite-${cap.id}`)?.value || '',
-      timeEstimate:   document.getElementById(`timeest-${cap.id}`)?.value.trim() || '',
-      controlCounts:  { openRisks, notAssessed: na, partial, effective: eff }
+      residualRating:      document.getElementById(`residual-${cap.id}`)?.value        || '',
+      appetiteRating:      document.getElementById(`appetite-${cap.id}`)?.value        || '',
+      openRisks:           parseInt(document.getElementById(`ctrl-openrisks-${cap.id}`)?.value) || 0,
+      controlsNotAssessed: parseInt(document.getElementById(`ctrl-not-${cap.id}`)?.value)      || 0,
+      controlsPartial:     parseInt(document.getElementById(`ctrl-partial-${cap.id}`)?.value)   || 0,
+      controlsEffective:   parseInt(document.getElementById(`ctrl-effective-${cap.id}`)?.value) || 0,
+      timeEstimate:        document.getElementById(`timeest-${cap.id}`)?.value.trim()           || '',
+      riskMgmtNotes:       document.getElementById(`note-risk-mgmt-${cap.id}`)?.value.trim()    || ''
     };
   });
 

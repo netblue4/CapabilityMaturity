@@ -727,6 +727,68 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   font-style: italic;
 }
 
+/* ── ICT Risk Management Card (Assessment Form) ──────────── */
+.risk-mgmt-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 1.25rem;
+  border-top: 3px solid #e74c3c;
+}
+
+.risk-mgmt-card-header { margin-bottom: 1rem; }
+
+.risk-mgmt-card-title {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.risk-mgmt-card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.risk-mgmt-section { margin-bottom: 1rem; }
+.risk-mgmt-section:last-child { margin-bottom: 0; }
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.control-row:last-child { border-bottom: none; }
+
+.control-row-label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.control-row-input {
+  width: 72px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.90rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+}
+.control-row-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
 /* ── Profile Cards Container ─────────────────────────────── */
 .profile-cards-container {
   display: flex;

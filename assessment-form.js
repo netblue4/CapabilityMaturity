@@ -1,17 +1,12 @@
-// ── Risk Rating Button Options ────────────────────────────────
-const RISK_RATING_OPTIONS = [
-  { label: 'Critical', color: '#e74c3c' },
-  { label: 'High',     color: '#e67e22' },
-  { label: 'Medium',   color: '#f1c40f' },
-  { label: 'Low',      color: '#2ecc71' }
-];
-
+// ── Risk Rating Button Builder ────────────────────────────────
 function buildRiskRatingBtns(capId, field) {
-  return RISK_RATING_OPTIONS.map(opt => `
-    <button type="button" class="risk-btn" data-value="${opt.label}"
-      style="--risk-color:${opt.color}"
-      onclick="toggleRiskRatingBtn(this,'${capId}','${field}')">${opt.label}</button>
-  `).join('');
+  const keys = Object.keys(CONFIG.riskScoreMatrix || {});
+  return keys.map((key, i) => {
+    const color = CONFIG.levels[i]?.color || '#888';
+    return `<button type="button" class="risk-btn" data-value="${key}"
+      style="--risk-color:${color}"
+      onclick="toggleRiskRatingBtn(this,'${capId}','${field}')">${key}</button>`;
+  }).join('');
 }
 
 // ── Assessment Form — Build ───────────────────────────────────

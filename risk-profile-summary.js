@@ -8,18 +8,15 @@ function renderRiskProfileSummary(assessment) {
 
   const ictMeasure = CONFIG.measures.find(m => m.id === 'ict_risk');
 
-  const RATING_COLORS = {
-    'Critical': { bg: '#e74c3c', text: '#fff' },
-    'High':     { bg: '#e67e22', text: '#fff' },
-    'Medium':   { bg: '#f1c40f', text: '#000' },
-    'Low':      { bg: '#2ecc71', text: '#fff' }
-  };
+  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
 
   function ratingBadge(value) {
     if (!value) return '<span style="color:var(--text-muted)">—</span>';
-    const c = RATING_COLORS[value];
-    if (!c) return `<span style="color:var(--text-muted)">${value}</span>`;
-    return `<span class="lvl-badge" style="background:${c.bg};color:${c.text};font-family:var(--font-mono);font-size:.75rem">${value}</span>`;
+    const idx = riskKeys.indexOf(value);
+    const lv = idx >= 0 ? CONFIG.levels[idx] : null;
+    if (!lv) return `<span style="color:var(--text-muted)">${value}</span>`;
+    const textColor = lv.color === '#f1c40f' ? '#000' : '#fff';
+    return `<span class="lvl-badge" style="background:${lv.color};color:${textColor};font-family:var(--font-mono);font-size:.75rem">${value}</span>`;
   }
 
   const rows = CONFIG.capabilities.map(cap => {

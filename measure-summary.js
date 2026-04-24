@@ -75,9 +75,9 @@ function renderMeasureSummary(assessment) {
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : '#444'}"></div>
         </div>
-        <span class="mini-bar-val">${s.toFixed(1) || '—'}</span>
+        <span class="score-badge">${s.toFixed(1) || '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>
-        <span class="mini-bar-target">${t > 0 ? t.toFixed(1) : '—'}</span>
+        <span class="score-badge">${t > 0 ? t.toFixed(1) : '—'}</span>
       </div>`;
     }).join("");
 
@@ -182,11 +182,11 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div class="mini-bar-track">
         <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
       </div>
-      <span class="mini-bar-res">
+      <span class="score-badge">
         ${getAbbrev(residual)}
       </span>
       ${deltaHtml}
-      <span class="mini-bar-app">
+      <span class="score-badge">
         ${getAbbrev(appetite)}
       </span>
     </div>`;

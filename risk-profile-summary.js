@@ -96,40 +96,43 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 
   return `
     <div class="profile-card">
-      <div class="profile-card-header">
-        <div class="profile-card-title-block">
-          <div class="profile-card-accent" style="background:${accentColour}"></div>
-          <div>
-            <div class="profile-card-title">${title}</div>
-            <div class="profile-card-subtitle">Maturity progression across all capabilities</div>
+      <details>
+        <summary class="profile-card-summary">
+          <div class="profile-card-title-block">
+            <span class="profile-card-chevron">▶</span>
+            <div class="profile-card-accent" style="background:${accentColour}"></div>
+            <div>
+              <div class="profile-card-title">${title}</div>
+              <div class="profile-card-subtitle">Maturity progression across all capabilities</div>
+            </div>
           </div>
+          <button class="btn-link ratings-link" style="margin:0" onclick="event.stopPropagation();${ratingsOnclick}">ℹ Ratings</button>
+        </summary>
+        <div style="overflow-x:auto;margin-top:1.25rem">
+          <table class="profile-table">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Current</th>
+                <th>Target</th>
+                <th>Status</th>
+                <th>Exit Condition</th>
+                <th style="text-align:right">Est. Time</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
+                <td style="text-align:right">
+                  ${avg > 0 ? `<span class="lvl-badge" style="background:${avgLv ? avgLv.color : '#555'}">Avg ${avg.toFixed(1)}</span>` : '—'}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
-        <button class="btn-link ratings-link" onclick="${ratingsOnclick}">ℹ Ratings</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="profile-table">
-          <thead>
-            <tr>
-              <th>Capability</th>
-              <th>Current</th>
-              <th>Target</th>
-              <th>Status</th>
-              <th>Exit Condition</th>
-              <th style="text-align:right">Est. Time</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-          <tfoot>
-            <tr>
-              <td colspan="6">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
-              <td style="text-align:right">
-                ${avg > 0 ? `<span class="lvl-badge" style="background:${avgLv ? avgLv.color : '#555'}">Avg ${avg.toFixed(1)}</span>` : '—'}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+      </details>
     </div>`;
 }
 
@@ -144,7 +147,7 @@ function renderRiskManagementCard(assessment) {
   });
   if (!hasData) return '';
 
-  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+  const riskKeys   = Object.keys(CONFIG.riskScoreMatrix || {});
   const ictMeasure = CONFIG.measures.find(m => m.id === 'ict_risk');
 
   function getSeverity(value) {
@@ -154,8 +157,8 @@ function renderRiskManagementCard(assessment) {
 
   function ratingBadge(value) {
     if (!value) return `<span style="color:var(--text-muted)">—</span>`;
-    const idx = riskKeys.indexOf(value);
-    const lv  = idx >= 0 ? CONFIG.levels[idx] : null;
+    const idx       = riskKeys.indexOf(value);
+    const lv        = idx >= 0 ? CONFIG.levels[idx] : null;
     const textColor = lv?.color === '#f1c40f' ? '#000' : '#fff';
     return `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'};color:${textColor};font-family:var(--font-mono);font-size:0.75rem">${value}</span>`;
   }
@@ -164,48 +167,51 @@ function renderRiskManagementCard(assessment) {
 
   const rows = CONFIG.capabilities.map(cap => {
     const rp           = assessment.riskProfile[cap.id] || {};
-    const residual     = rp.residualRating  || '';
-    const appetite     = rp.appetiteRating  || '';
-    const timeEstimate = rp.timeEstimate    || '';
+    const residual     = rp.residualRating || '';
+    const appetite     = rp.appetiteRating || '';
+    const timeEstimate = rp.timeEstimate   || '';
     const note         = assessment.measureNotes?.[cap.id]?.['ict_risk'] || '';
     const score        = getMeasureScore(assessment, cap.id, 'ict_risk') || 0;
 
+    // Status: severity distance between residual and appetite
     let statusHtml;
     if (residual && appetite) {
       const rSev = getSeverity(residual);
       const aSev = getSeverity(appetite);
-      if (rSev > aSev) {
+      const diff = rSev - aSev;
+      if (diff > 0) {
         exceedsCount++;
-        statusHtml = `<span class="status-badge" style="background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid #e74c3c">⚠ Exceeds Appetite</span>`;
-      } else if (rSev === aSev) {
-        statusHtml = `<span style="color:#f1c40f;font-family:var(--font-mono);font-size:0.72rem">~ At Appetite</span>`;
+        statusHtml = `<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.75rem">↑ ${diff} level${diff !== 1 ? 's' : ''} to go</span>`;
+      } else if (diff === 0) {
+        statusHtml = `<span style="color:#2ecc71;font-family:var(--font-mono);font-size:0.75rem">✓ At Appetite</span>`;
       } else {
-        statusHtml = `<span style="color:#2ecc71;font-family:var(--font-mono);font-size:0.72rem">✓ Within Appetite</span>`;
+        statusHtml = `<span style="color:#2ecc71;font-family:var(--font-mono);font-size:0.75rem">✓ Within Appetite</span>`;
       }
     } else {
       statusHtml = `<span style="color:var(--text-muted)">—</span>`;
     }
 
+    // Exit condition from ict_risk maturity score
     let exitHtml;
     if (score === 5) {
-      exitHtml = `<span style="color:#2ecc71;font-size:0.78rem">✓ Target state reached. Maintain through continuous reassessment.</span>`;
+      exitHtml = `<span style="color:#2ecc71;font-size:0.78rem">✓ Target state reached.</span>`;
     } else if (score > 0 && ictMeasure) {
       const levelSpec = ictMeasure.levels?.find(l => l.level === score);
       const exitText  = levelSpec?.exit || null;
       if (exitText) {
         exitHtml = `
-          <span class="risk-exit-label">TO REACH LEVEL ${score + 1}:</span>
-          <span class="risk-exit-text">${exitText}</span>`;
+          <span style="display:block;font-family:var(--font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:0.2rem">TO REACH LEVEL ${score + 1}:</span>
+          <span style="color:var(--text);font-style:italic;font-size:0.78rem;line-height:1.5">${exitText}</span>`;
       } else {
-        exitHtml = `<span style="color:var(--text-muted);font-style:italic;font-size:0.78rem">— Exit condition not defined for this level.</span>`;
+        exitHtml = `<span style="color:var(--text-muted);font-style:italic;font-size:0.78rem">— Exit condition not defined.</span>`;
       }
     } else {
-      exitHtml = `<span style="color:var(--text-muted);font-style:italic;font-size:0.78rem">— Score this capability in the ICT Risk Profile Maturity section.</span>`;
+      exitHtml = `<span style="color:var(--text-muted);font-style:italic;font-size:0.78rem">— Score this capability to see exit condition.</span>`;
     }
 
     const timeHtml = timeEstimate
-      ? `<span class="risk-time-text">${timeEstimate}</span>`
-      : `<span class="risk-time-none">Not estimated</span>`;
+      ? `<span style="color:var(--accent);font-family:var(--font-mono);font-size:0.82rem;font-weight:700">${timeEstimate}</span>`
+      : `<span style="color:var(--text-muted)">—</span>`;
 
     const noteHtml = note
       ? `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic">${note}</span>`
@@ -216,58 +222,54 @@ function renderRiskManagementCard(assessment) {
         <td style="font-size:0.85rem;font-weight:600;min-width:160px">${shortName(cap.name)}</td>
         <td>${ratingBadge(residual)}</td>
         <td>${ratingBadge(appetite)}</td>
-        <td>${statusHtml}</td>
-        <td style="max-width:300px">${noteHtml}</td>
-      </tr>
-      <tr>
-        <td colspan="5" style="padding:0;border-bottom:1px solid var(--border)">
-          <div class="risk-exit-row">
-            <div class="risk-exit-condition">${exitHtml}</div>
-            <div class="risk-time-col">
-              <span class="risk-time-label">TIME TO WITHIN TOLERANCE:</span>
-              ${timeHtml}
-            </div>
-          </div>
-        </td>
+        <td style="white-space:nowrap">${statusHtml}</td>
+        <td style="max-width:380px">${exitHtml}</td>
+        <td style="width:70px;text-align:right;white-space:nowrap">${timeHtml}</td>
+        <td style="max-width:220px">${noteHtml}</td>
       </tr>`;
   }).join('');
 
-  const total = CONFIG.capabilities.length;
+  const total       = CONFIG.capabilities.length;
   const footerColor = exceedsCount === 0 ? '#2ecc71' : '#e74c3c';
 
   return `
     <div class="profile-card">
-      <div class="profile-card-header">
-        <div class="profile-card-title-block">
-          <span style="font-size:1.3rem;line-height:1;flex-shrink:0">🛡️</span>
-          <div>
-            <div class="profile-card-title">ICT Risk Management</div>
-            <div class="profile-card-subtitle">Residual risk profile across all capabilities</div>
+      <details>
+        <summary class="profile-card-summary">
+          <div class="profile-card-title-block">
+            <span class="profile-card-chevron">▶</span>
+            <span style="font-size:1.3rem;line-height:1;flex-shrink:0">🛡️</span>
+            <div>
+              <div class="profile-card-title">ICT Risk Management</div>
+              <div class="profile-card-subtitle">Residual risk profile across all capabilities</div>
+            </div>
           </div>
+          <button class="btn-link ratings-link" style="margin:0" onclick="event.stopPropagation();showIctRiskRatingsModal()">ℹ Ratings</button>
+        </summary>
+        <div style="overflow-x:auto;margin-top:1.25rem">
+          <table class="profile-table">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Residual Risk</th>
+                <th>Risk Appetite</th>
+                <th>Status</th>
+                <th>Exit Condition</th>
+                <th style="text-align:right">Est. Time</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
+                <td colspan="2" style="text-align:right">
+                  <span style="color:${footerColor}">${exceedsCount} of ${total} capabilities exceed risk appetite</span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
-        <button class="btn-link ratings-link" onclick="showIctRiskRatingsModal()">ℹ Ratings</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="profile-table">
-          <thead>
-            <tr>
-              <th>Capability</th>
-              <th>Residual Risk</th>
-              <th>Risk Appetite</th>
-              <th>Status</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
-              <td colspan="2" style="text-align:right">
-                <span style="color:${footerColor}">${exceedsCount} of ${total} capabilities exceed risk appetite</span>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+      </details>
     </div>`;
 }

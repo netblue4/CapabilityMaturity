@@ -814,6 +814,29 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   color: var(--text-muted);
 }
 
+/* ── Profile Card Collapsible Summary ────────────────────── */
+.profile-card-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+.profile-card-summary::-webkit-details-marker { display: none; }
+.profile-card-summary::marker { display: none; }
+
+.profile-card-chevron {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+details[open] .profile-card-chevron {
+  transform: rotate(90deg);
+}
+
 /* ── Status Badge ────────────────────────────────────────── */
 .status-badge {
   display: inline-block;

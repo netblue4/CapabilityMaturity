@@ -727,6 +727,103 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   font-style: italic;
 }
 
+/* ── Profile Cards Container ─────────────────────────────── */
+.profile-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Profile Card ────────────────────────────────────────── */
+.profile-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.profile-card-title-block {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-card-accent {
+  width: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 36px;
+}
+
+.profile-card-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 0.15rem;
+}
+
+.profile-card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ── Profile Table ───────────────────────────────────────── */
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.profile-table th {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.profile-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.profile-table tr:last-child td { border-bottom: none; }
+.profile-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.profile-table tfoot td {
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+  padding-top: 0.65rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ── Status Badge ────────────────────────────────────────── */
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }

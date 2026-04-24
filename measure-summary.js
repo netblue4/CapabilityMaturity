@@ -1,19 +1,12 @@
 // ── Measure Summary Cards ────────────────────────────────────
 function renderMeasureSummary(assessment) {
-  // We don't use the old single row ID anymore.
-  // const row = document.getElementById("measure-summary-row");
+  const row = document.getElementById("measure-summary-row");
 
-  // Get references to our new top and bottom row containers from the HTML
-  const topRow    = document.getElementById("measure-summary-row-top");
-  const bottomRow = document.getElementById("measure-summary-row-bottom");
-
-  // ——————————————————————————————————————————————————————————
-  // Create Card 1: "Capability Maturity - ICT Governance"
-  // ——————————————————————————————————————————————————————————
+  // — Scores card (first in row) —
   const capAvgs = CONFIG.capabilities.map(cap => capAvgScore(assessment, cap.id)).filter(v => v > 0);
   const overall = capAvgs.length ? capAvgs.reduce((a, b) => a + b, 0) / capAvgs.length : 0;
   const avgLevel = levelForScore(overall);
-  const governanceCard = `
+  const scoresCard = `
     <div class="card measure-card">
       <div class="measure-card-header">
         <span class="measure-icon">📋</span>
@@ -54,13 +47,10 @@ function renderMeasureSummary(assessment) {
       </div>
     </div>`;
 
-  // ——————————————————————————————————————————————————————————
-  // Create Cards 2 & 3: Dimension measure cards
-  // ——————————————————————————————————————————————————————————
+  // — Dimension measure cards (with previous assessment comparison) —
   const prev = db.assessments.length > 1 ? db.assessments[db.assessments.length - 2] : null;
 
-  // We need to render the measure cards as an array of individual HTML strings so we can separate them.
-  const individualMeasureCardsHtmlArray = CONFIG.measures.map(m => {
+  const measureCards = CONFIG.measures.map(m => {
     const scores = CONFIG.capabilities.map(cap => getMeasureScore(assessment, cap.id, m.id) || 0);
     const prevScores = prev ? CONFIG.capabilities.map(cap => getMeasureScore(prev, cap.id, m.id) || 0) : null;
 
@@ -95,7 +85,6 @@ function renderMeasureSummary(assessment) {
       ? `${prevAvg.toFixed(1)}<span class="badge-arrow">→</span>${avg.toFixed(1)}${avgDelta !== null ? `<span class="badge-delta ${avgDelta > 0 ? 'delta-up' : avgDelta < 0 ? 'delta-down' : ''}">${avgDelta > 0 ? ' ▲' : avgDelta < 0 ? ' ▼' : ''}</span>` : ''}`
       : avg > 0 ? avg.toFixed(1) : '—';
 
-    // This generates the HTML string for a single measure card.
     return `
       <div class="card measure-card">
         <div class="measure-card-header">
@@ -117,38 +106,14 @@ function renderMeasureSummary(assessment) {
         </div>
         <div class="mini-bars">${bars}</div>
       </div>`;
-  }); // End of map.  `individualMeasureCardsHtmlArray` is now an array of HTML strings.
+  }).join("");
 
-  // Helper to find the correct card from our array by measure ID.
-  // We'll need the correct IDs for "ICT Risk" and "ICT Reporting".
-  // Let's assume based on common patterns they are 'ict_risk' and 'ict_reporting'.
-  const ictRiskMeasureIndex = CONFIG.measures.findIndex(m => m.id === 'ict_risk');
-  const ictReportingMeasureIndex = CONFIG.measures.findIndex(m => m.id === 'ict_reporting');
-
-  // Assign each card string to its own variable.
-  const ictReportingCard = individualMeasureCardsHtmlArray[ictReportingMeasureIndex] || '';
-  const ictRiskCard = individualMeasureCardsHtmlArray[ictRiskMeasureIndex] || '';
-
-  // ——————————————————————————————————————————————————————————
-  // Create Card 4: "ICT Risk Management" summary card
-  // —————————————————————————————————INFRINGEMENT—
-  const riskMgmtCard = renderRiskMgmtSummaryCard(assessment);
-
-  // ——————————————————————————————————————————————————————————
-  // Final Layout - Injecting the cards into the correct rows
-  // ——————————————————————————————————————————————————————————
-
-  // Top Row: Card 1 (Governance) + Card 3 (Reporting)
-  topRow.innerHTML = governanceCard + ictReportingCard;
-
-  // Bottom Row: Card 2 (ICT Risk) + Card 4 (Risk Mgmt)
-  bottomRow.innerHTML = ictRiskCard + riskMgmtCard;
+  document.getElementById("scores-card-slot").innerHTML = scoresCard;
+  row.innerHTML = measureCards + renderRiskMgmtSummaryCard(assessment);
 }
 
 // ── ICT Risk Management Summary Card ─────────────────────────
-// This function is unchanged.  It still returns an HTML string for its single card.
 function renderRiskMgmtSummaryCard(assessment) {
-  // ... (all the original code of this function remains the same) ...
   const rp       = assessment.riskProfile || {};
   const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
   const maxSev   = riskKeys.length || 4;

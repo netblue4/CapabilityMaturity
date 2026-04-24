@@ -376,8 +376,9 @@ textarea { resize: vertical; }
 .cap-name { font-size: 1rem; font-weight: 600; margin-bottom: .2rem; }
 .cap-desc { font-size: .8rem; color: var(--text-muted); }
 
-.measures-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-@media (max-width: 900px) { .measures-grid { grid-template-columns: 1fr; } }
+.measures-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+@media (max-width: 1200px) { .measures-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .measures-grid { grid-template-columns: 1fr; } }
 
 .measure-block {
   background: var(--bg3);
@@ -780,6 +781,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   margin-top: 0.75rem;
   margin-bottom: 1.25rem;
   border-top: 3px solid #e74c3c;
+}
+
+.measures-grid .risk-mgmt-card {
+  margin-top: 0;
+  margin-bottom: 0;
+  height: 100%; /* Ensures it stretches to match the height of the tallest card */
 }
 
 .risk-mgmt-card-header { margin-bottom: 1rem; }

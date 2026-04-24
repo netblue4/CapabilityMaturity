@@ -34,51 +34,111 @@
     }
   ],
 
-  "measures": [
-    {
-      "id": "governance",
-      "name": "Governance",
-      "icon": "⚖️",
-      "color": "#9b59b6",
-      "description": "Tracks the repeatability of processes associated with the capability and consistency of their outputs.",
-      "levels": [
-        { "level": 1, "label": "No policy exists" },
-        { "level": 2, "label": "Policy drafted, no owner" },
-        { "level": 3, "label": "Policy approved, owner assigned" },
-        { "level": 4, "label": "Policy reviewed regularly, owner accountable" },
-        { "level": 5, "label": "Policy continuously improved, embedded in culture" }
-      ]
-    },
-    {
-      "id": "ict_risk",
-      "name": "ICT Risk",
-      "icon": "🛡️",
-      "color": "#e74c3c",
-      "type": "risk_profile",
-      "description": "Tracks the residual risk score of risks associated with the capability and their mitigation status.",
-      "levels": [
-        { "level": 1, "label": "Risks not identified or documented" },
-        { "level": 2, "label": "Risks identified, residual risk not assessed" },
-        { "level": 3, "label": "Residual risk assessed and accepted" },
-        { "level": 4, "label": "Residual risk tracked, mitigations in place" },
-        { "level": 5, "label": "Residual risk trending down, proactively managed" }
-      ]
-    },
-    {
-      "id": "reporting",
-      "name": "Reporting",
-      "icon": "📊",
-      "color": "#2ecc71",
-      "description": "Tracks KPI efficacy, reporting cadence and whether outputs drive informed decisions for the capability.",
-      "levels": [
-        { "level": 1, "label": "No KPIs defined" },
-        { "level": 2, "label": "KPIs defined but not reported" },
-        { "level": 3, "label": "KPIs reported periodically" },
-        { "level": 4, "label": "KPIs reported to management on schedule" },
-        { "level": 5, "label": "KPIs drive decisions, trends analysed proactively" }
-      ]
-    }
-  ],
+"measures": [
+  {
+	"id": "governance",
+	"name": "Governance",
+	"icon": "⚖️",
+	"color": "#9b59b6",
+	"description": "Tracks the repeatability of processes associated with the capability and consistency of their outputs.",
+	"levels": [
+	  {
+		"level": 1,
+		"label": "Initial — No Roles and Responsibilities defined for this capability. Ownership is absent and activities are performed ad-hoc.",
+		"exit": "Define and document the most important Roles and Responsibilities for this capability. Assign at least one named owner."
+	  },
+	  {
+		"level": 2,
+		"label": "Managed — Roles and Responsibilities drafted and a named owner assigned. Not yet formally approved or consistently followed.",
+		"exit": "Obtain formal approval of the Roles and Responsibilities document. Confirm the owner accepts accountability and begins performing their responsibilities."
+	  },
+	  {
+		"level": 3,
+		"label": "Defined — Roles and Responsibilities formally approved and actively performed. Owner is accountable and responsibilities are consistently carried out.",
+		"exit": "Establish a regular review cycle for the Roles and Responsibilities document. Demonstrate that at least one review has occurred and that outcomes from Risk and Reporting have been considered."
+	  },
+	  {
+		"level": 4,
+		"label": "Quantitative — Roles and Responsibilities reviewed regularly. Performance is measured and outcomes from Risk and Reporting feed into each review.",
+		"exit": "Demonstrate that a Risk finding or a KPI gap has directly resulted in an update to the Roles and Responsibilities document, closing the improvement loop."
+	  },
+	  {
+		"level": 5,
+		"label": "Optimising — Roles and Responsibilities are continuously updated in response to Risk findings and KPI outcomes. The improvement loop is fully closed and embedded in practice.",
+		"exit": "No exit. This is the target state. Maintain through continuous review and demonstrate ongoing responsiveness to Risk and Reporting inputs."
+	  }
+	]
+  },
+  {
+	"id": "ict_risk",
+	"name": "ICT Risk",
+	"icon": "🛡️",
+	"color": "#e74c3c",
+	"type": "risk_profile",
+	"description": "Tracks the residual risk score of risks associated with the capability and their mitigation status.",
+	"levels": [
+	  {
+		"level": 1,
+		"label": "Initial — No risks or controls documented against any Role or Responsibility for this capability.",
+		"exit": "Identify the most important Roles and Responsibilities for this capability and draft at least one risk and one control against each."
+	  },
+	  {
+		"level": 2,
+		"label": "Managed — Most important Roles and Responsibilities identified. Risks and controls drafted against them but not yet formally assessed.",
+		"exit": "Formally assess every drafted risk and control. Document the residual risk for each. Identify gaps where controls are missing or ineffective."
+	  },
+	  {
+		"level": 3,
+		"label": "Defined — All drafted risks and controls formally assessed. Residual risk documented. Treatment gaps and additional controls identified.",
+		"exit": "Implement all identified additional treatments and controls. Reassess residual risk for each responsibility after implementation."
+	  },
+	  {
+		"level": 4,
+		"label": "Quantitative — Additional treatments implemented and risks reassessed. Residual risk profile established and tracked.",
+		"exit": "Confirm all residual risks are within the defined tolerance. Establish a regular reassessment cycle and demonstrate at least one completed cycle."
+	  },
+	  {
+		"level": 5,
+		"label": "Optimising — All risks within tolerance. Continuous reassessment cycle active. Risk and control findings proactively feed back to Governance to update Roles and Responsibilities.",
+		"exit": "No exit. This is the target state. Maintain through continuous reassessment and demonstrate that risk findings are actively driving Governance updates."
+	  }
+	]
+  },
+  {
+	"id": "reporting",
+	"name": "Reporting",
+	"icon": "📊",
+	"color": "#2ecc71",
+	"description": "Tracks KPI efficacy, reporting cadence and whether outputs drive informed decisions for the capability.",
+	"levels": [
+	  {
+		"level": 1,
+		"label": "Initial — No KPIs defined for this capability. There is no visibility of whether Roles and Responsibilities are being performed or controls are working.",
+		"exit": "Define at least one KPI for this capability, grounded in the Roles and Responsibilities and the identified risks. Assign an owner responsible for measuring and reporting it."
+	  },
+	  {
+		"level": 2,
+		"label": "Managed — KPIs defined based on Roles and Responsibilities and identified risks. Not yet being measured or reported consistently.",
+		"exit": "Begin measuring all defined KPIs on a regular schedule. Produce at least one formal report showing KPI results and distribute it to relevant stakeholders."
+	  },
+	  {
+		"level": 3,
+		"label": "Defined — KPIs measured and reported periodically. Results are reviewed but exceptions are not yet formally escalated.",
+		"exit": "Establish a formal reporting schedule to management. Define escalation thresholds — when a KPI falls below an agreed level, a formal exception is raised and tracked."
+	  },
+	  {
+		"level": 4,
+		"label": "Quantitative — KPIs reported to management on schedule. Exceptions formally escalated and tracked. Reporting is reliable and consistent.",
+		"exit": "Demonstrate that a KPI gap or exception has directly triggered a review of the Governance Roles and Responsibilities document, closing the improvement loop."
+	  },
+	  {
+		"level": 5,
+		"label": "Optimising — KPI trends analysed proactively. Gaps and exceptions consistently drive updates to Governance Roles and Responsibilities. The improvement loop is fully closed.",
+		"exit": "No exit. This is the target state. Maintain through continuous KPI review and demonstrate ongoing responsiveness to reporting outcomes."
+	  }
+	]
+  }
+],
 
   "riskProfile": {
     "residualRating": ["Critical", "High", "Medium", "Low"],

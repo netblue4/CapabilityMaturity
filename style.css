@@ -250,8 +250,7 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 @media (max-width: 900px) { .radar-scores-row { grid-template-columns: 1fr; } }
 
 /* ── Measure Summary Row ─────────────────────────────────── */
-.measure-summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.25rem; }
-@media (max-width: 1100px) { .measure-summary-row { grid-template-columns: repeat(2, 1fr); } }
+.measure-summary-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; margin-bottom: 1.25rem; }
 @media (max-width: 600px)  { .measure-summary-row { grid-template-columns: 1fr; } }
 
 .ratings-link { display: block; font-size: .72rem; margin-bottom: .6rem; text-align: right; opacity: .7; }

@@ -50,7 +50,13 @@ function renderMeasureSummary(assessment) {
   // — Dimension measure cards (with previous assessment comparison) —
   const prev = db.assessments.length > 1 ? db.assessments[db.assessments.length - 2] : null;
 
-  const measureCards = CONFIG.measures.map(m => {
+  // Render in display order: Governance, Reporting, ICT Risk (Risk Mgmt card follows as 4th)
+  const measureOrder = ['governance', 'reporting', 'ict_risk'];
+  const orderedMeasures = measureOrder
+    .map(id => CONFIG.measures.find(m => m.id === id))
+    .filter(Boolean);
+
+  const measureCards = orderedMeasures.map(m => {
     const scores = CONFIG.capabilities.map(cap => getMeasureScore(assessment, cap.id, m.id) || 0);
     const prevScores = prev ? CONFIG.capabilities.map(cap => getMeasureScore(prev, cap.id, m.id) || 0) : null;
 

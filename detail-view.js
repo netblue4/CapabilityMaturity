@@ -19,7 +19,7 @@ function viewAssessment(id) {
 
       if (m.id === 'ict_risk') {
         const rp = a.riskProfile?.[cap.id];
-        const DETAIL_RATING_COLORS = { 'Critical': '#e74c3c', 'High': '#e67e22', 'Medium': '#f1c40f', 'Low': '#2ecc71' };
+        const DETAIL_RATING_COLORS = { 'Extreme (28 to 40)': '#e74c3c', 'Significant (20 to 24)': '#e67e22', 'Moderate (12 to 16)': '#f1c40f', 'Low (4 to 10)': '#2ecc71' };
         return `
           <div class="detail-measure-cell">
             <div class="detail-measure-header">

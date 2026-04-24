@@ -182,11 +182,11 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div class="mini-bar-track">
         <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
       </div>
-      <span class="mini-bar-res" style="color:${rColor || 'var(--text-muted)'}">
+      <span class="mini-bar-res">
         ${getAbbrev(residual)}
       </span>
       ${deltaHtml}
-      <span class="mini-bar-app" style="color:${aColor || 'var(--text-muted)'}">
+      <span class="mini-bar-app">
         ${getAbbrev(appetite)}
       </span>
     </div>`;
@@ -224,7 +224,6 @@ function renderRiskMgmtSummaryCard(assessment) {
           ${badgeText}
         </span>
       </div>
-      <button class="btn-link ratings-link" onclick="showIctRiskRatingsModal()">ℹ Ratings</button>
       <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
         <span style="flex:1"></span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:32px;text-align:right">Res</span>

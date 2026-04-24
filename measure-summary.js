@@ -109,5 +109,118 @@ function renderMeasureSummary(assessment) {
   }).join("");
 
   document.getElementById("scores-card-slot").innerHTML = scoresCard;
-  row.innerHTML = measureCards;
+  row.innerHTML = measureCards + renderRiskMgmtSummaryCard(assessment);
+}
+
+// ── ICT Risk Management Summary Card ─────────────────────────
+function renderRiskMgmtSummaryCard(assessment) {
+  const rp       = assessment.riskProfile || {};
+  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+  const maxSev   = riskKeys.length || 4;
+
+  function getSeverity(value) {
+    const idx = riskKeys.indexOf(value);
+    return idx < 0 ? 0 : riskKeys.length - idx;
+  }
+
+  function getColor(value) {
+    const idx = riskKeys.indexOf(value);
+    return idx >= 0 ? (CONFIG.levels[idx]?.color || '#888') : null;
+  }
+
+  function getAbbrev(value) {
+    if (!value) return '—';
+    if (value.startsWith('Extreme'))     return 'EXT';
+    if (value.startsWith('Significant')) return 'SIG';
+    if (value.startsWith('Moderate'))    return 'MOD';
+    if (value.startsWith('Low'))         return 'LOW';
+    return value.slice(0, 3).toUpperCase();
+  }
+
+  let exceedingCount = 0, withinCount = 0;
+
+  const bars = CONFIG.capabilities.map(cap => {
+    const capRp    = rp[cap.id] || {};
+    const residual = capRp.residualRating || '';
+    const appetite = capRp.appetiteRating || '';
+    const rSev     = getSeverity(residual);
+    const aSev     = getSeverity(appetite);
+    const rColor   = getColor(residual);
+    const aColor   = getColor(appetite);
+
+    const barWidth = rSev > 0 ? (rSev / maxSev) * 100 : 0;
+    const barBg    = rColor || '#444';
+
+    let statusSymbol, statusColor, statusTitle, statusExtra = '';
+    if (!residual || !appetite) {
+      statusSymbol = '●';
+      statusColor  = 'var(--text-muted)';
+      statusTitle  = 'Not scored';
+    } else if (rSev > aSev) {
+      exceedingCount++;
+      statusSymbol = '⚠';
+      statusColor  = '#e74c3c';
+      statusTitle  = 'Exceeds appetite';
+    } else if (rSev === aSev) {
+      withinCount++;
+      statusSymbol = '~';
+      statusColor  = '#f1c40f';
+      statusTitle  = 'At appetite';
+      statusExtra  = 'font-family:var(--font-mono);font-size:0.80rem';
+    } else {
+      withinCount++;
+      statusSymbol = '✓';
+      statusColor  = '#2ecc71';
+      statusTitle  = 'Within appetite';
+    }
+
+    return `<div class="mini-bar-row">
+      <span class="mini-bar-label">${shortName(cap.name)}</span>
+      <div class="mini-bar-track">
+        <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
+      </div>
+      <span class="mini-bar-res" style="color:${rColor || 'var(--text-muted)'}">
+        ${getAbbrev(residual)}
+      </span>
+      <span class="mini-bar-app" style="color:${aColor || 'var(--text-muted)'}">
+        ${getAbbrev(appetite)}
+      </span>
+      <span class="mini-bar-sts" title="${statusTitle}" style="color:${statusColor};${statusExtra}">
+        ${statusSymbol}
+      </span>
+    </div>`;
+  }).join('');
+
+  const hasScored = exceedingCount + withinCount > 0;
+  const badgeBg   = exceedingCount > 0 ? '#e74c3c' : '#2ecc71';
+  const badgeText = hasScored ? `${exceedingCount} exceeding` : '—';
+
+  return `
+    <div class="card measure-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">🛡️</span>
+        <div>
+          <h3 class="measure-card-title">ICT Risk Management</h3>
+          <p class="measure-card-desc">Residual risk vs appetite</p>
+        </div>
+        <span class="measure-avg-badge" style="background:${hasScored ? badgeBg : '#555'};font-size:.72rem;white-space:nowrap">
+          ${badgeText}
+        </span>
+      </div>
+      <button class="btn-link ratings-link" onclick="showIctRiskRatingsModal()">ℹ Ratings</button>
+      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
+        <span style="flex:1"></span>
+        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:32px;text-align:right">Res</span>
+        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:32px;text-align:center">App</span>
+        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:20px;text-align:center">Sts</span>
+      </div>
+      <div class="mini-bars">${bars}</div>
+      <div class="risk-mgmt-summary-footer">
+        <span>${assessment.label} · ${formatDate(assessment.date)}</span>
+        <span class="risk-tally">
+          <span style="color:#2ecc71">✓${withinCount}</span>
+          <span style="color:#e74c3c">⚠${exceedingCount}</span>
+        </span>
+      </div>
+    </div>`;
 }

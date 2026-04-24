@@ -172,9 +172,8 @@ function buildCapabilityFields() {
 
       <div class="measures-grid">
         ${CONFIG.measures.map(m => buildMeasureBlock(cap, m)).join("")}
+        ${hasIctRisk ? buildRiskMgmtCard(cap) : ''}
       </div>
-
-      ${hasIctRisk ? buildRiskMgmtCard(cap) : ''}
 
       <div class="form-row" style="margin-top:1rem">
         <label>Overall notes for this capability</label>

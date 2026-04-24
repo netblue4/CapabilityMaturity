@@ -17,9 +17,9 @@ function viewAssessment(id) {
       const lv     = levelForScore(score);
       const tlv    = levelForScore(target);
 
-      if (m.type === 'risk_profile') {
-        const raw    = a.measureScores?.[cap.id]?.[m.id];
-        const rd     = (raw && typeof raw === 'object') ? raw : null;
+      if (m.id === 'ict_risk') {
+        const rp = a.riskProfile?.[cap.id];
+        const DETAIL_RATING_COLORS = { 'Critical': '#e74c3c', 'High': '#e67e22', 'Medium': '#f1c40f', 'Low': '#2ecc71' };
         return `
           <div class="detail-measure-cell">
             <div class="detail-measure-header">
@@ -30,12 +30,11 @@ function viewAssessment(id) {
               <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score > 0 ? score + ' · ' + lv.name : '—'}</span>
               ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#888'};color:${tlv ? tlv.color : '#888'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
             </div>
-            ${rd ? `
+            ${rp ? `
               <div class="risk-detail-fields">
-                ${rd.residualRating ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.residualRating] || '#888'}">${rd.residualRating} Risk</span>` : ''}
-                ${rd.appetiteStatus ? `<span class="risk-detail-badge" style="--risk-color:${RISK_COLORS[rd.appetiteStatus] || '#888'}">${rd.appetiteStatus}</span>` : ''}
-                ${ctrlEffectivenessBadgeHtml(rd)}
-                ${rd.openRisks !== undefined && rd.openRisks !== null ? `<span class="risk-detail-badge" style="--risk-color:#8b949e">${rd.openRisks} Open ${rd.openRisks === 1 ? 'Risk' : 'Risks'}</span>` : ''}
+                ${rp.residualRating ? `<span class="risk-detail-badge" style="--risk-color:${DETAIL_RATING_COLORS[rp.residualRating] || '#888'}">${rp.residualRating} Risk</span>` : ''}
+                ${rp.appetiteRating ? `<span class="risk-detail-badge" style="--risk-color:${DETAIL_RATING_COLORS[rp.appetiteRating] || '#888'}">${rp.appetiteRating} Appetite</span>` : ''}
+                ${rp.timeEstimate ? `<span class="risk-detail-badge" style="--risk-color:#8b949e">⏱ ${rp.timeEstimate}</span>` : ''}
               </div>` : ''}
             ${note ? `<div class="detail-cap-note">${note}</div>` : ''}
           </div>`;
@@ -146,27 +145,27 @@ function copyAssessment(id) {
   CONFIG.capabilities.forEach(cap => {
     document.getElementById("capnote-" + cap.id).value = (source.capNotes && source.capNotes[cap.id]) || "";
     CONFIG.measures.forEach(m => {
-      if (m.type === 'risk_profile') {
-        const raw = source.measureScores?.[cap.id]?.[m.id];
-        const riskData = (raw && typeof raw === 'object') ? raw : null;
-        if (riskData) populateRiskProfileFields(cap.id, riskData);
-        else resetRiskProfileFields(cap.id);
-        const target = getMeasureTarget(source, cap.id, m.id) || 3;
-        const note   = getMeasureNote(source, cap.id, m.id) || "";
-        setSlider(`target-${cap.id}-${m.id}`, target);
-        const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
-        if (noteEl) noteEl.value = note;
-        updateTargetDisplay(cap.id, m.id, target);
-      } else {
-        const score  = getMeasureScore(source, cap.id, m.id) || 1;
-        const target = getMeasureTarget(source, cap.id, m.id) || 3;
-        const note   = getMeasureNote(source, cap.id, m.id) || "";
-        setSlider(`score-${cap.id}-${m.id}`, score);
-        setSlider(`target-${cap.id}-${m.id}`, target);
-        const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
-        if (noteEl) noteEl.value = note;
-        updateMeasureDisplay(cap.id, m.id, score);
-        updateTargetDisplay(cap.id, m.id, target);
+      const score  = getMeasureScore(source, cap.id, m.id) || 1;
+      const target = getMeasureTarget(source, cap.id, m.id) || 3;
+      const note   = getMeasureNote(source, cap.id, m.id) || "";
+      setSlider(`score-${cap.id}-${m.id}`, score);
+      setSlider(`target-${cap.id}-${m.id}`, target);
+      const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
+      if (noteEl) noteEl.value = note;
+      updateMeasureDisplay(cap.id, m.id, score);
+      updateTargetDisplay(cap.id, m.id, target);
+
+      if (m.id === 'ict_risk') {
+        const rp = source.riskProfile?.[cap.id];
+        if (rp) {
+          setRiskRatingBtns(cap.id, 'residual', rp.residualRating || '');
+          setRiskRatingBtns(cap.id, 'appetite', rp.appetiteRating || '');
+          const timeEl = document.getElementById(`timeest-${cap.id}`);
+          if (timeEl) timeEl.value = rp.timeEstimate || '';
+        } else {
+          clearRiskRatingBtns(cap.id, 'residual');
+          clearRiskRatingBtns(cap.id, 'appetite');
+        }
       }
     });
   });

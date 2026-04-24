@@ -30,64 +30,42 @@ function closeRatingsModal(e) {
   }
 }
 
-// ── Risk Matrix Modal ─────────────────────────────────────────
-function showRiskMatrixModal() {
-  const residuals = Object.keys(CONFIG.riskScoreMatrix || {});
-  const appetites = CONFIG.riskProfile?.appetiteStatus || [];
-  const ctrls     = CONFIG.riskProfile?.controlEffectiveness || [];
+// ── ICT Risk Ratings Modal ────────────────────────────────────
+function showIctRiskRatingsModal() {
+  const ictMeasure = CONFIG.measures.find(m => m.id === 'ict_risk');
 
-  let tableRows = '';
-  residuals.forEach((res, ri) => {
-    const resColor = CONFIG.levels[ri]?.color || '#888';
-    tableRows += `
-      <tr style="background:var(--bg3)">
-        <td colspan="4" style="padding:.4rem .7rem;font-family:var(--font-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em">
-          <span class="lvl-badge" style="background:${resColor}">${res}</span>
-        </td>
-      </tr>`;
-    appetites.forEach(app => {
-      ctrls.forEach(ctrl => {
-        const score = CONFIG.riskScoreMatrix?.[res]?.[app]?.[ctrl] || 0;
-        const lv = levelForScore(score);
-        const badge = score > 0
-          ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>`
-          : '—';
-        tableRows += `
-          <tr>
-            <td style="padding:.4rem .7rem;font-size:.8rem"></td>
-            <td style="padding:.4rem .7rem;font-size:.8rem;color:var(--text-muted)">${app}</td>
-            <td style="padding:.4rem .7rem;font-size:.8rem">${ctrl}</td>
-            <td style="padding:.4rem .7rem">${badge}</td>
-          </tr>`;
-      });
-    });
-  });
+  const levelRows = (ictMeasure?.levels || []).map(lvSpec => {
+    const lv = CONFIG.levels.find(l => l.level === lvSpec.level);
+    const color = lv?.color || '#555';
+    return `
+      <div class="modal-level-row" style="border-bottom:1px solid var(--border);padding-bottom:.85rem;margin-bottom:.85rem">
+        <span class="lvl-badge" style="background:${color};min-width:105px;text-align:center">${lvSpec.level} · ${lv?.name || ''}</span>
+        <div>
+          <div class="modal-level-desc">${lv?.description || ''}</div>
+          <div class="modal-level-label">${lvSpec.label || ''}</div>
+          ${lvSpec.exit ? `
+            <div style="margin-top:.5rem">
+              <span style="display:block;font-family:var(--font-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin-bottom:.2rem">Exit Condition:</span>
+              <span style="font-style:italic;color:var(--text-muted);font-size:.78rem">${lvSpec.exit}</span>
+            </div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
+  overlay.style.display = 'flex';
   overlay.innerHTML = `
-    <div class="modal-box" style="max-width:640px">
+    <div class="modal-box">
       <div class="modal-header">
-        <h3>ICT Risk Score Calculation</h3>
-        <button class="modal-close" id="risk-matrix-modal-close">✕</button>
+        <h3>ICT Risk — Maturity Level Guide</h3>
+        <button class="modal-close" id="ict-risk-modal-close">✕</button>
       </div>
-      <p class="modal-desc">Scores are automatically calculated from the Residual Risk Rating, Risk Appetite Status, and Control Effectiveness selected in the assessment form. The target is the score achievable at the same Residual Risk Rating when appetite is Within Appetite and controls are Effective.</p>
-      <div style="overflow-x:auto">
-        <table class="risk-profile-table">
-          <thead>
-            <tr>
-              <th>Residual Risk</th>
-              <th>Appetite Status</th>
-              <th>Control Effectiveness</th>
-              <th>Score</th>
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </div>
+      <p class="modal-desc">The ICT Risk maturity score reflects how well risks associated with this capability are identified, assessed, treated and monitored. Use the slider to record the current maturity level based on the level descriptions below. Record the Residual Risk Rating and Risk Appetite separately to give executives a complete picture of the risk profile.</p>
+      <div class="modal-levels">${levelRows}</div>
     </div>`;
 
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  overlay.querySelector('#risk-matrix-modal-close').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#ict-risk-modal-close').addEventListener('click', () => overlay.remove());
 }

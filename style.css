@@ -899,6 +899,38 @@ details[open] .profile-card-chevron {
   transform: rotate(90deg);
 }
 
+/* ── Risk Management Card — Controls Summary ─────────────── */
+.controls-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.8;
+}
+
+.controls-summary-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.rcsa-source {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.footer-controls-tally {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
 /* ── Status Badge ────────────────────────────────────────── */
 .status-badge {
   display: inline-block;

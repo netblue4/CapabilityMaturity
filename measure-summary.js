@@ -36,8 +36,8 @@ function renderMeasureSummary(assessment) {
           <div class="score-bar-wrap">
             <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
           </div>
-          <span class="mini-bar-val" style="min-width:100px;text-align:center">${avg > 0 ? avg.toFixed(1) : '—'}</span>
-          <span class="mini-bar-val" style="min-width:100px;text-align:center">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span> 
+          <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+          <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span> 
         </div>`;
       }).join("")}
       <div class="avg-score">
@@ -77,7 +77,7 @@ function renderMeasureSummary(assessment) {
         </div>
         <span class="mini-bar-val">${s.toFixed(1) || '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>
-        <span class="smini-bar-val">${t > 0 ? t.toFixed(1) : '—'}</span>
+        <span class="mini-bar-target">${t > 0 ? t.toFixed(1) : '—'}</span>
       </div>`;
     }).join("");
 
@@ -182,11 +182,11 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div class="mini-bar-track">
         <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
       </div>
-      <span class="mini-bar-val">
+      <span class="mini-bar-res">
         ${getAbbrev(residual)}
       </span>
       ${deltaHtml}
-      <span class="mini-bar-val">
+      <span class="mini-bar-app">
         ${getAbbrev(appetite)}
       </span>
     </div>`;

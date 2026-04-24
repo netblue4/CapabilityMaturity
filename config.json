@@ -37,7 +37,7 @@
 "measures": [
   {
 	"id": "governance",
-	"name": "Governance",
+	"name": "ICT Governance Maturity Cur vs Prev",
 	"icon": "⚖️",
 	"color": "#9b59b6",
 	"description": "Tracks the repeatability of processes associated with the capability and consistency of their outputs.",

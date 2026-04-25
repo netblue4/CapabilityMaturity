@@ -496,8 +496,7 @@ textarea { resize: vertical; }
 .cap-name { font-size: 1rem; font-weight: 600; margin-bottom: .2rem; }
 .cap-desc { font-size: .8rem; color: var(--text-muted); }
 
-.measures-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-@media (max-width: 1200px) { .measures-grid { grid-template-columns: repeat(2, 1fr); } }
+.measures-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 @media (max-width: 768px) { .measures-grid { grid-template-columns: 1fr; } }
 
 .measure-block {

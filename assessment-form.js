@@ -160,7 +160,9 @@ function buildRiskMgmtCard(cap) {
 
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
-  const hasIctRisk = CONFIG.measures.some(m => m.id === 'ict_risk');
+  const nonRiskMeasures = CONFIG.measures.filter(m => m.id !== 'ict_risk');
+  const ictRiskMeasure  = CONFIG.measures.find(m => m.id === 'ict_risk');
+
   container.innerHTML = CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}">
       <div class="cap-card-header">
@@ -170,10 +172,17 @@ function buildCapabilityFields() {
         </div>
       </div>
 
+      <!-- Row 1: Governance + Reporting -->
       <div class="measures-grid">
-        ${CONFIG.measures.map(m => buildMeasureBlock(cap, m)).join("")}
-        ${hasIctRisk ? buildRiskMgmtCard(cap) : ''}
+        ${nonRiskMeasures.map(m => buildMeasureBlock(cap, m)).join("")}
       </div>
+
+      <!-- Row 2: ICT Risk maturity + ICT Risk Management -->
+      ${ictRiskMeasure ? `
+      <div class="measures-grid" style="margin-top:1rem">
+        ${buildMeasureBlock(cap, ictRiskMeasure)}
+        ${buildRiskMgmtCard(cap)}
+      </div>` : ''}
 
       <div class="form-row" style="margin-top:1rem">
         <label>Overall notes for this capability</label>

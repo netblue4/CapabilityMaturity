@@ -49,12 +49,12 @@
 	  },
 	  {
 		"level": 2,
-		"label": "Defined — Roles and Responsibilities drafted and a named owner assigned. Not yet formally approved or consistently followed.",
+		"label": "Managed — Roles and Responsibilities drafted and a named owner assigned. Not yet formally approved or consistently followed.",
 		"exit": "Obtain formal approval of the Roles and Responsibilities document. Confirm the owner accepts accountability and begins performing their responsibilities."
 	  },
 	  {
 		"level": 3,
-		"label": "Managed — Roles and Responsibilities formally approved and actively performed. Owner is accountable and responsibilities are consistently carried out.",
+		"label": "Defined — Roles and Responsibilities formally approved and actively performed. Owner is accountable and responsibilities are consistently carried out.",
 		"exit": "Establish a regular review cycle for the Roles and Responsibilities document. Demonstrate that at least one review has occurred and that outcomes from Risk and Reporting have been considered."
 	  },
 	  {
@@ -84,12 +84,12 @@
 	  },
 	  {
 		"level": 2,
-		"label": "Defined — Most important Roles and Responsibilities identified. Risks and controls drafted against them but not yet formally assessed.",
+		"label": "Managed — Most important Roles and Responsibilities identified. Risks and controls drafted against them but not yet formally assessed.",
 		"exit": "Formally assess every drafted risk and control. Document the residual risk for each. Identify gaps where controls are missing or ineffective."
 	  },
 	  {
 		"level": 3,
-		"label": "Managed — All drafted risks and controls formally assessed. Residual risk documented. Treatment gaps and additional controls identified.",
+		"label": "Defined — All drafted risks and controls formally assessed. Residual risk documented. Treatment gaps and additional controls identified.",
 		"exit": "Implement all identified additional treatments and controls. Reassess residual risk for each responsibility after implementation."
 	  },
 	  {
@@ -118,12 +118,12 @@
 	  },
 	  {
 		"level": 2,
-		"label": "Defined — KPIs defined based on Roles and Responsibilities and identified risks. Not yet being measured or reported consistently.",
+		"label": "Managed — KPIs defined based on Roles and Responsibilities and identified risks. Not yet being measured or reported consistently.",
 		"exit": "Begin measuring all defined KPIs on a regular schedule. Produce at least one formal report showing KPI results and distribute it to relevant stakeholders."
 	  },
 	  {
 		"level": 3,
-		"label": "Managed — KPIs measured and reported periodically. Results are reviewed but exceptions are not yet formally escalated.",
+		"label": "Defined — KPIs measured and reported periodically. Results are reviewed but exceptions are not yet formally escalated.",
 		"exit": "Establish a formal reporting schedule to management. Define escalation thresholds — when a KPI falls below an agreed level, a formal exception is raised and tracked."
 	  },
 	  {
@@ -139,13 +139,6 @@
 	]
   }
 ],
-
-  "riskProfile": {
-    "residualRating": ["Critical", "High", "Medium", "Low"],
-    "appetiteStatus": ["Exceeds Appetite", "Within Appetite"],
-    "controlEffectiveness": ["Not Assessed", "Partially Effective", "Effective"],
-    "openRisks": { "type": "number", "min": 0 }
-  },
 
   "riskScoreMatrix": {
     "Extreme (28 to 40)": {

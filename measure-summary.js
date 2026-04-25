@@ -2,6 +2,10 @@
 function renderMeasureSummary(assessment) {
   const row = document.getElementById("measure-summary-row");
 
+  // — Previous assessment (used by both scores card and measure cards) —
+  const currentIndex = db.assessments.findIndex(a => a.id === assessment.id);
+  const prev = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
+
   // — Scores card (first in row) —
   const capAvgs = CONFIG.capabilities.map(cap => capAvgScore(assessment, cap.id)).filter(v => v > 0);
   const overall = capAvgs.length ? capAvgs.reduce((a, b) => a + b, 0) / capAvgs.length : 0;
@@ -21,26 +25,29 @@ function renderMeasureSummary(assessment) {
       <button class="btn-link ratings-link" onclick="showRatingsModal(null)">ℹ Ratings</button>
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.35rem">
         <span style="width:130px;flex-shrink:0"></span>
-		<span style="flex:1"></span>
-		<span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:55px;text-align:center">Score</span>
-		<span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:55px;text-align:center">Target</span>
+        <span style="flex:1"></span>
+        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:55px;text-align:center">Score</span>
+        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);width:48px;text-align:center">Δ</span>
+        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:55px;text-align:center">Target</span>
       </div>
       ${CONFIG.capabilities.map(cap => {
         const avg = capAvgScore(assessment, cap.id);
         const lv = levelForScore(avg);
         const targets = CONFIG.measures.map(m => getMeasureTarget(assessment, cap.id, m.id)).filter(t => t > 0);
         const targetAvg = targets.length ? targets.reduce((a,b) => a+b,0) / targets.length : 0;
-        const tlv = levelForScore(targetAvg);
+        const prevAvg = prev ? capAvgScore(prev, cap.id) : 0;
+        const delta = avg > 0 && prevAvg > 0 ? avg - prevAvg : null;
+        const directionHtml = delta !== null
+          ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}" style="font-size:.75rem">${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta).toFixed(1) : ''}</span>`
+          : `<span class="delta delta-flat" style="font-size:.75rem">●</span>`;
         return `<div class="score-row">
           <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
-          
-		<div class="score-bar-wrap" style="flex:2">
-		  <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
-		</div>
-
-		<span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? avg.toFixed(1) : '—'}</span>
-		<span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span>
-				
+          <div class="score-bar-wrap" style="flex:2">
+            <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
+          </div>
+          <span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+          <span style="width:48px;text-align:center;flex-shrink:0">${directionHtml}</span>
+          <span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span>
         </div>`;
       }).join("")}
       <div class="avg-score">
@@ -50,8 +57,7 @@ function renderMeasureSummary(assessment) {
       </div>
     </div>`;
 
-  // — Dimension measure cards (with previous assessment comparison) —
-  const prev = db.assessments.length > 1 ? db.assessments[db.assessments.length - 2] : null;
+  // — Dimension measure cards —
 
   // Render in display order: Governance, Reporting, ICT Risk (Risk Mgmt card follows as 4th)
   const measureOrder = ['governance', 'ict_risk','reporting'];

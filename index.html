@@ -43,7 +43,7 @@
       </div>
 
       <!-- Toolbar: radar filters + dashboard actions in one row -->
-      <div style="display:flex;align-items:flex-start;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap">
+      <div>
          <div class="card radar-card">
         <div class="radar-filters" style="margin-bottom:0;width:auto;flex:1;min-width:0">
           <details class="cap-filter" id="radar-cap-filter">
@@ -57,6 +57,8 @@
           <button class="btn btn-outline play-btn" id="btn-animate-radar" onclick="toggleRadarAnimation()" title="Animate through all assessments">▶ All</button>
         </div>
         </div>
+        
+        <div class="card measure-card">
         <div class="header-actions">
           <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
           <button id="btn-export" class="btn btn-outline">↓ Export</button>
@@ -65,6 +67,7 @@
             <input type="file" id="import-file" accept=".json" style="display:none" />
           </label>
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
+        </div>
         </div>
       </div>
 

@@ -3,10 +3,11 @@ function renderMeasureSummary(assessment) {
   const row = document.getElementById("measure-summary-row");
 
   // — Scores card (first in row) —
-  const capAvgs = CONFIG.capabilities.map(cap => capAvgScore(assessment, cap.id)).filter(v => v > 0);
-  const overall = capAvgs.length ? capAvgs.reduce((a, b) => a + b, 0) / capAvgs.length : 0;
-  const avgLevel = levelForScore(overall);
-  const scoresCard = `
+const capAvgs = CONFIG.capabilities.map(cap => capAvgScore(assessment, cap.id)).filter(v => v > 0);
+const overall = capAvgs.length ? capAvgs.reduce((a, b) => a + b, 0) / capAvgs.length : 0;
+const avgLevel = levelForScore(overall);
+
+const scoresCard = `
     <div class="card measure-card">
       <div class="measure-card-header">
         <span class="measure-icon">📋</span>
@@ -19,27 +20,31 @@ function renderMeasureSummary(assessment) {
         </span>
       </div>
       <button class="btn-link ratings-link" onclick="showRatingsModal(null)">ℹ Ratings</button>
+      
       <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.35rem">
         <span style="width:130px;flex-shrink:0"></span>
-        <span style="flex:1"></span>
-        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:100px;text-align:center">Score</span>
-        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:100px;text-align:center">Target</span>
+        <span style="flex:2"></span> <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:60px;text-align:center">Score</span>
+        <span style="font-size:.65rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);min-width:60px;text-align:center">Target</span>
       </div>
+
       ${CONFIG.capabilities.map(cap => {
         const avg = capAvgScore(assessment, cap.id);
         const lv = levelForScore(avg);
         const targets = CONFIG.measures.map(m => getMeasureTarget(assessment, cap.id, m.id)).filter(t => t > 0);
         const targetAvg = targets.length ? targets.reduce((a,b) => a+b,0) / targets.length : 0;
-        const tlv = levelForScore(targetAvg);
-        return `<div class="score-row">
-          <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
-          <div class="score-bar-wrap">
-            <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
+        
+        return `<div class="score-row" style="display:flex; align-items:center; gap:.75rem; margin-bottom: 4px;">
+          <span class="score-cap-name" style="width:130px; flex-shrink:0;" title="${cap.name}">${shortName(cap.name)}</span>
+          
+          <div class="score-bar-wrap" style="flex:2; background:rgba(255,255,255,0.05); height:8px; border-radius:4px; overflow:hidden;">
+            <div class="score-bar" style="width:${(avg/5)*100}%; height:100%; background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
           </div>
-          <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? avg.toFixed(1) : '—'}</span>
-          <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span> 
+          
+          <span class="score-badge" style="min-width:60px; text-align:center; font-family:var(--font-mono); font-weight:bold;">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+          <span class="score-badge" style="min-width:60px; text-align:center; font-family:var(--font-mono); color:var(--text-muted);">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span> 
         </div>`;
       }).join("")}
+
       <div class="avg-score">
         <span class="avg-label">Overall Average</span>
         <span class="avg-value" style="color:${avgLevel ? avgLevel.color : 'var(--text)'}">${overall.toFixed(1)} / 5</span>

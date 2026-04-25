@@ -43,10 +43,6 @@
 
     <!-- Dashboard -->
     <section id="view-dashboard" class="view active">
-      <div class="section-header">
-        <h2>Dashboard</h2>
-        <p class="section-desc">Overview of your latest capability maturity scores</p>
-      </div>
 
       <div id="no-data-message" class="empty-state" style="display:none">
         <div class="empty-icon">◈</div>
@@ -55,7 +51,6 @@
         <p class="hint">Or <strong>↑ Import</strong> a previously saved JSON file.</p>
       </div>
 
-      <div id="dashboard-content">
         <div class="radar-scores-row">
           <div class="card radar-card">
             <div class="radar-filters">
@@ -68,10 +63,16 @@
                 <div id="radar-assessment-checkboxes" class="cap-filter-checks"></div>
               </details>
               <button class="btn btn-outline play-btn" id="btn-animate-radar" onclick="toggleRadarAnimation()" title="Animate through all assessments">▶ All</button>
-            </div>            
+            </div> 
+          </div>
+        </div>
+
+      <div id="dashboard-content">
+        <div class="radar-scores-row">
+          <div class="card radar-card">
 			<div style="text-align: center; margin-bottom: 20px;">
 			  <h2 style="font-size: 1.5rem; margin-bottom: 4px;">ICT Capability Maturity Radar</h2>
-			  <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+			  <p class="measure-card-desc" >
 				Tracking progression toward continuous improvement
 			  </p>
 			</div>
@@ -82,13 +83,13 @@
         </div>
 
 		<div style="text-align: center; margin-bottom: 20px;">
-		  <h2 style="font-size: 1.5rem; margin-bottom: 4px;">Components of Continuous Improvement</h2>
+		  <h2 style="font-size: 1.5rem; margin-bottom: 4px;">Components of Continuous Improvement - ICT Governance, Risk & Reporting Profiles</h2>
 		</div>
 			
         <div id="measure-summary-row" class="measure-summary-row"></div>
         
 		<div style="text-align: center; margin-bottom: 20px;">
-		  <h2 style="font-size: 1.5rem; margin-bottom: 4px;">ICT Capability Profile Maturity</h2>
+		  <h2 style="font-size: 1.5rem; margin-bottom: 4px;">Profile Maturity</h2>
 		</div>
 			
         <div id="profile-cards-container" class="profile-cards-container"></div>

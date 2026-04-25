@@ -37,7 +37,7 @@
 "measures": [
   {
 	"id": "governance",
-	"name": "Capability Maturity - ICT Governance",
+	"name": "ICT Governance",
 	"icon": "⚖️",
 	"color": "#9b59b6",
 	"description": "Tracks the repeatability of processes associated with the capability and consistency of their outputs.",
@@ -71,7 +71,7 @@
   },
   {
 	"id": "risk",
-	"name": "Capability Maturity - ICT Risk",
+	"name": "ICT Risk",
 	"icon": "🛡️",
 	"color": "#e74c3c",
 	"type": "risk_profile",
@@ -106,7 +106,7 @@
   },
   {
 	"id": "reporting",
-	"name": "Capability Maturity - ICT Reporting",
+	"name": "ICT Reporting",
 	"icon": "📊",
 	"color": "#2ecc71",
 	"description": "Tracks KPI efficacy, reporting cadence and whether outputs drive informed decisions for the capability.",

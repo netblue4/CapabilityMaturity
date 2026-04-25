@@ -20,6 +20,15 @@
           <p class="site-subtitle">ICT Process Excellence Tracker</p>
         </div>
       </div>
+      <div class="header-actions">
+        <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
+        <button id="btn-export" class="btn btn-outline">↓ Export</button>
+        <label class="btn btn-outline">
+          ↑ Import
+          <input type="file" id="import-file" accept=".json" style="display:none" />
+        </label>
+        <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
+      </div>
     </div>
   </header>
 
@@ -50,23 +59,6 @@
             </div> 
           </div>
         </div>
-
-
-
-      <div class="header-actions">
-        <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
-        <button id="btn-export" class="btn btn-outline">↓ Export</button>
-        <label class="btn btn-outline">
-          ↑ Import
-          <input type="file" id="import-file" accept=".json" style="display:none" />
-        </label>
-        <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
-      </div>
-
-
-
-
-
 
       <div id="dashboard-content">
         <div class="radar-scores-row">

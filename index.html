@@ -20,10 +20,7 @@
           <p class="site-subtitle">ICT Process Excellence Tracker</p>
         </div>
       </div>
-      
-      
-      
-      <div class="card measure-card">
+      <div class="header-actions">
         <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
         <button id="btn-export" class="btn btn-outline">↓ Export</button>
         <label class="btn btn-outline">
@@ -32,34 +29,27 @@
         </label>
         <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
       </div>
-      
-      
-      
-      
     </div>
   </header>
+
   <div id="loading-overlay">
     <div class="loading-inner">
       <span class="logo-icon" style="font-size:2.5rem">◈</span>
       <p>Loading configuration…</p>
     </div>
   </div>
+
   <main class="main-content" id="app-main" style="display:none">
+
     <!-- Dashboard -->
     <section id="view-dashboard" class="view active">
+
       <div id="no-data-message" class="empty-state" style="display:none">
         <div class="empty-icon">◈</div>
         <h3>No assessments yet</h3>
         <p>Click <strong>+ New Assessment</strong> to begin tracking your ICT capabilities.</p>
         <p class="hint">Or <strong>↑ Import</strong> a previously saved JSON file.</p>
       </div>
-
-
-
-
-
-
-
 
         <div class="radar-scores-row">
           <div class="card radar-card">
@@ -76,11 +66,6 @@
             </div> 
           </div>
         </div>
-
-
-
-
-
 
       <div id="dashboard-content">
         <div class="radar-scores-row">

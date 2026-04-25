@@ -888,12 +888,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
 .risk-delta-unchanged { color: var(--text-muted); font-weight: 400; }
 .risk-delta-none      { color: var(--text-muted); font-weight: 400; }
 
-.risk-header-badge {
-  white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-}
-
 .risk-mgmt-summary-footer {
   display: flex;
   align-items: center;

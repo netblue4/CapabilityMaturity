@@ -229,7 +229,7 @@ function renderRiskMgmtSummaryCard(assessment) {
           <h3 class="measure-card-title">ICT Risk Management</h3>
           <p class="measure-card-desc">Residual risk vs appetite</p>
         </div>
-        <span class="measure-avg-badge risk-header-badge" style="background:${badgeBg}">
+        <span class="measure-avg-badge" style="background:${badgeBg}">
           ${badgeText}
         </span>
       </div>

@@ -155,7 +155,7 @@ function renderRiskManagementCard(assessment) {
   const colours = {
     'Extreme (28 to 40)':     '#b34d4d',
     'Significant (20 to 24)': '#bc7439',
-    'Moderate (12 to 16)':    '#9da03c',
+    'Moderate (12 to 16)':    '#d1c73b',
     'Low (4 to 10)':          '#418f64'
   };
   const c = colours[value] || 'var(--clr-fill-muted)';

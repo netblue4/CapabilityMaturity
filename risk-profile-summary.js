@@ -153,10 +153,10 @@ function renderRiskManagementCard(assessment) {
   if (!value) return `<span style="color:var(--text-muted)">—</span>`;
 
   const colours = {
-    'Extreme (28 to 40)':     '#cc443f',
-    'Significant (20 to 24)': '#db8e30',
-    'Moderate (12 to 16)':    '#c4ba2b',
-    'Low (4 to 10)':          '#3bb875'
+    'Extreme (28 to 40)':     '#a05a57',
+    'Significant (20 to 24)': '#a07848',
+    'Moderate (12 to 16)':    '#8f8a42',
+    'Low (4 to 10)':          '#4e8a6a'
   };
   const c = colours[value] || 'var(--clr-fill-muted)';
   return `<span style="display:inline-block;font-family:var(--font-mono);font-size:0.75rem;padding:0.2rem 0.55rem;border-radius:5px;white-space:nowrap;border:1.5px solid ${c};color:${c};background:transparent">${value}</span>`;

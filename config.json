@@ -5,25 +5,25 @@
     {
       "level": 1,
       "name": "Initial",
-      "color": "#cc443f",
+      "color": "#a05a57",
       "description": "Ad-hoc and reactive. No formal processes. Issues addressed as they arise."
     },
     {
       "level": 2,
       "name": "Defined",
-      "color": "#db8e30",
+      "color": "#a07848",
       "description": "Basic processes exist but are inconsistently applied. Dependent on individuals."
     },
     {
       "level": 3,
       "name": "Managed",
-      "color": "#c4ba2b",
+      "color": "#8f8a42",
       "description": "Standardised, documented processes applied organisation-wide."
     },
     {
       "level": 4,
       "name": "Quantitative",
-      "color": "#3bb875",
+      "color": "#4e8a6a",
       "description": "Data-driven. KPIs tracked. Management uses metrics to drive decisions."
     },
     {

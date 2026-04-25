@@ -518,7 +518,16 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
 .slider-labels { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: .65rem; color: var(--text-muted); padding: 0 2px; }
 
 .level-display { min-height: 26px; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: .2rem; }
-.lvl-badge { font-family: var(--font-mono); font-size: .72rem; padding: .2rem .55rem; border-radius: 5px; color: #fff; white-space: nowrap; }
+.lvl-badge {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  padding: .2rem .55rem;
+  border-radius: 5px;
+  white-space: nowrap;
+  background: transparent !important;
+  border: 1.5px solid;
+  color: inherit;
+}
 .lvl-badge.target-badge { background: transparent !important; border: 1.5px solid; }
 .target-badge { background: transparent !important; }
 .lvl-desc { font-size: .75rem; color: var(--text-muted); font-style: italic; }

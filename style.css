@@ -18,11 +18,26 @@
   --font-mono:       'Space Mono', monospace;
   --font-body:       'DM Sans', sans-serif;
 
-  /* ── Semantic indicator colours (Desaturated & Muted) ─ */
-  --clr-success:     #579d76;
-  --clr-danger:      #b85c53;
-  --clr-warning:     #c98a51; /* Soft amber */
-  --clr-governance:  #8e6f98;
+  /* ── Semantic indicator colours ────────────────────── */
+  --clr-success:     #4a8c65;   /* muted forest green   */
+  --clr-warning:     #b07d45;   /* muted amber           */
+  --clr-danger:      #a85450;   /* muted terracotta red  */
+  --clr-info:        #4a7b9d;   /* same as accent        */
+  --clr-governance:  #7a5f8a;   /* muted mauve           */
+  --clr-reporting:   #4a7a6a;   /* muted teal green      */
+
+  /* ── Risk rating colours ───────────────────────────── */
+  --clr-risk-extreme:     #8c3a36;   /* deep muted red        */
+  --clr-risk-significant: #96602e;   /* deep muted amber      */
+  --clr-risk-moderate:    #8a7a2e;   /* deep muted gold       */
+  --clr-risk-low:         #3d7a58;   /* deep muted green      */
+
+  /* ── Maturity level colours ────────────────────────── */
+  --clr-level-1:     #8c3a36;   /* Initial      — deep red    */
+  --clr-level-2:     #96602e;   /* Managed      — deep amber  */
+  --clr-level-3:     #8a7a2e;   /* Defined      — deep gold   */
+  --clr-level-4:     #3d7a58;   /* Quantitative — deep green  */
+  --clr-level-5:     #3a6a8a;   /* Optimising   — deep blue   */
 
   /* ── UI fill / badge colours ───────────────────────── */
   --clr-badge-empty: #555;
@@ -30,7 +45,8 @@
   --clr-fill-dark:   #444;
   --clr-bar-default: #ccc;
   --clr-dot-empty:   #333;
-  --clr-on-surface:  #fff;
+  --clr-on-dark:     rgba(255,255,255,0.90);
+  --clr-on-mid:      rgba(255,255,255,0.75);
 
   /* ── Overlays & hover highlights ───────────────────── */
   --clr-backdrop:    rgba(0,0,0,0.65);
@@ -40,24 +56,24 @@
   /* ── Radar canvas colours ──────────────────────────── */
   --clr-radar-ring:     rgba(255,255,255,0.07);
   --clr-radar-spoke:    rgba(255,255,255,0.08);
-  --clr-radar-numeral:  rgba(255,255,255,0.6);
-  --clr-radar-label:    rgba(255,255,255,0.7);
-  --clr-radar-legend:   rgba(255,255,255,0.55);
-  --clr-radar-text-hi:  rgba(255,255,255,0.8);
-  --clr-radar-text-lo:  rgba(255,255,255,0.5);
-  --clr-radar-avg-fill: rgba(52,152,219,0.15);
-  --clr-radar-avg-line: #3498db;
+  --clr-radar-numeral:  rgba(255,255,255,0.4);
+  --clr-radar-label:    rgba(255,255,255,0.6);
+  --clr-radar-legend:   rgba(255,255,255,0.45);
+  --clr-radar-text-hi:  rgba(255,255,255,0.75);
+  --clr-radar-text-lo:  rgba(255,255,255,0.45);
+  --clr-radar-avg-fill: rgba(74,123,157,0.15);
+  --clr-radar-avg-line: #4a7b9d;
 
   /* ── Animation label ───────────────────────────────── */
-  --clr-anim-bg:     rgba(255,255,255,0.05);
-  --clr-anim-border: rgba(255,255,255,0.1);
+  --clr-anim-bg:     rgba(255,255,255,0.04);
+  --clr-anim-border: rgba(255,255,255,0.08);
   --clr-anim-title:  #e6edf3;
-  --clr-anim-date:   rgba(255,255,255,0.45);
+  --clr-anim-date:   rgba(255,255,255,0.4);
 
   /* ── Button hover ──────────────────────────────────── */
   --clr-accent-hover: #3a6382;
   --clr-link-hover:   #fff;
-  --clr-danger-hover: #d1756d;
+  --clr-danger-hover: #c47068;
 }
 
 /* ── Light theme overrides ───────────────────────────────────── */
@@ -65,47 +81,61 @@
   --bg:              #f0f4f8;
   --bg2:             #ffffff;
   --bg3:             #e8edf3;
-  --border:          rgba(0,0,0,0.1);
-  --border-subtle:   rgba(0,0,0,0.06);
+  --border:          rgba(0,0,0,0.08);
+  --border-subtle:   rgba(0,0,0,0.05);
   --text:            #1a202c;
   --text-muted:      #64748b;
-  --accent:          #2563eb;
-  --danger:          #9b3a35;
+  --accent:          #2a5fa8;
+  --danger:          #8c3a36;
 
-  /* Denser, professional tones for light theme */
-  --clr-success:     #1f6840; /* Deep spruce green */
-  --clr-danger:      #9b3a35;
-  --clr-warning:     #8c5a28; /* Darker, less bright yellow/amber */
-  --clr-governance:  #7a5c8a;
+  --clr-success:     #2a6645;
+  --clr-warning:     #7a5520;
+  --clr-danger:      #8c3a36;
+  --clr-info:        #2a5fa8;
+  --clr-governance:  #6a4f7a;
+  --clr-reporting:   #2a6655;
+
+  --clr-risk-extreme:     #7a2e2b;
+  --clr-risk-significant: #7a4e22;
+  --clr-risk-moderate:    #6e6020;
+  --clr-risk-low:         #2a5e40;
+
+  --clr-level-1:     #7a2e2b;
+  --clr-level-2:     #7a4e22;
+  --clr-level-3:     #6e6020;
+  --clr-level-4:     #2a5e40;
+  --clr-level-5:     #1e4f7a;
 
   --clr-badge-empty: #9ca3af;
   --clr-fill-muted:  #9ca3af;
   --clr-fill-dark:   #b0b8c4;
   --clr-bar-default: #9ca3af;
   --clr-dot-empty:   #c0c8d2;
+  --clr-on-dark:     rgba(255,255,255,0.92);
+  --clr-on-mid:      rgba(255,255,255,0.85);
 
   --clr-backdrop:    rgba(0,0,0,0.5);
   --clr-row-hover:   rgba(0,0,0,0.02);
-  --clr-row-latest:  rgba(37,99,235,0.04);
+  --clr-row-latest:  rgba(42,95,168,0.04);
 
-  --clr-radar-ring:     rgba(0,0,0,0.07);
-  --clr-radar-spoke:    rgba(0,0,0,0.08);
-  --clr-radar-numeral:  rgba(0,0,0,0.55);
-  --clr-radar-label:    rgba(0,0,0,0.7);
-  --clr-radar-legend:   rgba(0,0,0,0.6);
-  --clr-radar-text-hi:  rgba(0,0,0,0.8);
-  --clr-radar-text-lo:  rgba(0,0,0,0.5);
-  --clr-radar-avg-fill: rgba(37,99,235,0.1);
-  --clr-radar-avg-line: #2563eb;
+  --clr-radar-ring:     rgba(0,0,0,0.06);
+  --clr-radar-spoke:    rgba(0,0,0,0.07);
+  --clr-radar-numeral:  rgba(0,0,0,0.45);
+  --clr-radar-label:    rgba(0,0,0,0.65);
+  --clr-radar-legend:   rgba(0,0,0,0.5);
+  --clr-radar-text-hi:  rgba(0,0,0,0.75);
+  --clr-radar-text-lo:  rgba(0,0,0,0.45);
+  --clr-radar-avg-fill: rgba(42,95,168,0.08);
+  --clr-radar-avg-line: #2a5fa8;
 
-  --clr-anim-bg:     rgba(0,0,0,0.04);
-  --clr-anim-border: rgba(0,0,0,0.1);
+  --clr-anim-bg:     rgba(0,0,0,0.03);
+  --clr-anim-border: rgba(0,0,0,0.08);
   --clr-anim-title:  #1a202c;
-  --clr-anim-date:   rgba(0,0,0,0.4);
+  --clr-anim-date:   rgba(0,0,0,0.38);
 
   --clr-accent-hover: #1d4ed8;
   --clr-link-hover:   var(--text);
-  --clr-danger-hover: #dc2626;
+  --clr-danger-hover: #a84540;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

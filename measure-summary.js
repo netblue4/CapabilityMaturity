@@ -54,7 +54,7 @@ function renderMeasureSummary(assessment) {
   const prev = db.assessments.length > 1 ? db.assessments[db.assessments.length - 2] : null;
 
   // Render in display order: Governance, Reporting, ICT Risk (Risk Mgmt card follows as 4th)
-  const measureOrder = ['governance', 'reporting', 'ict_risk'];
+  const measureOrder = ['governance', 'ict_risk','reporting'];
   const orderedMeasures = measureOrder
     .map(id => CONFIG.measures.find(m => m.id === id))
     .filter(Boolean);
@@ -177,13 +177,13 @@ function renderRiskMgmtSummaryCard(assessment) {
       deltaHtml = `<span class="mini-bar-delta-risk risk-delta-none">—</span>`;
     } else if (delta < 0) {
       improvedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">↓${Math.abs(delta)}</span>`;
+      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▼${Math.abs(delta)}</span>`;
     } else if (delta > 0) {
       worsenedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">↑${delta}</span>`;
+      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▲${delta}</span>`;
     } else {
       unchangedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">→</span>`;
+      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
     }
 
     return `<div class="mini-bar-row">

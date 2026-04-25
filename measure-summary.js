@@ -37,9 +37,10 @@ function renderMeasureSummary(assessment) {
 		<div class="score-bar-wrap" style="flex:2">
 		  <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
 		</div>
-		<span class="score-badge" style="min-width:55px;text-align:center">${avg > 0 ? avg.toFixed(1) : '—'}</span>
-		<span class="score-badge" style="min-width:55px;text-align:center">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span>
-        
+
+		<span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+		<span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span>
+				
         </div>`;
       }).join("")}
       <div class="avg-score">

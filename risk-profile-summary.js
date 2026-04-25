@@ -150,12 +150,18 @@ function renderRiskManagementCard(assessment) {
   const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
 
   function ratingBadge(value) {
-    if (!value) return `<span style="color:var(--text-muted)">—</span>`;
-    const idx       = riskKeys.indexOf(value);
-    const lv        = idx >= 0 ? CONFIG.levels[idx] : null;
-    const textColor = lv?.color === '#f1c40f' ? '#000' : '#fff';
-    return `<span class="lvl-badge" style="background:${lv ? lv.color : 'var(--clr-badge-empty)'};color:${textColor};font-family:var(--font-mono);font-size:0.75rem">${value}</span>`;
-  }
+  if (!value) return `<span style="color:var(--text-muted)">—</span>`;
+
+  const colours = {
+    'Extreme (28 to 40)':     '#a05a57',
+    'Significant (20 to 24)': '#a07848',
+    'Moderate (12 to 16)':    '#8f8a42',
+    'Low (4 to 10)':          '#4e8a6a'
+  };
+  const c = colours[value] || 'var(--clr-fill-muted)';
+  return `<span style="display:inline-block;font-family:var(--font-mono);font-size:0.75rem;padding:0.2rem 0.55rem;border-radius:5px;white-space:nowrap;border:1.5px solid ${c};color:${c};background:transparent">${value}</span>`;
+ }
+
 
   let totalEffective = 0, totalPartial = 0, totalNotAssessed = 0, totalOpenRisks = 0;
 

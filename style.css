@@ -526,7 +526,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   white-space: nowrap;
   background: transparent !important;
   border: 1.5px solid;
-  color: inherit;
 }
 .lvl-badge.target-badge { background: transparent !important; border: 1.5px solid; }
 .target-badge { background: transparent !important; }

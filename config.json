@@ -1,38 +1,38 @@
 {
   "appTitle": "ICT Capability Maturity Tracker",
 
-"levels": [
-  {
-    "level": 1,
-    "name": "Initial",
-    "color": "#8c3a36",
-    "description": "Ad-hoc and reactive. No formal processes. Issues addressed as they arise."
-  },
-  {
-    "level": 2,
-    "name": "Defined",
-    "color": "#96602e",
-    "description": "Basic processes exist but are inconsistently applied. Dependent on individuals."
-  },
-  {
-    "level": 3,
-    "name": "Managed",
-    "color": "#7a7228",
-    "description": "Standardised, documented processes applied organisation-wide."
-  },
-  {
-    "level": 4,
-    "name": "Quantitative",
-    "color": "#3d7a58",
-    "description": "Data-driven. KPIs tracked. Management uses metrics to drive decisions."
-  },
-  {
-    "level": 5,
-    "name": "Optimising",
-    "color": "#3a6a8a",
-    "description": "Continuous improvement culture. Predictive analytics. Proactive excellence."
-  }
-],
+  "levels": [
+    {
+      "level": 1,
+      "name": "Initial",
+      "color": "#e74c3c",
+      "description": "Ad-hoc and reactive. No formal processes. Issues addressed as they arise."
+    },
+    {
+      "level": 2,
+      "name": "Defined",
+      "color": "#e67e22",
+      "description": "Basic processes exist but are inconsistently applied. Dependent on individuals."
+    },
+    {
+      "level": 3,
+      "name": "Managed",
+      "color": "#f1c40f",
+      "description": "Standardised, documented processes applied organisation-wide."
+    },
+    {
+      "level": 4,
+      "name": "Quantitative",
+      "color": "#2ecc71",
+      "description": "Data-driven. KPIs tracked. Management uses metrics to drive decisions."
+    },
+    {
+      "level": 5,
+      "name": "Optimising",
+      "color": "#3498db",
+      "description": "Continuous improvement culture. Predictive analytics. Proactive excellence."
+    }
+  ],
 
 "measures": [
   {

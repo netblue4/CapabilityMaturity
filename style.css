@@ -18,10 +18,10 @@
   --font-mono:       'Space Mono', monospace;
   --font-body:       'DM Sans', sans-serif;
 
-  /* ── Semantic indicator colours ────────────────────── */
+  /* ── Semantic indicator colours (Desaturated & Muted) ─ */
   --clr-success:     #579d76;
   --clr-danger:      #b85c53;
-  --clr-warning:     #c98a51;
+  --clr-warning:     #c98a51; /* Soft amber */
   --clr-governance:  #8e6f98;
 
   /* ── UI fill / badge colours ───────────────────────── */
@@ -72,9 +72,10 @@
   --accent:          #2563eb;
   --danger:          #9b3a35;
 
-  --clr-success:     #1f6840;
+  /* Denser, professional tones for light theme */
+  --clr-success:     #1f6840; /* Deep spruce green */
   --clr-danger:      #9b3a35;
-  --clr-warning:     #8c5a28;
+  --clr-warning:     #8c5a28; /* Darker, less bright yellow/amber */
   --clr-governance:  #7a5c8a;
 
   --clr-badge-empty: #9ca3af;

@@ -32,7 +32,7 @@ function closeRatingsModal(e) {
 
 // ── ICT Risk Ratings Modal ────────────────────────────────────
 function showIctRiskRatingsModal() {
-  const ictMeasure = CONFIG.measures.find(m => m.id === 'ict_risk');
+  const ictMeasure = CONFIG.measures.find(m => m.id === 'risk');
 
   const levelRows = (ictMeasure?.levels || []).map(lvSpec => {
     const lv = CONFIG.levels.find(l => l.level === lvSpec.level);

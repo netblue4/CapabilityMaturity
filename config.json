@@ -70,7 +70,7 @@
 	]
   },
   {
-	"id": "ict_risk",
+	"id": "risk",
 	"name": "Capability Maturity - ICT Risk",
 	"icon": "🛡️",
 	"color": "#e74c3c",

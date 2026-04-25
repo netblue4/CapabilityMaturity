@@ -7,7 +7,7 @@ function renderProfileCards(assessment) {
   container.innerHTML = [
     renderMaturityProfileCard(assessment, "governance", "ICT Governance Profile Maturity", "var(--clr-governance)"),
     renderMaturityProfileCard(assessment, "reporting",  "ICT Reporting Profile Maturity",  "var(--clr-success)"),
-    renderMaturityProfileCard(assessment, "ict_risk",   "ICT Risk Profile Maturity",       "var(--clr-danger)"),
+    renderMaturityProfileCard(assessment, "risk",       "ICT Risk Profile Maturity",       "var(--clr-danger)"),
     renderRiskManagementCard(assessment)
   ].join('');
 }
@@ -21,7 +21,7 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
   const hasData = CONFIG.capabilities.some(cap => getMeasureScore(assessment, cap.id, measureId) > 0);
   if (!hasData) return '';
 
-  const ratingsOnclick = measureId === 'ict_risk'
+  const ratingsOnclick = measureId === 'risk'
     ? 'showIctRiskRatingsModal()'
     : `showRatingsModal('${measureId}')`;
 
@@ -30,11 +30,14 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
     const target = getMeasureTarget(assessment, cap.id, measureId) || 0;
     const lv     = score  > 0 ? CONFIG.levels[score  - 1] : null;
     const tlv    = target > 0 ? CONFIG.levels[target - 1] : null;
-    const note   = assessment.measureNotes?.[cap.id]?.[measureId] || '';
-    const weeks  = assessment.weeksToNext?.[cap.id] || 0;
+    const note   = getMeasureNote(assessment, cap.id, measureId);
+    // Time estimate is now per-measure free text (governance, risk, reporting)
+    const timeEst = getTimeEstimate(assessment, cap.id, measureId);
+    // Truncate to 120 chars to keep the table readable
+    const displayTime = timeEst ? (timeEst.length > 120 ? timeEst.slice(0, 120) + '...' : timeEst) : '';
 
     const currentBadge = score > 0
-    ? `<span class="lvl-badge" style="border-color:${lv ? lv.color : 'var(--clr-badge-empty)'};color:${lv ? lv.color : 'var(--clr-badge-empty)'}">${score} · ${lv ? lv.name : ''}</span>`
+      ? `<span class="lvl-badge" style="border-color:${lv ? lv.color : 'var(--clr-badge-empty)'};color:${lv ? lv.color : 'var(--clr-badge-empty)'}">${score} · ${lv ? lv.name : ''}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
     const targetBadge = target > 0
@@ -70,8 +73,8 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
       exitHtml = `<span style="color:var(--text-muted);font-style:italic;font-size:0.78rem">— Score this capability to see exit condition.</span>`;
     }
 
-    const timeHtml = weeks > 0
-      ? `<span style="color:var(--accent);font-family:var(--font-mono);font-size:0.82rem;font-weight:700">${weeks} wks</span>`
+    const timeHtml = displayTime
+      ? `<span style="color:var(--accent);font-size:0.78rem;line-height:1.4">${displayTime}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
     const noteHtml = note
@@ -139,42 +142,37 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 // ── Card 4: ICT Risk Management ───────────────────────────────
 
 function renderRiskManagementCard(assessment) {
-  if (!assessment.riskProfile) return '';
-
-  const hasData = CONFIG.capabilities.some(cap => {
-    const rp = assessment.riskProfile[cap.id];
-    return rp && rp.residualRating;
-  });
+  const hasData = CONFIG.capabilities.some(cap => !!getRiskManagement(assessment, cap.id).residualRating);
   if (!hasData) return '';
 
   const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
 
   function ratingBadge(value) {
-  if (!value) return `<span style="color:var(--text-muted)">—</span>`;
+    if (!value) return `<span style="color:var(--text-muted)">—</span>`;
 
-  const colours = {
-    'Extreme (28 to 40)':     '#b34d4d',
-    'Significant (20 to 24)': '#bc7439',
-    'Moderate (12 to 16)':    '#d1c73b',
-    'Low (4 to 10)':          '#418f64'
-  };
-  const c = colours[value] || 'var(--clr-fill-muted)';
-  return `<span style="display:inline-block;font-family:var(--font-mono);font-size:0.75rem;padding:0.2rem 0.55rem;border-radius:5px;white-space:nowrap;border:1.5px solid ${c};color:${c};background:transparent">${value}</span>`;
- }
-
+    const colours = {
+      'Extreme (28 to 40)':     '#b34d4d',
+      'Significant (20 to 24)': '#bc7439',
+      'Moderate (12 to 16)':    '#d1c73b',
+      'Low (4 to 10)':          '#418f64'
+    };
+    const c = colours[value] || 'var(--clr-fill-muted)';
+    return `<span style="display:inline-block;font-family:var(--font-mono);font-size:0.75rem;padding:0.2rem 0.55rem;border-radius:5px;white-space:nowrap;border:1.5px solid ${c};color:${c};background:transparent">${value}</span>`;
+  }
 
   let totalEffective = 0, totalPartial = 0, totalNotAssessed = 0, totalOpenRisks = 0;
 
   const rows = CONFIG.capabilities.map(cap => {
-    const rp       = assessment.riskProfile[cap.id] || {};
-    const residual = rp.residualRating || '';
-    const appetite = rp.appetiteRating || '';
-    const note     = rp.riskMgmtNotes || assessment.measureNotes?.[cap.id]?.['ict_risk'] || '';
+    const rm       = getRiskManagement(assessment, cap.id);
+    const residual = rm.residualRating || '';
+    const appetite = rm.appetiteRating || '';
+    // New notes location; legacy riskMgmtNotes field on the rm object as fallback
+    const note = getMeasureNote(assessment, cap.id, 'riskManagement') || rm.riskMgmtNotes || '';
 
-    const openRisks   = rp.openRisks           || 0;
-    const notAssessed = rp.controlsNotAssessed  || 0;
-    const partial     = rp.controlsPartial      || 0;
-    const effective   = rp.controlsEffective    || 0;
+    const openRisks   = rm.openRisks           || 0;
+    const notAssessed = rm.controlsNotAssessed  || 0;
+    const partial     = rm.controlsPartial      || 0;
+    const effective   = rm.controlsEffective    || 0;
 
     totalEffective   += effective;
     totalPartial     += partial;
@@ -204,10 +202,17 @@ function renderRiskManagementCard(assessment) {
       ? `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic">${note}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
+    // Target residual column
+    const targetResidual = getRiskManagementTarget(assessment, cap.id);
+    const targetHtml = targetResidual
+      ? `<span style="font-size:.65rem;font-family:var(--font-mono);color:var(--text-muted);margin-right:.15rem">→</span>${ratingBadge(targetResidual)}`
+      : `<span style="color:var(--text-muted)">—</span>`;
+
     return `
       <tr>
         <td style="font-size:0.85rem;font-weight:600;min-width:160px">${shortName(cap.name)}</td>
         <td>${ratingBadge(residual)}</td>
+        <td>${targetHtml}</td>
         <td>${ratingBadge(appetite)}</td>
         <td style="text-align:center">${openRisksHtml}</td>
         <td>${controlsHtml}</td>
@@ -243,6 +248,7 @@ function renderRiskManagementCard(assessment) {
               <tr>
                 <th>Capability</th>
                 <th>Residual Risk</th>
+                <th>Target</th>
                 <th>Risk Appetite</th>
                 <th style="text-align:center">Open Risks</th>
                 <th>Controls</th>
@@ -253,7 +259,7 @@ function renderRiskManagementCard(assessment) {
             <tbody>${rows}</tbody>
             <tfoot>
               <tr>
-                <td colspan="4">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
+                <td colspan="5">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
                 <td colspan="3" style="text-align:right">${footerTally}</td>
               </tr>
             </tfoot>

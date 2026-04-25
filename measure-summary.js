@@ -59,8 +59,8 @@ function renderMeasureSummary(assessment) {
 
   // — Dimension measure cards —
 
-  // Render in display order: Governance, Reporting, ICT Risk (Risk Mgmt card follows as 4th)
-  const measureOrder = ['governance', 'ict_risk','reporting'];
+  // Render in display order: Governance, Risk, Reporting (Risk Mgmt card follows as 4th)
+  const measureOrder = ['governance', 'risk', 'reporting'];
   const orderedMeasures = measureOrder
     .map(id => CONFIG.measures.find(m => m.id === id))
     .filter(Boolean);
@@ -112,7 +112,7 @@ function renderMeasureSummary(assessment) {
             ${badgeInner}
           </span>
         </div>
-        <button class="btn-link ratings-link" onclick="${m.id === 'ict_risk' ? 'showIctRiskRatingsModal()' : `showRatingsModal('${m.id}')`}">ℹ Ratings</button>
+        <button class="btn-link ratings-link" onclick="${m.id === 'risk' ? 'showIctRiskRatingsModal()' : `showRatingsModal('${m.id}')`}">ℹ Ratings</button>
         <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
           <span style="flex:1"></span>
           <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">Sc</span>
@@ -129,7 +129,6 @@ function renderMeasureSummary(assessment) {
 
 // ── ICT Risk Management Summary Card ─────────────────────────
 function renderRiskMgmtSummaryCard(assessment) {
-  const rp       = assessment.riskProfile || {};
   const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
   const maxSev   = riskKeys.length || 4;
 
@@ -156,25 +155,24 @@ function renderRiskMgmtSummaryCard(assessment) {
 
   const currentIndex       = db.assessments.findIndex(a => a.id === assessment.id);
   const previousAssessment = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
-  const prevRp             = previousAssessment?.riskProfile || {};
 
   let exceedingCount = 0, improvedCount = 0, worsenedCount = 0, unchangedCount = 0;
 
   const bars = CONFIG.capabilities.map(cap => {
-    const capRp    = rp[cap.id] || {};
-    const residual = capRp.residualRating || '';
-    const appetite = capRp.appetiteRating || '';
+    const rm       = getRiskManagement(assessment, cap.id);
+    const residual = rm.residualRating || '';
+    const appetite = rm.appetiteRating || '';
     const rSev     = getSeverity(residual);
     const aSev     = getSeverity(appetite);
     const rColor   = getColor(residual);
-    const aColor   = getColor(appetite);
 
     const barWidth = rSev !== null ? (rSev / maxSev) * 100 : 0;
     const barBg    = rColor || 'var(--clr-fill-dark)';
 
     if (rSev !== null && aSev !== null && rSev > aSev) exceedingCount++;
 
-    const prevResidual = (prevRp[cap.id] || {}).residualRating || '';
+    const prevRm       = previousAssessment ? getRiskManagement(previousAssessment, cap.id) : {};
+    const prevResidual = prevRm.residualRating || '';
     const prevSev      = getSeverity(prevResidual);
     const delta        = rSev !== null && prevSev !== null ? rSev - prevSev : null;
 
@@ -192,13 +190,19 @@ function renderRiskMgmtSummaryCard(assessment) {
       deltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
     }
 
+    // Target residual shown inline next to residual abbreviation
+    const targetResidual = getRiskManagementTarget(assessment, cap.id);
+    const targetInline = targetResidual
+      ? `<span style="color:var(--text-muted);font-size:.65rem"> →${getAbbrev(targetResidual)}</span>`
+      : '';
+
     return `<div class="mini-bar-row">
       <span class="mini-bar-label">${shortName(cap.name)}</span>
       <div class="mini-bar-track">
         <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
       </div>
       <span class="mini-bar-val">
-        ${getAbbrev(residual)}
+        ${getAbbrev(residual)}${targetInline}
       </span>
       ${deltaHtml}
       <span class="mini-bar-val">
@@ -207,7 +211,7 @@ function renderRiskMgmtSummaryCard(assessment) {
     </div>`;
   }).join('');
 
-  const hasScored    = CONFIG.capabilities.some(cap => getSeverity(rp[cap.id]?.residualRating) !== null);
+  const hasScored    = CONFIG.capabilities.some(cap => getSeverity(getRiskManagement(assessment, cap.id).residualRating) !== null);
   const hasTrendData = previousAssessment !== null;
   const badgeBg      = exceedingCount > 0 ? 'var(--clr-danger)' : (hasScored ? 'var(--clr-success)' : 'var(--clr-badge-empty)');
   let badgeText;

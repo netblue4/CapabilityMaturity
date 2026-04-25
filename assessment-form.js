@@ -11,8 +11,8 @@ function buildRiskRatingBtns(capId, field) {
 
 // ── Assessment Form — Build ───────────────────────────────────
 function buildMeasureBlock(cap, m) {
-  if (m.id === 'ict_risk') {
-    // Card 1: Maturity slider — identical structure to Governance/Reporting
+  if (m.id === 'risk') {
+    // Maturity slider block for ICT Risk — same layout as Governance/Reporting
     return `
       <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color || 'var(--clr-danger)'}">
         <div class="measure-block-header">
@@ -44,6 +44,12 @@ function buildMeasureBlock(cap, m) {
             </div>
           </div>
           <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
+        </div>
+
+        <div class="form-row" style="margin-top:.5rem">
+          <label>TIME ESTIMATE</label>
+          <textarea id="timeest-${cap.id}-${m.id}" rows="2"
+            placeholder="Describe how long you estimate it will take to reach the next maturity level for ICT Risk…"></textarea>
         </div>
 
         <div class="form-row" style="margin-top:.5rem">
@@ -89,6 +95,12 @@ function buildMeasureBlock(cap, m) {
       </div>
 
       <div class="form-row" style="margin-top:.5rem">
+        <label>TIME ESTIMATE</label>
+        <textarea id="timeest-${cap.id}-${m.id}" rows="2"
+          placeholder="Describe how long you estimate it will take to reach the next maturity level for ${m.name}…"></textarea>
+      </div>
+
+      <div class="form-row" style="margin-top:.5rem">
         <label>Notes</label>
         <textarea id="note-${cap.id}-${m.id}" rows="2"
           placeholder="${m.name} observations for ${cap.name}…"></textarea>
@@ -99,7 +111,7 @@ function buildMeasureBlock(cap, m) {
 // ── Card 2: ICT Risk Management (per capability) ──────────────
 function buildRiskMgmtCard(cap) {
   return `
-    <div class="risk-mgmt-card" data-measure="ict_risk">
+    <div class="risk-mgmt-card" data-measure="risk">
       <div class="risk-mgmt-card-header">
         <div class="risk-mgmt-card-title">
           <span>🛡️</span>
@@ -125,6 +137,14 @@ function buildRiskMgmtCard(cap) {
       </div>
 
       <div class="risk-mgmt-section">
+        <label>Target Residual Rating</label>
+        <input type="hidden" id="target-residual-${cap.id}" value="">
+        <div class="risk-btn-group" id="risk-group-target-residual-${cap.id}">
+          ${buildRiskRatingBtns(cap.id, 'target-residual')}
+        </div>
+      </div>
+
+      <div class="risk-mgmt-section">
         <label>Control Effectiveness</label>
         <div class="control-row">
           <span class="control-row-label">Open Risks</span>
@@ -145,12 +165,6 @@ function buildRiskMgmtCard(cap) {
       </div>
 
       <div class="risk-mgmt-section">
-        <label>Time Estimate</label>
-        <textarea id="timeest-${cap.id}" rows="2"
-          placeholder="Describe how long you estimate it will take to treat the risk to within tolerance..."></textarea>
-      </div>
-
-      <div class="risk-mgmt-section">
         <label>Notes</label>
         <textarea id="note-risk-mgmt-${cap.id}" rows="3"
           placeholder="Risk management observations for ${cap.name}..."></textarea>
@@ -160,8 +174,8 @@ function buildRiskMgmtCard(cap) {
 
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
-  const nonRiskMeasures = CONFIG.measures.filter(m => m.id !== 'ict_risk');
-  const ictRiskMeasure  = CONFIG.measures.find(m => m.id === 'ict_risk');
+  const nonRiskMeasures = CONFIG.measures.filter(m => m.id !== 'risk');
+  const riskMeasure     = CONFIG.measures.find(m => m.id === 'risk');
 
   container.innerHTML = CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}">
@@ -178,9 +192,9 @@ function buildCapabilityFields() {
       </div>
 
       <!-- Row 2: ICT Risk maturity + ICT Risk Management -->
-      ${ictRiskMeasure ? `
+      ${riskMeasure ? `
       <div class="measures-grid" style="margin-top:1rem">
-        ${buildMeasureBlock(cap, ictRiskMeasure)}
+        ${buildMeasureBlock(cap, riskMeasure)}
         ${buildRiskMgmtCard(cap)}
       </div>` : ''}
 
@@ -264,10 +278,13 @@ function openAssessmentForm(id) {
       document.getElementById("assessment-label").value = a.label || "";
       document.getElementById("assessment-date").value = a.date || "";
       document.getElementById("assessment-notes").value = a.notes || "";
+
       CONFIG.capabilities.forEach(cap => {
         document.getElementById("capnote-" + cap.id).value =
           (a.capNotes && a.capNotes[cap.id]) || "";
+
         CONFIG.measures.forEach(m => {
+          // getMeasureScore handles legacy "ict_risk" key fallback
           const score  = getMeasureScore(a, cap.id, m.id) || 1;
           const target = getMeasureTarget(a, cap.id, m.id) || 3;
           const note   = getMeasureNote(a, cap.id, m.id) || "";
@@ -278,49 +295,61 @@ function openAssessmentForm(id) {
           updateMeasureDisplay(cap.id, m.id, score);
           updateTargetDisplay(cap.id, m.id, target);
 
-          if (m.id === 'ict_risk') {
-            // rp: new flat structure; legacy: old object inside measureScores
-            const rp        = a.riskProfile?.[cap.id];
-            const legacyRaw = a.measureScores?.[cap.id]?.['ict_risk'];
-            const legacy    = (!rp && legacyRaw && typeof legacyRaw === 'object') ? legacyRaw : null;
-
-            if (rp) {
-              setRiskRatingBtns(cap.id, 'residual', rp.residualRating || '');
-              setRiskRatingBtns(cap.id, 'appetite', rp.appetiteRating || '');
-
-              // Support both new flat fields and old controlCounts sub-object
-              const cc = rp.controlCounts || {};
-              const openEl    = document.getElementById(`ctrl-openrisks-${cap.id}`);
-              const notEl     = document.getElementById(`ctrl-not-${cap.id}`);
-              const partialEl = document.getElementById(`ctrl-partial-${cap.id}`);
-              const effEl     = document.getElementById(`ctrl-effective-${cap.id}`);
-              if (openEl)    openEl.value    = rp.openRisks           ?? cc.openRisks    ?? 0;
-              if (notEl)     notEl.value     = rp.controlsNotAssessed ?? cc.notAssessed  ?? 0;
-              if (partialEl) partialEl.value = rp.controlsPartial     ?? cc.partial      ?? 0;
-              if (effEl)     effEl.value     = rp.controlsEffective   ?? cc.effective    ?? 0;
-
-              const timeEl  = document.getElementById(`timeest-${cap.id}`);
-              if (timeEl) timeEl.value = rp.timeEstimate || '';
-              const notesEl = document.getElementById(`note-risk-mgmt-${cap.id}`);
-              if (notesEl) notesEl.value = rp.riskMgmtNotes || '';
-
-            } else if (legacy) {
-              console.info(`Legacy ICT Risk data (measureScores object) for capability ${cap.id} — restoring ratings.`);
-              setRiskRatingBtns(cap.id, 'residual', legacy.residualRating || '');
-              setRiskRatingBtns(cap.id, 'appetite', legacy.appetiteRating || '');
-              clearRiskCountInputs(cap.id);
-              const timeEl = document.getElementById(`timeest-${cap.id}`);
-              if (timeEl) timeEl.value = '';
-
-            } else {
-              console.info(`No riskProfile data for capability ${cap.id} — leaving Card 2 at defaults.`);
-              clearRiskRatingBtns(cap.id, 'residual');
-              clearRiskRatingBtns(cap.id, 'appetite');
-              clearRiskCountInputs(cap.id);
+          // Time estimate on each maturity measure card
+          if (['governance', 'risk', 'reporting'].includes(m.id)) {
+            const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
+            if (timeEstEl) {
+              let timeEst = a.measureTimeEstimates?.[cap.id]?.[m.id] || '';
+              // Backward compat: weeksToNext used to be a single number per capability on "risk"
+              if (!timeEst && m.id === 'risk' && a.weeksToNext?.[cap.id]) {
+                console.info(`Legacy weeksToNext for ${cap.id} — using as risk time estimate.`);
+                timeEst = String(a.weeksToNext[cap.id]);
+              }
+              timeEstEl.value = timeEst;
             }
           }
         });
+
+        // riskManagement fields — prefer new structure, fall back to legacy riskProfile
+        const rmData   = a.measureScores?.[cap.id]?.riskManagement;
+        const legacyRp = a.riskProfile?.[cap.id];
+
+        let rm;
+        if (rmData && typeof rmData === 'object') {
+          rm = rmData;
+        } else if (legacyRp) {
+          console.info(`Legacy riskProfile for ${cap.id} — restoring into risk management fields.`);
+          rm = legacyRp;
+        } else {
+          // Very old format: ict_risk key inside measureScores was an object
+          const legacyRaw = a.measureScores?.[cap.id]?.['ict_risk'];
+          rm = (legacyRaw && typeof legacyRaw === 'object' && !('score' in legacyRaw)) ? legacyRaw : {};
+        }
+
+        setRiskRatingBtns(cap.id, 'residual', rm.residualRating || '');
+        setRiskRatingBtns(cap.id, 'appetite', rm.appetiteRating || '');
+
+        // Control counts — support old controlCounts sub-object shape
+        const cc = rm.controlCounts || {};
+        const openEl    = document.getElementById(`ctrl-openrisks-${cap.id}`);
+        const notEl     = document.getElementById(`ctrl-not-${cap.id}`);
+        const partialEl = document.getElementById(`ctrl-partial-${cap.id}`);
+        const effEl     = document.getElementById(`ctrl-effective-${cap.id}`);
+        if (openEl)    openEl.value    = rm.openRisks           ?? cc.openRisks   ?? 0;
+        if (notEl)     notEl.value     = rm.controlsNotAssessed ?? cc.notAssessed ?? 0;
+        if (partialEl) partialEl.value = rm.controlsPartial     ?? cc.partial     ?? 0;
+        if (effEl)     effEl.value     = rm.controlsEffective   ?? cc.effective   ?? 0;
+
+        // Target residual rating
+        const targetResidual = a.measureTargets?.[cap.id]?.riskManagement || '';
+        setRiskRatingBtns(cap.id, 'target-residual', targetResidual);
+
+        // Risk management notes — new location; fall back to legacy riskMgmtNotes field
+        const rmNote = getMeasureNote(a, cap.id, 'riskManagement') || rm.riskMgmtNotes || '';
+        const notesEl = document.getElementById(`note-risk-mgmt-${cap.id}`);
+        if (notesEl) notesEl.value = rmNote;
       });
+
       CONFIG.measures.forEach(m => {
         const hasScore = CONFIG.capabilities.some(cap => getMeasureScore(a, cap.id, m.id) > 0);
         const cb = document.querySelector(`.dimension-check[value="${m.id}"]`);
@@ -334,16 +363,12 @@ function openAssessmentForm(id) {
         setSlider(`target-${cap.id}-${m.id}`, 3);
         updateMeasureDisplay(cap.id, m.id, 1);
         updateTargetDisplay(cap.id, m.id, 3);
-        if (m.id === 'ict_risk') {
-          clearRiskRatingBtns(cap.id, 'residual');
-          clearRiskRatingBtns(cap.id, 'appetite');
-          clearRiskCountInputs(cap.id);
-          const timeEl  = document.getElementById(`timeest-${cap.id}`);
-          if (timeEl) timeEl.value = '';
-          const notesEl = document.getElementById(`note-risk-mgmt-${cap.id}`);
-          if (notesEl) notesEl.value = '';
-        }
       });
+      // Risk management card clear (form.reset() clears inputs but not CSS button states)
+      clearRiskRatingBtns(cap.id, 'residual');
+      clearRiskRatingBtns(cap.id, 'appetite');
+      clearRiskRatingBtns(cap.id, 'target-residual');
+      clearRiskCountInputs(cap.id);
     });
   }
   updateDimensionVisibility();
@@ -387,11 +412,12 @@ function saveAssessment(e) {
     [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
   );
 
-  const measureScores = {}, measureTargets = {}, measureNotes = {}, capNotes = {}, riskProfile = {};
+  const measureScores = {}, measureTargets = {}, measureNotes = {}, measureTimeEstimates = {}, capNotes = {};
   CONFIG.capabilities.forEach(cap => {
     measureScores[cap.id] = {};
     measureTargets[cap.id] = {};
     measureNotes[cap.id] = {};
+    measureTimeEstimates[cap.id] = {};
     capNotes[cap.id] = document.getElementById("capnote-" + cap.id).value.trim();
 
     CONFIG.measures.forEach(m => {
@@ -406,16 +432,26 @@ function saveAssessment(e) {
       }
     });
 
-    riskProfile[cap.id] = {
-      residualRating:      document.getElementById(`residual-${cap.id}`)?.value        || '',
-      appetiteRating:      document.getElementById(`appetite-${cap.id}`)?.value        || '',
+    // Time estimates live on each maturity measure card (governance, risk, reporting)
+    ['governance', 'risk', 'reporting'].forEach(mId => {
+      measureTimeEstimates[cap.id][mId] = document.getElementById(`timeest-${cap.id}-${mId}`)?.value.trim() || '';
+    });
+
+    // riskManagement data nested inside measureScores (no maturity number, no time estimate)
+    measureScores[cap.id].riskManagement = {
+      residualRating:      document.getElementById(`residual-${cap.id}`)?.value                 || '',
+      appetiteRating:      document.getElementById(`appetite-${cap.id}`)?.value                 || '',
       openRisks:           parseInt(document.getElementById(`ctrl-openrisks-${cap.id}`)?.value) || 0,
-      controlsNotAssessed: parseInt(document.getElementById(`ctrl-not-${cap.id}`)?.value)      || 0,
+      controlsNotAssessed: parseInt(document.getElementById(`ctrl-not-${cap.id}`)?.value)       || 0,
       controlsPartial:     parseInt(document.getElementById(`ctrl-partial-${cap.id}`)?.value)   || 0,
-      controlsEffective:   parseInt(document.getElementById(`ctrl-effective-${cap.id}`)?.value) || 0,
-      timeEstimate:        document.getElementById(`timeest-${cap.id}`)?.value.trim()           || '',
-      riskMgmtNotes:       document.getElementById(`note-risk-mgmt-${cap.id}`)?.value.trim()    || ''
+      controlsEffective:   parseInt(document.getElementById(`ctrl-effective-${cap.id}`)?.value)  || 0
     };
+
+    // Target residual rating is a string, stored in measureTargets
+    measureTargets[cap.id].riskManagement = document.getElementById(`target-residual-${cap.id}`)?.value || '';
+
+    // Risk management notes stored in measureNotes
+    measureNotes[cap.id].riskManagement = document.getElementById(`note-risk-mgmt-${cap.id}`)?.value.trim() || '';
   });
 
   const assessment = {
@@ -426,8 +462,8 @@ function saveAssessment(e) {
     measureScores,
     measureTargets,
     measureNotes,
-    capNotes,
-    riskProfile
+    measureTimeEstimates,
+    capNotes
   };
 
   if (editingId) {

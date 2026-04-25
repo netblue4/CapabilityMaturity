@@ -1,21 +1,68 @@
 // ── Data Helpers ─────────────────────────────────────────────
 function getMeasureScore(assessment, capId, measureId) {
   if (!assessment.measureScores || !assessment.measureScores[capId]) return 0;
-  const val = assessment.measureScores[capId][measureId];
+  // riskManagement has no numeric maturity score
+  if (measureId === 'riskManagement') return 0;
+  let val = assessment.measureScores[capId][measureId];
+  // Backward compat: "ict_risk" key in old assessments
+  if (val === undefined && measureId === 'risk') {
+    val = assessment.measureScores[capId]['ict_risk'];
+    if (val !== undefined) console.info(`Legacy ict_risk score for ${capId} — treating as risk score.`);
+  }
   if (val && typeof val === 'object') return val.score || 0;
   return val || 0;
 }
 
 function getMeasureTarget(assessment, capId, measureId) {
-  return assessment.measureTargets && assessment.measureTargets[capId]
-    ? assessment.measureTargets[capId][measureId] || 0
-    : 0;
+  // riskManagement target is a string (residual rating), not a number
+  if (measureId === 'riskManagement') {
+    return assessment.measureTargets?.[capId]?.riskManagement || '';
+  }
+  if (!assessment.measureTargets || !assessment.measureTargets[capId]) return 0;
+  let val = assessment.measureTargets[capId][measureId];
+  // Backward compat: "ict_risk" key in old assessments
+  if (val === undefined && measureId === 'risk') {
+    val = assessment.measureTargets[capId]['ict_risk'];
+  }
+  return val || 0;
 }
 
 function getMeasureNote(assessment, capId, measureId) {
-  return assessment.measureNotes && assessment.measureNotes[capId]
-    ? assessment.measureNotes[capId][measureId] || ""
-    : "";
+  if (measureId === 'riskManagement') {
+    return assessment.measureNotes?.[capId]?.riskManagement || '';
+  }
+  if (!assessment.measureNotes || !assessment.measureNotes[capId]) return '';
+  let val = assessment.measureNotes[capId][measureId];
+  // Backward compat: "ict_risk" key in old assessments
+  if (val === undefined && measureId === 'risk') {
+    val = assessment.measureNotes[capId]['ict_risk'];
+  }
+  return val || '';
+}
+
+// Returns free-text time estimate for a maturity measure (governance, risk, reporting only)
+function getTimeEstimate(assessment, capId, measureId) {
+  if (!['governance', 'risk', 'reporting'].includes(measureId)) return '';
+  return assessment.measureTimeEstimates?.[capId]?.[measureId] || '';
+}
+
+// Returns riskManagement object for a capability.
+// Falls back to legacy assessment.riskProfile[capId] if new structure absent.
+function getRiskManagement(assessment, capId) {
+  const newData = assessment.measureScores?.[capId]?.riskManagement;
+  if (newData && typeof newData === 'object') return newData;
+  // Backward compat: old riskProfile top-level key
+  const legacyRp = assessment.riskProfile?.[capId];
+  if (legacyRp) {
+    console.info(`Legacy riskProfile data for ${capId} — reading from riskProfile.`);
+    return legacyRp;
+  }
+  return {};
+}
+
+// Returns the target residual rating string for a capability, or "".
+function getRiskManagementTarget(assessment, capId) {
+  return assessment.measureTargets?.[capId]?.riskManagement || '';
 }
 
 function capAvgScore(assessment, capId) {

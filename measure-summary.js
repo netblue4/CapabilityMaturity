@@ -15,7 +15,8 @@ function renderMeasureSummary(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">📋</span>
         <div>
-          <h3 class="measure-card-title">Progress Towards Continuous Improvement ${assessment.label} · ${formatDate(assessment.date)}</h3>
+          <h3 class="measure-card-title">Progress Towards Continuous Improvement</h3>
+          <p class="measure-card-desc">${assessment.label} · ${formatDate(assessment.date)}</p>
         </div>
         <span class="measure-avg-badge" style="background:${avgLevel ? avgLevel.color : 'var(--clr-badge-empty)'}">
           ${overall > 0 ? overall.toFixed(1) : '—'}
@@ -50,7 +51,7 @@ function renderMeasureSummary(assessment) {
         </div>`;
       }).join("")}
       <div class="avg-score">
-        <span class="avg-label">Overall Progress Towards Continuous Improvement: </span>
+        <span class="avg-label">Overall Progress Towards Continuous Improvement </span>
         <span class="avg-value" style="color:${avgLevel ? avgLevel.color : 'var(--text)'}">${overall.toFixed(1)} / 5</span>
         <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
       </div>

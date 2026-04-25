@@ -44,6 +44,7 @@
 
       <!-- Toolbar: radar filters + dashboard actions in one row -->
       <div style="display:flex;align-items:flex-start;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap">
+         <div class="card radar-card">
         <div class="radar-filters" style="margin-bottom:0;width:auto;flex:1;min-width:0">
           <details class="cap-filter" id="radar-cap-filter">
             <summary class="cap-filter-toggle">Capabilities <span class="cap-filter-count" id="cap-filter-count"></span></summary>
@@ -54,6 +55,7 @@
             <div id="radar-assessment-checkboxes" class="cap-filter-checks"></div>
           </details>
           <button class="btn btn-outline play-btn" id="btn-animate-radar" onclick="toggleRadarAnimation()" title="Animate through all assessments">▶ All</button>
+        </div>
         </div>
         <div class="header-actions">
           <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>

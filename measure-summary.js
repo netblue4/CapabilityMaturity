@@ -51,7 +51,7 @@ function renderMeasureSummary(assessment) {
         </div>`;
       }).join("")}
       <div class="avg-score">
-        <span class="avg-label">Overall Average</span>
+        <span class="avg-label">Overall Progress Towards Continuous Improvement: </span>
         <span class="avg-value" style="color:${avgLevel ? avgLevel.color : 'var(--text)'}">${overall.toFixed(1)} / 5</span>
         <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
       </div>

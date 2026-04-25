@@ -34,11 +34,11 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
     const weeks  = assessment.weeksToNext?.[cap.id] || 0;
 
     const currentBadge = score > 0
-      ? `<span class="lvl-badge">${score} · ${lv ? lv.name : ''}</span>`
+      ? `<span class="mini-bar-val">${score} · ${lv ? lv.name : ''}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
     const targetBadge = target > 0
-      ? `<span class="lvl-badge target-badge">${target} · ${tlv ? tlv.name : ''}</span>`
+      ? `<span class="mini-bar-val">${target} · ${tlv ? tlv.name : ''}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
     let statusHtml;

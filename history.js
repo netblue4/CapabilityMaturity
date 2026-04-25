@@ -23,7 +23,7 @@ function renderHistory() {
       measures.map(m => {
         const s = getMeasureScore(a, cap.id, m.id);
         const lv = levelForScore(s);
-        return `<td><span class="level-dot" style="background:${lv ? lv.color : '#333'}" title="${lv ? lv.name : 'Not scored'}">${s || '—'}</span></td>`;
+        return `<td><span class="level-dot" style="background:${lv ? lv.color : 'var(--clr-dot-empty)'}" title="${lv ? lv.name : 'Not scored'}">${s || '—'}</span></td>`;
       }).join("")
     ).join("");
 

@@ -2,7 +2,7 @@
 function buildRiskRatingBtns(capId, field) {
   const keys = Object.keys(CONFIG.riskScoreMatrix || {});
   return keys.map((key, i) => {
-    const color = CONFIG.levels[i]?.color || '#888';
+    const color = CONFIG.levels[i]?.color || 'var(--clr-fill-muted)';
     return `<button type="button" class="risk-btn" data-value="${key}"
       style="--risk-color:${color}"
       onclick="toggleRiskRatingBtn(this,'${capId}','${field}')">${key}</button>`;
@@ -14,7 +14,7 @@ function buildMeasureBlock(cap, m) {
   if (m.id === 'ict_risk') {
     // Card 1: Maturity slider — identical structure to Governance/Reporting
     return `
-      <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color || '#e74c3c'}">
+      <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color || 'var(--clr-danger)'}">
         <div class="measure-block-header">
           <span class="measure-icon-sm">${m.icon}</span>
           <span class="measure-block-name">Capability Maturity · ICT Risk</span>

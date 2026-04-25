@@ -36,7 +36,7 @@ function showIctRiskRatingsModal() {
 
   const levelRows = (ictMeasure?.levels || []).map(lvSpec => {
     const lv = CONFIG.levels.find(l => l.level === lvSpec.level);
-    const color = lv?.color || '#555';
+    const color = lv?.color || 'var(--clr-badge-empty)';
     return `
       <div class="modal-level-row" style="border-bottom:1px solid var(--border);padding-bottom:.85rem;margin-bottom:.85rem">
         <span class="lvl-badge" style="background:${color};min-width:105px;text-align:center">${lvSpec.level} · ${lv?.name || ''}</span>

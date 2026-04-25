@@ -69,6 +69,11 @@ function updateRadarFilter() {
   renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments());
 }
 
+// ── Theme colour helper ───────────────────────────────────────
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 // ── Radar Chart ───────────────────────────────────────────────
 function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
   const canvas = document.getElementById(canvasId);
@@ -85,6 +90,19 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
   const assessmentList = assessmentsOverride || (assessment ? [assessment] : []);
   const multiMode = assessmentList.length > 1;
 
+  // Read theme colours once per draw
+  const C = {
+    ring:    cssVar('--clr-radar-ring'),
+    spoke:   cssVar('--clr-radar-spoke'),
+    numeral: cssVar('--clr-radar-numeral'),
+    label:   cssVar('--clr-radar-label'),
+    legend:  cssVar('--clr-radar-legend'),
+    textHi:  cssVar('--clr-radar-text-hi'),
+    textLo:  cssVar('--clr-radar-text-lo'),
+    avgFill: cssVar('--clr-radar-avg-fill'),
+    avgLine: cssVar('--clr-radar-avg-line'),
+  };
+
   ctx.clearRect(0, 0, W, H);
 
   // Grid rings
@@ -97,10 +115,10 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
               : ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
     }
     ctx.closePath();
-    ctx.strokeStyle = "rgba(255,255,255,0.07)";
+    ctx.strokeStyle = C.ring;
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillStyle = C.numeral;
     ctx.font = "bold 10px DM Sans, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(lvl, cx + r * Math.cos(startAngle) + 3, cy + r * Math.sin(startAngle) - 3);
@@ -112,7 +130,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(cx + maxR * Math.cos(a), cy + maxR * Math.sin(a));
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = C.spoke;
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -153,7 +171,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
       const isLatest = i === assessmentList.length - 1;
       ctx.fillStyle = color;
       ctx.fillRect(legendX, assessLegendY + i * 16, 10, 10);
-      ctx.fillStyle = isLatest ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.5)";
+      ctx.fillStyle = isLatest ? C.textHi : C.textLo;
       ctx.font = `${isLatest ? "bold " : ""}9px DM Sans, sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -163,7 +181,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     CONFIG.levels.forEach((lv, i) => {
       ctx.fillStyle = lv.color;
       ctx.fillRect(legendX, levelsLegendY + i * 16, 10, 10);
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillStyle = C.legend;
       ctx.font = "9px DM Sans, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -200,9 +218,9 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
               : ctx.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
     }
     ctx.closePath();
-    ctx.fillStyle = "rgba(52,152,219,0.15)";
+    ctx.fillStyle = C.avgFill;
     ctx.fill();
-    ctx.strokeStyle = "#3498db";
+    ctx.strokeStyle = C.avgLine;
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
@@ -212,7 +230,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
       const lv = levelForScore(avgScores[i]);
       ctx.beginPath();
       ctx.arc(cx + r * Math.cos(ang), cy + r * Math.sin(ang), 5, 0, 2 * Math.PI);
-      ctx.fillStyle = lv ? lv.color : "#888";
+      ctx.fillStyle = lv ? lv.color : C.legend;
       ctx.fill();
     }
 
@@ -222,7 +240,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     CONFIG.measures.forEach((m, i) => {
       ctx.fillStyle = m.color;
       ctx.fillRect(legendX, measuresLegendY + i * 16, 10, 10);
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillStyle = C.legend;
       ctx.font = "9px DM Sans, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -231,7 +249,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     CONFIG.levels.forEach((lv, i) => {
       ctx.fillStyle = lv.color;
       ctx.fillRect(legendX, levelsLegendY + i * 16, 10, 10);
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillStyle = C.legend;
       ctx.font = "9px DM Sans, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -245,7 +263,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     const labelR = maxR + 28;
     const x = cx + labelR * Math.cos(a);
     const y = cy + labelR * Math.sin(a);
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillStyle = C.label;
     ctx.font = "bold 10px DM Sans, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -349,3 +367,10 @@ function hexToRgba(hex, alpha) {
   const b = parseInt(hex.slice(5,7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+
+// Redraw radar when theme changes
+document.addEventListener('themechange', () => {
+  if (db && db.assessments && db.assessments.length > 0) {
+    updateRadarFilter();
+  }
+});

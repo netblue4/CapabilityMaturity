@@ -5,9 +5,9 @@ function renderProfileCards(assessment) {
   if (!container) return;
 
   container.innerHTML = [
-    renderMaturityProfileCard(assessment, "governance", "ICT Governance Profile Maturity", "#8e6f98"),
-    renderMaturityProfileCard(assessment, "reporting",  "ICT Reporting Profile Maturity",  "#579d76"),
-    renderMaturityProfileCard(assessment, "ict_risk",   "ICT Risk Profile Maturity",       "#b85c53"),
+    renderMaturityProfileCard(assessment, "governance", "ICT Governance Profile Maturity", "var(--clr-governance)"),
+    renderMaturityProfileCard(assessment, "reporting",  "ICT Reporting Profile Maturity",  "var(--clr-success)"),
+    renderMaturityProfileCard(assessment, "ict_risk",   "ICT Risk Profile Maturity",       "var(--clr-danger)"),
     renderRiskManagementCard(assessment)
   ].join('');
 }
@@ -34,18 +34,18 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
     const weeks  = assessment.weeksToNext?.[cap.id] || 0;
 
     const currentBadge = score > 0
-      ? `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score} · ${lv ? lv.name : ''}</span>`
+      ? `<span class="lvl-badge" style="background:${lv ? lv.color : 'var(--clr-badge-empty)'}">${score} · ${lv ? lv.name : ''}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
     const targetBadge = target > 0
-      ? `<span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#888'};color:${tlv ? tlv.color : '#888'}">${target} · ${tlv ? tlv.name : ''}</span>`
+      ? `<span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : 'var(--clr-fill-muted)'};color:${tlv ? tlv.color : 'var(--clr-fill-muted)'}">${target} · ${tlv ? tlv.name : ''}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
     let statusHtml;
     if (score === 5) {
-      statusHtml = `<span style="color:#579d76;font-family:var(--font-mono);font-size:0.75rem">✓ Optimising</span>`;
+      statusHtml = `<span style="color:var(--clr-success);font-family:var(--font-mono);font-size:0.75rem">✓ Optimising</span>`;
     } else if (score > 0 && target > 0 && score >= target) {
-      statusHtml = `<span style="color:#579d76;font-family:var(--font-mono);font-size:0.75rem">✓ At target</span>`;
+      statusHtml = `<span style="color:var(--clr-success);font-family:var(--font-mono);font-size:0.75rem">✓ At target</span>`;
     } else if (score > 0 && target > 0 && score < target) {
       const gap = target - score;
       statusHtml = `<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.75rem">↑ ${gap} level${gap !== 1 ? 's' : ''} to go</span>`;
@@ -55,7 +55,7 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 
     let exitHtml;
     if (score === 5) {
-      exitHtml = `<span style="color:#579d76;font-size:0.78rem">✓ Target state reached.</span>`;
+      exitHtml = `<span style="color:var(--clr-success);font-size:0.78rem">✓ Target state reached.</span>`;
     } else if (score > 0) {
       const levelSpec = measure.levels?.find(l => l.level === score);
       const exitText  = levelSpec?.exit || null;
@@ -126,7 +126,7 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
               <tr>
                 <td colspan="6">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
                 <td style="text-align:right">
-                  ${avg > 0 ? `<span class="lvl-badge" style="background:${avgLv ? avgLv.color : '#555'}">Avg ${avg.toFixed(1)}</span>` : '—'}
+                  ${avg > 0 ? `<span class="lvl-badge" style="background:${avgLv ? avgLv.color : 'var(--clr-badge-empty)'}">Avg ${avg.toFixed(1)}</span>` : '—'}
                 </td>
               </tr>
             </tfoot>
@@ -154,7 +154,7 @@ function renderRiskManagementCard(assessment) {
     const idx       = riskKeys.indexOf(value);
     const lv        = idx >= 0 ? CONFIG.levels[idx] : null;
     const textColor = lv?.color === '#f1c40f' ? '#000' : '#fff';
-    return `<span class="lvl-badge" style="background:${lv ? lv.color : '#555'};color:${textColor};font-family:var(--font-mono);font-size:0.75rem">${value}</span>`;
+    return `<span class="lvl-badge" style="background:${lv ? lv.color : 'var(--clr-badge-empty)'};color:${textColor};font-family:var(--font-mono);font-size:0.75rem">${value}</span>`;
   }
 
   let totalEffective = 0, totalPartial = 0, totalNotAssessed = 0, totalOpenRisks = 0;
@@ -179,9 +179,9 @@ function renderRiskManagementCard(assessment) {
     if (!openRisks) {
       openRisksHtml = `<span style="color:var(--text-muted)">—</span>`;
     } else if (openRisks >= 10) {
-      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:#b85c53">${openRisks}</span>`;
+      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:var(--clr-danger)">${openRisks}</span>`;
     } else if (openRisks >= 5) {
-      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:#c98a51">${openRisks}</span>`;
+      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:var(--clr-warning)">${openRisks}</span>`;
     } else {
       openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem">${openRisks}</span>`;
     }
@@ -189,9 +189,9 @@ function renderRiskManagementCard(assessment) {
     const hasControls = notAssessed > 0 || partial > 0 || effective > 0;
     const controlsHtml = hasControls ? `
       <div class="controls-summary">
-        <span class="controls-summary-line"><span style="color:#b85c53">○</span> Not Assessed: ${notAssessed}</span>
-        <span class="controls-summary-line"><span style="color:#c98a51">◑</span> Part. Effective: ${partial}</span>
-        <span class="controls-summary-line"><span style="color:#579d76">✓</span> Effective: ${effective}</span>
+        <span class="controls-summary-line"><span style="color:var(--clr-danger)">○</span> Not Assessed: ${notAssessed}</span>
+        <span class="controls-summary-line"><span style="color:var(--clr-warning)">◑</span> Part. Effective: ${partial}</span>
+        <span class="controls-summary-line"><span style="color:var(--clr-success)">✓</span> Effective: ${effective}</span>
       </div>` : `<span style="color:var(--text-muted)">—</span>`;
 
     const noteHtml = note
@@ -212,9 +212,9 @@ function renderRiskManagementCard(assessment) {
 
   const footerTally = `
     <span class="footer-controls-tally">
-      <span style="color:#579d76">✓ ${totalEffective}</span>
-      <span style="color:#c98a51">◑ ${totalPartial}</span>
-      <span style="color:#b85c53">○ ${totalNotAssessed}</span>
+      <span style="color:var(--clr-success)">✓ ${totalEffective}</span>
+      <span style="color:var(--clr-warning)">◑ ${totalPartial}</span>
+      <span style="color:var(--clr-danger)">○ ${totalNotAssessed}</span>
       <span style="color:var(--text-muted)">· ${totalOpenRisks} open risks</span>
     </span>`;
 

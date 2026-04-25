@@ -14,7 +14,7 @@ function renderMeasureSummary(assessment) {
           <h3 class="measure-card-title">Capability Maturity Summary - ICT Governance, Risk & Reporting</h3>
           <p class="measure-card-desc">${assessment.label} · ${formatDate(assessment.date)}</p>
         </div>
-        <span class="measure-avg-badge" style="background:${avgLevel ? avgLevel.color : '#555'}">
+        <span class="measure-avg-badge" style="background:${avgLevel ? avgLevel.color : 'var(--clr-badge-empty)'}">
           ${overall > 0 ? overall.toFixed(1) : '—'}
         </span>
       </div>
@@ -34,7 +34,7 @@ function renderMeasureSummary(assessment) {
         return `<div class="score-row">
           <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
           <div class="score-bar-wrap">
-            <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
+            <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
           </div>
           <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? avg.toFixed(1) : '—'}</span>
           <span class="score-badge" style="min-width:100px;text-align:center">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span> 
@@ -42,7 +42,7 @@ function renderMeasureSummary(assessment) {
       }).join("")}
       <div class="avg-score">
         <span class="avg-label">Overall Average</span>
-        <span class="avg-value" style="color:${avgLevel ? avgLevel.color : '#fff'}">${overall.toFixed(1)} / 5</span>
+        <span class="avg-value" style="color:${avgLevel ? avgLevel.color : 'var(--text)'}">${overall.toFixed(1)} / 5</span>
         <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
       </div>
     </div>`;
@@ -79,7 +79,7 @@ function renderMeasureSummary(assessment) {
       return `<div class="mini-bar-row">
         <span class="mini-bar-label">${shortName(cap.name)}</span>
         <div class="mini-bar-track">
-          <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : '#444'}"></div>
+          <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : 'var(--clr-fill-dark)'}"></div>
         </div>
         <span class="mini-bar-val">${s.toFixed(1) || '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>
@@ -99,7 +99,7 @@ function renderMeasureSummary(assessment) {
             <h3 class="measure-card-title">${m.name}</h3>
             <p class="measure-card-desc">${m.description}</p>
           </div>
-          <span class="measure-avg-badge" style="background:${level ? level.color : '#555'}">
+          <span class="measure-avg-badge" style="background:${level ? level.color : 'var(--clr-badge-empty)'}">
             ${badgeInner}
           </span>
         </div>
@@ -133,7 +133,7 @@ function renderRiskMgmtSummaryCard(assessment) {
 
   function getColor(value) {
     const idx = riskKeys.indexOf(value);
-    return idx >= 0 ? (CONFIG.levels[idx]?.color || '#888') : null;
+    return idx >= 0 ? (CONFIG.levels[idx]?.color || 'var(--clr-fill-muted)') : null;
   }
 
   function getAbbrev(value) {
@@ -161,7 +161,7 @@ function renderRiskMgmtSummaryCard(assessment) {
     const aColor   = getColor(appetite);
 
     const barWidth = rSev !== null ? (rSev / maxSev) * 100 : 0;
-    const barBg    = rColor || '#444';
+    const barBg    = rColor || 'var(--clr-fill-dark)';
 
     if (rSev !== null && aSev !== null && rSev > aSev) exceedingCount++;
 
@@ -200,7 +200,7 @@ function renderRiskMgmtSummaryCard(assessment) {
 
   const hasScored    = CONFIG.capabilities.some(cap => getSeverity(rp[cap.id]?.residualRating) !== null);
   const hasTrendData = previousAssessment !== null;
-  const badgeBg      = exceedingCount > 0 ? '#b85c53' : (hasScored ? '#579d76' : '#555');
+  const badgeBg      = exceedingCount > 0 ? 'var(--clr-danger)' : (hasScored ? 'var(--clr-success)' : 'var(--clr-badge-empty)');
   let badgeText;
   if (!hasScored) {
     badgeText = '—';

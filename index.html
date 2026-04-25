@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
 </head>
 <body>
 
@@ -26,6 +27,7 @@
           ↑ Import
           <input type="file" id="import-file" accept=".json" style="display:none" />
         </label>
+        <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
       </div>
     </div>
   </header>
@@ -171,5 +173,16 @@
   <script src="detail-view.js"></script>
   <script src="import-export.js"></script>
   <script src="dashboard.js"></script>
+  <script>
+    // Sync theme toggle button label after DOM ready
+    (function () {
+      const saved = localStorage.getItem('cm-theme') || 'dark';
+      const btn = document.getElementById('btn-theme-toggle');
+      if (btn) {
+        btn.textContent = saved === 'dark' ? '☀' : '🌙';
+        btn.title = saved === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+      }
+    })();
+  </script>
 </body>
 </html>

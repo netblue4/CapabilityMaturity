@@ -20,7 +20,7 @@ function viewAssessment(id) {
       if (m.id === 'ict_risk') {
         const rp = a.riskProfile?.[cap.id];
         const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
-        const getRatingColor = v => { const i = riskKeys.indexOf(v); return CONFIG.levels[i]?.color || '#888'; };
+        const getRatingColor = v => { const i = riskKeys.indexOf(v); return CONFIG.levels[i]?.color || 'var(--clr-fill-muted)'; };
         return `
           <div class="detail-measure-cell">
             <div class="detail-measure-header">
@@ -28,8 +28,8 @@ function viewAssessment(id) {
               <span class="detail-measure-name">${m.name}</span>
             </div>
             <div class="detail-measure-scores">
-              <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score > 0 ? score + ' · ' + lv.name : '—'}</span>
-              ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#888'};color:${tlv ? tlv.color : '#888'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
+              <span class="lvl-badge" style="background:${lv ? lv.color : 'var(--clr-badge-empty)'}">${score > 0 ? score + ' · ' + lv.name : '—'}</span>
+              ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : 'var(--clr-fill-muted)'};color:${tlv ? tlv.color : 'var(--clr-fill-muted)'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
             </div>
             ${rp ? `
               <div class="risk-detail-fields">
@@ -49,8 +49,8 @@ function viewAssessment(id) {
             <span class="detail-measure-name">${m.name}</span>
           </div>
           <div class="detail-measure-scores">
-            <span class="lvl-badge" style="background:${lv ? lv.color : '#555'}">${score > 0 ? score + ' · ' + lv.name : '—'}</span>
-            ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : '#888'};color:${tlv ? tlv.color : '#888'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
+            <span class="lvl-badge" style="background:${lv ? lv.color : 'var(--clr-badge-empty)'}">${score > 0 ? score + ' · ' + lv.name : '—'}</span>
+            ${target ? `<span class="arrow-sep">→</span><span class="lvl-badge target-badge" style="border-color:${tlv ? tlv.color : 'var(--clr-fill-muted)'};color:${tlv ? tlv.color : 'var(--clr-fill-muted)'}">${target} · ${tlv ? tlv.name : '—'}</span>` : ''}
           </div>
           ${mlabel ? `<div class="detail-measure-label">${mlabel.label}</div>` : ''}
           ${note ? `<div class="detail-cap-note">${note}</div>` : ''}
@@ -68,7 +68,7 @@ function viewAssessment(id) {
             <h3 class="detail-cap-title">${cap.name}</h3>
             ${capNote ? `<p class="detail-cap-note">${capNote}</p>` : ""}
           </div>
-          <span class="lvl-badge" style="background:${capLv ? capLv.color : '#555'};font-size:.8rem">
+          <span class="lvl-badge" style="background:${capLv ? capLv.color : 'var(--clr-badge-empty)'};font-size:.8rem">
             Avg ${capAvg > 0 ? capAvg.toFixed(1) : '—'}
           </span>
         </div>
@@ -90,14 +90,14 @@ function viewAssessment(id) {
           return `<div class="score-row">
             <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
             <div class="score-bar-wrap">
-              <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : '#ccc'}"></div>
+              <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
             </div>
-            <span class="score-badge" style="background:${lv ? lv.color : '#555'}">${avg > 0 ? avg.toFixed(1) + ' · ' + lv.name : '—'}</span>
+            <span class="score-badge" style="background:${lv ? lv.color : 'var(--clr-badge-empty)'}">${avg > 0 ? avg.toFixed(1) + ' · ' + lv.name : '—'}</span>
           </div>`;
         }).join("")}
         <div class="avg-score">
           <span class="avg-label">Overall</span>
-          <span class="avg-value" style="color:${avgLevel ? avgLevel.color : '#fff'}">${overall.toFixed(1)} / 5</span>
+          <span class="avg-value" style="color:${avgLevel ? avgLevel.color : 'var(--text)'}">${overall.toFixed(1)} / 5</span>
           <span class="avg-level-name">${avgLevel ? avgLevel.name : ''}</span>
         </div>
         ${a.notes ? `<p style="margin-top:.75rem;font-size:.85rem;color:var(--text-muted);border-top:1px solid var(--border);padding-top:.75rem">${a.notes}</p>` : ''}

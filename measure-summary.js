@@ -15,8 +15,7 @@ function renderMeasureSummary(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">📋</span>
         <div>
-          <h3 class="measure-card-title">Progress Towards Continuous Improvement</h3>
-          <p class="measure-card-desc">${assessment.label} · ${formatDate(assessment.date)}</p>
+          <h3 class="measure-card-title">Progress Towards Continuous Improvement ${assessment.label} · ${formatDate(assessment.date)}</h3>
         </div>
         <span class="measure-avg-badge" style="background:${avgLevel ? avgLevel.color : 'var(--clr-badge-empty)'}">
           ${overall > 0 ? overall.toFixed(1) : '—'}

@@ -5,9 +5,9 @@ function renderProfileCards(assessment) {
   if (!container) return;
 
   container.innerHTML = [
-    renderMaturityProfileCard(assessment, "governance", "ICT Governance Profile Maturity", "#9b59b6"),
-    renderMaturityProfileCard(assessment, "reporting",  "ICT Reporting Profile Maturity",  "#2ecc71"),
-    renderMaturityProfileCard(assessment, "ict_risk",   "ICT Risk Profile Maturity",       "#e74c3c"),
+    renderMaturityProfileCard(assessment, "governance", "ICT Governance Profile Maturity", "#8e6f98"),
+    renderMaturityProfileCard(assessment, "reporting",  "ICT Reporting Profile Maturity",  "#579d76"),
+    renderMaturityProfileCard(assessment, "ict_risk",   "ICT Risk Profile Maturity",       "#b85c53"),
     renderRiskManagementCard(assessment)
   ].join('');
 }
@@ -43,9 +43,9 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 
     let statusHtml;
     if (score === 5) {
-      statusHtml = `<span style="color:#2ecc71;font-family:var(--font-mono);font-size:0.75rem">✓ Optimising</span>`;
+      statusHtml = `<span style="color:#579d76;font-family:var(--font-mono);font-size:0.75rem">✓ Optimising</span>`;
     } else if (score > 0 && target > 0 && score >= target) {
-      statusHtml = `<span style="color:#2ecc71;font-family:var(--font-mono);font-size:0.75rem">✓ At target</span>`;
+      statusHtml = `<span style="color:#579d76;font-family:var(--font-mono);font-size:0.75rem">✓ At target</span>`;
     } else if (score > 0 && target > 0 && score < target) {
       const gap = target - score;
       statusHtml = `<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.75rem">↑ ${gap} level${gap !== 1 ? 's' : ''} to go</span>`;
@@ -55,7 +55,7 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 
     let exitHtml;
     if (score === 5) {
-      exitHtml = `<span style="color:#2ecc71;font-size:0.78rem">✓ Target state reached.</span>`;
+      exitHtml = `<span style="color:#579d76;font-size:0.78rem">✓ Target state reached.</span>`;
     } else if (score > 0) {
       const levelSpec = measure.levels?.find(l => l.level === score);
       const exitText  = levelSpec?.exit || null;
@@ -179,9 +179,9 @@ function renderRiskManagementCard(assessment) {
     if (!openRisks) {
       openRisksHtml = `<span style="color:var(--text-muted)">—</span>`;
     } else if (openRisks >= 10) {
-      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:#e74c3c">${openRisks}</span>`;
+      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:#b85c53">${openRisks}</span>`;
     } else if (openRisks >= 5) {
-      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:#e67e22">${openRisks}</span>`;
+      openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem;color:#c98a51">${openRisks}</span>`;
     } else {
       openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem">${openRisks}</span>`;
     }
@@ -189,9 +189,9 @@ function renderRiskManagementCard(assessment) {
     const hasControls = notAssessed > 0 || partial > 0 || effective > 0;
     const controlsHtml = hasControls ? `
       <div class="controls-summary">
-        <span class="controls-summary-line"><span style="color:#e74c3c">○</span> Not Assessed: ${notAssessed}</span>
-        <span class="controls-summary-line"><span style="color:#e67e22">◑</span> Part. Effective: ${partial}</span>
-        <span class="controls-summary-line"><span style="color:#2ecc71">✓</span> Effective: ${effective}</span>
+        <span class="controls-summary-line"><span style="color:#b85c53">○</span> Not Assessed: ${notAssessed}</span>
+        <span class="controls-summary-line"><span style="color:#c98a51">◑</span> Part. Effective: ${partial}</span>
+        <span class="controls-summary-line"><span style="color:#579d76">✓</span> Effective: ${effective}</span>
       </div>` : `<span style="color:var(--text-muted)">—</span>`;
 
     const noteHtml = note
@@ -212,9 +212,9 @@ function renderRiskManagementCard(assessment) {
 
   const footerTally = `
     <span class="footer-controls-tally">
-      <span style="color:#2ecc71">✓ ${totalEffective}</span>
-      <span style="color:#e67e22">◑ ${totalPartial}</span>
-      <span style="color:#e74c3c">○ ${totalNotAssessed}</span>
+      <span style="color:#579d76">✓ ${totalEffective}</span>
+      <span style="color:#c98a51">◑ ${totalPartial}</span>
+      <span style="color:#b85c53">○ ${totalNotAssessed}</span>
       <span style="color:var(--text-muted)">· ${totalOpenRisks} open risks</span>
     </span>`;
 

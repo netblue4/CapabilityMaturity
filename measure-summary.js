@@ -200,7 +200,7 @@ function renderRiskMgmtSummaryCard(assessment) {
 
   const hasScored    = CONFIG.capabilities.some(cap => getSeverity(rp[cap.id]?.residualRating) !== null);
   const hasTrendData = previousAssessment !== null;
-  const badgeBg      = exceedingCount > 0 ? '#e74c3c' : (hasScored ? '#2ecc71' : '#555');
+  const badgeBg      = exceedingCount > 0 ? '#b85c53' : (hasScored ? '#579d76' : '#555');
   let badgeText;
   if (!hasScored) {
     badgeText = '—';

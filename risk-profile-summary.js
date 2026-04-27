@@ -21,9 +21,7 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
   const hasData = CONFIG.capabilities.some(cap => getMeasureScore(assessment, cap.id, measureId) > 0);
   if (!hasData) return '';
 
-  const ratingsOnclick = measureId === 'risk'
-    ? 'showIctRiskRatingsModal()'
-    : `showRatingsModal('${measureId}')`;
+  const ratingsOnclick = `showRatingsModal('${measureId}')`;
 
   const rows = CONFIG.capabilities.map(cap => {
     const score  = getMeasureScore(assessment, cap.id, measureId) || 0;

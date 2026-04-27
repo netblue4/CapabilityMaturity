@@ -155,7 +155,9 @@ function renderRiskMgmtSummaryCard(assessment) {
   const currentIndex       = db.assessments.findIndex(a => a.id === assessment.id);
   const previousAssessment = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
 
-  let exceedingCount = 0, improvedCount = 0, worsenedCount = 0, unchangedCount = 0;
+  let exceedingCount = 0;
+  let rcsaImproved = 0, rcsaWorsened = 0, rcsaUnchanged = 0;
+  let csaImproved  = 0, csaWorsened  = 0, csaUnchanged  = 0;
 
   const bars = CONFIG.capabilities.map(cap => {
     const rm       = getRiskManagement(assessment, cap.id);
@@ -170,23 +172,44 @@ function renderRiskMgmtSummaryCard(assessment) {
 
     if (rSev !== null && aSev !== null && rSev > aSev) exceedingCount++;
 
-    const prevRm          = previousAssessment ? getRiskManagement(previousAssessment, cap.id) : {};
-    const risksAssessed   = rm.risksAssessed    ?? 0;
-    const prevRisksAssessed = prevRm.risksAssessed ?? 0;
+    const prevRm = previousAssessment ? getRiskManagement(previousAssessment, cap.id) : {};
+
+    // RCSA Δ: increase in risks assessed = progress
+    const risksAssessed     = rm.risksAssessed     ?? 0;
+    const prevRisksAssessed = prevRm.risksAssessed  ?? 0;
     const raDelta = previousAssessment !== null ? risksAssessed - prevRisksAssessed : null;
 
-    let deltaHtml;
+    let rcsaDeltaHtml;
     if (raDelta === null) {
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-none">—</span>`;
+      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-none">—</span>`;
     } else if (raDelta > 0) {
-      improvedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▲${raDelta}</span>`;
+      rcsaImproved++;
+      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▲${raDelta}</span>`;
     } else if (raDelta < 0) {
-      worsenedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▼${Math.abs(raDelta)}</span>`;
+      rcsaWorsened++;
+      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▼${Math.abs(raDelta)}</span>`;
     } else {
-      unchangedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
+      rcsaUnchanged++;
+      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
+    }
+
+    // CSA Δ: decrease in controls not assessed = progress
+    const notAssessed     = rm.controlsNotAssessed     ?? 0;
+    const prevNotAssessed = prevRm.controlsNotAssessed  ?? 0;
+    const csaDelta = previousAssessment !== null ? notAssessed - prevNotAssessed : null;
+
+    let csaDeltaHtml;
+    if (csaDelta === null) {
+      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-none">—</span>`;
+    } else if (csaDelta < 0) {
+      csaImproved++;
+      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▼${Math.abs(csaDelta)}</span>`;
+    } else if (csaDelta > 0) {
+      csaWorsened++;
+      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▲${csaDelta}</span>`;
+    } else {
+      csaUnchanged++;
+      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
     }
 
     return `<div class="mini-bar-row">
@@ -196,7 +219,8 @@ function renderRiskMgmtSummaryCard(assessment) {
       </div>
       <span class="mini-bar-val">${getAbbrev(residual)}</span>
       <span class="mini-bar-val">${getAbbrev(appetite)}</span>
-      ${deltaHtml}
+      ${rcsaDeltaHtml}
+      ${csaDeltaHtml}
     </div>`;
   }).join('');
 
@@ -207,16 +231,21 @@ function renderRiskMgmtSummaryCard(assessment) {
   if (!hasScored) {
     badgeText = '—';
   } else if (hasTrendData) {
-    badgeText = `${exceedingCount} exceeding · ${improvedCount} improved`;
+    badgeText = `${exceedingCount} exceeding · RCSA ▲${rcsaImproved} · CSA ▼${csaImproved}`;
   } else {
     badgeText = `${exceedingCount} exceeding`;
   }
 
   const footerTally = hasTrendData
     ? `<span class="risk-tally">
-        <span class="risk-delta-improved">▼${improvedCount}</span>
-        <span class="risk-delta-unchanged">●${unchangedCount}</span>
-        <span class="risk-delta-worsened">▲${worsenedCount}</span>
+        <span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.7rem">RCSA</span>
+        <span class="risk-delta-improved">▲${rcsaImproved}</span>
+        <span class="risk-delta-unchanged">●${rcsaUnchanged}</span>
+        <span class="risk-delta-worsened">▼${rcsaWorsened}</span>
+        <span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.7rem;margin-left:.4rem">CSA</span>
+        <span class="risk-delta-improved">▼${csaImproved}</span>
+        <span class="risk-delta-unchanged">●${csaUnchanged}</span>
+        <span class="risk-delta-worsened">▲${csaWorsened}</span>
       </span>`
     : `<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.72rem">First assessment — no trend data</span>`;
 
@@ -226,7 +255,7 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">ICT Risk Management</h3>
-          <p class="measure-card-desc">Residual risk vs appetite · Δ = risks assessed trend</p>
+          <p class="measure-card-desc">Residual risk vs appetite · RCSA Δ = risks assessed · CSA Δ = controls not assessed</p>
         </div>
         <span class="measure-avg-badge" style="background:${badgeBg}">
           ${badgeText}
@@ -236,7 +265,8 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span style="flex:1"></span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:28px;text-align:right">Res</span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:32px;text-align:right">App</span>
-        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:36px;text-align:center">Δ</span>
+        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:42px;text-align:center">RCSA Δ</span>
+        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:42px;text-align:center">CSA Δ</span>
       </div>
       <div class="mini-bars">${bars}</div>
       <div class="risk-mgmt-summary-footer">

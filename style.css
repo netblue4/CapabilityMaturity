@@ -879,7 +879,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   font-weight: 700;
   flex-shrink: 0;
   text-align: center;
-  width: 36px;
+  width: 42px;
 }
 
 .risk-delta-improved  { color: var(--clr-success); }

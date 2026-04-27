@@ -61,7 +61,7 @@ function showIctRiskRatingsModal() {
         <h3>ICT Risk — Maturity Level Guide</h3>
         <button class="modal-close" id="ict-risk-modal-close">✕</button>
       </div>
-      <p class="modal-desc">The ICT Risk maturity score reflects how well risks associated with this capability are identified, assessed, treated and monitored. Use the slider to record the current maturity level based on the level descriptions below. Record the Residual Risk Rating and Risk Appetite separately to give executives a complete picture of the risk profile.</p>
+      <p class="modal-desc">The ICT Risk maturity score tracks how far we have progressed in identifying and treating the risks associated with our Roles and Responsibilities.</p>
       <div class="modal-levels">${levelRows}</div>
     </div>`;
 

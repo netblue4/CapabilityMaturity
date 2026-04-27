@@ -160,24 +160,25 @@ function renderRiskManagementCard(assessment) {
     return `<span style="display:inline-block;font-family:var(--font-mono);font-size:0.75rem;padding:0.2rem 0.55rem;border-radius:5px;white-space:nowrap;border:1.5px solid ${c};color:${c};background:transparent">${value}</span>`;
   }
 
-  let totalEffective = 0, totalPartial = 0, totalNotAssessed = 0, totalOpenRisks = 0;
+  let totalEffective = 0, totalPartial = 0, totalNotAssessed = 0, totalOpenRisks = 0, totalRisksAssessed = 0;
 
   const rows = CONFIG.capabilities.map(cap => {
     const rm       = getRiskManagement(assessment, cap.id);
     const residual = rm.residualRating || '';
     const appetite = rm.appetiteRating || '';
-    // New notes location; legacy riskMgmtNotes field on the rm object as fallback
-    const note = getMeasureNote(assessment, cap.id, 'riskManagement') || rm.riskMgmtNotes || '';
+    const note     = getMeasureNote(assessment, cap.id, 'riskManagement') || rm.riskMgmtNotes || '';
 
-    const openRisks   = rm.openRisks           || 0;
-    const notAssessed = rm.controlsNotAssessed  || 0;
-    const partial     = rm.controlsPartial      || 0;
-    const effective   = rm.controlsEffective    || 0;
+    const openRisks     = rm.openRisks           || 0;
+    const risksAssessed = rm.risksAssessed        || 0;
+    const notAssessed   = rm.controlsNotAssessed  || 0;
+    const partial       = rm.controlsPartial      || 0;
+    const effective     = rm.controlsEffective    || 0;
 
-    totalEffective   += effective;
-    totalPartial     += partial;
-    totalNotAssessed += notAssessed;
-    totalOpenRisks   += openRisks;
+    totalEffective      += effective;
+    totalPartial        += partial;
+    totalNotAssessed    += notAssessed;
+    totalOpenRisks      += openRisks;
+    totalRisksAssessed  += risksAssessed;
 
     let openRisksHtml;
     if (!openRisks) {
@@ -189,6 +190,10 @@ function renderRiskManagementCard(assessment) {
     } else {
       openRisksHtml = `<span style="font-family:var(--font-mono);font-size:0.85rem">${openRisks}</span>`;
     }
+
+    const risksAssessedHtml = risksAssessed > 0
+      ? `<span style="font-family:var(--font-mono);font-size:0.85rem;color:var(--clr-success)">${risksAssessed}</span>`
+      : `<span style="color:var(--text-muted)">—</span>`;
 
     const hasControls = notAssessed > 0 || partial > 0 || effective > 0;
     const controlsHtml = hasControls ? `
@@ -202,21 +207,14 @@ function renderRiskManagementCard(assessment) {
       ? `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic">${note}</span>`
       : `<span style="color:var(--text-muted)">—</span>`;
 
-    // Target residual column
-    const targetResidual = getRiskManagementTarget(assessment, cap.id);
-    const targetHtml = targetResidual
-      ? `<span style="font-size:.65rem;font-family:var(--font-mono);color:var(--text-muted);margin-right:.15rem">→</span>${ratingBadge(targetResidual)}`
-      : `<span style="color:var(--text-muted)">—</span>`;
-
     return `
       <tr>
         <td style="font-size:0.85rem;font-weight:600;min-width:160px">${shortName(cap.name)}</td>
         <td>${ratingBadge(residual)}</td>
-        <td>${targetHtml}</td>
         <td>${ratingBadge(appetite)}</td>
         <td style="text-align:center">${openRisksHtml}</td>
+        <td style="text-align:center">${risksAssessedHtml}</td>
         <td>${controlsHtml}</td>
-        <td><span class="rcsa-source">Riskonnect RCSA &amp; CSA</span></td>
         <td style="max-width:260px">${noteHtml}</td>
       </tr>`;
   }).join('');
@@ -226,7 +224,7 @@ function renderRiskManagementCard(assessment) {
       <span style="color:var(--clr-success)">✓ ${totalEffective}</span>
       <span style="color:var(--clr-warning)">◑ ${totalPartial}</span>
       <span style="color:var(--clr-danger)">○ ${totalNotAssessed}</span>
-      <span style="color:var(--text-muted)">· ${totalOpenRisks} open risks</span>
+      <span style="color:var(--text-muted)">· ${totalOpenRisks} open · ${totalRisksAssessed} assessed</span>
     </span>`;
 
   return `
@@ -238,7 +236,7 @@ function renderRiskManagementCard(assessment) {
             <span style="font-size:1.3rem;line-height:1;flex-shrink:0">🛡️</span>
             <div>
               <div class="profile-card-title">ICT Risk Management</div>
-              <div class="profile-card-subtitle">Residual risk and control data from Riskonnect RCSA &amp; CSA cycle</div>
+              <div class="profile-card-subtitle">Residual risk, appetite and control effectiveness</div>
             </div>
           </div>
         </summary>
@@ -248,18 +246,17 @@ function renderRiskManagementCard(assessment) {
               <tr>
                 <th>Capability</th>
                 <th>Residual Risk</th>
-                <th>Target</th>
                 <th>Risk Appetite</th>
                 <th style="text-align:center">Open Risks</th>
+                <th style="text-align:center">Risks Assessed</th>
                 <th>Controls</th>
-                <th>RCSA / CSA</th>
                 <th>Notes</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
             <tfoot>
               <tr>
-                <td colspan="5">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
+                <td colspan="4">Assessment: ${assessment.label} · ${formatDate(assessment.date)}</td>
                 <td colspan="3" style="text-align:right">${footerTally}</td>
               </tr>
             </tfoot>

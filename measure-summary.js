@@ -170,43 +170,33 @@ function renderRiskMgmtSummaryCard(assessment) {
 
     if (rSev !== null && aSev !== null && rSev > aSev) exceedingCount++;
 
-    const prevRm       = previousAssessment ? getRiskManagement(previousAssessment, cap.id) : {};
-    const prevResidual = prevRm.residualRating || '';
-    const prevSev      = getSeverity(prevResidual);
-    const delta        = rSev !== null && prevSev !== null ? rSev - prevSev : null;
+    const prevRm          = previousAssessment ? getRiskManagement(previousAssessment, cap.id) : {};
+    const risksAssessed   = rm.risksAssessed    ?? 0;
+    const prevRisksAssessed = prevRm.risksAssessed ?? 0;
+    const raDelta = previousAssessment !== null ? risksAssessed - prevRisksAssessed : null;
 
     let deltaHtml;
-    if (delta === null) {
+    if (raDelta === null) {
       deltaHtml = `<span class="mini-bar-delta-risk risk-delta-none">—</span>`;
-    } else if (delta < 0) {
+    } else if (raDelta > 0) {
       improvedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▼${Math.abs(delta)}</span>`;
-    } else if (delta > 0) {
+      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▲${raDelta}</span>`;
+    } else if (raDelta < 0) {
       worsenedCount++;
-      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▲${delta}</span>`;
+      deltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▼${Math.abs(raDelta)}</span>`;
     } else {
       unchangedCount++;
       deltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
     }
-
-    // Target residual shown inline next to residual abbreviation
-    const targetResidual = getRiskManagementTarget(assessment, cap.id);
-    const targetInline = targetResidual
-      ? `<span style="color:var(--text-muted);font-size:.65rem"> →${getAbbrev(targetResidual)}</span>`
-      : '';
 
     return `<div class="mini-bar-row">
       <span class="mini-bar-label">${shortName(cap.name)}</span>
       <div class="mini-bar-track">
         <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
       </div>
-      <span class="mini-bar-val">
-        ${getAbbrev(residual)}${targetInline}
-      </span>
+      <span class="mini-bar-val">${getAbbrev(residual)}</span>
+      <span class="mini-bar-val">${getAbbrev(appetite)}</span>
       ${deltaHtml}
-      <span class="mini-bar-val">
-        ${getAbbrev(appetite)}
-      </span>
     </div>`;
   }).join('');
 
@@ -236,7 +226,7 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">ICT Risk Management</h3>
-          <p class="measure-card-desc">Residual risk vs appetite</p>
+          <p class="measure-card-desc">Residual risk vs appetite · Δ = risks assessed trend</p>
         </div>
         <span class="measure-avg-badge" style="background:${badgeBg}">
           ${badgeText}
@@ -245,8 +235,8 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
         <span style="flex:1"></span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:28px;text-align:right">Res</span>
-        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:30px;text-align:center">Δ</span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:32px;text-align:right">App</span>
+        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:36px;text-align:center">Δ</span>
       </div>
       <div class="mini-bars">${bars}</div>
       <div class="risk-mgmt-summary-footer">

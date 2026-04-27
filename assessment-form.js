@@ -137,18 +137,14 @@ function buildRiskMgmtCard(cap) {
       </div>
 
       <div class="risk-mgmt-section">
-        <label>Target Residual Rating</label>
-        <input type="hidden" id="target-residual-${cap.id}" value="">
-        <div class="risk-btn-group" id="risk-group-target-residual-${cap.id}">
-          ${buildRiskRatingBtns(cap.id, 'target-residual')}
-        </div>
-      </div>
-
-      <div class="risk-mgmt-section">
         <label>Control Effectiveness</label>
         <div class="control-row">
           <span class="control-row-label">Open Risks</span>
           <input type="number" min="0" value="0" id="ctrl-openrisks-${cap.id}" class="control-row-input">
+        </div>
+        <div class="control-row">
+          <span class="control-row-label">Risks Assessed</span>
+          <input type="number" min="0" value="0" id="ctrl-risksassessed-${cap.id}" class="control-row-input">
         </div>
         <div class="control-row">
           <span class="control-row-label">Controls — Not Assessed</span>
@@ -257,7 +253,7 @@ function clearRiskRatingBtns(capId, field) {
 }
 
 function clearRiskCountInputs(capId) {
-  ['ctrl-openrisks', 'ctrl-not', 'ctrl-partial', 'ctrl-effective'].forEach(prefix => {
+  ['ctrl-openrisks', 'ctrl-risksassessed', 'ctrl-not', 'ctrl-partial', 'ctrl-effective'].forEach(prefix => {
     const el = document.getElementById(`${prefix}-${capId}`);
     if (el) el.value = 0;
   });
@@ -335,14 +331,12 @@ function openAssessmentForm(id) {
         const notEl     = document.getElementById(`ctrl-not-${cap.id}`);
         const partialEl = document.getElementById(`ctrl-partial-${cap.id}`);
         const effEl     = document.getElementById(`ctrl-effective-${cap.id}`);
-        if (openEl)    openEl.value    = rm.openRisks           ?? cc.openRisks   ?? 0;
-        if (notEl)     notEl.value     = rm.controlsNotAssessed ?? cc.notAssessed ?? 0;
-        if (partialEl) partialEl.value = rm.controlsPartial     ?? cc.partial     ?? 0;
-        if (effEl)     effEl.value     = rm.controlsEffective   ?? cc.effective   ?? 0;
-
-        // Target residual rating
-        const targetResidual = a.measureTargets?.[cap.id]?.riskManagement || '';
-        setRiskRatingBtns(cap.id, 'target-residual', targetResidual);
+        const risksAssessedEl = document.getElementById(`ctrl-risksassessed-${cap.id}`);
+        if (openEl)           openEl.value           = rm.openRisks           ?? cc.openRisks   ?? 0;
+        if (risksAssessedEl)  risksAssessedEl.value  = rm.risksAssessed       ?? 0;
+        if (notEl)            notEl.value            = rm.controlsNotAssessed ?? cc.notAssessed ?? 0;
+        if (partialEl)        partialEl.value        = rm.controlsPartial     ?? cc.partial     ?? 0;
+        if (effEl)            effEl.value            = rm.controlsEffective   ?? cc.effective   ?? 0;
 
         // Risk management notes — new location; fall back to legacy riskMgmtNotes field
         const rmNote = getMeasureNote(a, cap.id, 'riskManagement') || rm.riskMgmtNotes || '';
@@ -367,7 +361,6 @@ function openAssessmentForm(id) {
       // Risk management card clear (form.reset() clears inputs but not CSS button states)
       clearRiskRatingBtns(cap.id, 'residual');
       clearRiskRatingBtns(cap.id, 'appetite');
-      clearRiskRatingBtns(cap.id, 'target-residual');
       clearRiskCountInputs(cap.id);
     });
   }
@@ -439,16 +432,14 @@ function saveAssessment(e) {
 
     // riskManagement data nested inside measureScores (no maturity number, no time estimate)
     measureScores[cap.id].riskManagement = {
-      residualRating:      document.getElementById(`residual-${cap.id}`)?.value                 || '',
-      appetiteRating:      document.getElementById(`appetite-${cap.id}`)?.value                 || '',
-      openRisks:           parseInt(document.getElementById(`ctrl-openrisks-${cap.id}`)?.value) || 0,
-      controlsNotAssessed: parseInt(document.getElementById(`ctrl-not-${cap.id}`)?.value)       || 0,
-      controlsPartial:     parseInt(document.getElementById(`ctrl-partial-${cap.id}`)?.value)   || 0,
-      controlsEffective:   parseInt(document.getElementById(`ctrl-effective-${cap.id}`)?.value)  || 0
+      residualRating:      document.getElementById(`residual-${cap.id}`)?.value                       || '',
+      appetiteRating:      document.getElementById(`appetite-${cap.id}`)?.value                       || '',
+      openRisks:           parseInt(document.getElementById(`ctrl-openrisks-${cap.id}`)?.value)       || 0,
+      risksAssessed:       parseInt(document.getElementById(`ctrl-risksassessed-${cap.id}`)?.value)   || 0,
+      controlsNotAssessed: parseInt(document.getElementById(`ctrl-not-${cap.id}`)?.value)             || 0,
+      controlsPartial:     parseInt(document.getElementById(`ctrl-partial-${cap.id}`)?.value)         || 0,
+      controlsEffective:   parseInt(document.getElementById(`ctrl-effective-${cap.id}`)?.value)       || 0
     };
-
-    // Target residual rating is a string, stored in measureTargets
-    measureTargets[cap.id].riskManagement = document.getElementById(`target-residual-${cap.id}`)?.value || '';
 
     // Risk management notes stored in measureNotes
     measureNotes[cap.id].riskManagement = document.getElementById(`note-risk-mgmt-${cap.id}`)?.value.trim() || '';

@@ -35,6 +35,19 @@
     <!-- Dashboard -->
     <section id="view-dashboard" class="view active">
 
+      <!-- Action buttons — always visible regardless of data state -->
+      <div class="card" style="padding:.6rem 1rem;margin-bottom:.35rem">
+        <div class="header-actions" style="flex-wrap:wrap">
+          <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
+          <button id="btn-export" class="btn btn-outline">↓ Export</button>
+          <label class="btn btn-outline">
+            ↑ Import
+            <input type="file" id="import-file" accept=".json" style="display:none" />
+          </label>
+          <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
+        </div>
+      </div>
+
       <div id="no-data-message" class="empty-state" style="display:none">
         <div class="empty-icon">◈</div>
         <h3>No assessments yet</h3>
@@ -60,18 +73,8 @@
               <button class="btn btn-outline play-btn" id="btn-animate-radar" onclick="toggleRadarAnimation()" title="Animate through all assessments">▶ All</button>
             </div>
           </div>
-          <!-- Right: action buttons, sits directly above the scores card -->
-          <div class="card" style="padding:.6rem 1rem;margin-bottom:0">
-            <div class="header-actions" style="flex-wrap:wrap">
-              <button id="btn-new-assessment" class="btn btn-primary">+ New Assessment</button>
-              <button id="btn-export" class="btn btn-outline">↓ Export</button>
-              <label class="btn btn-outline">
-                ↑ Import
-                <input type="file" id="import-file" accept=".json" style="display:none" />
-              </label>
-              <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
-            </div>
-          </div>
+          <!-- Spacer to maintain 2fr/1fr alignment with the content row below -->
+          <div style="margin-bottom:0"></div>
         </div>
 
         <!-- Content row: radar chart + capability scores summary -->

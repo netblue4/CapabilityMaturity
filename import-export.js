@@ -17,10 +17,12 @@ function importJSON(e) {
     try {
       const imported = JSON.parse(evt.target.result);
       if (imported.assessments) {
-        if (confirm(`Import ${imported.assessments.length} assessment(s)? Existing records with the same ID will be skipped.`)) {
-          imported.assessments.forEach(a => {
-            if (!db.assessments.find(x => x.id === a.id)) db.assessments.push(a);
-          });
+        const existing = db.assessments.length;
+        const msg = existing > 0
+          ? `Import ${imported.assessments.length} assessment(s)?\n\nThis will REPLACE all ${existing} existing assessment(s). This cannot be undone.`
+          : `Import ${imported.assessments.length} assessment(s)?`;
+        if (confirm(msg)) {
+          db.assessments = imported.assessments.slice();
           db.assessments.sort((a, b) => a.date.localeCompare(b.date));
           saveToLocalStorage();
           renderDashboard();

@@ -40,7 +40,7 @@
 	"name": "ICT Governance",
 	"icon": "⚖️",
 	"color": "#9b59b6",
-	"description": "Tracks the repeatability of processes associated with the capability and consistency of their outputs.",
+	"description": "Do we know who does what? — Tracks whether Roles and Responsibilities are formally defined, owned and consistently performed. Without this foundation, risk cannot be managed and reporting has nothing to measure.",
 	"levels": [
 	  {
 		"level": 1,
@@ -75,7 +75,7 @@
 	"icon": "🛡️",
 	"color": "#e74c3c",
 	"type": "risk_profile",
-	"description": "Tracks the residual risk score of risks associated with the capability and their mitigation status.",
+	"description": "Have we identified all the risks? — Tracks risk and control coverage against our Roles and Responsibilities , and whether gaps trigger updates to the Governance Profile.",
 	"levels": [
 	  {
 		"level": 1,
@@ -109,7 +109,7 @@
 	"name": "ICT Reporting",
 	"icon": "📊",
 	"color": "#2ecc71",
-	"description": "Tracks KPI efficacy, reporting cadence and whether outputs drive informed decisions for the capability.",
+	"description": "Are we measuring what matters? — Tracks whether KPIs are grounded in our Roles and Responsibilities and risks, reported to management on schedule, and whether gaps trigger updates to the Governance Profile.",
 	"levels": [
 	  {
 		"level": 1,

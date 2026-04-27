@@ -15,7 +15,7 @@ function renderMeasureSummary(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">📋</span>
         <div>
-          <h3 class="measure-card-title">Progress Towards Continuous Improvement</h3>
+          <h3 class="measure-card-title">Capability Progress Towards Continuous Improvement</h3>
           <p class="measure-card-desc">${assessment.label} · ${formatDate(assessment.date)}</p>
         </div>
       </div>
@@ -214,7 +214,7 @@ function renderRiskMgmtSummaryCard(assessment) {
 
     return `<div class="mini-bar-row">
       <span class="mini-bar-label">${shortName(cap.name)}</span>
-      <div class="mini-bar-track" style="max-width:90px">
+      <div class="mini-bar-track" style="max-width:180px">
         <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
       </div>
       <span class="mini-bar-val">${getAbbrev(residual)}</span>
@@ -262,7 +262,7 @@ function renderRiskMgmtSummaryCard(assessment) {
         </span>
       </div>
       <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
-        <span style="flex:1;max-width:90px"></span>
+        <span style="flex:1;max-width:180px"></span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">Res</span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">App</span>
         <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:42px;text-align:center">RCSA Δ</span>

@@ -213,6 +213,7 @@ body {
 }
 .btn-primary { background: var(--accent); color: var(--clr-on-surface); }
 .btn-primary:hover { background: var(--clr-accent-hover); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: auto; }
 .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); cursor: pointer; }
 .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 .btn-ghost { background: transparent; color: var(--text-muted); }

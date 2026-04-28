@@ -173,6 +173,13 @@ function buildCapabilityFields() {
   const nonRiskMeasures = CONFIG.measures.filter(m => m.id !== 'risk');
   const riskMeasure     = CONFIG.measures.find(m => m.id === 'risk');
 
+  const allCapCheckbox = `
+    <label class="dimension-check-label" style="border-color:var(--accent)">
+      <input type="checkbox" id="capability-check-all" checked
+        onchange="toggleAllCapabilities(this)" />
+      <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--accent)">ALL</span>
+    </label>`;
+
   const capCheckboxes = CONFIG.capabilities.map((cap, i) => `
     <label class="dimension-check-label">
       <input type="checkbox" class="capability-check" value="${cap.id}" checked
@@ -186,7 +193,7 @@ function buildCapabilityFields() {
     <div class="card form-meta cap-nav-card">
       <div class="form-row" style="margin-bottom:0">
         <label>Capabilities to Rate</label>
-        <div class="dimension-checks">${capCheckboxes}</div>
+        <div class="dimension-checks">${allCapCheckbox}${capCheckboxes}</div>
       </div>
     </div>`;
 
@@ -246,6 +253,42 @@ function updateDimensionVisibility() {
   document.querySelectorAll("[data-measure]").forEach(block => {
     block.style.display = checkedDimensions.has(block.dataset.measure) ? "" : "none";
   });
+  syncCapabilityAllCheckbox();
+  updateSaveButtonState();
+}
+
+function toggleAllCapabilities(cb) {
+  document.querySelectorAll(".capability-check").forEach(c => { c.checked = cb.checked; });
+  updateDimensionVisibility();
+}
+
+function syncCapabilityAllCheckbox() {
+  const allCb    = document.getElementById("capability-check-all");
+  if (!allCb) return;
+  const total   = document.querySelectorAll(".capability-check").length;
+  const checked = document.querySelectorAll(".capability-check:checked").length;
+  if (checked === total) {
+    allCb.checked = true;
+    allCb.indeterminate = false;
+  } else if (checked === 0) {
+    allCb.checked = false;
+    allCb.indeterminate = false;
+  } else {
+    allCb.indeterminate = true;
+  }
+}
+
+function updateSaveButtonState() {
+  const totalCaps   = document.querySelectorAll(".capability-check").length;
+  const checkedCaps = document.querySelectorAll(".capability-check:checked").length;
+  const totalDims   = document.querySelectorAll(".dimension-check").length;
+  const checkedDims = document.querySelectorAll(".dimension-check:checked").length;
+  const allShown = totalCaps > 0 && checkedCaps === totalCaps &&
+                   totalDims > 0 && checkedDims === totalDims;
+  const btn = document.getElementById("btn-save-assessment");
+  if (!btn) return;
+  btn.disabled = !allShown;
+  btn.title = allShown ? "" : "Select all Capabilities and Dimensions before saving";
 }
 
 // ── Risk Rating Button Toggle ─────────────────────────────────
@@ -292,6 +335,8 @@ function openAssessmentForm(id) {
 
   document.querySelectorAll(".dimension-check").forEach(cb => cb.checked = true);
   document.querySelectorAll(".capability-check").forEach(cb => cb.checked = true);
+  const allCapCb = document.getElementById("capability-check-all");
+  if (allCapCb) { allCapCb.checked = true; allCapCb.indeterminate = false; }
 
   if (id) {
     const a = db.assessments.find(x => x.id === id);

@@ -173,7 +173,21 @@ function buildCapabilityFields() {
   const nonRiskMeasures = CONFIG.measures.filter(m => m.id !== 'risk');
   const riskMeasure     = CONFIG.measures.find(m => m.id === 'risk');
 
-  container.innerHTML = CONFIG.capabilities.map(cap => `
+  const navBtns = CONFIG.capabilities.map((cap, i) =>
+    `<button type="button" class="cap-nav-btn" onclick="document.getElementById('capcard-${cap.id}').scrollIntoView({behavior:'smooth',block:'start'})">
+      <span class="cap-nav-num">${i + 1}</span>${shortName(cap.name)}
+    </button>`
+  ).join('');
+
+  const navCard = `
+    <div class="card form-meta cap-nav-card">
+      <div class="form-row" style="margin-bottom:0">
+        <label>Capability Navigator</label>
+        <div class="cap-nav-btns">${navBtns}</div>
+      </div>
+    </div>`;
+
+  container.innerHTML = navCard + CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}">
       <div class="cap-card-header">
         <div>

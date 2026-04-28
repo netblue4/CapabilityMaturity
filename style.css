@@ -1329,3 +1329,46 @@ details[open] .profile-card-chevron {
   border-radius: 2px;
   flex-shrink: 0;
 }
+
+/* ── Capability Navigator (Assessment Form) ──────────────────── */
+.cap-nav-card {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.cap-nav-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.cap-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.cap-nav-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--bg2);
+}
+
+.cap-nav-num {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}

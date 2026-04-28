@@ -146,14 +146,16 @@ function viewAssessment(id) {
   const hasRiskData = allRm.some(({ rm }) =>
     rm.residualRating ||
     (rm.openRisks || 0) > 0 ||
+    (rm.risksAssessed || 0) > 0 ||
     (rm.controlsNotAssessed || 0) > 0 ||
     (rm.controlsPartial || 0) > 0 ||
     (rm.controlsEffective || 0) > 0
   );
-  const totalOpenRisks  = allRm.reduce((s, { rm }) => s + (rm.openRisks || 0), 0);
-  const totalNotAssessed = allRm.reduce((s, { rm }) => s + (rm.controlsNotAssessed || 0), 0);
-  const totalPartial    = allRm.reduce((s, { rm }) => s + (rm.controlsPartial || 0), 0);
-  const totalEffective  = allRm.reduce((s, { rm }) => s + (rm.controlsEffective || 0), 0);
+  const totalOpenRisks     = allRm.reduce((s, { rm }) => s + (rm.openRisks || 0), 0);
+  const totalAssessedRisks = allRm.reduce((s, { rm }) => s + (rm.risksAssessed || 0), 0);
+  const totalNotAssessed   = allRm.reduce((s, { rm }) => s + (rm.controlsNotAssessed || 0), 0);
+  const totalPartial       = allRm.reduce((s, { rm }) => s + (rm.controlsPartial || 0), 0);
+  const totalEffective     = allRm.reduce((s, { rm }) => s + (rm.controlsEffective || 0), 0);
 
   const riskSnapshotContent = !hasRiskData
     ? `<p style="color:var(--text-muted);font-style:italic;font-size:0.82rem">No risk management data recorded for this assessment.</p>`
@@ -166,16 +168,18 @@ function viewAssessment(id) {
         }
 
         const statBoxes = `<div class="detail-stat-row">
-          ${statBox(totalOpenRisks,   'Open Risks',   openRisksColor(totalOpenRisks))}
-          ${statBox(totalNotAssessed, 'Not Assessed',  totalNotAssessed > 0 ? 'var(--clr-danger)'  : 'var(--clr-success)')}
-          ${statBox(totalPartial,     'Partial',       totalPartial    > 0 ? 'var(--clr-warning)' : 'var(--clr-success)')}
-          ${statBox(totalEffective,   'Effective',     'var(--clr-success)')}
+          ${statBox(totalOpenRisks,     'Open Risks',              openRisksColor(totalOpenRisks))}
+          ${statBox(totalAssessedRisks, 'Assessed Risks',          totalAssessedRisks > 0 ? 'var(--clr-success)' : 'var(--text-muted)')}
+          ${statBox(totalNotAssessed,   'Not Assessed Controls',   totalNotAssessed > 0 ? 'var(--clr-danger)'  : 'var(--clr-success)')}
+          ${statBox(totalPartial,       'Partial Controls',        totalPartial    > 0 ? 'var(--clr-warning)' : 'var(--clr-success)')}
+          ${statBox(totalEffective,     'Effective Controls',      'var(--clr-success)')}
         </div>`;
 
         const riskCapRows = allRm
           .filter(({ rm }) =>
             rm.residualRating ||
             (rm.openRisks || 0) > 0 ||
+            (rm.risksAssessed || 0) > 0 ||
             (rm.controlsNotAssessed || 0) > 0 ||
             (rm.controlsPartial || 0) > 0 ||
             (rm.controlsEffective || 0) > 0
@@ -185,19 +189,20 @@ function viewAssessment(id) {
             const pa = rm.controlsPartial     || 0;
             const ef = rm.controlsEffective   || 0;
             const or = rm.openRisks || 0;
+            const ra = rm.risksAssessed || 0;
             const openHtml = or > 0
               ? `<span style="font-family:var(--font-mono);font-size:0.82rem;color:${openRisksColor(or)}">${or}</span>`
               : `<span style="color:var(--text-muted)">—</span>`;
-            const notes = rm.riskMgmtNotes || getMeasureNote(a, cap.id, 'riskManagement') || '';
-            const notesHtml = notes
-              ? `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;max-width:200px;display:inline-block">${notes}</span>`
+            const assessedHtml = ra > 0
+              ? `<span style="font-family:var(--font-mono);font-size:0.82rem;color:var(--clr-success)">${ra}</span>`
               : `<span style="color:var(--text-muted)">—</span>`;
             return `<tr>
               <td style="font-size:0.82rem;font-weight:600;padding:0.35rem 0.5rem;vertical-align:middle">${shortName(cap.name)}</td>
               <td style="padding:0.35rem 0.5rem;vertical-align:middle">${residualAbbr(rm.residualRating)}</td>
+              <td style="padding:0.35rem 0.5rem;vertical-align:middle">${residualAbbr(rm.appetiteRating)}</td>
               <td style="padding:0.35rem 0.5rem;vertical-align:middle">${openHtml}</td>
+              <td style="padding:0.35rem 0.5rem;vertical-align:middle">${assessedHtml}</td>
               <td style="padding:0.35rem 0.5rem;vertical-align:middle">${controlsDisplay(na, pa, ef)}</td>
-              <td style="padding:0.35rem 0.5rem;vertical-align:middle">${notesHtml}</td>
             </tr>`;
           }).join('');
 
@@ -213,14 +218,15 @@ function viewAssessment(id) {
             <thead><tr>
               <th style="${thStyle}">Capability</th>
               <th style="${thStyle}">Residual</th>
+              <th style="${thStyle}">Appetite</th>
               <th style="${thStyle}">Open</th>
+              <th style="${thStyle}">Assessed</th>
               <th style="${thStyle}">Controls</th>
-              <th style="${thStyle}">Notes</th>
             </tr></thead>
             <tbody>${riskCapRows}</tbody>
             <tfoot><tr>
               <td colspan="3" style="border-top:1px solid var(--border);padding-top:0.5rem;font-size:0.72rem;color:var(--text-muted)">${a.label} · ${formatDate(a.date)}</td>
-              <td colspan="2" style="border-top:1px solid var(--border);padding-top:0.5rem;text-align:right">${footerTally}</td>
+              <td colspan="3" style="border-top:1px solid var(--border);padding-top:0.5rem;text-align:right">${footerTally}</td>
             </tr></tfoot>
           </table>`;
       })();
@@ -302,53 +308,7 @@ function viewAssessment(id) {
 
   const capsGrid = `<div class="detail-caps-grid">${capCards}</div>`;
 
-  // ── SECTION 4: ICT Risk Management Full Table ────────────────
-  const hasAnyResidual = CONFIG.capabilities.some(cap => getRiskManagement(a, cap.id).residualRating);
-
-  const fullRiskTable = !hasAnyResidual ? '' : (() => {
-    const thFull = `font-family:var(--font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);padding:0.45rem 0.7rem;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap`;
-    const rows = CONFIG.capabilities.map(cap => {
-      const rm = getRiskManagement(a, cap.id);
-      const na = rm.controlsNotAssessed || 0;
-      const pa = rm.controlsPartial     || 0;
-      const ef = rm.controlsEffective   || 0;
-      const or = rm.openRisks || 0;
-      const openHtml = or > 0
-        ? `<span style="font-family:var(--font-mono);font-size:0.82rem;color:${openRisksColor(or)}">${or}</span>`
-        : `<span style="color:var(--text-muted)">—</span>`;
-      const notes = rm.riskMgmtNotes || getMeasureNote(a, cap.id, 'riskManagement') || '';
-      const notesHtml = notes
-        ? `<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;max-width:260px;display:inline-block">${notes}</span>`
-        : `<span style="color:var(--text-muted)">—</span>`;
-      return `<tr>
-        <td style="font-size:0.82rem;padding:0.5rem 0.7rem;vertical-align:middle">${cap.name}</td>
-        <td style="padding:0.5rem 0.7rem;vertical-align:middle">${residualFull(rm.residualRating)}</td>
-        <td style="padding:0.5rem 0.7rem;vertical-align:middle">${residualFull(rm.appetiteRating)}</td>
-        <td style="padding:0.5rem 0.7rem;vertical-align:middle">${openHtml}</td>
-        <td style="padding:0.5rem 0.7rem;vertical-align:middle">${controlsDisplay(na, pa, ef)}</td>
-        <td style="padding:0.5rem 0.7rem;vertical-align:middle">${notesHtml}</td>
-      </tr>`;
-    }).join('');
-    return `<div class="card">
-      <div class="card-title" style="margin-bottom:0.25rem">ICT Risk Management Profile</div>
-      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem">Residual risk and control data from Riskonnect RCSA &amp; CSA cycle</div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-          <thead><tr>
-            <th style="${thFull}">Capability</th>
-            <th style="${thFull}">Residual Risk</th>
-            <th style="${thFull}">Appetite</th>
-            <th style="${thFull}">Open Risks</th>
-            <th style="${thFull}">Controls</th>
-            <th style="${thFull}">Notes</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`;
-  })();
-
-  content.innerHTML = headerCard + radarCard + snapshotGrid + capsGrid + fullRiskTable;
+  content.innerHTML = headerCard + radarCard + snapshotGrid + capsGrid;
 
   showView("detail");
   setTimeout(() => renderRadar("detail-radar-canvas", a), 60);

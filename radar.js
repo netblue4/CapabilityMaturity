@@ -74,14 +74,35 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+// ── Radar HTML Legend ─────────────────────────────────────────
+function injectRadarLegend(canvasId, group1, group2) {
+  const old = document.getElementById(canvasId + '-legend');
+  if (old) old.remove();
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !canvas.parentNode) return;
+
+  function itemHtml(color, label, size) {
+    return `<span class="radar-legend-item"><span class="radar-legend-swatch" style="width:${size}px;height:${size}px;background:${color}"></span>${label}</span>`;
+  }
+
+  const div = document.createElement('div');
+  div.id = canvasId + '-legend';
+  div.className = 'radar-legend';
+  div.innerHTML =
+    group1.map(it => itemHtml(it.color, it.label, 12)).join('') +
+    group2.map(it => itemHtml(it.color, it.label, 10)).join('');
+  canvas.parentNode.insertBefore(div, canvas.nextSibling);
+}
+
 // ── Radar Chart ───────────────────────────────────────────────
-function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
+// opts.noLegend — skip HTML legend injection (used during animation)
+function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, opts) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const cx = W / 2, cy = H / 2;
-  const maxR = Math.min(cx, cy) - 52;
+  const maxR = Math.min(cx, cy) - 48;
   const caps = capsOverride || CONFIG.capabilities;
   const N = caps.length;
   const angleStep = (2 * Math.PI) / N;
@@ -89,6 +110,8 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
 
   const assessmentList = assessmentsOverride || (assessment ? [assessment] : []);
   const multiMode = assessmentList.length > 1;
+
+  const COLORS = ["#94a3b8", "#a78bfa", "#34d399", "#fb923c", "#f472b6", "#60a5fa", "#fbbf24", "#f87171", "#4ade80", "#38bdf8"];
 
   // Read theme colours once per draw
   const C = {
@@ -135,8 +158,9 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     ctx.stroke();
   }
 
+  let legendGroup1 = [];
+
   if (multiMode) {
-    const COLORS = ["#94a3b8", "#a78bfa", "#34d399", "#fb923c", "#f472b6", "#60a5fa", "#fbbf24", "#f87171", "#4ade80", "#38bdf8"];
     assessmentList.forEach((a, i) => {
       const isLatest = i === assessmentList.length - 1;
       const color = COLORS[i % COLORS.length];
@@ -162,30 +186,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
         ctx.fillStyle = color;
         ctx.fill();
       }
-    });
-    const legendX = 8;
-    const levelsLegendY = H - CONFIG.levels.length * 16 - 8;
-    const assessLegendY = levelsLegendY - 16 - assessmentList.length * 16;
-    assessmentList.forEach((a, i) => {
-      const color = COLORS[i % COLORS.length];
-      const isLatest = i === assessmentList.length - 1;
-      ctx.fillStyle = color;
-      ctx.fillRect(legendX, assessLegendY + i * 16, 10, 10);
-      ctx.fillStyle = isLatest ? C.textHi : C.textLo;
-      ctx.font = `${isLatest ? "bold " : ""}9px DM Sans, sans-serif`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      const label = a.label.length > 22 ? a.label.slice(0, 21) + "…" : a.label;
-      ctx.fillText(label, legendX + 14, assessLegendY + i * 16);
-    });
-    CONFIG.levels.forEach((lv, i) => {
-      ctx.fillStyle = lv.color;
-      ctx.fillRect(legendX, levelsLegendY + i * 16, 10, 10);
-      ctx.fillStyle = C.legend;
-      ctx.font = "9px DM Sans, sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(`${lv.level}  ${lv.name}`, legendX + 14, levelsLegendY + i * 16);
+      legendGroup1.push({ color, label: a.label.length > 22 ? a.label.slice(0, 21) + '…' : a.label });
     });
 
   } else {
@@ -207,6 +208,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
       ctx.strokeStyle = hexToRgba(m.color, 0.6);
       ctx.lineWidth = 1.5;
       ctx.stroke();
+      legendGroup1.push({ color: m.color, label: m.name });
     });
 
     const avgScores = caps.map(c => capAvgScore(a, c.id));
@@ -233,31 +235,9 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
       ctx.fillStyle = lv ? lv.color : C.legend;
       ctx.fill();
     }
-
-    const legendX = 8;
-    const levelsLegendY = H - CONFIG.levels.length * 16 - 8;
-    const measuresLegendY = levelsLegendY - 16 - CONFIG.measures.length * 16;
-    CONFIG.measures.forEach((m, i) => {
-      ctx.fillStyle = m.color;
-      ctx.fillRect(legendX, measuresLegendY + i * 16, 10, 10);
-      ctx.fillStyle = C.legend;
-      ctx.font = "9px DM Sans, sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(m.name, legendX + 14, measuresLegendY + i * 16);
-    });
-    CONFIG.levels.forEach((lv, i) => {
-      ctx.fillStyle = lv.color;
-      ctx.fillRect(legendX, levelsLegendY + i * 16, 10, 10);
-      ctx.fillStyle = C.legend;
-      ctx.font = "9px DM Sans, sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(`${lv.level}  ${lv.name}`, legendX + 14, levelsLegendY + i * 16);
-    });
   }
 
-  // Labels
+  // Axis labels
   for (let i = 0; i < N; i++) {
     const a = startAngle + i * angleStep;
     const labelR = maxR + 28;
@@ -271,6 +251,12 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride) {
     words.forEach((w, wi) => {
       ctx.fillText(w, x, y + (wi - (words.length - 1) / 2) * 13);
     });
+  }
+
+  // HTML legend — skipped during animation frames
+  if (!opts?.noLegend) {
+    const legendGroup2 = CONFIG.levels.map(lv => ({ color: lv.color, label: `${lv.level}  ${lv.name}` }));
+    injectRadarLegend(canvasId, legendGroup1, legendGroup2);
   }
 }
 
@@ -306,11 +292,11 @@ function startRadarAnimation() {
     const next = assessments[(idx + 1) % assessments.length];
 
     if (cycleT < HOLD_MS) {
-      renderRadar("radar-chart", null, caps, [curr]);
+      renderRadar("radar-chart", null, caps, [curr], { noLegend: true });
       drawAnimLabel(curr.label, formatDate(curr.date), 1);
     } else {
       const p = easeInOut((cycleT - HOLD_MS) / TRANS_MS);
-      renderRadar("radar-chart", null, caps, [interpolateAssessment(curr, next, p)]);
+      renderRadar("radar-chart", null, caps, [interpolateAssessment(curr, next, p)], { noLegend: true });
       if (p < 0.5) {
         drawAnimLabel(curr.label, formatDate(curr.date), 1 - p * 2);
       } else {

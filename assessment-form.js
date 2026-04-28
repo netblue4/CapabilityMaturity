@@ -173,22 +173,25 @@ function buildCapabilityFields() {
   const nonRiskMeasures = CONFIG.measures.filter(m => m.id !== 'risk');
   const riskMeasure     = CONFIG.measures.find(m => m.id === 'risk');
 
-  const navBtns = CONFIG.capabilities.map((cap, i) =>
-    `<button type="button" class="cap-nav-btn" onclick="document.getElementById('capcard-${cap.id}').scrollIntoView({behavior:'smooth',block:'start'})">
-      <span class="cap-nav-num">${i + 1}</span>${shortName(cap.name)}
-    </button>`
-  ).join('');
+  const capCheckboxes = CONFIG.capabilities.map((cap, i) => `
+    <label class="dimension-check-label">
+      <input type="checkbox" class="capability-check" value="${cap.id}" checked
+        onchange="updateDimensionVisibility()" />
+      <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--accent)">${i + 1}</span>
+      ${shortName(cap.name)}
+    </label>
+  `).join('');
 
-  const navCard = `
+  const capFilterCard = `
     <div class="card form-meta cap-nav-card">
       <div class="form-row" style="margin-bottom:0">
-        <label>Capability Navigator</label>
-        <div class="cap-nav-btns">${navBtns}</div>
+        <label>Capabilities to Rate</label>
+        <div class="dimension-checks">${capCheckboxes}</div>
       </div>
     </div>`;
 
-  container.innerHTML = navCard + CONFIG.capabilities.map(cap => `
-    <div class="card cap-card" id="capcard-${cap.id}">
+  container.innerHTML = capFilterCard + CONFIG.capabilities.map(cap => `
+    <div class="card cap-card" id="capcard-${cap.id}" data-capability="${cap.id}">
       <div class="cap-card-header">
         <div>
           <h3 class="cap-name">${cap.name}</h3>
@@ -229,12 +232,19 @@ function buildDimensionSelector() {
 }
 
 function updateDimensionVisibility() {
-  const checked = new Set(
+  const checkedDimensions = new Set(
     [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
   );
-  // Targets both .measure-block and .risk-mgmt-card via data-measure attribute
+  const checkedCaps = new Set(
+    [...document.querySelectorAll(".capability-check:checked")].map(el => el.value)
+  );
+  // Show/hide entire capability cards
+  document.querySelectorAll("[data-capability]").forEach(card => {
+    card.style.display = checkedCaps.has(card.dataset.capability) ? "" : "none";
+  });
+  // Show/hide measure blocks within each card (.measure-block and .risk-mgmt-card)
   document.querySelectorAll("[data-measure]").forEach(block => {
-    block.style.display = checked.has(block.dataset.measure) ? "" : "none";
+    block.style.display = checkedDimensions.has(block.dataset.measure) ? "" : "none";
   });
 }
 
@@ -281,6 +291,7 @@ function openAssessmentForm(id) {
   setDefaultDate();
 
   document.querySelectorAll(".dimension-check").forEach(cb => cb.checked = true);
+  document.querySelectorAll(".capability-check").forEach(cb => cb.checked = true);
 
   if (id) {
     const a = db.assessments.find(x => x.id === id);

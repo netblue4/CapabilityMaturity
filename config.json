@@ -37,10 +37,10 @@
   "measures": [
     {
       "id": "governance",
-      "name": "ICT Governance",
+      "name": "ICT Governance - Do we know what we need to do?",
       "icon": "⚖️",
       "color": "#9b59b6",
-      "description": "Do we know who does what? — Tracks whether Roles and Responsibilities are formally defined, owned and consistently performed. Without this foundation, risk cannot be managed and reporting has nothing to measure.",
+      "description": "Tracks whether Roles and Responsibilities are formally defined, owned and consistently performed. Without this foundation, risk cannot be managed and reporting has nothing to measure.",
       "levels": [
         {
           "level": 1,
@@ -71,11 +71,11 @@
     },
     {
       "id": "risk",
-      "name": "ICT Risk",
+      "name": "ICT Risk - What can go wrong if we don't do what we need we do?",
       "icon": "🛡️",
       "color": "#e74c3c",
       "type": "risk_profile",
-      "description": "Have we identified all the risks? — Tracks risk and control coverage against our Roles and Responsibilities, and whether gaps and findings feed back to update the Governance Profile — closing the improvement loop.",
+      "description": "Tracks risk and control coverage against our Roles and Responsibilities, and whether gaps and findings feed back to update the Governance Profile — closing the improvement loop.",
       "levels": [
         {
           "level": 1,
@@ -106,10 +106,10 @@
     },
     {
       "id": "reporting",
-      "name": "ICT Reporting",
+      "name": "ICT Reporting - Are we seeing the results we expect, and if not, why not?",
       "icon": "📊",
       "color": "#2ecc71",
-      "description": "Are we measuring what matters? — Tracks whether KPIs are grounded in our Roles and Responsibilities and risks, reported to management on schedule, and whether gaps trigger updates to the Governance Profile — completing the continuous improvement cycle.",
+      "description": "Tracks whether KPIs are grounded in our Roles and Responsibilities and risks, reported to management on schedule, and whether gaps trigger updates to the Governance Profile — completing the continuous improvement cycle.",
       "levels": [
         {
           "level": 1,

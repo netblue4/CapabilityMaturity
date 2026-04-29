@@ -206,11 +206,6 @@
       "description": "Assessment and ongoing management of risks introduced by third-party vendors, suppliers, and managed service providers."
     },
     {
-      "id": "transformation_mgmt",
-      "name": "ICT Transformation Management",
-      "description": "Planning and delivery of strategic ICT change programmes that modernise technology, ways of working, and service delivery."
-    },
-    {
       "id": "systems_adm",
       "name": "ICT Systems Acquisition, Development & Maintenance",
       "description": "Governance of the secure acquisition, development, testing, and ongoing maintenance of ICT systems and applications."

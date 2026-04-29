@@ -106,7 +106,7 @@
     },
     {
       "id": "reporting",
-      "name": "ICT Reporting - Is what we doing working well?",
+      "name": "ICT Reporting - Is what we do working well?",
       "icon": "📊",
       "color": "#2ecc71",
       "description": "Tracks whether KPIs are grounded in our Roles and Responsibilities and risks, reported to management on schedule, and whether gaps trigger updates to the Governance Profile — completing the continuous improvement cycle.",

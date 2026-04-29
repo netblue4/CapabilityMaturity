@@ -34,111 +34,111 @@
     }
   ],
 
-"measures": [
-  {
-	"id": "governance",
-	"name": "ICT Governance",
-	"icon": "⚖️",
-	"color": "#9b59b6",
-	"description": "Do we know who does what? — Tracks whether Roles and Responsibilities are formally defined, owned and consistently performed.",
-	"levels": [
-	  {
-		"level": 1,
-		"label": "Initial — No Roles and Responsibilities defined for this capability. Ownership is absent and activities are performed ad-hoc.",
-		"exit": "Define and document the most important Roles and Responsibilities for this capability. Assign at least one named owner."
-	  },
-	  {
-		"level": 2,
-		"label": "Managed — Roles and Responsibilities drafted and a named owner assigned. Not yet formally approved or consistently followed.",
-		"exit": "Obtain formal approval of the Roles and Responsibilities document. Confirm the owner accepts accountability and begins performing their responsibilities."
-	  },
-	  {
-		"level": 3,
-		"label": "Defined — Roles and Responsibilities formally approved and actively performed. Owner is accountable and responsibilities are consistently carried out.",
-		"exit": "Establish a regular review cycle for the Roles and Responsibilities document. Demonstrate that at least one review has occurred and that outcomes from Risk and Reporting have been considered."
-	  },
-	  {
-		"level": 4,
-		"label": "Quantitative — Roles and Responsibilities reviewed regularly. Performance is measured and outcomes from Risk and Reporting feed into each review.",
-		"exit": "Demonstrate that a Risk finding or a KPI gap has directly resulted in an update to the Roles and Responsibilities document, closing the improvement loop."
-	  },
-	  {
-		"level": 5,
-		"label": "Optimising — Roles and Responsibilities are continuously updated in response to Risk findings and KPI outcomes. The improvement loop is fully closed and embedded in practice.",
-		"exit": "No exit. This is the target state. Maintain through continuous review and demonstrate ongoing responsiveness to Risk and Reporting inputs."
-	  }
-	]
-  },
-  {
-	"id": "risk",
-	"name": "ICT Risk",
-	"icon": "🛡️",
-	"color": "#e74c3c",
-	"type": "risk_profile",
-	"description": "Have we identified all the risks? — Tracks risk and control coverage against our Roles and Responsibilities, and whether gaps trigger Governance Profile updates.",
-	"levels": [
-	  {
-		"level": 1,
-		"label": "Initial — No risks or controls documented against any Role or Responsibility for this capability.",
-		"exit": "Identify the most important Roles and Responsibilities for this capability and draft at least one risk and one control against each."
-	  },
-	  {
-		"level": 2,
-		"label": "Managed — Most important Roles and Responsibilities identified. Risks and controls drafted against them but not yet formally assessed.",
-		"exit": "Formally assess every drafted risk and control. Document the residual risk for each. Identify gaps where controls are missing or ineffective."
-	  },
-	  {
-		"level": 3,
-		"label": "Defined — All drafted risks and controls formally assessed. Residual risk documented. Treatment gaps and additional controls identified.",
-		"exit": "Implement all identified additional treatments and controls. Reassess residual risk for each responsibility after implementation."
-	  },
-	  {
-		"level": 4,
-		"label": "Quantitative — Additional treatments implemented and risks reassessed. Residual risk profile established and tracked.",
-		"exit": "Confirm all residual risks are within the defined tolerance. Establish a regular reassessment cycle and demonstrate at least one completed cycle."
-	  },
-	  {
-		"level": 5,
-		"label": "Optimising — All risks within tolerance. Continuous reassessment cycle active. Risk and control findings proactively feed back to Governance to update Roles and Responsibilities.",
-		"exit": "No exit. This is the target state. Maintain through continuous reassessment and demonstrate that risk findings are actively driving Governance updates."
-	  }
-	]
-  },
-  {
-	"id": "reporting",
-	"name": "ICT Reporting",
-	"icon": "📊",
-	"color": "#2ecc71",
-	"description": "Are we measuring what matters? — Tracks whether KPIs are grounded in our Roles and Responsibilities and risks, and whether gaps trigger Governance Profile updates.",
-	"levels": [
-	  {
-		"level": 1,
-		"label": "Initial — No KPIs defined for this capability. There is no visibility of whether Roles and Responsibilities are being performed or controls are working.",
-		"exit": "Define at least one KPI for this capability, grounded in the Roles and Responsibilities and the identified risks. Assign an owner responsible for measuring and reporting it."
-	  },
-	  {
-		"level": 2,
-		"label": "Managed — KPIs defined based on Roles and Responsibilities and identified risks. Not yet being measured or reported consistently.",
-		"exit": "Begin measuring all defined KPIs on a regular schedule. Produce at least one formal report showing KPI results and distribute it to relevant stakeholders."
-	  },
-	  {
-		"level": 3,
-		"label": "Defined — KPIs measured and reported periodically. Results are reviewed but exceptions are not yet formally escalated.",
-		"exit": "Establish a formal reporting schedule to management. Define escalation thresholds — when a KPI falls below an agreed level, a formal exception is raised and tracked."
-	  },
-	  {
-		"level": 4,
-		"label": "Quantitative — KPIs reported to management on schedule. Exceptions formally escalated and tracked. Reporting is reliable and consistent.",
-		"exit": "Demonstrate that a KPI gap or exception has directly triggered a review of the Governance Roles and Responsibilities document, closing the improvement loop."
-	  },
-	  {
-		"level": 5,
-		"label": "Optimising — KPI trends analysed proactively. Gaps and exceptions consistently drive updates to Governance Roles and Responsibilities. The improvement loop is fully closed.",
-		"exit": "No exit. This is the target state. Maintain through continuous KPI review and demonstrate ongoing responsiveness to reporting outcomes."
-	  }
-	]
-  }
-],
+  "measures": [
+    {
+      "id": "governance",
+      "name": "ICT Governance",
+      "icon": "⚖️",
+      "color": "#9b59b6",
+      "description": "Do we know who does what? — Tracks whether Roles and Responsibilities are formally defined, owned and consistently performed. Without this foundation, risk cannot be managed and reporting has nothing to measure.",
+      "levels": [
+        {
+          "level": 1,
+          "label": "Initial — No Roles and Responsibilities defined for this capability. Ownership is absent and activities are performed ad-hoc. Nobody is accountable if something goes wrong.",
+          "exit": "Define and document the most important Roles and Responsibilities for this capability. Assign at least one named owner who accepts accountability for ensuring those responsibilities are performed."
+        },
+        {
+          "level": 2,
+          "label": "Managed — Roles and Responsibilities have been drafted and a named owner assigned. The document exists but has not been formally approved and is not yet consistently followed in practice.",
+          "exit": "Obtain formal approval of the Roles and Responsibilities document from the appropriate authority. Confirm the owner accepts accountability and begins actively performing and enforcing their responsibilities."
+        },
+        {
+          "level": 3,
+          "label": "Defined — Roles and Responsibilities are formally approved and consistently performed. The owner is accountable and the organisation can demonstrate that responsibilities are being carried out.",
+          "exit": "Establish a formal review cycle for the Roles and Responsibilities document. Complete at least one review that considers inputs from the ICT Risk and Reporting dimensions — demonstrating the feedback loop has begun."
+        },
+        {
+          "level": 4,
+          "label": "Quantitative — Roles and Responsibilities are reviewed on a regular schedule. Each review considers risk findings and KPI outcomes and uses them to validate or update who is responsible and how.",
+          "exit": "Demonstrate that at least one Risk finding or KPI gap has directly resulted in a documented update to the Roles and Responsibilities — providing evidence that the continuous improvement loop is operating."
+        },
+        {
+          "level": 5,
+          "label": "Optimising — Roles and Responsibilities are continuously updated in response to Risk findings and KPI outcomes. The improvement loop is fully closed, embedded in practice and demonstrably driving better outcomes.",
+          "exit": "No exit. This is the target state. Maintain through continuous review and demonstrate ongoing responsiveness to inputs from the ICT Risk and Reporting dimensions."
+        }
+      ]
+    },
+    {
+      "id": "risk",
+      "name": "ICT Risk",
+      "icon": "🛡️",
+      "color": "#e74c3c",
+      "type": "risk_profile",
+      "description": "Have we identified all the risks? — Tracks risk and control coverage against our Roles and Responsibilities, and whether gaps and findings feed back to update the Governance Profile — closing the improvement loop.",
+      "levels": [
+        {
+          "level": 1,
+          "label": "Initial — No risks or controls have been identified against any Role or Responsibility for this capability. We do not yet know what could go wrong if our responsibilities are not performed.",
+          "exit": "Identify the most important Roles and Responsibilities for this capability. For each one, draft at least one risk describing what could go wrong if that responsibility is not performed, and at least one control to prevent or detect that failure."
+        },
+        {
+          "level": 2,
+          "label": "Managed — Risks and controls have been drafted against the most important Roles and Responsibilities. We know what could go wrong but have not yet formally validated whether our controls are adequate or assessed the residual risk.",
+          "exit": "Formally assess every drafted risk and control. For each risk, document the residual risk score after controls are applied. Identify Roles and Responsibilities where controls are missing, untested or ineffective — these are the gaps to treat."
+        },
+        {
+          "level": 3,
+          "label": "Defined — All drafted risks and controls have been formally assessed and approved. Risks and controls are documented in Riskonnect and included in the RCSA and CSA cycle. We have a clear and agreed picture of where we stand.",
+          "exit": "For every gap identified — missing controls, ineffective controls or unacceptable residual risk — define and implement a treatment action. Reassess the residual risk after each treatment is applied and document the updated position."
+        },
+        {
+          "level": 4,
+          "label": "Quantitative — Treatment actions have been implemented and residual risks reassessed. The risk profile for this capability is formally established, actively tracked and reported. We can demonstrate the impact of our risk management work.",
+          "exit": "Confirm that all residual risks are within the defined tolerance. Establish a formal reassessment cycle and complete at least one full cycle — then demonstrate that risk findings are being fed back to the Governance Profile to update Roles and Responsibilities."
+        },
+        {
+          "level": 5,
+          "label": "Optimising — All risks are within tolerance and the reassessment cycle is continuous and active. Risk and control findings proactively drive updates to the Governance Profile — the improvement loop is fully closed and self-sustaining.",
+          "exit": "No exit. This is the target state. Maintain through continuous reassessment and demonstrate that risk findings are actively and consistently driving updates to the Governance Profile."
+        }
+      ]
+    },
+    {
+      "id": "reporting",
+      "name": "ICT Reporting",
+      "icon": "📊",
+      "color": "#2ecc71",
+      "description": "Are we measuring what matters? — Tracks whether KPIs are grounded in our Roles and Responsibilities and risks, reported to management on schedule, and whether gaps trigger updates to the Governance Profile — completing the continuous improvement cycle.",
+      "levels": [
+        {
+          "level": 1,
+          "label": "Initial — No KPIs defined for this capability. There is no visibility of whether Roles and Responsibilities are being performed, whether controls are working, or whether outcomes are being achieved.",
+          "exit": "Define at least one KPI for this capability that is directly grounded in the Roles and Responsibilities and the identified risks. The KPI must measure something that tells you whether a responsibility is being performed or a control is working. Assign an owner responsible for measuring and reporting it."
+        },
+        {
+          "level": 2,
+          "label": "Managed — KPIs have been defined and are grounded in the Roles and Responsibilities and identified risks. They are not yet being measured consistently or reported to stakeholders.",
+          "exit": "Begin measuring all defined KPIs on a regular schedule. Produce at least one formal report showing KPI results and distribute it to relevant stakeholders — demonstrating that measurement is active and not just planned."
+        },
+        {
+          "level": 3,
+          "label": "Defined — KPIs are measured and reported periodically. Results reach the right stakeholders and are reviewed. There is now visibility of performance but gaps and exceptions are not yet formally escalated or acted upon.",
+          "exit": "Establish a formal reporting schedule and define escalation thresholds. When a KPI falls below an agreed level, a formal exception must be raised, tracked and assigned to an owner — creating accountability for the gap."
+        },
+        {
+          "level": 4,
+          "label": "Quantitative — KPIs are reported to management on a formal schedule. Exceptions are escalated, tracked and owned. Reporting is reliable, consistent and used to hold accountable those responsible for performance.",
+          "exit": "Demonstrate that at least one KPI gap or formal exception has directly triggered a review of the Governance Roles and Responsibilities document — providing evidence that reporting outcomes are feeding back into the improvement loop."
+        },
+        {
+          "level": 5,
+          "label": "Optimising — KPI trends are analysed proactively and gaps consistently drive updates to the Governance Profile. Reporting is no longer just measurement — it is the mechanism by which continuous improvement is sustained.",
+          "exit": "No exit. This is the target state. Maintain through continuous KPI review and demonstrate ongoing responsiveness — that reporting outcomes are actively and consistently driving updates to Roles and Responsibilities."
+        }
+      ]
+    }
+  ],
 
   "riskScoreMatrix": {
     "Extreme (28 to 40)": {

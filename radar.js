@@ -10,6 +10,36 @@ function buildRadarFilter() {
     </label>
   `).join("");
   updateCapFilterCount();
+  buildDimensionFilter();
+}
+
+// ── Radar Dimension Filter ────────────────────────────────────
+function buildDimensionFilter() {
+  const container = document.getElementById("radar-dimension-checkboxes");
+  if (!container) return;
+  container.innerHTML = CONFIG.measures.map(m => `
+    <label class="cap-filter-label">
+      <input type="checkbox" class="radar-dimension-check" value="${m.id}" checked
+        onchange="updateRadarFilter()" />
+      <span>${m.icon}</span> ${m.name}
+    </label>
+  `).join("");
+  updateDimensionFilterCount();
+}
+
+function updateDimensionFilterCount() {
+  const total = CONFIG.measures.length;
+  const checked = document.querySelectorAll(".radar-dimension-check:checked").length;
+  const el = document.getElementById("dimension-filter-count");
+  if (el) el.textContent = checked < total ? `${checked} / ${total}` : total;
+}
+
+function getSelectedDimensions() {
+  const checked = new Set(
+    [...document.querySelectorAll(".radar-dimension-check:checked")].map(el => el.value)
+  );
+  const selected = CONFIG.measures.filter(m => checked.has(m.id));
+  return selected.length > 0 ? selected : CONFIG.measures;
 }
 
 function updateCapFilterCount() {
@@ -65,8 +95,9 @@ function getSelectedAssessments() {
 function updateRadarFilter() {
   updateCapFilterCount();
   updateAssessmentFilterCount();
+  updateDimensionFilterCount();
   if (db.assessments.length === 0) return;
-  renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments());
+  renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments(), { dimensions: getSelectedDimensions() });
 }
 
 // ── Theme colour helper ───────────────────────────────────────
@@ -110,6 +141,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, op
 
   const assessmentList = assessmentsOverride || (assessment ? [assessment] : []);
   const multiMode = assessmentList.length > 1;
+  const measures = opts?.dimensions || CONFIG.measures;
 
   const COLORS = ["#94a3b8", "#a78bfa", "#34d399", "#fb923c", "#f472b6", "#60a5fa", "#fbbf24", "#f87171", "#4ade80", "#38bdf8"];
 
@@ -164,7 +196,10 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, op
     assessmentList.forEach((a, i) => {
       const isLatest = i === assessmentList.length - 1;
       const color = COLORS[i % COLORS.length];
-      const avgScores = caps.map(c => capAvgScore(a, c.id));
+      const avgScores = caps.map(c => {
+        const vals = measures.map(m => getMeasureScore(a, c.id, m.id)).filter(v => v > 0);
+        return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+      });
       ctx.beginPath();
       for (let j = 0; j < N; j++) {
         const ang = startAngle + j * angleStep;
@@ -193,7 +228,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, op
     const a = assessmentList[0];
     if (!a) return;
 
-    CONFIG.measures.forEach(m => {
+    measures.forEach(m => {
       const scores = caps.map(c => getMeasureScore(a, c.id, m.id) || 0);
       ctx.beginPath();
       for (let i = 0; i < N; i++) {
@@ -211,7 +246,10 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, op
       legendGroup1.push({ color: m.color, label: m.name });
     });
 
-    const avgScores = caps.map(c => capAvgScore(a, c.id));
+    const avgScores = caps.map(c => {
+      const vals = measures.map(m => getMeasureScore(a, c.id, m.id)).filter(v => v > 0);
+      return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+    });
     ctx.beginPath();
     for (let i = 0; i < N; i++) {
       const ang = startAngle + i * angleStep;
@@ -275,6 +313,7 @@ function startRadarAnimation() {
   if (btn) { btn.textContent = "⏹ Stop"; btn.classList.add("active"); }
 
   const caps = getSelectedRadarCaps();
+  const dimensions = getSelectedDimensions();
   const assessments = db.assessments;
   const HOLD_MS = 1500;
   const TRANS_MS = 700;
@@ -292,11 +331,11 @@ function startRadarAnimation() {
     const next = assessments[(idx + 1) % assessments.length];
 
     if (cycleT < HOLD_MS) {
-      renderRadar("radar-chart", null, caps, [curr], { noLegend: true });
+      renderRadar("radar-chart", null, caps, [curr], { noLegend: true, dimensions });
       drawAnimLabel(curr.label, formatDate(curr.date), 1);
     } else {
       const p = easeInOut((cycleT - HOLD_MS) / TRANS_MS);
-      renderRadar("radar-chart", null, caps, [interpolateAssessment(curr, next, p)], { noLegend: true });
+      renderRadar("radar-chart", null, caps, [interpolateAssessment(curr, next, p)], { noLegend: true, dimensions });
       if (p < 0.5) {
         drawAnimLabel(curr.label, formatDate(curr.date), 1 - p * 2);
       } else {

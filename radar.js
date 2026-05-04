@@ -106,7 +106,7 @@ function cssVar(name) {
 }
 
 // ── Radar HTML Legend ─────────────────────────────────────────
-function injectRadarLegend(canvasId, group1, group2) {
+/*function injectRadarLegend(canvasId, group1, group2) {
   const old = document.getElementById(canvasId + '-legend');
   if (old) old.remove();
   const canvas = document.getElementById(canvasId);
@@ -123,6 +123,46 @@ function injectRadarLegend(canvasId, group1, group2) {
     group1.map(it => itemHtml(it.color, it.label, 12)).join('') +
     group2.map(it => itemHtml(it.color, it.label, 10)).join('');
   canvas.parentNode.insertBefore(div, canvas.nextSibling);
+}*/
+
+function injectRadarLegend(canvasId, group1, group2) {
+  const old = document.getElementById(canvasId + '-legend');
+  if (old) old.remove();
+  
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !canvas.parentNode) return;
+
+  // 1. Ensure the parent is a flex container to align items side-by-side
+  const parent = canvas.parentNode;
+  parent.style.display = 'flex';
+  parent.style.flexDirection = 'row'; // Legend on left, Canvas on right
+  parent.style.alignItems = 'center';
+  parent.style.justifyContent = 'center';
+
+  function itemHtml(color, label, size) {
+    // Added 'display: flex' to the item for better vertical alignment
+    return `<div class="radar-legend-item" style="display:flex; align-items:center; margin-bottom:8px;">
+              <span class="radar-legend-swatch" style="width:${size}px; height:${size}px; background:${color}; margin-right:8px; flex-shrink:0;"></span>
+              <span style="font-size: 11px; white-space: nowrap;">${label}</span>
+            </div>`;
+  }
+
+  const div = document.createElement('div');
+  div.id = canvasId + '-legend';
+  div.className = 'radar-legend';
+  
+  // 2. Add some styling for vertical layout on the left
+  div.style.display = 'flex';
+  div.style.flexDirection = 'column';
+  div.style.marginRight = '20px'; // Space between legend and radar
+
+  div.innerHTML =
+    group1.map(it => itemHtml(it.color, it.label, 12)).join('') +
+    `<div style="height: 1px; background: rgba(255,255,255,0.1); margin: 10px 0;"></div>` + // Optional separator
+    group2.map(it => itemHtml(it.color, it.label, 10)).join('');
+
+  // 3. Insert BEFORE the canvas to put it on the left
+  parent.insertBefore(div, canvas);
 }
 
 // ── Radar Chart ───────────────────────────────────────────────

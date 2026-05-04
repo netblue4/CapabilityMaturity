@@ -333,7 +333,7 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, op
 
   // HTML legend — skipped during animation frames
   if (!opts?.noLegend) {
-    const legendGroup2 = CONFIG.levels.map(lv => ({ color: lv.color, label: `${lv.level}  ${lv.name}  ${lv.description}` }));
+    const legendGroup2 = CONFIG.levels.map(lv => ({ color: lv.color, label: `${lv.level}  ${lv.name}` }));
     injectRadarLegend(canvasId, legendGroup1, legendGroup2);
   }
 }

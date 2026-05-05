@@ -85,7 +85,7 @@
         {
           "level": 2,
           "label": "Managed — Risks and controls have been drafted against the most important Roles and Responsibilities. We know what could go wrong but have not yet formally validated whether our controls are adequate or assessed the residual risk.",
-          "exit": "Formally assess every drafted risk and control. For each risk, document the residual risk score after controls are applied. Identify Roles and Responsibilities where controls are missing, untested or ineffective — these are the gaps to treat."
+          "exit": "Formally assess every drafted risk and control. Document in Riskonnect and included in the RCSA and CSA cycle."
         },
         {
           "level": 3,

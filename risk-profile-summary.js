@@ -85,9 +85,9 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
         <td>${currentBadge}</td>
         <td>${targetBadge}</td>
         <td style="white-space:nowrap">${statusHtml}</td>
-        <td style="mix-width:400px">${exitHtml}</td>
+        <td style="min-width:350px">${exitHtml}</td>
         <td style="width:70px;text-align:right;white-space:nowrap">${timeHtml}</td>
-        <td style="max-width:220px">${noteHtml}</td>
+        <td style="min-width:270px">${noteHtml}</td>
       </tr>`;
   }).join('');
 

@@ -81,11 +81,11 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 
     return `
       <tr>
-        <td style="font-size:0.85rem;font-weight:600;min-width:100px">${shortName(cap.name)}</td>
+        <td style="font-size:0.85rem;font-weight:600;min-width:160px">${shortName(cap.name)}</td>
         <td>${currentBadge}</td>
         <td>${targetBadge}</td>
         <td style="white-space:nowrap">${statusHtml}</td>
-        <td style="max-width:400px">${exitHtml}</td>
+        <td style="max-width:380px">${exitHtml}</td>
         <td style="width:70px;text-align:right;white-space:nowrap">${timeHtml}</td>
         <td style="max-width:220px">${noteHtml}</td>
       </tr>`;
@@ -207,13 +207,13 @@ function renderRiskManagementCard(assessment) {
 
     return `
       <tr>
-        <td style="font-size:0.85rem;font-weight:600;min-width:100px">${shortName(cap.name)}</td>
+        <td style="font-size:0.85rem;font-weight:600;min-width:160px">${shortName(cap.name)}</td>
         <td>${ratingBadge(residual)}</td>
         <td>${ratingBadge(appetite)}</td>
         <td style="text-align:center">${openRisksHtml}</td>
         <td style="text-align:center">${risksAssessedHtml}</td>
         <td>${controlsHtml}</td>
-        <td style="max-width:360px">${noteHtml}</td>
+        <td style="max-width:260px">${noteHtml}</td>
       </tr>`;
   }).join('');
 

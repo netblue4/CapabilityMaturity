@@ -59,7 +59,7 @@
         },
         {
           "level": 4,
-          "label": "Quantitative — Roles and Responsibilities are reviewed on a regular schedule. Each review considers risk findings and KPI outcomes and uses them to validate or update who is responsible and how.",
+          "label": "Measured — Roles and Responsibilities are reviewed on a regular schedule. Each review considers risk findings and KPI outcomes and uses them to validate or update who is responsible and how.",
           "exit": "Demonstrate that at least one Risk finding or KPI gap has directly resulted in a documented update to the Roles and Responsibilities — providing evidence that the continuous improvement loop is operating."
         },
         {
@@ -94,7 +94,7 @@
         },
         {
           "level": 4,
-          "label": "Quantitative — Treatment actions have been implemented and residual risks reassessed. The risk profile for this capability is formally established, actively tracked and reported. We can demonstrate the impact of our risk management work.",
+          "label": "Measured — Treatment actions have been implemented and residual risks reassessed. The risk profile for this capability is formally established, actively tracked and reported. We can demonstrate the impact of our risk management work.",
           "exit": "Confirm that all residual risks are within the defined tolerance. Establish a formal reassessment cycle and complete at least one full cycle — then demonstrate that risk findings are being fed back to the Governance Profile to update Roles and Responsibilities."
         },
         {
@@ -128,7 +128,7 @@
         },
         {
           "level": 4,
-          "label": "Quantitative — KPIs are reported to management on a formal schedule. Exceptions are escalated, tracked and owned. Reporting is reliable, consistent and used to hold accountable those responsible for performance.",
+          "label": "Measured — KPIs are reported to management on a formal schedule. Exceptions are escalated, tracked and owned. Reporting is reliable, consistent and used to hold accountable those responsible for performance.",
           "exit": "Demonstrate that at least one KPI gap or formal exception has directly triggered a review of the Governance Roles and Responsibilities document — providing evidence that reporting outcomes are feeding back into the improvement loop."
         },
         {

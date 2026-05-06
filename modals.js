@@ -13,7 +13,7 @@ function showRatingsModal(measureId) {
       ${CONFIG.levels.map(lv => {
         const label = m ? (m.levels.find(l => l.level === lv.level) || {}).label : null;
         return `<div class="modal-level-row">
-         <span class="lvl-badge" style="background-color:${lv.color}; display:inline-block; min-width:105px; text-align:center">
+         <span class="lvl-badge" style="border-color:${lv.color}; display:inline-block; min-width:105px; text-align:center">
             ${lv.level}-${lv.name}
           </span>
           

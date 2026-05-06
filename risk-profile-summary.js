@@ -81,7 +81,7 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 
     return `
       <tr>
-        <td style="font-size:0.85rem;font-weight:600;max-width:100px">${shortName(cap.name)}</td>
+        <td style="font-size:0.85rem;font-weight:600;max-width:200px">${shortName(cap.name)}</td>
         <td>${currentBadge}</td>
         <td>${targetBadge}</td>
         <td style="white-space:nowrap">${statusHtml}</td>

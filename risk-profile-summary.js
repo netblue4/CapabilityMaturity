@@ -222,7 +222,7 @@ function renderRiskManagementCard(assessment) {
       <span style="color:var(--clr-success)">✓ ${totalEffective}</span>
       <span style="color:var(--clr-warning)">◑ ${totalPartial}</span>
       <span style="color:var(--clr-danger)">○ ${totalNotAssessed}</span>
-      <span style="color:var(--text-muted)">· ${totalOpenRisks} open · ${totalRisksAssessed} assessed</span>
+      <span style="color:var(--text-muted)">· ${totalOpenRisks} risks · ${totalRisksAssessed} assessed</span>
     </span>`;
 
   return `
@@ -233,7 +233,7 @@ function renderRiskManagementCard(assessment) {
             <span class="profile-card-chevron">▶</span>
             <span style="font-size:1.3rem;line-height:1;flex-shrink:0">🛡️</span>
             <div>
-              <div class="profile-card-title">ICT Risk Management</div>
+              <div class="profile-card-title">ICT RCSA & CSA</div>
               <div class="profile-card-subtitle">Residual risk, appetite and control effectiveness</div>
             </div>
           </div>
@@ -245,7 +245,7 @@ function renderRiskManagementCard(assessment) {
                 <th>Capability</th>
                 <th>Residual Risk</th>
                 <th>Risk Appetite</th>
-                <th style="text-align:center">Open Risks</th>
+                <th style="text-align:center">Risks Identified</th>
                 <th style="text-align:center">Risks Assessed</th>
                 <th>Controls</th>
                 <th>Notes</th>

@@ -81,11 +81,11 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
 
     return `
       <tr>
-        <td style="font-size:0.85rem;font-weight:600;min-width:100px">${shortName(cap.name)}</td>
+        <td style="font-size:0.85rem;font-weight:600;max-width:100px">${shortName(cap.name)}</td>
         <td>${currentBadge}</td>
         <td>${targetBadge}</td>
         <td style="white-space:nowrap">${statusHtml}</td>
-        <td style="max-width:400px">${exitHtml}</td>
+        <td style="mix-width:400px">${exitHtml}</td>
         <td style="width:70px;text-align:right;white-space:nowrap">${timeHtml}</td>
         <td style="max-width:220px">${noteHtml}</td>
       </tr>`;

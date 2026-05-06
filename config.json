@@ -44,12 +44,12 @@
       "levels": [
         {
           "level": 1,
-          "label": "Initial — No Roles and Responsibilities defined for this capability. Ownership is absent and activities are performed ad-hoc. Nobody is accountable if something goes wrong.",
+          "label": " — No Roles and Responsibilities defined for this capability. Ownership is absent and activities are performed ad-hoc. Nobody is accountable if something goes wrong.",
           "exit": "Define and document the most important Roles and Responsibilities for this capability. Assign at least one named owner who accepts accountability for ensuring those responsibilities are performed."
         },
         {
           "level": 2,
-          "label": "Managed — Roles and Responsibilities have been drafted and a named owner assigned. The document exists but has not been formally approved and is not yet consistently followed in practice.",
+          "label": " — Roles and Responsibilities have been drafted and a named owner assigned. The document exists but has not been formally approved and is not yet consistently followed in practice.",
           "exit": "Obtain formal approval of the Roles and Responsibilities document from the appropriate authority. Confirm the owner accepts accountability and begins actively performing and enforcing their responsibilities."
         },
         {
@@ -59,7 +59,7 @@
         },
         {
           "level": 4,
-          "label": "Measured — Roles and Responsibilities are reviewed on a regular schedule. Each review considers risk findings and KPI outcomes and uses them to validate or update who is responsible and how.",
+          "label": " — Roles and Responsibilities are reviewed on a regular schedule. Each review considers risk findings and KPI outcomes and uses them to validate or update who is responsible and how.",
           "exit": "Demonstrate that at least one Risk finding or KPI gap has directly resulted in a documented update to the Roles and Responsibilities — providing evidence that the continuous improvement loop is operating."
         },
         {

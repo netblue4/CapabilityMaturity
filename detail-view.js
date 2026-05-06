@@ -168,11 +168,11 @@ function viewAssessment(id) {
         }
 
         const statBoxes = `<div class="detail-stat-row">
-          ${statBox(totalOpenRisks,     'Open Risks',              openRisksColor(totalOpenRisks))}
-          ${statBox(totalAssessedRisks, 'Assessed Risks',          totalAssessedRisks > 0 ? 'var(--clr-success)' : 'var(--text-muted)')}
-          ${statBox(totalNotAssessed,   'Not Assessed Controls',   totalNotAssessed > 0 ? 'var(--clr-danger)'  : 'var(--clr-success)')}
-          ${statBox(totalPartial,       'Partial Controls',        totalPartial    > 0 ? 'var(--clr-warning)' : 'var(--clr-success)')}
-          ${statBox(totalEffective,     'Effective Controls',      'var(--clr-success)')}
+          ${statBox(totalAssessedRisks, 'Risks - Assessed',          totalAssessedRisks > 0 ? 'var(--clr-success)' : 'var(--text-muted)')}
+          ${statBox(totalOpenRisks - totalAssessedRisks,     'Risks - Not Assessed',              openRisksColor(totalOpenRisks - totalAssessedRisks))}
+          ${statBox(totalNotAssessed,   'Controls - Not Assessed',   totalNotAssessed > 0 ? 'var(--clr-danger)'  : 'var(--clr-success)')}
+          ${statBox(totalPartial,       'Controls - Part. Effective',        totalPartial    > 0 ? 'var(--clr-warning)' : 'var(--clr-success)')}
+          ${statBox(totalEffective,     'Controls - Effective',      'var(--clr-success)')}
         </div>`;
 
         const riskCapRows = allRm
@@ -210,7 +210,7 @@ function viewAssessment(id) {
           `<span style="color:var(--clr-danger)">○${totalNotAssessed}</span>` +
           `<span style="color:var(--clr-warning)">◑${totalPartial}</span>` +
           `<span style="color:var(--clr-success)">✓${totalEffective}</span>` +
-          `<span style="color:var(--text-muted)">· ${totalOpenRisks} open</span>` +
+          `<span style="color:var(--text-muted)">· ${totalOpenRisks} risks</span>` +
           `</span>`;
 
         return `${statBoxes}
@@ -219,7 +219,7 @@ function viewAssessment(id) {
               <th style="${thStyle}">Capability</th>
               <th style="${thStyle}">Residual</th>
               <th style="${thStyle}">Appetite</th>
-              <th style="${thStyle}">Open</th>
+              <th style="${thStyle}">Risks</th>
               <th style="${thStyle}">Assessed</th>
               <th style="${thStyle}">Controls</th>
             </tr></thead>
@@ -234,7 +234,7 @@ function viewAssessment(id) {
   const riskSnapshot = `
     <div class="card" style="margin-bottom:0">
       <div class="card-title" style="margin-bottom:0.25rem">ICT RISK MANAGEMENT SNAPSHOT</div>
-      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem">Open risks and control effectiveness across all capabilities</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem">Identified risks and control effectiveness across all capabilities</div>
       ${riskSnapshotContent}
     </div>`;
 

@@ -15,7 +15,10 @@ function showRatingsModal(measureId) {
         return `<div class="modal-level-row">
           <span class="lvl-badge" style="background:${lv.color};min-width:105px;text-align:center">${lv.level}-${lv.name}</span>
           <div>
-            ${label ? `<div class="modal-level-label">${label}</div>` : ""}
+            ${label 
+              ? `<div class="modal-level-label">${label}</div>` 
+              : `<div class="modal-level-desc">${lv.description}</div>`
+            }
           </div>
         </div>`;
       }).join("")}

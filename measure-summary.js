@@ -254,7 +254,7 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">🛡️</span>
         <div>
-          <h3 class="measure-card-title">ICT Risk Management - Are we treating the risks we've identified?</h3>
+          <h3 class="measure-card-title">ICT RCSA & CSA - Risk Management</h3>
           <p class="measure-card-desc">· RCSA Δ = risks assessed · CSA Δ = controls not assessed</p>
         </div>
         <span class="measure-avg-badge" style="background:${badgeBg}">

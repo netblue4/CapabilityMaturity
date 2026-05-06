@@ -37,10 +37,10 @@
   "measures": [
     {
       "id": "governance",
-      "name": "ICT Governance - Do we know what we need to do?",
+      "name": "ICT Governance Profile - Authority and Accountability",
       "icon": "⚖️",
       "color": "#9b59b6",
-      "description": "Tracks whether Roles and Responsibilities are formally defined, owned and consistently performed. Without this foundation, risk cannot be managed and reporting has nothing to measure.",
+      "description": "To establish a structured framework of authority and accountability, by tracking whether Roles and Responsibilities are formally defined, owned and consistently performed.",
       "levels": [
         {
           "level": 1,
@@ -71,11 +71,11 @@
     },
     {
       "id": "risk",
-      "name": "ICT Risk - What happens if we don't do what we need we do?",
+      "name": "ICT Risk Profile - Holistic Risk Coverage ",
       "icon": "🛡️",
       "color": "#e74c3c",
       "type": "risk_profile",
-      "description": "Tracks risk and control coverage against our Roles and Responsibilities, and whether gaps and findings feed back to update the Governance Profile — closing the improvement loop.",
+      "description": "To ensure holistic risk coverage across the entire ICT capability lifecycle, by tracking risk and control coverage against our Roles and Responsibilities, and whether gaps feed back to update the Governance Profile.",
       "levels": [
         {
           "level": 1,
@@ -106,10 +106,10 @@
     },
     {
       "id": "reporting",
-      "name": "ICT Reporting - Is what we do working well?",
+      "name": "ICT Reporting Profile - Transparent, Accurate, and Timely Insights",
       "icon": "📊",
       "color": "#2ecc71",
-      "description": "Tracks whether KPIs are grounded in our Roles and Responsibilities and risks, reported to management on schedule, and whether gaps trigger updates to the Governance Profile — completing the continuous improvement cycle.",
+      "description": "To provide transparent, accurate, and timely insights into ICT performance and risk posture, by tracking whether KPIs are grounded in our Roles and Responsibilities and risks, and whether gaps trigger updates to the Governance profile.",
       "levels": [
         {
           "level": 1,

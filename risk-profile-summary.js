@@ -1,3 +1,12 @@
+// ── Compact Export Toggle ─────────────────────────────────────
+
+function toggleCompactExport() {
+  const container = document.getElementById('profile-cards-container');
+  const btn = document.getElementById('compact-export-btn');
+  const isCompact = container.classList.toggle('compact-export');
+  btn.textContent = isCompact ? '⊟ Normal View' : '⊞ Compact Export View';
+}
+
 // ── Profile Cards ─────────────────────────────────────────────
 
 function renderProfileCards(assessment) {

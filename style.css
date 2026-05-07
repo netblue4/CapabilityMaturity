@@ -1118,6 +1118,45 @@ details[open] .profile-card-chevron {
   font-size: 0.75rem;
 }
 
+/* ── Compact Export Mode (screenshot-to-PowerPoint) ─────── */
+.profile-cards-container.compact-export {
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+.profile-cards-container.compact-export .profile-card {
+  padding: 0.45rem 0.7rem;
+}
+.profile-cards-container.compact-export .profile-card-title {
+  font-size: 0.82rem;
+  margin-bottom: 0.05rem;
+}
+.profile-cards-container.compact-export .profile-card-subtitle {
+  font-size: 0.67rem;
+}
+.profile-cards-container.compact-export .profile-table {
+  font-size: 0.72rem;
+}
+.profile-cards-container.compact-export .profile-table th {
+  font-size: 0.57rem;
+  padding: 0.18rem 0.35rem;
+}
+.profile-cards-container.compact-export .profile-table td {
+  padding: 0.15rem 0.35rem;
+}
+.profile-cards-container.compact-export .profile-table tfoot td {
+  padding-top: 0.25rem;
+  font-size: 0.63rem;
+}
+.profile-cards-container.compact-export .controls-summary {
+  gap: 0;
+  line-height: 1.25;
+  font-size: 0.65rem;
+}
+.profile-cards-container.compact-export .lvl-badge {
+  font-size: 0.63rem;
+  padding: 0.08rem 0.35rem;
+}
+
 /* ── Status Badge ────────────────────────────────────────── */
 .status-badge {
   display: inline-block;

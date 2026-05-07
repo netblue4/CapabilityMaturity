@@ -79,12 +79,12 @@
 /* ── Light theme overrides ───────────────────────────────────── */
 [data-theme="light"] {
   --bg:              #f0f4f8;
-  --bg2:             #ffffff;
+  --bg2:             #ebeced;
   --bg3:             #e8edf3;
   --border:          rgba(0,0,0,0.08);
   --border-subtle:   rgba(0,0,0,0.05);
-  --text:            #1a202c;
-  --text-muted:      #64748b;
+  --text:            #090b0f;
+  --text-muted:      #303236;
   --accent:          #2a5fa8;
   --danger:          #8c3a36;
 

@@ -80,7 +80,7 @@
 [data-theme="light"] {
   --bg:              #f0f4f8;
   --bg2:             #ebeced;
-  --bg3:             #e8edf3;
+  --bg3:             #f0f4f8;
   --border:          rgba(0,0,0,0.08);
   --border-subtle:   rgba(0,0,0,0.05);
   --text:            #090b0f;

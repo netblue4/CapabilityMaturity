@@ -259,7 +259,6 @@ function viewAssessment(id) {
           ${filledBadge(score)}
           ${target > 0 ? `<span style="color:var(--text-muted)">→</span>${outlinedBadge(target)}` : ''}
         </div>
-        ${truncNote ? `<div style="font-size:0.75rem;color:var(--text-muted);font-style:italic;line-height:1.4">${truncNote}</div>` : ''}
       </div>`;
     }).join('');
 

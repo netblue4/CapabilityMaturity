@@ -71,7 +71,7 @@
     },
     {
       "id": "risk",
-      "name": "ICT Risk Profile - Holistic Risk Coverage ",
+      "name": "ICT Risk Profile - Holistic Risk Coverage of Capability Lifecycle",
       "icon": "🛡️",
       "color": "#e74c3c",
       "type": "risk_profile",

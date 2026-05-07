@@ -128,7 +128,7 @@ function renderMaturityProfileCard(assessment, measureId, title, accentColour) {
           <button class="btn-link ratings-link" style="margin:0" onclick="event.stopPropagation();${ratingsOnclick}">ℹ Ratings</button>
         </summary>
         <div style="overflow-x:auto;margin-top:1.25rem">
-          <table class="profile-table">
+          <table class="profile-table maturity-table">
             <thead>
               <tr>
                 <th>Capability</th>

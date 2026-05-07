@@ -1189,6 +1189,19 @@ details[open] .profile-card-chevron {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* Hide Est. Time (col 6) and Notes (col 7) from maturity cards only */
+  .maturity-table th:nth-child(6),
+  .maturity-table td:nth-child(6),
+  .maturity-table th:nth-child(7),
+  .maturity-table td:nth-child(7) {
+    display: none !important;
+  }
+  /* Let Exit Condition column (col 5) expand freely */
+  .maturity-table td:nth-child(5) {
+    max-width: none !important;
+    width: auto !important;
+  }
 }
 
 /* ── Compact Export Mode (screenshot-to-PowerPoint) ─────── */

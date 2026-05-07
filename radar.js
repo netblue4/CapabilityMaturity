@@ -135,9 +135,9 @@ function injectRadarLegend(canvasId, group1, group2) {
   if (!canvas || !container) return;
 
   function itemHtml(color, label, size) {
-    return `<div class="radar-legend-item" style="display:flex; align-items:center; margin-bottom:12px; color:#94a3b8; font-family:'DM Sans', sans-serif;">
-              <span class="radar-legend-swatch" style="width:${size}px; height:${size}px; background:${color}; margin-right:10px; border-radius:2px; flex-shrink:0;"></span>
-              <span style="font-size: 12px; white-space: nowrap;">${label}</span>
+    return `<div class="radar-legend-item" style="display:flex; align-items:flex-start; margin-bottom:12px; color:#94a3b8; font-family:'DM Sans', sans-serif;">
+              <span class="radar-legend-swatch" style="width:${size}px; height:${size}px; background:${color}; margin-right:10px; margin-top:3px; border-radius:2px; flex-shrink:0;"></span>
+              <span style="font-size: 12px; line-height:1.4;">${label}</span>
             </div>`;
   }
 
@@ -145,8 +145,9 @@ function injectRadarLegend(canvasId, group1, group2) {
   div.id = canvasId + '-legend';
   div.style.display = 'flex';
   div.style.flexDirection = 'column';
-  div.style.marginRight = '40px'; // Space between legend and radar
-  div.style.paddingLeft = '20px';
+  div.style.marginRight = '24px';
+  div.style.maxWidth = '160px';
+  div.style.flexShrink = '0';
 
   div.innerHTML =
     group1.map(it => itemHtml(it.color, it.label, 12)).join('') +

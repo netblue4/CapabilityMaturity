@@ -251,7 +251,7 @@ function viewAssessment(id) {
       const target = getMeasureTarget(a, cap.id, m.id);
       const note   = getMeasureNote(a, cap.id, m.id) || '';
       const truncNote = note.length > 120 ? note.slice(0, 120) + '...' : note;
-      return `<div class="detail-measure-col">
+      return `<div class="detail-measure-col" data-measure="${m.id}">
         <div class="detail-measure-col-header">
           <span>${m.icon}</span><span>${m.name}</span>
         </div>
@@ -284,7 +284,7 @@ function viewAssessment(id) {
         ? `<div style="font-size:0.78rem;color:var(--accent);font-family:var(--font-mono)">${timeEst}</div>`
         : `<span style="font-size:0.78rem;color:var(--text-muted)">—</span>`;
 
-      return `<div class="detail-exit-row">
+      return `<div class="detail-exit-row" data-measure="${m.id}">
         <div class="detail-exit-measure-name">${shortLabels[m.id] || m.id.toUpperCase()}</div>
         <div class="detail-exit-condition">${condHtml}</div>
         <div class="detail-exit-time">
@@ -294,7 +294,7 @@ function viewAssessment(id) {
       </div>`;
     }).join('');
 
-    return `<div class="detail-capability-card">
+    return `<div class="detail-capability-card" data-capability="${cap.id}">
       <div class="detail-cap-header">
         <div style="font-weight:700;font-size:0.95rem">${cap.name}</div>
         ${filledAvgBadge(capAvg, '0.78rem', '0.2rem 0.6rem')}
@@ -307,10 +307,76 @@ function viewAssessment(id) {
 
   const capsGrid = `<div class="detail-caps-grid">${capCards}</div>`;
 
-  content.innerHTML = headerCard + radarCard + snapshotGrid + capsGrid;
+  const allCapCheckbox = `
+    <label class="dimension-check-label" style="border-color:var(--accent)">
+      <input type="checkbox" id="detail-cap-all" checked onchange="detailToggleAllCaps(this)" />
+      <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--accent)">ALL</span>
+    </label>`;
+
+  const capCheckboxes = CONFIG.capabilities.map((cap, i) => `
+    <label class="dimension-check-label">
+      <input type="checkbox" class="detail-cap-check" value="${cap.id}" checked onchange="detailFilterUpdate()" />
+      <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--accent)">${i + 1}</span>
+      ${shortName(cap.name)}
+    </label>`).join('');
+
+  const dimCheckboxes = CONFIG.measures.map(m => `
+    <label class="dimension-check-label">
+      <input type="checkbox" class="detail-dim-check" value="${m.id}" checked onchange="detailFilterUpdate()" />
+      <span>${m.icon}</span> ${m.name}
+    </label>`).join('');
+
+  const filterBar = `
+    <div class="card form-meta cap-nav-card" style="margin-bottom:0.75rem">
+      <div class="form-row" style="margin-bottom:0.5rem">
+        <label>Capabilities</label>
+        <div class="dimension-checks">${allCapCheckbox}${capCheckboxes}</div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>Dimensions</label>
+        <div class="dimension-checks">${dimCheckboxes}</div>
+      </div>
+    </div>`;
+
+  content.innerHTML = headerCard + radarCard + snapshotGrid + filterBar + capsGrid;
 
   showView("detail");
   setTimeout(() => renderRadar("detail-radar-canvas", a), 60);
+}
+
+// ── Detail View — Capability / Dimension Filters ─────────────
+
+function detailFilterUpdate() {
+  const checkedCaps = new Set([...document.querySelectorAll('.detail-cap-check:checked')].map(el => el.value));
+  const checkedDims = new Set([...document.querySelectorAll('.detail-dim-check:checked')].map(el => el.value));
+
+  document.querySelectorAll('.detail-capability-card[data-capability]').forEach(card => {
+    card.style.display = checkedCaps.has(card.dataset.capability) ? '' : 'none';
+  });
+
+  document.querySelectorAll('.detail-measure-col[data-measure]').forEach(col => {
+    col.style.display = checkedDims.has(col.dataset.measure) ? '' : 'none';
+  });
+
+  document.querySelectorAll('.detail-exit-row[data-measure]').forEach(row => {
+    row.style.display = checkedDims.has(row.dataset.measure) ? '' : 'none';
+  });
+
+  detailSyncAllCapCheckbox();
+}
+
+function detailToggleAllCaps(cb) {
+  document.querySelectorAll('.detail-cap-check').forEach(c => { c.checked = cb.checked; });
+  detailFilterUpdate();
+}
+
+function detailSyncAllCapCheckbox() {
+  const allCb  = document.getElementById('detail-cap-all');
+  if (!allCb) return;
+  const total   = document.querySelectorAll('.detail-cap-check').length;
+  const checked = document.querySelectorAll('.detail-cap-check:checked').length;
+  allCb.indeterminate = checked > 0 && checked < total;
+  allCb.checked = checked === total;
 }
 
 function deleteCurrentAssessment() {

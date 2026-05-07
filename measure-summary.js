@@ -34,17 +34,19 @@ function renderMeasureSummary(assessment) {
         const targetAvg = targets.length ? targets.reduce((a,b) => a+b,0) / targets.length : 0;
         const prevAvg = prev ? capAvgScore(prev, cap.id) : 0;
         const delta = avg > 0 && prevAvg > 0 ? avg - prevAvg : null;
+        const atTarget = avg > 0 && targetAvg > 0 && avg >= targetAvg;
         const directionHtml = delta !== null
           ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}" style="font-size:.75rem">${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta).toFixed(1) : ''}</span>`
           : `<span class="delta delta-flat" style="font-size:.75rem">●</span>`;
+        const valColor  = atTarget ? 'color:var(--clr-success);font-weight:600' : 'color:var(--text-muted)';
         return `<div class="score-row">
           <span class="score-cap-name" title="${cap.name}">${shortName(cap.name)}</span>
           <div class="score-bar-wrap" style="flex:2">
             <div class="score-bar" style="width:${(avg/5)*100}%;background:${lv ? lv.color : 'var(--clr-bar-default)'}"></div>
           </div>
-          <span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? avg.toFixed(1) : '—'}</span>
+          <span style="min-width:55px;text-align:center;font-size:.85rem;${valColor};font-family:var(--font-body)">${avg > 0 ? avg.toFixed(1) : '—'}</span>
           <span style="width:48px;text-align:center;flex-shrink:0">${directionHtml}</span>
-          <span style="min-width:55px;text-align:center;font-size:.85rem;color:var(--text-muted);font-family:var(--font-body)">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span>
+          <span style="min-width:55px;text-align:center;font-size:.85rem;${valColor};font-family:var(--font-body)">${avg > 0 ? targetAvg.toFixed(1) : '—'}</span>
         </div>`;
       }).join("")}
       <div class="avg-score">
@@ -80,18 +82,20 @@ function renderMeasureSummary(assessment) {
       const ps = prevScores ? prevScores[i] : 0;
       const t = getMeasureTarget(assessment, cap.id, m.id) || 0;
       const lv = levelForScore(s);
+      const atTarget = s === 5 || (s > 0 && t > 0 && s >= t);
       const delta = s > 0 && ps > 0 ? s - ps : null;
       const deltaInner = delta !== null
         ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}">${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta).toFixed(1) : ''}</span>`
         : `<span class="delta delta-flat">●</span>`;
+      const valStyle = atTarget ? ' style="color:var(--clr-success);font-weight:600"' : '';
       return `<div class="mini-bar-row">
         <span class="mini-bar-label">${shortName(cap.name)}</span>
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : 'var(--clr-fill-dark)'}"></div>
         </div>
-        <span class="mini-bar-val">${s.toFixed(1) || '—'}</span>
+        <span class="mini-bar-val"${valStyle}>${s > 0 ? s.toFixed(1) : '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>
-        <span class="mini-bar-target">${t > 0 ? t.toFixed(1) : '—'}</span>
+        <span class="mini-bar-target"${atTarget && t > 0 ? valStyle : ''}>${t > 0 ? t.toFixed(1) : '—'}</span>
       </div>`;
     }).join("");
 

@@ -145,8 +145,8 @@ function injectRadarLegend(canvasId, group1, group2) {
   div.id = canvasId + '-legend';
   div.style.display = 'flex';
   div.style.flexDirection = 'column';
-  div.style.marginRight = '24px';
-  div.style.maxWidth = '300px';
+  div.style.marginRight = '18px'; // Space between legend and radar
+  div.style.maxWidth = '250px';
   div.style.flexShrink = '0';
 
   div.innerHTML =

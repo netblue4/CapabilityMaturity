@@ -1,10 +1,19 @@
-// ── Compact Export Toggle ─────────────────────────────────────
+// ── Export for PowerPoint ─────────────────────────────────────
 
-function toggleCompactExport() {
-  const container = document.getElementById('profile-cards-container');
-  const btn = document.getElementById('compact-export-btn');
-  const isCompact = container.classList.toggle('compact-export');
-  btn.textContent = isCompact ? '⊟ Normal View' : '⊞ Compact Export View';
+function exportForPowerPoint() {
+  const details = document.querySelectorAll('#profile-cards-container details');
+  const wasOpen = Array.from(details).map(d => d.open);
+
+  // Open all collapsed cards so content prints
+  details.forEach(d => d.setAttribute('open', ''));
+
+  // Restore state after the print dialog closes
+  window.addEventListener('afterprint', function restore() {
+    details.forEach((d, i) => { if (!wasOpen[i]) d.removeAttribute('open'); });
+    window.removeEventListener('afterprint', restore);
+  });
+
+  window.print();
 }
 
 // ── Profile Cards ─────────────────────────────────────────────

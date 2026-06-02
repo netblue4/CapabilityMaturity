@@ -125,46 +125,55 @@ function cssVar(name) {
   canvas.parentNode.insertBefore(div, canvas.nextSibling);
 }*/
 
-function injectRadarLegend(canvasId, group1, group2, group3) {
-  const old = document.getElementById(canvasId + '-legend');
-  if (old) old.remove();
+// assessmentItems — quarter/assessment labels (top-right corner, multi-mode only)
+// dimensionItems  — governance/risk/reporting colours (below chart, always)
+// maturityItems   — 1-5 maturity levels (left panel, always)
+function injectRadarLegend(canvasId, assessmentItems, dimensionItems, maturityItems) {
+  // Clean up all previously injected legend nodes
+  document.getElementById(canvasId + '-legend')?.remove();
+  document.querySelectorAll('[data-radar-legend]').forEach(el => el.remove());
 
   const canvas = document.getElementById(canvasId);
-  // Target the specific container we created in the HTML
   const container = document.getElementById('radar-container');
   if (!canvas || !container) return;
+  const card = container.closest('.radar-card');
 
-  function itemHtml(color, label, size) {
-    return `<div class="radar-legend-item" style="display:flex; align-items:flex-start; margin-bottom:12px; color:#94a3b8; font-family:'DM Sans', sans-serif;">
-              <span class="radar-legend-swatch" style="width:${size}px; height:${size}px; background:${color}; margin-right:10px; margin-top:3px; border-radius:2px; flex-shrink:0;"></span>
-              <span style="font-size: 12px; line-height:1.4;">${label}</span>
+  function itemHtml(color, label, size, mb) {
+    return `<div style="display:flex;align-items:flex-start;margin-bottom:${mb}px;color:#94a3b8;font-family:'DM Sans',sans-serif;">
+              <span style="width:${size}px;height:${size}px;background:${color};margin-right:8px;margin-top:3px;border-radius:2px;flex-shrink:0;display:inline-block;"></span>
+              <span style="font-size:12px;line-height:1.4;">${label}</span>
             </div>`;
   }
 
-  const divider = `<div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; width: 80%;"></div>`;
-
-  const div = document.createElement('div');
-  div.id = canvasId + '-legend';
-  div.style.display = 'flex';
-  div.style.flexDirection = 'column';
-  div.style.marginRight = '18px'; // Space between legend and radar
-  div.style.maxWidth = '250px';
-  div.style.flexShrink = '0';
-
-  let html = group1.map(it => itemHtml(it.color, it.label, 12)).join('');
-
-  if (group3 && group3.length > 0) {
-    html += divider +
-      `<div style="font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin-bottom:8px; font-family:'DM Sans',sans-serif;">Dimensions</div>` +
-      group3.map(it => itemHtml(it.color, it.label, 10)).join('');
+  // ── 1. Quarters legend — top-right corner of card ─────────────
+  if (assessmentItems && assessmentItems.length > 0 && card) {
+    const qDiv = document.createElement('div');
+    qDiv.setAttribute('data-radar-legend', 'assessments');
+    qDiv.style.cssText = 'position:absolute;top:1.5rem;right:1.5rem;display:flex;flex-direction:column;';
+    qDiv.innerHTML = assessmentItems.map(it => itemHtml(it.color, it.label, 12, 8)).join('');
+    card.appendChild(qDiv);
   }
 
-  html += divider + group2.map(it => itemHtml(it.color, it.label, 10)).join('');
+  // ── 2. Maturity levels — left panel beside canvas ─────────────
+  const mDiv = document.createElement('div');
+  mDiv.setAttribute('data-radar-legend', 'maturity');
+  mDiv.style.cssText = 'display:flex;flex-direction:column;margin-right:18px;max-width:200px;flex-shrink:0;';
+  mDiv.innerHTML = maturityItems.map(it => itemHtml(it.color, it.label, 10, 12)).join('');
+  container.insertBefore(mDiv, canvas);
 
-  div.innerHTML = html;
-
-  // Insert legend at the start of the container (the left side)
-  container.insertBefore(div, canvas);
+  // ── 3. Dimensions — compact row below the chart ───────────────
+  if (dimensionItems && dimensionItems.length > 0) {
+    const dDiv = document.createElement('div');
+    dDiv.setAttribute('data-radar-legend', 'dimensions');
+    dDiv.style.cssText = 'display:flex;flex-direction:row;gap:20px;justify-content:center;margin-top:10px;padding:6px 0;';
+    dDiv.innerHTML = dimensionItems.map(it =>
+      `<div style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-family:'DM Sans',sans-serif;font-size:12px;">
+         <span style="width:10px;height:10px;background:${it.color};border-radius:2px;flex-shrink:0;display:inline-block;"></span>
+         <span>${it.label}</span>
+       </div>`
+    ).join('');
+    container.parentNode.insertBefore(dDiv, container.nextSibling);
+  }
 }
 
 
@@ -336,17 +345,15 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, op
 
 // HTML legend — skipped during animation frames
 if (!opts?.noLegend) {
-  const legendGroup2 = CONFIG.levels.map(lv => ({
+  const maturityItems = CONFIG.levels.map(lv => ({
     color: lv.color,
-    label: `${lv.level} ${lv.name}<br/><span style="opacity: 0.7; font-size: 0.9em;">${lv.description}</span>`
+    label: `${lv.level} ${lv.name}<br/><span style="opacity:0.7;font-size:0.9em;">${lv.description}</span>`
   }));
-  // In multi-assessment mode group1 holds assessment labels, so add a
-  // separate dimensions group so the viewer always knows what the 3
-  // measure colours (governance / risk / reporting) represent.
-  const legendGroup3 = multiMode
-    ? measures.map(m => ({ color: m.color, label: m.name }))
-    : null;
-  injectRadarLegend(canvasId, legendGroup1, legendGroup2, legendGroup3);
+  const dimensionItems = measures.map(m => ({ color: m.color, label: m.name }));
+  // In multi-mode legendGroup1 holds assessment labels (quarters);
+  // in single-mode it holds dimension colours so we don't repeat them.
+  const assessmentItems = multiMode ? legendGroup1 : [];
+  injectRadarLegend(canvasId, assessmentItems, dimensionItems, maturityItems);
 }
 
 }

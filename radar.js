@@ -125,13 +125,13 @@ function cssVar(name) {
   canvas.parentNode.insertBefore(div, canvas.nextSibling);
 }*/
 
-function injectRadarLegend(canvasId, group1, group2) {
+function injectRadarLegend(canvasId, group1, group2, group3) {
   const old = document.getElementById(canvasId + '-legend');
   if (old) old.remove();
-  
+
   const canvas = document.getElementById(canvasId);
   // Target the specific container we created in the HTML
-  const container = document.getElementById('radar-container'); 
+  const container = document.getElementById('radar-container');
   if (!canvas || !container) return;
 
   function itemHtml(color, label, size) {
@@ -141,6 +141,8 @@ function injectRadarLegend(canvasId, group1, group2) {
             </div>`;
   }
 
+  const divider = `<div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; width: 80%;"></div>`;
+
   const div = document.createElement('div');
   div.id = canvasId + '-legend';
   div.style.display = 'flex';
@@ -149,10 +151,17 @@ function injectRadarLegend(canvasId, group1, group2) {
   div.style.maxWidth = '250px';
   div.style.flexShrink = '0';
 
-  div.innerHTML =
-    group1.map(it => itemHtml(it.color, it.label, 12)).join('') +
-    `<div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0; width: 80%;"></div>` +
-    group2.map(it => itemHtml(it.color, it.label, 10)).join('');
+  let html = group1.map(it => itemHtml(it.color, it.label, 12)).join('');
+
+  if (group3 && group3.length > 0) {
+    html += divider +
+      `<div style="font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin-bottom:8px; font-family:'DM Sans',sans-serif;">Dimensions</div>` +
+      group3.map(it => itemHtml(it.color, it.label, 10)).join('');
+  }
+
+  html += divider + group2.map(it => itemHtml(it.color, it.label, 10)).join('');
+
+  div.innerHTML = html;
 
   // Insert legend at the start of the container (the left side)
   container.insertBefore(div, canvas);
@@ -326,14 +335,18 @@ function renderRadar(canvasId, assessment, capsOverride, assessmentsOverride, op
   }
 
 // HTML legend — skipped during animation frames
-// Change the label construction to include a <br/>
 if (!opts?.noLegend) {
-  const legendGroup2 = CONFIG.levels.map(lv => ({ 
-    color: lv.color, 
-    // We use a <br/> to push the description to a new line
-    label: `${lv.level} ${lv.name}<br/><span style="opacity: 0.7; font-size: 0.9em;">${lv.description}</span>` 
+  const legendGroup2 = CONFIG.levels.map(lv => ({
+    color: lv.color,
+    label: `${lv.level} ${lv.name}<br/><span style="opacity: 0.7; font-size: 0.9em;">${lv.description}</span>`
   }));
-  injectRadarLegend(canvasId, legendGroup1, legendGroup2);
+  // In multi-assessment mode group1 holds assessment labels, so add a
+  // separate dimensions group so the viewer always knows what the 3
+  // measure colours (governance / risk / reporting) represent.
+  const legendGroup3 = multiMode
+    ? measures.map(m => ({ color: m.color, label: m.name }))
+    : null;
+  injectRadarLegend(canvasId, legendGroup1, legendGroup2, legendGroup3);
 }
 
 }

@@ -12,12 +12,12 @@ function buildRiskRatingBtns(capId, field) {
 // ── Assessment Form — Build ───────────────────────────────────
 function buildMeasureBlock(cap, m) {
   if (m.id === 'risk') {
-    // Maturity slider block for ICT Risk — same layout as Governance/Reporting
+    // Maturity slider block for ICT Risk Management Framework — same layout as Governance/Reporting
     return `
       <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color || 'var(--clr-danger)'}">
         <div class="measure-block-header">
           <span class="measure-icon-sm">${m.icon}</span>
-          <span class="measure-block-name">Capability Maturity · ICT Risk</span>
+          <span class="measure-block-name">Capability Maturity · ICT Risk Management Framework</span>
         </div>
         <p class="measure-block-desc">${m.description}</p>
 

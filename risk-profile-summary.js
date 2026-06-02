@@ -25,7 +25,7 @@ function renderProfileCards(assessment) {
   container.innerHTML = [
     renderMaturityProfileCard(assessment, "governance", "ICT Governance Profile Maturity", "var(--clr-governance)"),
     renderMaturityProfileCard(assessment, "reporting",  "ICT Reporting Profile Maturity",  "var(--clr-success)"),
-    renderMaturityProfileCard(assessment, "risk",       "ICT Risk Profile Maturity",       "var(--clr-danger)"),
+    renderMaturityProfileCard(assessment, "risk",       "ICT Risk Management Framework Maturity",       "var(--clr-danger)"),
     renderRiskManagementCard(assessment)
   ].join('');
 }

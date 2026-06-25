@@ -167,12 +167,12 @@
     },
     {
       "id": "disaster_recovery",
-      "name": "ICT Backup, Response & Recovery Management",
+      "name": "ICT Disaster Recovery Management",
       "description": "Plans, procedures and capabilities to recover ICT services following a major disruption or disaster."
     },
     {
       "id": "performance_capacity",
-      "name": "ICT Capacity & Performance Management",
+      "name": "IT Service Availability Management",
       "description": "Monitoring and planning of ICT resource performance and capacity to meet current and future demands."
     },
     {

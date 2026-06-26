@@ -162,7 +162,7 @@
   "capabilities": [
     {
       "id": "asset_mgmt",
-      "name": "ICT Asset Management",
+      "name": "ICT Asset & Configuration Management",
       "description": "Lifecycle management of ICT hardware, software, and cloud assets from procurement through to decommissioning."
     },
     {

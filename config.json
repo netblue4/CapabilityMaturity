@@ -71,7 +71,7 @@
     },
     {
       "id": "risk",
-      "name": "ICT Risk Management Framework - Holistic Risk Coverage of Capability Lifecycle",
+      "name": "ICT Risk Management Framework - Holistic Risk Coverage",
       "icon": "🛡️",
       "color": "#e74c3c",
       "type": "risk_profile",

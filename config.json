@@ -75,7 +75,7 @@
       "icon": "🛡️",
       "color": "#e74c3c",
       "type": "risk_profile",
-      "description": "To ensure holistic risk coverage across the entire ICT capability lifecycle, by tracking risk and control coverage against our Roles and Responsibilities, and whether gaps feed back to update the Governance Profile.",
+      "description": "To ensure holistic risk coverage across the ICT capability lifecycle, by tracking risk and control coverage against our Roles and Responsibilities, and whether gaps feed back to the Governance Profile.",
       "levels": [
         {
           "level": 1,

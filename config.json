@@ -214,6 +214,11 @@
       "id": "vulnerability_mgmt",
       "name": "ICT Vulnerability Management",
       "description": "Identification, assessment, and remediation of security vulnerabilities across ICT infrastructure."
+    },
+    {
+      "id": "project_mgmt",
+      "name": "ICT Project Management",
+      "description": "Structured management of ICT projects to ensure delivery within scope, time, and budget while managing associated risks and stakeholder expectations."
     }
   ]
 }

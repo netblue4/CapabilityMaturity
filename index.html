@@ -45,6 +45,7 @@
             <input type="file" id="import-file" accept=".json" style="display:none" />
           </label>
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
+          <button class="btn btn-outline" onclick="showExecReportModal()">📋 Exec Report</button>
         </div>
       </div>
 
@@ -190,6 +191,41 @@
       <div id="detail-content"></div>
     </section>
 
+    <!-- Executive Report View -->
+    <section id="view-exec-report" class="view">
+      <div class="section-header no-print">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>Executive Report</h2>
+      </div>
+      <div id="exec-report-content"></div>
+    </section>
+
+    <!-- Exec Report Modal -->
+    <div id="exec-report-modal" class="modal-overlay" onclick="if(event.target===this)closeExecReportModal()" style="display:none">
+      <div class="modal-box" style="max-width:420px">
+        <div class="modal-header">
+          <h3>Generate Executive Report</h3>
+          <button class="modal-close" onclick="closeExecReportModal()">✕</button>
+        </div>
+        <div class="form-row">
+          <label>Previous Assessment</label>
+          <select id="exec-prev-sel" class="exec-sel"></select>
+        </div>
+        <div class="form-row">
+          <label>Current Assessment</label>
+          <select id="exec-curr-sel" class="exec-sel"></select>
+        </div>
+        <div class="form-row">
+          <label>Planned Assessment</label>
+          <select id="exec-plan-sel" class="exec-sel"></select>
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+          <button class="btn btn-primary" onclick="generateExecReport()">Generate</button>
+          <button class="btn btn-ghost"   onclick="closeExecReportModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Ratings Modal -->
     <div id="ratings-modal" class="modal-overlay" onclick="closeRatingsModal(event)" style="display:none">
       <div class="modal-box">
@@ -220,6 +256,7 @@
   <script src="detail-view.js"></script>
   <script src="import-export.js"></script>
   <script src="dashboard.js"></script>
+  <script src="exec-report.js"></script>
   <script>
     // Sync theme toggle button label after DOM ready
     (function () {

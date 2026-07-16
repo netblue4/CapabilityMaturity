@@ -1457,6 +1457,151 @@ details[open] .profile-card-chevron {
   flex-shrink: 0;
 }
 
+/* ── Executive Report ─────────────────────────────────────── */
+
+/* Modal select */
+.exec-sel {
+  width: 100%; padding: .4rem .6rem;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); color: inherit;
+  font-family: var(--font-body); font-size: .85rem;
+  margin-top: .25rem;
+}
+
+/* Report view */
+#view-exec-report { padding: 1.5rem; }
+
+/* Top bar */
+.exec-report-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 1.25rem;
+}
+.exec-report-title { font-size: 1.3rem; margin-bottom: .2rem; }
+.exec-report-sub   { color: var(--text-muted); font-size: .85rem; }
+
+/* Section dividers */
+.exec-sec-div {
+  font-family: var(--font-mono); font-size: .7rem;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-muted); border-bottom: 1px solid var(--border);
+  padding-bottom: .35rem; margin: 1.5rem 0 1rem;
+}
+
+/* Dimension card */
+.exec-dim-card { margin-bottom: 1.25rem; }
+
+.exec-card-hdr {
+  display: flex; align-items: flex-start;
+  gap: .75rem; margin-bottom: 1rem;
+}
+
+/* Two-column split */
+.exec-split {
+  display: flex; align-items: flex-start; gap: 0;
+}
+.exec-half { flex: 1; min-width: 0; }
+.exec-split-div {
+  width: 1px; background: var(--border);
+  align-self: stretch; margin: 0 1rem; flex-shrink: 0;
+}
+.exec-half-lbl {
+  font-family: var(--font-mono); font-size: .65rem;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-muted); margin-bottom: .5rem;
+  padding-bottom: .3rem; border-bottom: 1px solid var(--border);
+}
+
+/* Bar chart */
+.exec-bars { margin-bottom: .6rem; }
+
+.exec-bar-row, .exec-bar-hdr {
+  display: flex; align-items: center;
+  gap: .35rem; margin-bottom: 3px;
+}
+.exec-bar-lbl {
+  font-size: .7rem; color: var(--text-muted);
+  width: 82px; flex-shrink: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.exec-bar-track {
+  flex: 1; height: 8px;
+  background: var(--bg3); border-radius: 4px;
+  position: relative; overflow: visible;
+}
+.exec-bar-track-hdr {
+  height: 16px; background: transparent;
+}
+.exec-bar-fill {
+  height: 100%; border-radius: 4px; position: relative; z-index: 1;
+}
+.exec-goal-line {
+  position: absolute; top: -4px; bottom: -4px; width: 2px;
+  background: rgba(255,255,255,0.65); z-index: 2;
+  transform: translateX(-50%);
+}
+[data-theme="light"] .exec-goal-line {
+  background: rgba(0,0,0,0.45);
+}
+.exec-goal-lbl {
+  position: absolute; top: 0;
+  font-size: .6rem; font-family: var(--font-mono);
+  color: var(--text-muted); white-space: nowrap;
+  transform: translateX(-50%);
+}
+.exec-bar-sc {
+  font-size: .78rem; width: 22px;
+  text-align: center; flex-shrink: 0; color: var(--text-muted);
+}
+.exec-bar-sc.exec-at-goal { color: var(--clr-success); font-weight: 600; }
+.exec-bar-d {
+  width: 28px; flex-shrink: 0;
+  text-align: center; font-size: .7rem;
+}
+
+/* Narrative blocks */
+.exec-narr {
+  border-radius: 5px; padding: .6rem .75rem;
+  margin-top: .5rem; font-size: .76rem;
+}
+.exec-narr-achieved {
+  background: rgba(65,143,100,.08);
+  border-left: 3px solid #418f64;
+}
+.exec-narr-planned {
+  background: rgba(52,152,219,.08);
+  border-left: 3px solid #3498db;
+}
+.exec-narr-title {
+  font-family: var(--font-mono); font-size: .62rem;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-muted); margin-bottom: .45rem;
+}
+.exec-narr-group { margin-bottom: .55rem; }
+.exec-narr-group:last-child { margin-bottom: 0; }
+.exec-narr-heading { line-height: 1.4; margin-bottom: .15rem; }
+.exec-narr-caps {
+  color: var(--text-muted); font-size: .7rem; margin-bottom: .2rem;
+}
+.exec-narr-exit {
+  color: var(--text-muted); font-size: .7rem;
+  font-style: italic; line-height: 1.5;
+}
+
+/* RCSA wrap */
+.exec-rcsa-wrap .card { margin-bottom: 0; }
+
+/* ── Print styles ─────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  .site-header, .site-footer { display: none !important; }
+  #view-dashboard, #view-assessment, #view-detail { display: none !important; }
+  #view-exec-report { display: block !important; padding: 0; }
+  .exec-dim-card { page-break-inside: avoid; margin-bottom: 1.5rem; }
+  .exec-goal-line { background: rgba(0,0,0,0.5) !important; }
+  .card { border: 1px solid #ccc !important; }
+}
+
 /* ── Capability Navigator (Assessment Form) ──────────────────── */
 .cap-nav-card {
   position: sticky;

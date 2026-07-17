@@ -92,6 +92,7 @@ function renderMeasureSummary(assessment) {
         <span class="mini-bar-label">${shortName(cap.name)}</span>
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : 'var(--clr-fill-dark)'}"></div>
+          <div class="mini-goal-line"></div>
         </div>
         <span class="mini-bar-val"${valStyle}>${s > 0 ? s.toFixed(1) : '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>

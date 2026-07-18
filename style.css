@@ -917,7 +917,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--text-muted);
-  width: 40px;
+  width: 48px;
   text-align: right;
   flex-shrink: 0;
 }

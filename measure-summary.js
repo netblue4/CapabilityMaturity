@@ -252,9 +252,9 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span style="flex:1"></span>
         <span style="${HDR};width:36px;text-align:center">Risk</span>
         <span style="${HDR};width:24px;text-align:center">Δ</span>
-        <span style="${HDR};width:40px;text-align:right">✅</span>
-        <span style="${HDR};width:40px;text-align:right">⚠</span>
-        <span style="${HDR};width:40px;text-align:right">❓</span>
+        <span style="${HDR};width:48px;text-align:right">Eff</span>
+        <span style="${HDR};width:48px;text-align:right">Part Eff</span>
+        <span style="${HDR};width:48px;text-align:right">Not Ass</span>
       </div>
       <div class="mini-bars">${rows}</div>
     </div>`;

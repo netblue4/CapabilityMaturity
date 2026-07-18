@@ -134,22 +134,9 @@ function renderMeasureSummary(assessment) {
 // ── ICT Risk Management Summary Card ─────────────────────────
 function renderRiskMgmtSummaryCard(assessment) {
   const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
-  const maxSev   = riskKeys.length || 4;
-
-  // Returns 1–maxSev for known ratings, null for missing/unknown
-  function getSeverity(value) {
-    if (!value) return null;
-    const idx = riskKeys.indexOf(value);
-    return idx < 0 ? null : riskKeys.length - idx;
-  }
-
-  function getColor(value) {
-    const idx = riskKeys.indexOf(value);
-    return idx >= 0 ? (CONFIG.levels[idx]?.color || 'var(--clr-fill-muted)') : null;
-  }
 
   function getAbbrev(value) {
-    if (!value) return '—';
+    if (!value) return null;
     if (value.startsWith('Extreme'))     return 'EXT';
     if (value.startsWith('Significant')) return 'SIG';
     if (value.startsWith('Moderate'))    return 'MOD';
@@ -157,102 +144,94 @@ function renderRiskMgmtSummaryCard(assessment) {
     return value.slice(0, 3).toUpperCase();
   }
 
+  function getColor(value) {
+    const idx = riskKeys.indexOf(value);
+    return idx >= 0 ? (CONFIG.levels[idx]?.color || null) : null;
+  }
+
+  // Lower index = higher severity (Extreme = 0)
+  function getSevIdx(value) { return riskKeys.indexOf(value); }
+
   const currentIndex       = db.assessments.findIndex(a => a.id === assessment.id);
   const previousAssessment = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
 
-  let exceedingCount = 0;
-  let rcsaImproved = 0, rcsaWorsened = 0, rcsaUnchanged = 0;
-  let csaImproved  = 0, csaWorsened  = 0, csaUnchanged  = 0;
+  let extremeCount = 0, significantCount = 0, otherCount = 0;
 
-  const bars = CONFIG.capabilities.map(cap => {
+  const rows = CONFIG.capabilities.map(cap => {
     const rm       = getRiskManagement(assessment, cap.id);
+    const assessed = (rm.risksAssessed > 0) && !!rm.residualRating;
     const residual = rm.residualRating || '';
-    const appetite = rm.appetiteRating || '';
-    const rSev     = getSeverity(residual);
-    const aSev     = getSeverity(appetite);
-    const rColor   = getColor(residual);
+    const abbrev   = assessed ? getAbbrev(residual) : null;
+    const color    = assessed ? getColor(residual)  : null;
 
-    const barWidth = rSev !== null ? (rSev / maxSev) * 100 : 0;
-    const barBg    = rColor || 'var(--clr-fill-dark)';
+    if      (!assessed)        { /* naCount — no-op */ }
+    else if (abbrev === 'EXT') { extremeCount++; }
+    else if (abbrev === 'SIG') { significantCount++; }
+    else                       { otherCount++; }
 
-    if (rSev !== null && aSev !== null && rSev > aSev) exceedingCount++;
-
-    const prevRm = previousAssessment ? getRiskManagement(previousAssessment, cap.id) : {};
-
-    // RCSA Δ: increase in risks assessed = progress
-    const risksAssessed     = rm.risksAssessed     ?? 0;
-    const prevRisksAssessed = prevRm.risksAssessed  ?? 0;
-    const raDelta = previousAssessment !== null ? risksAssessed - prevRisksAssessed : null;
-
-    let rcsaDeltaHtml;
-    if (raDelta === null) {
-      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-none">—</span>`;
-    } else if (raDelta > 0) {
-      rcsaImproved++;
-      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▲${raDelta}</span>`;
-    } else if (raDelta < 0) {
-      rcsaWorsened++;
-      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▼${Math.abs(raDelta)}</span>`;
-    } else {
-      rcsaUnchanged++;
-      rcsaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
+    // Trend Δ vs previous assessment (lower sevIdx = worse, so improvement = sevIdx goes up)
+    let trendHtml = `<span class="risk-trend"></span>`;
+    if (assessed && previousAssessment) {
+      const prevRm = getRiskManagement(previousAssessment, cap.id);
+      if (prevRm.risksAssessed > 0 && prevRm.residualRating) {
+        const curr = getSevIdx(residual);
+        const prev = getSevIdx(prevRm.residualRating);
+        if (curr > prev) {
+          trendHtml = `<span class="risk-trend delta delta-up" title="Risk reduced">▼</span>`;
+        } else if (curr < prev) {
+          trendHtml = `<span class="risk-trend delta delta-down" title="Risk increased">▲</span>`;
+        } else {
+          trendHtml = `<span class="risk-trend delta delta-flat">●</span>`;
+        }
+      }
     }
 
-    // CSA Δ: decrease in controls not assessed = progress
-    const notAssessed     = rm.controlsNotAssessed     ?? 0;
-    const prevNotAssessed = prevRm.controlsNotAssessed  ?? 0;
-    const csaDelta = previousAssessment !== null ? notAssessed - prevNotAssessed : null;
-
-    let csaDeltaHtml;
-    if (csaDelta === null) {
-      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-none">—</span>`;
-    } else if (csaDelta < 0) {
-      csaImproved++;
-      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-improved">▼${Math.abs(csaDelta)}</span>`;
-    } else if (csaDelta > 0) {
-      csaWorsened++;
-      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-worsened">▲${csaDelta}</span>`;
-    } else {
-      csaUnchanged++;
-      csaDeltaHtml = `<span class="mini-bar-delta-risk risk-delta-unchanged">●</span>`;
+    // Control health — only show non-zero counts
+    let ctrlHtml = '';
+    if (assessed) {
+      const parts = [];
+      if ((rm.controlsEffective   || 0) > 0) parts.push(`✅ ${rm.controlsEffective}`);
+      if ((rm.controlsPartial     || 0) > 0) parts.push(`⚠ ${rm.controlsPartial}`);
+      if ((rm.controlsNotAssessed || 0) > 0) parts.push(`❓ ${rm.controlsNotAssessed}`);
+      ctrlHtml = parts.join(' · ');
     }
 
-    return `<div class="mini-bar-row">
+    // Row highlight via inline border for EXT/SIG
+    const rowStyle = (abbrev === 'EXT' || abbrev === 'SIG') && color
+      ? ` style="border-left:2px solid ${color};padding-left:.35rem;margin-left:-.4rem"`
+      : '';
+
+    // Badge
+    const badgeHtml = assessed
+      ? `<span class="risk-residual-badge" style="background:${color};color:#fff">${abbrev}</span>`
+      : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
+
+    return `<div class="mini-bar-row"${rowStyle}>
       <span class="mini-bar-label">${shortName(cap.name)}</span>
-      <div class="mini-bar-track">
-        <div class="mini-bar-fill" style="width:${barWidth}%;background:${barBg}"></div>
-      </div>
-      <span class="mini-bar-val">${getAbbrev(residual)}</span>
-      <span class="mini-bar-val">${getAbbrev(appetite)}</span>
-      ${rcsaDeltaHtml}
-      ${csaDeltaHtml}
+      ${badgeHtml}
+      ${trendHtml}
+      <span class="risk-ctrl-health">${ctrlHtml}</span>
     </div>`;
   }).join('');
 
-  const hasScored    = CONFIG.capabilities.some(cap => getSeverity(getRiskManagement(assessment, cap.id).residualRating) !== null);
-  const hasTrendData = previousAssessment !== null;
-  const badgeBg      = exceedingCount > 0 ? 'var(--clr-danger)' : (hasScored ? 'var(--clr-success)' : 'var(--clr-badge-empty)');
-  let badgeText;
-  if (!hasScored) {
-    badgeText = '—';
-  } else if (hasTrendData) {
-    badgeText = `${exceedingCount} exceeding · RCSA ▲${rcsaImproved} · CSA ▼${csaImproved}`;
+  // Summary badge
+  const totalAssessed = extremeCount + significantCount + otherCount;
+  let badgeText, badgeBg;
+  if (totalAssessed === 0) {
+    badgeText = 'No risks assessed';
+    badgeBg   = 'var(--clr-badge-empty)';
   } else {
-    badgeText = `${exceedingCount} exceeding`;
+    const parts = [];
+    if (extremeCount     > 0) parts.push(`${extremeCount} Extreme`);
+    if (significantCount > 0) parts.push(`${significantCount} Significant`);
+    if (otherCount       > 0) parts.push(`${otherCount} other`);
+    badgeText = parts.join(' · ');
+    badgeBg   = extremeCount > 0
+      ? (CONFIG.levels[0]?.color || 'var(--clr-danger)')
+      : significantCount > 0
+        ? (CONFIG.levels[1]?.color || 'var(--clr-warning)')
+        : 'var(--clr-success)';
   }
-
-  const footerTally = hasTrendData
-    ? `<span class="risk-tally">
-        <span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.7rem">RCSA</span>
-        <span class="risk-delta-improved">▲${rcsaImproved}</span>
-        <span class="risk-delta-unchanged">●${rcsaUnchanged}</span>
-        <span class="risk-delta-worsened">▼${rcsaWorsened}</span>
-        <span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.7rem;margin-left:.4rem">CSA</span>
-        <span class="risk-delta-improved">▼${csaImproved}</span>
-        <span class="risk-delta-unchanged">●${csaUnchanged}</span>
-        <span class="risk-delta-worsened">▲${csaWorsened}</span>
-      </span>`
-    : `<span style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.72rem">First assessment — no trend data</span>`;
 
   return `
     <div class="card measure-card">
@@ -260,23 +239,12 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">ICT RCSA & CSA - Risk Management</h3>
-          <p class="measure-card-desc">· RCSA Δ = risks assessed · CSA Δ = controls not assessed</p>
+          <p class="measure-card-desc">Residual risk by capability · ✅ effective · ⚠ partial · ❓ not assessed</p>
         </div>
         <span class="measure-avg-badge" style="background:${badgeBg}">
           ${badgeText}
         </span>
       </div>
-      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
-        <span style="flex:1"></span>
-        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">Res</span>
-        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">App</span>
-        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:42px;text-align:center">RCSA Δ</span>
-        <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:42px;text-align:center">CSA Δ</span>
-      </div>
-      <div class="mini-bars">${bars}</div>
-      <div class="risk-mgmt-summary-footer">
-        <span>${assessment.label} · ${formatDate(assessment.date)}</span>
-        ${footerTally}
-      </div>
+      <div class="mini-bars">${rows}</div>
     </div>`;
 }

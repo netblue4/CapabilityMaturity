@@ -193,9 +193,9 @@ function renderRiskMgmtSummaryCard(assessment) {
     const eff  = rm.controlsEffective   || 0;
     const part = rm.controlsPartial     || 0;
     const naC  = rm.controlsNotAssessed || 0;
-    const effHtml  = assessed ? (eff  > 0 ? `✅ ${eff}`  : '—') : '—';
-    const partHtml = assessed ? (part > 0 ? `⚠ ${part}` : '—') : '—';
-    const naHtml   = assessed ? (naC  > 0 ? `❓ ${naC}`  : '—') : '—';
+    const effHtml  = assessed ? (eff  > 0 ? `${eff}`  : '—') : '—';
+    const partHtml = assessed ? (part > 0 ? `${part}` : '—') : '—';
+    const naHtml   = assessed ? (naC  > 0 ? `${naC}`  : '—') : '—';
 
     // Row highlight for EXT / SIG
     const rowStyle = (abbrev === 'EXT' || abbrev === 'SIG') && color

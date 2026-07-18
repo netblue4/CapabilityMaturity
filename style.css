@@ -896,26 +896,28 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
   font-family: var(--font-mono);
   font-size: .7rem;
   font-weight: 700;
-  padding: .12rem .35rem;
+  padding: .12rem .2rem;
   border-radius: 4px;
   flex-shrink: 0;
-  width: 34px;
+  width: 36px;
   text-align: center;
 }
 .risk-badge-na { background: var(--bg3); color: var(--text-muted); }
-.risk-trend {
-  width: 22px;
+.risk-ctrl-trend {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 700;
+  width: 24px;
   flex-shrink: 0;
   text-align: center;
-  font-size: .7rem;
 }
-.risk-ctrl-health {
-  flex: 1;
-  font-size: .68rem;
+.risk-ctrl-col {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .risk-mgmt-summary-footer {

@@ -77,26 +77,27 @@ function renderMeasureSummary(assessment) {
     const level = levelForScore(avg);
     const avgDelta = prev && prevAvg > 0 && avg > 0 ? avg - prevAvg : null;
 
+    const GOAL_PCT = 60; // 3/5 = 60%
+    const HDR = 'font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);flex-shrink:0';
+
     const bars = CONFIG.capabilities.map((cap, i) => {
-      const s = scores[i];
+      const s  = scores[i];
       const ps = prevScores ? prevScores[i] : 0;
-      const t = getMeasureTarget(assessment, cap.id, m.id) || 0;
       const lv = levelForScore(s);
-      const atTarget = s === 5 || (s > 0 && t > 0 && s >= t);
+      const atGoal = s >= 3;
       const delta = s > 0 && ps > 0 ? s - ps : null;
       const deltaInner = delta !== null
-        ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}">${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta).toFixed(1) : ''}</span>`
+        ? `<span class="delta ${delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-flat'}">${delta > 0 ? '▲' : delta < 0 ? '▼' : '●'}${delta !== 0 ? Math.abs(delta) : ''}</span>`
         : `<span class="delta delta-flat">●</span>`;
-      const valStyle = atTarget ? ' style="color:var(--clr-success);font-weight:600"' : '';
+      const valStyle = atGoal ? ' style="color:var(--clr-success);font-weight:600"' : '';
       return `<div class="mini-bar-row">
         <span class="mini-bar-label">${shortName(cap.name)}</span>
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : 'var(--clr-fill-dark)'}"></div>
           <div class="mini-goal-line"></div>
         </div>
-        <span class="mini-bar-val"${valStyle}>${s > 0 ? s.toFixed(1) : '—'}</span>
+        <span class="mini-bar-val"${valStyle}>${s > 0 ? s : '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>
-        <span class="mini-bar-target"${atTarget && t > 0 ? valStyle : ''}>${t > 0 ? t.toFixed(1) : '—'}</span>
       </div>`;
     }).join("");
 
@@ -117,11 +118,13 @@ function renderMeasureSummary(assessment) {
           </span>
         </div>
         <button class="btn-link ratings-link" onclick="${`showRatingsModal('${m.id}')`}">ℹ Ratings</button>
-        <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
-          <span style="flex:1"></span>
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:24px;text-align:right">Sc</span>
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:48px;text-align:center">Δ</span>
-          <span style="font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:36px;text-align:right">Tgt</span>
+        <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.4rem">
+          <span class="mini-bar-label"></span>
+          <div class="mini-bar-track mini-bar-track-hdr">
+            <span class="mini-goal-lbl" style="left:${GOAL_PCT}%">▾ TGT 3</span>
+          </div>
+          <span style="${HDR};width:24px;text-align:right">SC</span>
+          <span style="${HDR};width:48px;text-align:center">Δ</span>
         </div>
         <div class="mini-bars">${bars}</div>
       </div>`;
@@ -249,9 +252,9 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span style="flex:1"></span>
         <span style="${HDR};width:36px;text-align:center">Risk</span>
         <span style="${HDR};width:24px;text-align:center">Δ</span>
-        <span style="${HDR};width:40px;text-align:right">✅</span>
-        <span style="${HDR};width:40px;text-align:right">⚠</span>
-        <span style="${HDR};width:40px;text-align:right">❓</span>
+        <span style="${HDR};width:48px;text-align:right">Eff</span>
+        <span style="${HDR};width:48px;text-align:right">Part Eff</span>
+        <span style="${HDR};width:48px;text-align:right">Not Ass</span>
       </div>
       <div class="mini-bars">${rows}</div>
     </div>`;

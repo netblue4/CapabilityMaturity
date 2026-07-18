@@ -134,6 +134,7 @@ function renderMeasureSummary(assessment) {
 // ── ICT Risk Management Summary Card ─────────────────────────
 function renderRiskMgmtSummaryCard(assessment) {
   const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+  const HDR = 'font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);flex-shrink:0';
 
   function getAbbrev(value) {
     if (!value) return null;
@@ -149,7 +150,6 @@ function renderRiskMgmtSummaryCard(assessment) {
     return idx >= 0 ? (CONFIG.levels[idx]?.color || null) : null;
   }
 
-  // Lower index = higher severity (Extreme = 0)
   function getSevIdx(value) { return riskKeys.indexOf(value); }
 
   const currentIndex       = db.assessments.findIndex(a => a.id === assessment.id);
@@ -164,53 +164,53 @@ function renderRiskMgmtSummaryCard(assessment) {
     const abbrev   = assessed ? getAbbrev(residual) : null;
     const color    = assessed ? getColor(residual)  : null;
 
-    if      (!assessed)        { /* naCount — no-op */ }
+    if      (!assessed)        { /* NA — no count */ }
     else if (abbrev === 'EXT') { extremeCount++; }
     else if (abbrev === 'SIG') { significantCount++; }
     else                       { otherCount++; }
 
-    // Trend Δ vs previous assessment (lower sevIdx = worse, so improvement = sevIdx goes up)
-    let trendHtml = `<span class="risk-trend"></span>`;
+    // Trend Δ (▼ = risk reduced = good, ▲ = risk increased = bad)
+    let trendHtml = `<span class="risk-ctrl-trend"></span>`;
     if (assessed && previousAssessment) {
       const prevRm = getRiskManagement(previousAssessment, cap.id);
       if (prevRm.risksAssessed > 0 && prevRm.residualRating) {
         const curr = getSevIdx(residual);
         const prev = getSevIdx(prevRm.residualRating);
         if (curr > prev) {
-          trendHtml = `<span class="risk-trend delta delta-up" title="Risk reduced">▼</span>`;
+          trendHtml = `<span class="risk-ctrl-trend" style="color:var(--clr-success)" title="Risk reduced">▼</span>`;
         } else if (curr < prev) {
-          trendHtml = `<span class="risk-trend delta delta-down" title="Risk increased">▲</span>`;
+          trendHtml = `<span class="risk-ctrl-trend" style="color:var(--danger)" title="Risk increased">▲</span>`;
         } else {
-          trendHtml = `<span class="risk-trend delta delta-flat">●</span>`;
+          trendHtml = `<span class="risk-ctrl-trend" style="color:var(--text-muted)">●</span>`;
         }
       }
     }
 
-    // Control health — only show non-zero counts
-    let ctrlHtml = '';
-    if (assessed) {
-      const parts = [];
-      if ((rm.controlsEffective   || 0) > 0) parts.push(`✅ ${rm.controlsEffective}`);
-      if ((rm.controlsPartial     || 0) > 0) parts.push(`⚠ ${rm.controlsPartial}`);
-      if ((rm.controlsNotAssessed || 0) > 0) parts.push(`❓ ${rm.controlsNotAssessed}`);
-      ctrlHtml = parts.join(' · ');
-    }
+    // Fixed control columns — show count or —
+    const eff  = rm.controlsEffective   || 0;
+    const part = rm.controlsPartial     || 0;
+    const naC  = rm.controlsNotAssessed || 0;
+    const effHtml  = assessed ? (eff  > 0 ? `✅ ${eff}`  : '—') : '—';
+    const partHtml = assessed ? (part > 0 ? `⚠ ${part}` : '—') : '—';
+    const naHtml   = assessed ? (naC  > 0 ? `❓ ${naC}`  : '—') : '—';
 
-    // Row highlight via inline border for EXT/SIG
+    // Row highlight for EXT / SIG
     const rowStyle = (abbrev === 'EXT' || abbrev === 'SIG') && color
       ? ` style="border-left:2px solid ${color};padding-left:.35rem;margin-left:-.4rem"`
       : '';
 
-    // Badge
     const badgeHtml = assessed
       ? `<span class="risk-residual-badge" style="background:${color};color:#fff">${abbrev}</span>`
       : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
 
     return `<div class="mini-bar-row"${rowStyle}>
       <span class="mini-bar-label">${shortName(cap.name)}</span>
+      <div class="mini-bar-track"></div>
       ${badgeHtml}
       ${trendHtml}
-      <span class="risk-ctrl-health">${ctrlHtml}</span>
+      <span class="risk-ctrl-col">${effHtml}</span>
+      <span class="risk-ctrl-col">${partHtml}</span>
+      <span class="risk-ctrl-col">${naHtml}</span>
     </div>`;
   }).join('');
 
@@ -239,11 +239,19 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">ICT RCSA & CSA - Risk Management</h3>
-          <p class="measure-card-desc">Residual risk by capability · ✅ effective · ⚠ partial · ❓ not assessed</p>
+          <p class="measure-card-desc">Residual risk and control effectiveness by capability</p>
         </div>
         <span class="measure-avg-badge" style="background:${badgeBg}">
           ${badgeText}
         </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
+        <span style="flex:1"></span>
+        <span style="${HDR};width:36px;text-align:center">Risk</span>
+        <span style="${HDR};width:24px;text-align:center">Δ</span>
+        <span style="${HDR};width:40px;text-align:right">✅</span>
+        <span style="${HDR};width:40px;text-align:right">⚠</span>
+        <span style="${HDR};width:40px;text-align:right">❓</span>
       </div>
       <div class="mini-bars">${rows}</div>
     </div>`;

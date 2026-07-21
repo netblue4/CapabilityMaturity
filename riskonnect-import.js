@@ -268,6 +268,7 @@
     return {
       level,
       risksDraft:          draftRisks.length,
+      openRisksCount:      openRisks.length,
       risksAssessed:       assessedRisks.length,
       controlsEffective:   eff,
       controlsPartial:     part,
@@ -363,8 +364,8 @@
       assessment.measureScores[capId].riskManagement = {
         ...existing,
         risksDraft:          r.risksDraft,
+        openRisks:           r.openRisksCount,
         risksAssessed:       r.risksAssessed,
-        openRisks:           r.risksAssessed,
         controlsEffective:   r.controlsEffective,
         controlsPartial:     r.controlsPartial,
         controlsNotAssessed: r.controlsNotAssessed,

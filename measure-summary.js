@@ -139,101 +139,114 @@ function renderRiskMgmtSummaryCard(assessment) {
   const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
   const HDR = 'font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);flex-shrink:0';
 
-  function getAbbrev(value) {
+  function getResidualAbbrev(value) {
     if (!value) return null;
     if (value.startsWith('Extreme'))     return 'EXT';
     if (value.startsWith('Significant')) return 'SIG';
     if (value.startsWith('Moderate'))    return 'MOD';
     if (value.startsWith('Low'))         return 'LOW';
-    return value.slice(0, 3).toUpperCase();
+    return null;
   }
 
-  function getColor(value) {
+  function getResidualColor(value) {
     const idx = riskKeys.indexOf(value);
     return idx >= 0 ? (CONFIG.levels[idx]?.color || null) : null;
   }
 
-  function getSevIdx(value) { return riskKeys.indexOf(value); }
-
-  const currentIndex       = db.assessments.findIndex(a => a.id === assessment.id);
-  const previousAssessment = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
-
-  let extremeCount = 0, significantCount = 0, otherCount = 0;
+  // Sustainability level counts for summary badge
+  const sustCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, na: 0 };
 
   const rows = CONFIG.capabilities.map(cap => {
-    const rm       = getRiskManagement(assessment, cap.id);
-    const assessed = (rm.risksAssessed > 0) && !!rm.residualRating;
-    const residual = rm.residualRating || '';
-    const abbrev   = assessed ? getAbbrev(residual) : null;
-    const color    = assessed ? getColor(residual)  : null;
+    const rm        = getRiskManagement(assessment, cap.id);
+    const residual  = rm.residualRating || '';
+    const abbrev    = getResidualAbbrev(residual);
+    const rColor    = getResidualColor(residual);
 
-    if      (!assessed)        { /* NA — no count */ }
-    else if (abbrev === 'EXT') { extremeCount++; }
-    else if (abbrev === 'SIG') { significantCount++; }
-    else                       { otherCount++; }
+    // Sustainability level — use stored value if set, otherwise derive
+    const sustLevel = rm.sustainabilityLevel || computeSustainabilityLevel(rm);
+    const sustDef   = sustLevelDef(sustLevel);
+    const sustColor = CONFIG.levels[sustLevel - 1]?.color || 'var(--clr-badge-empty)';
 
-    // Trend Δ (▼ = risk reduced = good, ▲ = risk increased = bad)
-    let trendHtml = `<span class="risk-ctrl-trend"></span>`;
-    if (assessed && previousAssessment) {
-      const prevRm = getRiskManagement(previousAssessment, cap.id);
-      if (prevRm.risksAssessed > 0 && prevRm.residualRating) {
-        const curr = getSevIdx(residual);
-        const prev = getSevIdx(prevRm.residualRating);
-        if (curr > prev) {
-          trendHtml = `<span class="risk-ctrl-trend" style="color:var(--clr-success)" title="Risk reduced">▼</span>`;
-        } else if (curr < prev) {
-          trendHtml = `<span class="risk-ctrl-trend" style="color:var(--danger)" title="Risk increased">▲</span>`;
-        } else {
-          trendHtml = `<span class="risk-ctrl-trend" style="color:var(--text-muted)">●</span>`;
-        }
-      }
+    const hasAnyData = (rm.risksAssessed > 0) || (rm.risksDraft > 0) || (rm.openRisks > 0) || !!rm.residualRating;
+    if (!hasAnyData) {
+      sustCounts.na++;
+    } else {
+      sustCounts[sustLevel] = (sustCounts[sustLevel] || 0) + 1;
     }
 
-    // Fixed control columns — show count or —
+    // Residual badge
+    const residualBadge = (rm.risksAssessed > 0) && abbrev
+      ? `<span class="risk-residual-badge" style="background:${rColor};color:#fff" title="${residual}">${abbrev}</span>`
+      : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
+
+    // Sustainability level badge — only show if capability has any data
+    const sustBadge = hasAnyData
+      ? `<span class="sust-level-badge" style="background:${sustColor}" title="${sustDef ? sustDef.name : ''}">
+           ${sustLevel}<span class="sust-level-short">${sustDef && sustLevel >= 4 ? (sustLevel === 5 ? 'E' : 'J') : ''}</span>
+         </span>`
+      : `<span class="sust-level-badge sust-badge-na" title="No risk data">—</span>`;
+
+    // Pending flag — draft risks not yet formally assessed
+    const draft = rm.risksDraft || 0;
+    const pendingHtml = draft > 0
+      ? `<span class="risk-gap-flag" title="${draft} draft risk${draft > 1 ? 's' : ''} pending assessment">⚠${draft}</span>`
+      : `<span class="risk-gap-flag"></span>`;
+
+    // Row highlight for out-of-tolerance (sustLevel 2 or 3)
+    const rowBorder = (sustLevel === 2 || sustLevel === 3) && hasAnyData
+      ? ` style="border-left:2px solid ${sustColor};padding-left:.35rem;margin-left:-.4rem"`
+      : '';
+
+    // Control columns
     const eff  = rm.controlsEffective   || 0;
     const part = rm.controlsPartial     || 0;
     const naC  = rm.controlsNotAssessed || 0;
-    const effHtml  = assessed ? (eff  > 0 ? `${eff}`  : '—') : '—';
-    const partHtml = assessed ? (part > 0 ? `${part}` : '—') : '—';
-    const naHtml   = assessed ? (naC  > 0 ? `${naC}`  : '—') : '—';
+    const rmAssessed = rm.risksAssessed > 0;
+    const effHtml  = rmAssessed ? (eff  > 0 ? `${eff}`  : '—') : '—';
+    const partHtml = rmAssessed ? (part > 0 ? `${part}` : '—') : '—';
+    const naHtml   = rmAssessed ? (naC  > 0 ? `${naC}`  : '—') : '—';
 
-    // Row highlight for EXT / SIG
-    const rowStyle = (abbrev === 'EXT' || abbrev === 'SIG') && color
-      ? ` style="border-left:2px solid ${color};padding-left:.35rem;margin-left:-.4rem"`
-      : '';
-
-    const badgeHtml = assessed
-      ? `<span class="risk-residual-badge" style="background:${color};color:#fff">${abbrev}</span>`
-      : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
-
-    return `<div class="mini-bar-row"${rowStyle}>
+    return `<div class="mini-bar-row"${rowBorder}>
       <span class="mini-bar-label">${shortName(cap.name)}</span>
       <div class="mini-bar-track"></div>
-      ${badgeHtml}
-      ${trendHtml}
+      ${sustBadge}
+      ${residualBadge}
+      ${pendingHtml}
       <span class="risk-ctrl-col">${effHtml}</span>
       <span class="risk-ctrl-col">${partHtml}</span>
       <span class="risk-ctrl-col">${naHtml}</span>
     </div>`;
   }).join('');
 
-  // Summary badge
-  const totalAssessed = extremeCount + significantCount + otherCount;
+  // Summary badge — show worst sustainability concern
+  const worstLevel = [1, 2, 3].find(l => sustCounts[l] > 0);
   let badgeText, badgeBg;
-  if (totalAssessed === 0) {
+  if (sustCounts.na === CONFIG.capabilities.length) {
     badgeText = 'No risks assessed';
     badgeBg   = 'var(--clr-badge-empty)';
+  } else if (worstLevel) {
+    const def = sustLevelDef(worstLevel);
+    badgeText = `${sustCounts[worstLevel]} ${def ? def.shortName : 'Level ' + worstLevel}`;
+    if (sustCounts[worstLevel + 1] || sustCounts[worstLevel + 2]) {
+      const higher = [2,3,4,5].filter(l => l > worstLevel && sustCounts[l] > 0)
+        .map(l => `${sustCounts[l]} L${l}`).join(' · ');
+      if (higher) badgeText += ' · ' + higher;
+    }
+    badgeBg = CONFIG.levels[worstLevel - 1]?.color || 'var(--clr-danger)';
   } else {
-    const parts = [];
-    if (extremeCount     > 0) parts.push(`${extremeCount} Extreme`);
-    if (significantCount > 0) parts.push(`${significantCount} Significant`);
-    if (otherCount       > 0) parts.push(`${otherCount} other`);
-    badgeText = parts.join(' · ');
-    badgeBg   = extremeCount > 0
-      ? (CONFIG.levels[0]?.color || 'var(--clr-danger)')
-      : significantCount > 0
-        ? (CONFIG.levels[1]?.color || 'var(--clr-warning)')
-        : 'var(--clr-success)';
+    // All within tolerance
+    const evid = sustCounts[5] || 0;
+    const judg = sustCounts[4] || 0;
+    if (evid > 0 && judg === 0) {
+      badgeText = `${evid} Within Tolerance — Evidenced`;
+      badgeBg   = CONFIG.levels[4]?.color || 'var(--clr-success)';
+    } else if (evid > 0) {
+      badgeText = `${evid} Evidenced · ${judg} Judgment`;
+      badgeBg   = CONFIG.levels[3]?.color || 'var(--clr-success)';
+    } else {
+      badgeText = `${judg} Within Tolerance`;
+      badgeBg   = CONFIG.levels[3]?.color || 'var(--clr-success)';
+    }
   }
 
   return `
@@ -241,8 +254,8 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">🛡️</span>
         <div>
-          <h3 class="measure-card-title">ICT RCSA & CSA - Risk Management</h3>
-          <p class="measure-card-desc">Residual risk and control effectiveness by capability</p>
+          <h3 class="measure-card-title">ICT RCSA & CSA — Risk Management Sustainability</h3>
+          <p class="measure-card-desc">Sustainability of risk management by capability — tolerance position and control evidence</p>
         </div>
         <span class="measure-avg-badge" style="background:${badgeBg}">
           ${badgeText}
@@ -250,8 +263,9 @@ function renderRiskMgmtSummaryCard(assessment) {
       </div>
       <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
         <span style="flex:1"></span>
+        <span style="${HDR};width:44px;text-align:center">Sust</span>
         <span style="${HDR};width:36px;text-align:center">Risk</span>
-        <span style="${HDR};width:24px;text-align:center">Δ</span>
+        <span style="${HDR};width:28px;text-align:center">Pend</span>
         <span style="${HDR};width:48px;text-align:right">Eff</span>
         <span style="${HDR};width:48px;text-align:right">Part Eff</span>
         <span style="${HDR};width:48px;text-align:right">Not Ass</span>

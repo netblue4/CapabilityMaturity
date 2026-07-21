@@ -1927,3 +1927,40 @@ details[open] .profile-card-chevron {
   border-color: #ccc;
   color: #1a1a2e;
 }
+
+/* ── Risk Management Sustainability Badges ─────────────────── */
+
+.sust-level-badge {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .1rem .25rem;
+  border-radius: 4px;
+  color: #fff;
+  flex-shrink: 0;
+  width: 44px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sust-badge-na {
+  background: var(--bg3);
+  color: var(--text-muted);
+}
+
+.sust-level-short {
+  font-size: .6rem;
+  font-weight: 400;
+  margin-left: .1rem;
+  opacity: .85;
+}
+
+.risk-gap-flag {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--clr-warning);
+  width: 28px;
+  flex-shrink: 0;
+  text-align: center;
+}

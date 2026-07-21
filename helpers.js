@@ -65,6 +65,35 @@ function getRiskManagementTarget(assessment, capId) {
   return assessment.measureTargets?.[capId]?.riskManagement || '';
 }
 
+// Derives the Risk Management Sustainability level (1–5) from RCSA data.
+// Level is based on worst assessed risk (residual rating) + whether controls
+// are formally evidenced. Draft/unassessed risks are flagged separately.
+function computeSustainabilityLevel(rm) {
+  if (!rm) return 1;
+  const assessed  = rm.risksAssessed || 0;
+  const residual  = rm.residualRating || '';
+  const eff       = rm.controlsEffective || 0;
+  const part      = rm.controlsPartial   || 0;
+
+  if (assessed === 0) return 1;
+
+  const outOfTol  = residual.startsWith('Extreme') || residual.startsWith('Significant');
+  const inTol     = residual.startsWith('Moderate') || residual.startsWith('Low');
+  const anyCtrl   = (eff + part) > 0;
+  const evidenced = eff > 0;
+
+  if (outOfTol && !anyCtrl)  return 2;
+  if (outOfTol &&  anyCtrl)  return 3;
+  if (inTol    && !evidenced) return 4;
+  if (inTol    &&  evidenced) return 5;
+  return 1;
+}
+
+function sustLevelDef(level) {
+  const defs = CONFIG.riskSustainabilityLevels || [];
+  return defs.find(d => d.level === level) || null;
+}
+
 function capAvgScore(assessment, capId) {
   const vals = CONFIG.measures.map(m => getMeasureScore(assessment, capId, m.id)).filter(v => v > 0);
   return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : 0;

@@ -45,6 +45,7 @@ function generateExecReport() {
       <h2 class="exec-report-title">ICT Executive Risk Oversight Report</h2>
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
+    ${execSummaryPanel(prevA, currentA)}
     <div class="exec-sec-div">ICT Maturity — Continuous Improvement Cycle</div>
     ${dimCards}
     <div class="exec-sec-div">Current Risk Profile</div>
@@ -135,6 +136,75 @@ function execBars(assessment, measure, compareA) {
         <span class="exec-bar-d"  style="color:var(--text-muted);font-size:.65rem">Δ</span>
       </div>
       ${rows}
+    </div>`;
+}
+
+// ── Executive Summary Panel ───────────────────────────────────
+function execSummaryPanel(prevA, currentA) {
+  const shortLabel = { governance: 'Governance', risk: 'Risk Management', reporting: 'Reporting' };
+
+  // KPI tile per dimension
+  const tiles = CONFIG.measures.map(m => {
+    const vals = c => CONFIG.capabilities.map(cap => getMeasureScore(c, cap.id, m.id)).filter(s => s > 0);
+    const cVals = vals(currentA); const pVals = vals(prevA);
+    const cAvg = cVals.length ? cVals.reduce((a,b) => a+b,0) / cVals.length : 0;
+    const pAvg = pVals.length ? pVals.reduce((a,b) => a+b,0) / pVals.length : 0;
+    const lv   = levelForScore(cAvg);
+    const d    = pAvg > 0 && cAvg > 0 ? cAvg - pAvg : null;
+    const val  = pAvg > 0 && cAvg > 0
+      ? `${pAvg.toFixed(1)} → ${cAvg.toFixed(1)}${d !== null && d !== 0 ? (d > 0 ? ' ▲' : ' ▼') : ''}`
+      : cAvg > 0 ? cAvg.toFixed(1) : '—';
+    const color = lv ? lv.color : 'var(--clr-badge-empty)';
+    return `
+      <div class="exec-kpi-tile">
+        <span class="exec-kpi-icon">${m.icon}</span>
+        <span class="exec-kpi-label">${shortLabel[m.id] || m.name}</span>
+        <span class="exec-kpi-value" style="color:${color}">${val}</span>
+      </div>`;
+  }).join('');
+
+  // Risk Profile tile
+  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+  function getAbbrev(v) {
+    if (!v) return null;
+    if (v.startsWith('Extreme'))     return 'EXT';
+    if (v.startsWith('Significant')) return 'SIG';
+    if (v.startsWith('Moderate'))    return 'MOD';
+    return 'LOW';
+  }
+  let extC = 0, sigC = 0, othC = 0;
+  CONFIG.capabilities.forEach(cap => {
+    const rm = getRiskManagement(currentA, cap.id);
+    if (rm.risksAssessed > 0 && rm.residualRating) {
+      const a = getAbbrev(rm.residualRating);
+      if (a === 'EXT') extC++;
+      else if (a === 'SIG') sigC++;
+      else othC++;
+    }
+  });
+  const totalAssessed = extC + sigC + othC;
+  const riskVal  = totalAssessed === 0 ? 'Not assessed'
+    : [extC > 0 ? `${extC} Extreme` : '', sigC > 0 ? `${sigC} Significant` : '', othC > 0 ? `${othC} other` : '']
+        .filter(Boolean).join(' · ');
+  const riskColor = extC > 0 ? (CONFIG.levels[0]?.color || 'var(--clr-danger)')
+    : sigC > 0 ? (CONFIG.levels[1]?.color || 'var(--clr-warning)')
+    : totalAssessed > 0 ? 'var(--clr-success)' : 'var(--clr-badge-empty)';
+  const riskTile = `
+    <div class="exec-kpi-tile">
+      <span class="exec-kpi-icon">🛡️</span>
+      <span class="exec-kpi-label">Risk Profile</span>
+      <span class="exec-kpi-value" style="color:${riskColor}">${riskVal}</span>
+    </div>`;
+
+  // Notes block
+  const notesHtml = currentA.notes
+    ? `<div class="exec-notes-block"><div class="exec-notes-lbl">Assessment Notes</div>${currentA.notes}</div>`
+    : '';
+
+  return `
+    <div class="exec-summary-panel">
+      <div class="exec-kpi-row">${tiles}${riskTile}</div>
+      ${notesHtml}
     </div>`;
 }
 

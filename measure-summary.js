@@ -255,7 +255,7 @@ function renderRiskMgmtSummaryCard(assessment) {
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">ICT RCSA & CSA — Risk Management Sustainability</h3>
-          <p class="measure-card-desc">Sustainability of risk management by capability — tolerance position and control evidence</p>
+          <p class="measure-card-desc">Can our teams consistently perform their risk controls without it becoming unsustainable?</p>
         </div>
         <span class="measure-avg-badge" style="background:${badgeBg}">
           ${badgeText}

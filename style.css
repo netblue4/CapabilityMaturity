@@ -1512,6 +1512,58 @@ details[open] .profile-card-chevron {
 .exec-report-title { font-size: 1.3rem; margin-bottom: .2rem; }
 .exec-report-sub   { color: var(--text-muted); font-size: .85rem; }
 
+/* ── Exec Summary Panel ─────────────────────────────────────── */
+.exec-summary-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+.exec-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .75rem;
+}
+.exec-kpi-tile {
+  background: var(--bg3);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.exec-kpi-icon { font-size: 1.2rem; line-height: 1; }
+.exec-kpi-label {
+  font-size: .62rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+}
+.exec-kpi-value {
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+.exec-notes-block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: .875rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+.exec-notes-lbl {
+  font-size: .62rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  margin-bottom: .4rem;
+}
+
 /* Section dividers */
 .exec-sec-div {
   font-family: var(--font-mono); font-size: .7rem;

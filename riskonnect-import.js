@@ -61,6 +61,7 @@
     }
     return {
       capability: find('business process', 'process', 'capability', 'function', 'domain'),
+      riskTitle:  find('risk title', 'risk name', 'title'),
       status:     find('status'),
       owner:      find('owner'),
       designAss:  find('design assess', 'design effectiveness', 'design rating', 'design'),
@@ -166,7 +167,6 @@
 
     renderReviewTable();
 
-    // Populate assessment dropdown — latest first
     const aSel = document.getElementById('rk-assessment-sel');
     aSel.innerHTML = [...db.assessments].reverse()
       .map(a => `<option value="${a.id}">${a.label} · ${formatDate(a.date)}</option>`)
@@ -176,72 +176,104 @@
   }
 
   // ── Maturity derivation ──────────────────────────────────────
+  //
+  // The CSV has ONE ROW PER CONTROL. Each risk repeats across multiple
+  // rows (one per control it has). We must deduplicate by Risk Title
+  // before counting risks; control rows are counted as-is.
+  //
   function computeMaturity(rows, cols) {
     if (!rows.length) {
-      return { level: 1, risksAssessed: 0, controlsEffective: 0, controlsPartial: 0, controlsNotAssessed: 0, residualRating: '', evidence: 'No risks' };
+      return {
+        level: 1, risksDraft: 0, risksAssessed: 0,
+        controlsEffective: 0, controlsPartial: 0, controlsNotAssessed: 0,
+        residualRating: '', evidence: 'No risks',
+      };
     }
 
-    const statusOf = r => (r[cols.status] || '').toLowerCase();
-    const openRisks  = rows.filter(r => statusOf(r).includes('open'));
-    const draftRisks = rows.filter(r => statusOf(r).includes('draft'));
-
-    let eff = 0, part = 0, notAss = 0;
-    let anyAssessed = false;
-
+    // ── Deduplicate risks by title (one row per unique risk) ──────
+    // Each risk appears once per control in the CSV. We keep the first
+    // row per unique title to count risk-level fields (status, residual).
+    const uniqueRisks = new Map(); // title → first representative row
     rows.forEach(row => {
-      const d = (row[cols.designAss] || '').toLowerCase();
-      const o = (row[cols.opAss]     || '').toLowerCase();
-      if (!d && !o) return;
+      const title = cols.riskTitle ? row[cols.riskTitle] : null;
+      const key   = (title && title.trim()) ? title.trim() : '__row_' + rows.indexOf(row);
+      if (!uniqueRisks.has(key)) uniqueRisks.set(key, row);
+    });
+    const riskRows = [...uniqueRisks.values()];
 
-      const isGreen  = s => s.includes('green')   || s.includes('effective');
-      const isAmber  = s => s.includes('amber')   || s.includes('partial');
-      const isNotAss = s => s.includes('grey')    || s.includes('gray') || s.includes('not assess') || s === '';
+    // ── Risk-level counts (use deduplicated risk rows) ────────────
+    const statusOf   = r => (r[cols.status] || '').toLowerCase();
+    const draftRisks = riskRows.filter(r => statusOf(r).includes('draft'));
+    const openRisks  = riskRows.filter(r => statusOf(r).includes('open'));
 
-      if (isNotAss(d) && isNotAss(o)) { notAss++; return; }
-      anyAssessed = true;
-      if (isGreen(d) && isGreen(o)) eff++;
-      else if (isAmber(d) || isAmber(o)) part++;
-      else notAss++;
+    // A risk is "assessed" when it has a non-empty Residual Score
+    const assessedRisks = riskRows.filter(r => {
+      if (!cols.residual) return false;
+      const sc = (r[cols.residual] || '').trim();
+      return sc !== '' && sc !== '0' && !isNaN(parseFloat(sc));
     });
 
-    // Highest residual score among all rows
+    // Highest residual score → rating (use deduplicated risk rows)
     let maxScore = 0;
     if (cols.residual) {
-      rows.forEach(r => {
+      riskRows.forEach(r => {
         const sc = parseFloat(r[cols.residual] || '0');
         if (sc > maxScore) maxScore = sc;
       });
     }
     const residualRating = scoreToRating(maxScore);
 
-    // Level
+    // ── Control counts (use ALL rows — one row per control) ───────
+    let eff = 0, part = 0, notAss = 0, anyCtrlAssessed = false;
+    rows.forEach(row => {
+      const d = (row[cols.designAss] || '').toLowerCase();
+      const o = (row[cols.opAss]     || '').toLowerCase();
+
+      const isGreen  = s => s.includes('green')  || s.includes('effective');
+      const isAmber  = s => s.includes('amber')  || s.includes('partial');
+      const isGrey   = s => s.includes('grey')   || s.includes('gray') || s.includes('not assess') || s === '';
+
+      if (isGrey(d) && isGrey(o)) { notAss++; return; }
+      anyCtrlAssessed = true;
+      if (isGreen(d) && isGreen(o)) eff++;
+      else if (isAmber(d) || isAmber(o)) part++;
+      else notAss++;
+    });
+
+    // ── Maturity level ────────────────────────────────────────────
     let level;
-    if (openRisks.length === 0 && draftRisks.length > 0 && !anyAssessed) {
-      level = 2;
-    } else if (openRisks.length > 0 && !anyAssessed) {
-      level = 3;
-    } else if (anyAssessed) {
-      level = 4;
-    } else {
+    if (riskRows.length === 0) {
       level = 1;
+    } else if (draftRisks.length > 0 && openRisks.length === 0 && assessedRisks.length === 0) {
+      level = 2;
+    } else if (openRisks.length > 0 && assessedRisks.length === 0) {
+      level = 3;
+    } else if (assessedRisks.length > 0 && anyCtrlAssessed) {
+      level = 4;
+    } else if (assessedRisks.length > 0) {
+      level = 3;
+    } else {
+      level = 2;
     }
 
-    // Evidence text
+    // ── Evidence summary ──────────────────────────────────────────
     const ev = [];
-    if (draftRisks.length) ev.push(draftRisks.length + ' draft');
-    if (openRisks.length)  ev.push(openRisks.length  + ' open');
-    if (eff)    ev.push(eff    + ' eff');
-    if (part)   ev.push(part   + ' part');
-    if (notAss) ev.push(notAss + ' not ass');
+    if (draftRisks.length)   ev.push(draftRisks.length   + ' draft');
+    if (openRisks.length)    ev.push(openRisks.length     + ' open');
+    if (assessedRisks.length) ev.push(assessedRisks.length + ' assessed');
+    if (eff)    ev.push(eff    + ' ctrl eff');
+    if (part)   ev.push(part   + ' ctrl part');
+    if (notAss) ev.push(notAss + ' ctrl NA');
 
     return {
       level,
-      risksAssessed:       openRisks.length,
+      risksDraft:          draftRisks.length,
+      risksAssessed:       assessedRisks.length,
       controlsEffective:   eff,
       controlsPartial:     part,
       controlsNotAssessed: notAss,
       residualRating,
-      evidence: ev.join(' · ') || rows.length + ' risks',
+      evidence: ev.join(' · ') || riskRows.length + ' risks',
     };
   }
 
@@ -277,7 +309,7 @@
       const lvColor = CONFIG.levels[r.level - 1]?.color || 'var(--bg3)';
       const lvName  = CONFIG.levels[r.level - 1]?.name  || '';
 
-      const overrideOpts = [1,2,3,4,5].map(l => {
+      const overrideOpts = [1, 2, 3, 4, 5].map(l => {
         const lv = CONFIG.levels[l - 1];
         return `<option value="${l}"${l === r.level ? ' selected' : ''}>${l} — ${lv ? lv.name : ''}</option>`;
       }).join('');
@@ -308,7 +340,6 @@
     const assessment = db.assessments.find(a => a.id === aId);
     if (!assessment) { alert('Please select an assessment.'); return; }
 
-    // Read any level overrides
     const overrides = {};
     document.querySelectorAll('.rk-override-sel').forEach(sel => {
       overrides[parseInt(sel.dataset.idx)] = parseInt(sel.value);
@@ -324,13 +355,14 @@
       if (!assessment.measureScores[capId])  assessment.measureScores[capId]  = {};
       if (!assessment.measureTargets[capId]) assessment.measureTargets[capId] = {};
 
-      // Only update risk dimension score — leave governance/reporting untouched
+      // Risk dimension score only — governance/reporting untouched
       assessment.measureScores[capId].risk = level;
 
-      // Preserve any existing riskManagement fields not covered here
+      // Merge with any existing riskManagement data
       const existing = assessment.measureScores[capId].riskManagement || {};
       assessment.measureScores[capId].riskManagement = {
         ...existing,
+        risksDraft:          r.risksDraft,
         risksAssessed:       r.risksAssessed,
         openRisks:           r.risksAssessed,
         controlsEffective:   r.controlsEffective,

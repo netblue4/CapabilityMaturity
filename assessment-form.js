@@ -450,26 +450,32 @@ function setSlider(id, val) {
 }
 
 function updateMeasureDisplay(capId, measureId, value) {
-  const v         = parseInt(value);
-  const measure   = CONFIG.measures.find(m => m.id === measureId);
-  const levelSpec = measure ? measure.levels.find(l => l.level === v) : null;
+  const v          = parseInt(value);
+  const measure    = CONFIG.measures.find(m => m.id === measureId);
+  const levelSpec  = measure ? measure.levels.find(l => l.level === v)     : null;
+  const nextSpec   = measure ? measure.levels.find(l => l.level === v + 1) : null;
+  const levelName  = levelSpec?.name  || CONFIG.levels[v - 1]?.name || String(v);
   const levelLabel = levelSpec?.label || null;
   const exitText   = levelSpec?.exit  || null;
+  const exitPrefix = (nextSpec?.name && v < 5) ? `To reach <strong>${nextSpec.name}</strong>: ` : '';
   const lv = CONFIG.levels[v - 1];
   const el = document.getElementById(`display-${capId}-${measureId}`);
   if (el && lv) {
-    el.innerHTML = `<span class="lvl-badge" style="background:${lv.color}">${v} · ${lv.name}</span>
+    el.innerHTML = `<span class="lvl-badge" style="background:${lv.color}">${v} · ${levelName}</span>
       ${levelLabel ? `<span class="lvl-desc">${levelLabel}</span>` : ""}
-      ${exitText ? `<div style="margin-top:.4rem;font-size:.74rem;color:var(--text-muted);font-style:italic;line-height:1.45"><span style="display:block;font-family:var(--font-mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;font-style:normal;margin-bottom:.1rem">Exit condition:</span>${exitText}</div>` : ""}`;
+      ${exitText ? `<div style="margin-top:.4rem;font-size:.74rem;color:var(--text-muted);font-style:italic;line-height:1.45"><span style="display:block;font-family:var(--font-mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;font-style:normal;margin-bottom:.1rem">Exit condition:</span>${exitPrefix}${exitText}</div>` : ""}`;
   }
 }
 
 function updateTargetDisplay(capId, measureId, value) {
-  const v = parseInt(value);
+  const v         = parseInt(value);
+  const measure   = CONFIG.measures.find(m => m.id === measureId);
+  const levelSpec = measure ? measure.levels.find(l => l.level === v) : null;
+  const levelName = levelSpec?.name || CONFIG.levels[v - 1]?.name || String(v);
   const lv = CONFIG.levels[v - 1];
   const el = document.getElementById(`target-display-${capId}-${measureId}`);
   if (el && lv) {
-    el.innerHTML = `<span class="lvl-badge target-badge" style="border-color:${lv.color};color:${lv.color}">${v} · ${lv.name}</span>`;
+    el.innerHTML = `<span class="lvl-badge target-badge" style="border-color:${lv.color};color:${lv.color}">${v} · ${levelName}</span>`;
   }
 }
 

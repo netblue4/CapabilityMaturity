@@ -77,8 +77,20 @@ function renderMeasureSummary(assessment) {
     const level = levelForScore(avg);
     const avgDelta = prev && prevAvg > 0 && avg > 0 ? avg - prevAvg : null;
 
-    const GOAL_PCT = 60; // 3/5 = 60%
     const HDR = 'font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);flex-shrink:0';
+
+    // 5 level tick lines at 20%, 40%, 60%, 80%, 100%
+    const levelLines = [1, 2, 3, 4, 5].map(l => {
+      const ls = m.levels ? m.levels.find(ls => ls.level === l) : null;
+      return `<div class="mini-goal-line" style="left:${l * 20}%"></div>`;
+    }).join('');
+
+    // 5 level labels for header track
+    const levelHdrLabels = [1, 2, 3, 4, 5].map(l => {
+      const ls = m.levels ? m.levels.find(ls => ls.level === l) : null;
+      const abbrev = abbrevMeasureLevel(ls?.name || '');
+      return `<span class="mini-goal-lbl" style="left:${l * 20}%">${abbrev}</span>`;
+    }).join('');
 
     const bars = CONFIG.capabilities.map((cap, i) => {
       const s  = scores[i];
@@ -94,7 +106,7 @@ function renderMeasureSummary(assessment) {
         <span class="mini-bar-label">${shortName(cap.name)}</span>
         <div class="mini-bar-track">
           <div class="mini-bar-fill" style="width:${(s/5)*100}%;background:${lv ? lv.color : 'var(--clr-fill-dark)'}"></div>
-          <div class="mini-goal-line"></div>
+          ${levelLines}
         </div>
         <span class="mini-bar-val"${valStyle}>${s > 0 ? s : '—'}</span>
         <span class="mini-bar-delta">${deltaInner}</span>
@@ -120,8 +132,8 @@ function renderMeasureSummary(assessment) {
         <button class="btn-link ratings-link" onclick="${`showRatingsModal('${m.id}')`}">ℹ Ratings</button>
         <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.4rem">
           <span class="mini-bar-label"></span>
-          <div class="mini-bar-track mini-bar-track-hdr">
-            <span class="mini-goal-lbl" style="left:${GOAL_PCT}%">▾ TGT 3</span>
+          <div class="mini-bar-track mini-bar-track-hdr" style="overflow:visible">
+            ${levelHdrLabels}
           </div>
           <span style="${HDR};width:24px;text-align:right">SC</span>
           <span style="${HDR};width:48px;text-align:center">Δ</span>

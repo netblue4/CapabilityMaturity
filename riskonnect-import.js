@@ -240,21 +240,15 @@
       else notAss++;
     });
 
-    // ── Maturity level ────────────────────────────────────────────
-    let level;
-    if (riskRows.length === 0) {
-      level = 1;
-    } else if (draftRisks.length > 0 && openRisks.length === 0 && assessedRisks.length === 0) {
-      level = 2;
-    } else if (openRisks.length > 0 && assessedRisks.length === 0) {
-      level = 3;
-    } else if (assessedRisks.length > 0 && anyCtrlAssessed) {
-      level = 4;
-    } else if (assessedRisks.length > 0) {
-      level = 3;
-    } else {
-      level = 2;
-    }
+    // ── Sustainability level (1–5) using shared helper ────────────
+    const rmForLevel = {
+      risksAssessed:       assessedRisks.length,
+      residualRating:      scoreToRating(maxScore),
+      controlsEffective:   eff,
+      controlsPartial:     part,
+      controlsNotAssessed: notAss,
+    };
+    const level = computeSustainabilityLevel(rmForLevel);
 
     // ── Evidence summary ──────────────────────────────────────────
     const ev = [];
@@ -267,6 +261,7 @@
 
     return {
       level,
+      sustainabilityLevel: level,
       risksDraft:          draftRisks.length,
       openRisksCount:      openRisks.length,
       risksAssessed:       assessedRisks.length,
@@ -308,11 +303,12 @@
         : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
 
       const lvColor = CONFIG.levels[r.level - 1]?.color || 'var(--bg3)';
-      const lvName  = CONFIG.levels[r.level - 1]?.name  || '';
+      const lvDef   = sustLevelDef(r.level);
+      const lvName  = lvDef ? lvDef.shortName : '';
 
       const overrideOpts = [1, 2, 3, 4, 5].map(l => {
-        const lv = CONFIG.levels[l - 1];
-        return `<option value="${l}"${l === r.level ? ' selected' : ''}>${l} — ${lv ? lv.name : ''}</option>`;
+        const def = sustLevelDef(l);
+        return `<option value="${l}"${l === r.level ? ' selected' : ''}>${l} — ${def ? def.shortName : ''}</option>`;
       }).join('');
 
       return `
@@ -356,13 +352,11 @@
       if (!assessment.measureScores[capId])  assessment.measureScores[capId]  = {};
       if (!assessment.measureTargets[capId]) assessment.measureTargets[capId] = {};
 
-      // Risk dimension score only — governance/reporting untouched
-      assessment.measureScores[capId].risk = level;
-
-      // Merge with any existing riskManagement data
+      // Merge RCSA fields — governance/reporting/riskFramework scores untouched
       const existing = assessment.measureScores[capId].riskManagement || {};
       assessment.measureScores[capId].riskManagement = {
         ...existing,
+        sustainabilityLevel: level,
         risksDraft:          r.risksDraft,
         openRisks:           r.openRisksCount,
         risksAssessed:       r.risksAssessed,

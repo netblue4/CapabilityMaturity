@@ -40,7 +40,7 @@
       "name": "ICT Governance Profile - Authority and Accountability",
       "icon": "⚖️",
       "color": "#9b59b6",
-      "description": "To establish a structured framework of authority and accountability, by tracking whether Roles and Responsibilities are formally defined, owned and consistently performed.",
+      "description": "All ICT Roles and Responsibilities are formally defined, owned and approved.",
       "levels": [
         {
           "level": 1,
@@ -75,7 +75,7 @@
       "icon": "🛡️",
       "color": "#e74c3c",
       "type": "risk_profile",
-      "description": "To ensure holistic risk coverage across the ICT capability lifecycle, by tracking risk and control coverage against our Roles and Responsibilities, and whether gaps feed back to the Governance Profile.",
+      "description": "All ICT risks and controls are formally defined, owned, and included in our risk and control self assessment.",
       "levels": [
         {
           "level": 1,
@@ -109,7 +109,7 @@
       "name": "ICT Reporting Profile - Accurate and Timely Insights",
       "icon": "📊",
       "color": "#2ecc71",
-      "description": "To provide transparent, accurate, and timely insights into ICT performance and risk posture, by tracking whether KPIs are grounded in our Roles and Responsibilities and risks, and whether gaps trigger updates to the Governance profile.",
+      "description": "Do we provide accurate and timely insights into ICT risk management performance?",
       "levels": [
         {
           "level": 1,

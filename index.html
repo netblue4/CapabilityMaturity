@@ -46,6 +46,7 @@
           </label>
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
           <button class="btn btn-outline" onclick="showExecReportModal()">📋 Exec Report</button>
+          <button class="btn btn-outline" onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data</button>
         </div>
       </div>
 
@@ -226,6 +227,70 @@
       </div>
     </div>
 
+    <!-- Riskonnect Import View -->
+    <section id="view-riskonnect-import" class="view">
+      <div class="section-header">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>Import Risk Data from Riskonnect</h2>
+      </div>
+
+      <!-- Step 1a: Upload -->
+      <div id="rk-upload" class="card rk-section">
+        <h3 class="rk-step-title">Step 1 — Upload CSV export from Riskonnect</h3>
+        <p class="rk-step-desc">Export your RCSA/CSA data from Riskonnect as a CSV file and upload it here. The import will update the <strong>Risk maturity score</strong> and <strong>RCSA fields</strong> only — Governance and Reporting scores are not touched.</p>
+        <div class="rk-upload-row">
+          <label class="btn btn-primary rk-file-label">
+            Choose CSV file
+            <input type="file" id="rk-file-input" accept=".csv,.txt" style="display:none" onchange="handleRkFile(this)" />
+          </label>
+          <span id="rk-upload-info" class="rk-upload-info"></span>
+        </div>
+      </div>
+
+      <!-- Step 1b: Capability mapping -->
+      <div id="rk-mapping" class="card rk-section" style="display:none">
+        <h3 class="rk-step-title">Step 2 — Confirm capability mappings</h3>
+        <p id="rk-map-count" class="rk-step-desc"></p>
+        <table class="rk-map-table">
+          <thead>
+            <tr>
+              <th>CSV Capability Name</th>
+              <th>Map to System Capability</th>
+            </tr>
+          </thead>
+          <tbody id="rk-map-body"></tbody>
+        </table>
+        <div class="rk-actions">
+          <button class="btn btn-primary" onclick="processRkImport()">Import Quarter's Data</button>
+          <button class="btn btn-ghost" onclick="showView('dashboard')">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Review & save -->
+      <div id="rk-review" class="card rk-section" style="display:none">
+        <h3 class="rk-step-title">Step 3 — Review suggested levels &amp; save</h3>
+        <p id="rk-review-count" class="rk-step-desc"></p>
+        <table class="rk-rev-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>Evidence</th>
+              <th>Residual</th>
+              <th>Suggested</th>
+              <th>Override</th>
+            </tr>
+          </thead>
+          <tbody id="rk-review-body"></tbody>
+        </table>
+        <div class="rk-save-row">
+          <label class="rk-save-lbl">Save to assessment</label>
+          <select id="rk-assessment-sel" class="rk-assessment-sel"></select>
+          <button class="btn btn-primary" onclick="saveRkImport()">Save to Assessment</button>
+          <button class="btn btn-ghost" onclick="showView('dashboard')">Cancel</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Ratings Modal -->
     <div id="ratings-modal" class="modal-overlay" onclick="closeRatingsModal(event)" style="display:none">
       <div class="modal-box">
@@ -257,6 +322,7 @@
   <script src="import-export.js"></script>
   <script src="dashboard.js"></script>
   <script src="exec-report.js"></script>
+  <script src="riskonnect-import.js"></script>
   <script>
     // Sync theme toggle button label after DOM ready
     (function () {

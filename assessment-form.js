@@ -139,6 +139,10 @@ function buildRiskMgmtCard(cap) {
       <div class="risk-mgmt-section">
         <label>Control Effectiveness</label>
         <div class="control-row">
+          <span class="control-row-label">Risks — Draft</span>
+          <input type="number" min="0" value="0" id="ctrl-draftrisks-${cap.id}" class="control-row-input">
+        </div>
+        <div class="control-row">
           <span class="control-row-label">Open Risks</span>
           <input type="number" min="0" value="0" id="ctrl-openrisks-${cap.id}" class="control-row-input">
         </div>
@@ -320,7 +324,7 @@ function clearRiskRatingBtns(capId, field) {
 }
 
 function clearRiskCountInputs(capId) {
-  ['ctrl-openrisks', 'ctrl-risksassessed', 'ctrl-not', 'ctrl-partial', 'ctrl-effective'].forEach(prefix => {
+  ['ctrl-draftrisks', 'ctrl-openrisks', 'ctrl-risksassessed', 'ctrl-not', 'ctrl-partial', 'ctrl-effective'].forEach(prefix => {
     const el = document.getElementById(`${prefix}-${capId}`);
     if (el) el.value = 0;
   });
@@ -397,11 +401,13 @@ function openAssessmentForm(id) {
 
         // Control counts — support old controlCounts sub-object shape
         const cc = rm.controlCounts || {};
+        const draftEl   = document.getElementById(`ctrl-draftrisks-${cap.id}`);
         const openEl    = document.getElementById(`ctrl-openrisks-${cap.id}`);
         const notEl     = document.getElementById(`ctrl-not-${cap.id}`);
         const partialEl = document.getElementById(`ctrl-partial-${cap.id}`);
         const effEl     = document.getElementById(`ctrl-effective-${cap.id}`);
         const risksAssessedEl = document.getElementById(`ctrl-risksassessed-${cap.id}`);
+        if (draftEl)          draftEl.value          = rm.risksDraft          ?? 0;
         if (openEl)           openEl.value           = rm.openRisks           ?? cc.openRisks   ?? 0;
         if (risksAssessedEl)  risksAssessedEl.value  = rm.risksAssessed       ?? 0;
         if (notEl)            notEl.value            = rm.controlsNotAssessed ?? cc.notAssessed ?? 0;
@@ -504,6 +510,7 @@ function saveAssessment(e) {
     measureScores[cap.id].riskManagement = {
       residualRating:      document.getElementById(`residual-${cap.id}`)?.value                       || '',
       appetiteRating:      document.getElementById(`appetite-${cap.id}`)?.value                       || '',
+      risksDraft:          parseInt(document.getElementById(`ctrl-draftrisks-${cap.id}`)?.value)      || 0,
       openRisks:           parseInt(document.getElementById(`ctrl-openrisks-${cap.id}`)?.value)       || 0,
       risksAssessed:       parseInt(document.getElementById(`ctrl-risksassessed-${cap.id}`)?.value)   || 0,
       controlsNotAssessed: parseInt(document.getElementById(`ctrl-not-${cap.id}`)?.value)             || 0,

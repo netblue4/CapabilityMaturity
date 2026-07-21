@@ -1729,3 +1729,201 @@ details[open] .profile-card-chevron {
   color: var(--accent);
   flex-shrink: 0;
 }
+
+/* ── Riskonnect Import View ────────────────────────────────── */
+
+.rk-section {
+  margin-bottom: 1rem;
+}
+
+.rk-step-title {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 .5rem;
+}
+
+.rk-step-desc {
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.rk-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rk-file-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.rk-upload-info {
+  font-size: .8rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Mapping table */
+.rk-map-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: .82rem;
+}
+
+.rk-map-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  padding: .35rem .5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rk-map-table td {
+  padding: .35rem .5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.rk-map-csv {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  color: var(--text-muted);
+  max-width: 280px;
+}
+
+.rk-map-table select {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: .82rem;
+  padding: .3rem .5rem;
+}
+
+/* Review table */
+.rk-rev-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.25rem;
+  font-size: .82rem;
+}
+
+.rk-rev-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  padding: .35rem .5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.rk-rev-table td {
+  padding: .35rem .5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.rk-rev-cap {
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  min-width: 140px;
+}
+
+.rk-rev-ev {
+  font-size: .75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.rk-rev-risk {
+  text-align: center;
+  width: 60px;
+}
+
+.rk-rev-sug {
+  white-space: nowrap;
+  width: 120px;
+}
+
+.rk-level-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .1rem .35rem;
+  border-radius: 4px;
+  color: #fff;
+  margin-right: .35rem;
+}
+
+.rk-level-name {
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+
+.rk-rev-ovr select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: .8rem;
+  padding: .25rem .4rem;
+}
+
+/* Save row */
+.rk-save-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.rk-save-lbl {
+  font-size: .75rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.rk-assessment-sel {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: .85rem;
+  padding: .35rem .6rem;
+  min-width: 240px;
+}
+
+.rk-actions {
+  display: flex;
+  gap: .75rem;
+  margin-top: .5rem;
+}
+
+[data-theme="light"] .rk-map-table select,
+[data-theme="light"] .rk-rev-ovr select,
+[data-theme="light"] .rk-assessment-sel {
+  background: #fff;
+  border-color: #ccc;
+  color: #1a1a2e;
+}

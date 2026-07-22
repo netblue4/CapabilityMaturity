@@ -46,25 +46,25 @@
           "level": 1,
           "name": "Initial",
           "label": "No Roles and Responsibilities defined for this capability. Ownership is absent and activities are performed ad-hoc. Nobody is accountable if something goes wrong.",
-          "exit": "Define and document the most important Roles and Responsibilities for this capability. Assign at least one named owner who accepts accountability for ensuring those responsibilities are performed."
+          "exit": "Draft the most important Roles and Responsibilities for managing ICT risk."
         },
         {
           "level": 2,
           "name": "Drafted",
           "label": "Roles and Responsibilities have been drafted and a named owner assigned. The document exists but has not been formally approved and is not yet consistently followed in practice.",
-          "exit": "Obtain formal approval of the Roles and Responsibilities document from the appropriate authority. Confirm the owner accepts accountability and begins actively performing and enforcing their responsibilities."
+          "exit": "Obtain formal approval of the drafted Roles and Responsibilities from the appropriate authority."
         },
         {
           "level": 3,
           "name": "Approved",
-          "label": "Roles and Responsibilities are formally approved and consistently performed. The owner is accountable and the organisation can demonstrate that responsibilities are being carried out.",
-          "exit": "Establish a formal review cycle for the Roles and Responsibilities document. Complete at least one review that considers inputs from the ICT Risk and Reporting dimensions — demonstrating the feedback loop has begun."
+          "label": "Roles and Responsibilities for managing ICT risk are formally approved and the owner is accountable.",
+          "exit": "Review approved Roles and Responsibilities considers inputs from the ICT Risk and Reporting dimensions."
         },
         {
           "level": 4,
           "name": "Measured",
           "label": "Roles and Responsibilities are reviewed on a regular schedule. Each review considers risk findings and KPI outcomes and uses them to validate or update who is responsible and how.",
-          "exit": "Demonstrate that at least one Risk finding or KPI gap has directly resulted in a documented update to the Roles and Responsibilities — providing evidence that the continuous improvement loop is operating."
+          "exit": "Update Roles and Responsibilities with the results of the Risk finding or KPI gaps."
         },
         {
           "level": 5,
@@ -86,25 +86,25 @@
           "level": 1,
           "name": "Initial",
           "label": "No risks or controls have been identified against any Role or Responsibility for this capability. We do not yet know what could go wrong if our responsibilities are not performed.",
-          "exit": "Identify the most important Roles and Responsibilities for this capability. For each one, draft at least one risk describing what could go wrong if that responsibility is not performed, and at least one control to prevent or detect that failure."
+          "exit": "Draft risks describing what could go wrong if that responsibility is not performed, and controls to prevent or detect that failure."
         },
         {
           "level": 2,
           "name": "Drafted",
           "label": "Risks and controls have been drafted against the most important Roles and Responsibilities. We know what could go wrong but have not yet formally validated whether our controls are adequate or assessed the residual risk.",
-          "exit": "Formally assess every drafted risk and control. Document in Riskonnect and included in the RCSA and CSA cycle."
+          "exit": "Formally assess and approve drafted risks and controls."
         },
         {
           "level": 3,
           "name": "Approved",
-          "label": "All drafted risks and controls have been formally assessed and approved. Risks and controls are documented in Riskonnect and included in the RCSA and CSA cycle. We have a clear and agreed picture of where we stand.",
-          "exit": "For every gap identified — missing controls, ineffective controls or unacceptable residual risk — define and implement a treatment action. Reassess the residual risk after each treatment is applied and document the updated position."
+          "label": "All drafted risks and controls have been formally assessed and approved, and controls are owned.",
+          "exit": "Plan each approved risk and control into the risk and control self assessment (RCSA)."
         },
         {
           "level": 4,
           "name": "In RCSA",
-          "label": "Treatment actions have been implemented and residual risks reassessed. The risk profile for this capability is formally established, actively tracked and reported. We can demonstrate the impact of our risk management work.",
-          "exit": "Confirm that all residual risks are within the defined tolerance. Establish a formal reassessment cycle and complete at least one full cycle — then demonstrate that risk findings are being fed back to the Governance Profile to update Roles and Responsibilities."
+          "label": "Risks and controls have been planned into the risk and control self assessment (RCSA). The risk profile for this capability is formally established, actively tracked and reported.",
+          "exit": "Assess risks and controls and record their performance."
         },
         {
           "level": 5,
@@ -125,25 +125,25 @@
           "level": 1,
           "name": "Initial",
           "label": "No KPIs defined for this capability. There is no visibility of whether Roles and Responsibilities are being performed, whether controls are working, or whether outcomes are being achieved.",
-          "exit": "Define at least one KPI for this capability that is directly grounded in the Roles and Responsibilities and the identified risks. The KPI must measure something that tells you whether a responsibility is being performed or a control is working. Assign an owner responsible for measuring and reporting it."
+          "exit": "Draft at least one KPI for this capability that is directly grounded in the Roles and Responsibilities and the identified risks."
         },
         {
           "level": 2,
           "name": "Drafted",
-          "label": "KPIs have been defined and are grounded in the Roles and Responsibilities and identified risks. They are not yet being measured consistently or reported to stakeholders.",
-          "exit": "Begin measuring all defined KPIs on a regular schedule. Produce at least one formal report showing KPI results and distribute it to relevant stakeholders — demonstrating that measurement is active and not just planned."
+          "label": "KPIs have been drafted and are grounded in the Roles and Responsibilities and identified risks. They are not yet being measured consistently or reported to stakeholders.",
+          "exit": "Obtain formal approval of the drafted KPIs from the appropriate authority."
         },
         {
           "level": 3,
           "name": "Approved",
-          "label": "KPIs are measured and reported periodically. Results reach the right stakeholders and are reviewed. There is now visibility of performance but gaps and exceptions are not yet formally escalated or acted upon.",
-          "exit": "Establish a formal reporting schedule and define escalation thresholds. When a KPI falls below an agreed level, a formal exception must be raised, tracked and assigned to an owner — creating accountability for the gap."
+          "label": "KPIs are formally approved and the owner is accountable.",
+          "exit": "Review approved KPIs, considering inputs from the ICT Risk dimensions."
         },
         {
           "level": 4,
           "name": "Measured",
           "label": "KPIs are reported to management on a formal schedule. Exceptions are escalated, tracked and owned. Reporting is reliable, consistent and used to hold accountable those responsible for performance.",
-          "exit": "Demonstrate that at least one KPI gap or formal exception has directly triggered a review of the Governance Roles and Responsibilities document — providing evidence that reporting outcomes are feeding back into the improvement loop."
+          "exit": "Update KPIs with the results of the Risk dimension finding or gaps."
         },
         {
           "level": 5,

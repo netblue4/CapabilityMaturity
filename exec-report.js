@@ -98,17 +98,25 @@ function execDimCard(measure, prevA, currentA, plannedA) {
     </div>`;
 }
 
-// ── Bar chart with 3.0 goal line ──────────────────────────────
+// ── Bar chart with per-level goal lines ───────────────────────
 function execBars(assessment, measure, compareA) {
-  const GOAL    = 3;
-  const goalPct = (GOAL / 5) * 100; // 60%
+  // 5 tick lines at 20%, 40%, 60%, 80%, 100%
+  const levelLines = [1, 2, 3, 4, 5].map(l =>
+    `<div class="exec-goal-line" style="left:${l * 20}%"></div>`
+  ).join('');
+
+  const levelHdrLabels = [1, 2, 3, 4, 5].map(l => {
+    const ls = measure.levels ? measure.levels.find(ls => ls.level === l) : null;
+    const abbrev = abbrevMeasureLevel(ls?.name || '');
+    return `<span class="exec-goal-lbl" style="left:${l * 20}%">${abbrev}</span>`;
+  }).join('');
 
   const rows = CONFIG.capabilities.map(cap => {
     const s  = getMeasureScore(assessment, cap.id, measure.id) || 0;
     const ps = compareA ? getMeasureScore(compareA, cap.id, measure.id) || 0 : 0;
     const lv = levelForScore(s);
     const w  = (s / 5) * 100;
-    const at = s > 0 && s >= GOAL;
+    const at = s > 0 && s >= 3;
     const dd = compareA && s > 0 && ps > 0 ? s - ps : null;
     const dh = dd !== null
       ? `<span class="delta ${dd > 0 ? 'delta-up' : dd < 0 ? 'delta-down' : 'delta-flat'}">${dd > 0 ? '▲' : dd < 0 ? '▼' : '●'}${Math.abs(dd) > 0 ? Math.abs(dd) : ''}</span>`
@@ -118,7 +126,7 @@ function execBars(assessment, measure, compareA) {
         <span class="exec-bar-lbl" title="${cap.name}">${shortName(cap.name)}</span>
         <div class="exec-bar-track">
           <div class="exec-bar-fill" style="width:${w}%;background:${lv ? lv.color : 'var(--clr-fill-dark)'}"></div>
-          <div class="exec-goal-line" style="left:${goalPct}%"></div>
+          ${levelLines}
         </div>
         <span class="exec-bar-sc${at ? ' exec-at-goal' : ''}">${s > 0 ? s : '—'}</span>
         <span class="exec-bar-d">${dh}</span>
@@ -130,7 +138,7 @@ function execBars(assessment, measure, compareA) {
       <div class="exec-bar-row exec-bar-hdr">
         <span class="exec-bar-lbl"></span>
         <div class="exec-bar-track exec-bar-track-hdr">
-          <span class="exec-goal-lbl" style="left:${goalPct}%">▾ TGT 3</span>
+          ${levelHdrLabels}
         </div>
         <span class="exec-bar-sc" style="color:var(--text-muted);font-size:.65rem;font-weight:normal">SC</span>
         <span class="exec-bar-d"  style="color:var(--text-muted);font-size:.65rem">Δ</span>

@@ -127,6 +127,16 @@ function shortName(name) {
     .replace("Disaster Recovery", "DR");
 }
 
+// Returns a short abbreviation for a measure-specific level name.
+function abbrevMeasureLevel(name) {
+  if (!name) return '';
+  const map = {
+    'initial': 'INIT', 'drafted': 'DRFT', 'approved': 'APPD',
+    'in rcsa': 'RCSA', 'measured': 'MSRD', 'reviewed': 'REVD',
+  };
+  return map[name.toLowerCase()] || name.substring(0, 4).toUpperCase();
+}
+
 function setDefaultDate() {
   const el = document.getElementById("assessment-date");
   if (el && !el.value) el.value = new Date().toISOString().slice(0, 10);

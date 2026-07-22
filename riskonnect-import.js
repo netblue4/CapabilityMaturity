@@ -267,25 +267,15 @@
         ).length;
         value = rows.length > 0 ? Math.round((implemented / rows.length) * 100) : null;
       } else if (m.id === 'control_assessment_currency') {
-        const now    = new Date();
-        const qMonth = Math.floor(now.getMonth() / 3) * 3;
-        const qStart = new Date(now.getFullYear(), qMonth, 1);
-        const qEnd   = new Date(now.getFullYear(), qMonth + 3, 0);
-        function parseDMY(str) {
-          if (!str || !str.trim()) return null;
-          const p = str.trim().split('/');
-          if (p.length !== 3) return null;
-          return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
-        }
         const implemented = rows.filter(row =>
           (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
         );
-        const assessedThisQ = implemented.filter(row => {
-          const d = parseDMY(cols.lastAssessDate ? row[cols.lastAssessDate] : '');
-          return d && d >= qStart && d <= qEnd;
+        const everAssessed = implemented.filter(row => {
+          const d = cols.lastAssessDate ? (row[cols.lastAssessDate] || '').trim() : '';
+          return d !== '';
         });
         value = implemented.length > 0
-          ? Math.round((assessedThisQ.length / implemented.length) * 100)
+          ? Math.round((everAssessed.length / implemented.length) * 100)
           : null;
       }
       metricsData[m.id] = { value };
@@ -413,7 +403,7 @@
     });
 
     saveToLocalStorage();
-    alert('Saved to "' + assessment.label + '". ' + _computed.length + ' capabilities updated.');
+    loadFromLocalStorage();
     showView('dashboard');
   }
 

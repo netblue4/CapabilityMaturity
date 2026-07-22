@@ -12,8 +12,8 @@ function showExecReportModal() {
     document.getElementById(id).innerHTML = opts;
   });
   const n = db.assessments.length;
-  document.getElementById('exec-prev-sel').value = db.assessments[Math.max(0, n - 3)].id;
-  document.getElementById('exec-curr-sel').value = db.assessments[Math.max(0, n - 2)].id;
+  document.getElementById('exec-prev-sel').value = db.assessments[Math.max(0, n - 2)].id;
+  document.getElementById('exec-curr-sel').value = db.assessments[n - 1].id;
   document.getElementById('exec-plan-sel').value = db.assessments[n - 1].id;
   document.getElementById('exec-report-modal').style.display = 'flex';
 }

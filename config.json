@@ -235,10 +235,10 @@
     },
     {
       "id": "control_assessment_currency",
-      "name": "Controls Assessed This Quarter",
-      "shortName": "Assessed Q",
-      "description": "Percentage of implemented controls formally assessed in the current calendar quarter",
-      "formulaNote": "Implemented controls with assessment date in current calendar quarter ÷ Total implemented controls",
+      "name": "Controls Formally Assessed",
+      "shortName": "Assessed",
+      "description": "Percentage of implemented controls that have ever been formally assessed",
+      "formulaNote": "Implemented controls with any Last Control Assessment Date ÷ Total implemented controls",
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },
       "correctiveAction": "Schedule and complete formal control assessments for all implemented controls"

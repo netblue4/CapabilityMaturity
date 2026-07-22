@@ -212,6 +212,19 @@
     }
   ],
 
+  "riskMetrics": [
+    {
+      "id": "risk_coverage",
+      "name": "Risk Coverage",
+      "shortName": "Risk Cov.",
+      "description": "Degree to which risks covering roles and responsibilities have been formally approved",
+      "formulaNote": "(Total risks − Draft risks) ÷ Total risks",
+      "unit": "percent",
+      "thresholds": { "good": 80, "warning": 50 },
+      "correctiveAction": "Approve draft risks and controls"
+    }
+  ],
+
   "capabilities": [
     {
       "id": "asset_mgmt",

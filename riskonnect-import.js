@@ -250,11 +250,25 @@
     };
     const level = computeSustainabilityLevel(rmForLevel);
 
+    // ── Compute configured risk metrics ──────────────────────────
+    const totalRisks = riskRows.length;
+    const metricsData = {};
+    (CONFIG.riskMetrics || []).forEach(m => {
+      let value = null;
+      if (m.id === 'risk_coverage') {
+        value = totalRisks > 0
+          ? Math.round(((totalRisks - draftRisks.length) / totalRisks) * 100)
+          : null;
+      }
+      // Future metrics: add else-if branches here when new metrics are defined
+      metricsData[m.id] = { value };
+    });
+
     // ── Evidence summary ──────────────────────────────────────────
     const ev = [];
-    if (draftRisks.length)   ev.push(draftRisks.length   + ' draft');
-    if (openRisks.length)    ev.push(openRisks.length     + ' open');
-    if (assessedRisks.length) ev.push(assessedRisks.length + ' assessed');
+    if (draftRisks.length)    ev.push(draftRisks.length    + ' draft');
+    if (openRisks.length)     ev.push(openRisks.length      + ' open');
+    if (assessedRisks.length) ev.push(assessedRisks.length  + ' assessed');
     if (eff)    ev.push(eff    + ' ctrl eff');
     if (part)   ev.push(part   + ' ctrl part');
     if (notAss) ev.push(notAss + ' ctrl NA');
@@ -262,6 +276,7 @@
     return {
       level,
       sustainabilityLevel: level,
+      totalRisks,
       risksDraft:          draftRisks.length,
       openRisksCount:      openRisks.length,
       risksAssessed:       assessedRisks.length,
@@ -269,7 +284,8 @@
       controlsPartial:     part,
       controlsNotAssessed: notAss,
       residualRating,
-      evidence: ev.join(' · ') || riskRows.length + ' risks',
+      evidence: ev.join(' · ') || totalRisks + ' risks',
+      metrics:  metricsData,
     };
   }
 
@@ -357,6 +373,7 @@
       assessment.measureScores[capId].riskManagement = {
         ...existing,
         sustainabilityLevel: level,
+        totalRisks:          r.totalRisks          || 0,
         risksDraft:          r.risksDraft,
         openRisks:           r.openRisksCount,
         risksAssessed:       r.risksAssessed,
@@ -364,6 +381,7 @@
         controlsPartial:     r.controlsPartial,
         controlsNotAssessed: r.controlsNotAssessed,
         residualRating:      r.residualRating,
+        metrics:             r.metrics             || {},
       };
     });
 

@@ -186,39 +186,21 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
   }
 
   // ── Build rows ────────────────────────────────────────────────
-  let countGood = 0, countWarn = 0, countBad = 0, countNoData = 0;
-
   const tableRows = CONFIG.capabilities.map(cap => {
-    const rm         = getRiskManagement(assessment, cap.id);
-    const hasAnyData = (rm.risksAssessed > 0) || (rm.risksDraft > 0) || (rm.openRisks > 0) || !!rm.residualRating;
+    const rm = getRiskManagement(assessment, cap.id);
 
-    // Residual badge
     const abbrev = residualAbbrev(rm.residualRating);
     const rCol   = residualColor(rm.residualRating);
     const resBadge = (rm.risksAssessed > 0) && abbrev
       ? `<span class="risk-residual-badge" style="background:${rCol};color:#fff" title="${rm.residualRating}">${abbrev}</span>`
       : `<span class="risk-residual-badge risk-badge-na">—</span>`;
 
-    // Per-metric cells
-    let worstStatus = 'good';
     const metricCells = riskMetrics.map(m => {
       const curr    = metricValue(assessment, cap.id, m.id);
       const prevVal = prev ? metricValue(prev, cap.id, m.id) : null;
       const cls     = ragClass(curr, m);
-      if (curr !== null) {
-        if (cls === 'rcsa-metric-bad')  worstStatus = 'bad';
-        else if (cls === 'rcsa-metric-warn' && worstStatus !== 'bad') worstStatus = 'warn';
-      }
       return `<td class="rcsa-metric-cell ${cls}">${fmtValue(curr, m.unit)}${trendHtml(curr, prevVal)}</td>`;
     }).join('');
-
-    if (hasAnyData) {
-      if      (worstStatus === 'bad')  countBad++;
-      else if (worstStatus === 'warn') countWarn++;
-      else                             countGood++;
-    } else {
-      countNoData++;
-    }
 
     return `<tr>
       <td class="rcsa-cap-cell">${shortName(cap.name)}</td>
@@ -247,23 +229,6 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
         </div>`).join('')}
     </div>` : '';
 
-  // ── Summary badge ─────────────────────────────────────────────
-  let badgeText, badgeBg;
-  const total = CONFIG.capabilities.length;
-  if (riskMetrics.length === 0 || countNoData === total) {
-    badgeText = 'No data imported';
-    badgeBg   = 'var(--clr-badge-empty)';
-  } else if (countBad > 0) {
-    badgeText = `${countBad} below target`;
-    badgeBg   = CONFIG.levels[0]?.color || 'var(--clr-danger)';
-  } else if (countWarn > 0) {
-    badgeText = `${countWarn} need attention`;
-    badgeBg   = CONFIG.levels[1]?.color || '#bc7439';
-  } else {
-    badgeText = `${countGood} on track`;
-    badgeBg   = CONFIG.levels[3]?.color || 'var(--clr-success)';
-  }
-
   return `
     <div class="card measure-card">
       <div class="measure-card-header">
@@ -272,7 +237,6 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
           <h3 class="measure-card-title">ICT RCSA &amp; CSA — Risk Management Metrics</h3>
           <p class="measure-card-desc">Quarterly metrics derived from Riskonnect data import. Trends show movement vs previous assessment.</p>
         </div>
-        <span class="measure-avg-badge" style="background:${badgeBg}">${badgeText}</span>
       </div>
       <div class="rcsa-table-wrap">
         <table class="rcsa-metrics-table">

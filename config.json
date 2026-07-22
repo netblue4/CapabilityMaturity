@@ -216,8 +216,8 @@
     {
       "id": "risk_coverage",
       "name": "Risk Coverage",
-      "shortName": "Risk Coverage",
-      "description": "Degree to which risks covering roles and responsibilities have been formally approved",
+      "shortName": "Risk Cov.",
+      "description": "Percentage of roles and responsibilities covered by approved risks",
       "formulaNote": "(Total risks − Draft risks) ÷ Total risks",
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },
@@ -226,8 +226,8 @@
     {
       "id": "control_implementation_rate",
       "name": "Control Implementation Rate",
-      "shortName": "Control Implementation",
-      "description": "Percentage of controls that have been formally implemented",
+      "shortName": "Implemented",
+      "description": "Percentage of controls that have been implemented",
       "formulaNote": "Implemented controls ÷ Total controls",
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },
@@ -236,8 +236,8 @@
     {
       "id": "control_assessment_currency",
       "name": "Controls Formally Assessed",
-      "shortName": "Control Implementation & Assessed",
-      "description": "Percentage of implemented controls that have ever been formally assessed",
+      "shortName": "Assessed",
+      "description": "Percentage of implemented controls that have been formally assessed",
       "formulaNote": "Implemented controls with any Last Control Assessment Date ÷ Total implemented controls",
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },

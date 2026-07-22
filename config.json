@@ -222,6 +222,26 @@
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },
       "correctiveAction": "Approve draft risks and controls"
+    },
+    {
+      "id": "control_implementation_rate",
+      "name": "Control Implementation Rate",
+      "shortName": "Implemented",
+      "description": "Percentage of controls that have been formally implemented",
+      "formulaNote": "Implemented controls ÷ Total controls",
+      "unit": "percent",
+      "thresholds": { "good": 80, "warning": 50 },
+      "correctiveAction": "Implement outstanding controls"
+    },
+    {
+      "id": "control_assessment_currency",
+      "name": "Controls Assessed This Quarter",
+      "shortName": "Assessed Q",
+      "description": "Percentage of implemented controls formally assessed in the current calendar quarter",
+      "formulaNote": "Implemented controls with assessment date in current calendar quarter ÷ Total implemented controls",
+      "unit": "percent",
+      "thresholds": { "good": 80, "warning": 50 },
+      "correctiveAction": "Schedule and complete formal control assessments for all implemented controls"
     }
   ],
 

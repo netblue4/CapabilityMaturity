@@ -60,13 +60,15 @@
       return null;
     }
     return {
-      capability: find('business process', 'process', 'capability', 'function', 'domain'),
-      riskTitle:  find('risk title', 'risk name', 'title'),
-      status:     find('status'),
-      owner:      find('owner'),
-      designAss:  find('design assess', 'design effectiveness', 'design rating', 'design'),
-      opAss:      find('operation assess', 'operational assess', 'operation effectiveness', 'operation rating', 'operation'),
-      residual:   find('residual score', 'residual risk score', 'residual rating score', 'residual'),
+      capability:      find('business process', 'process', 'capability', 'function', 'domain'),
+      riskTitle:       find('risk title', 'risk name', 'title'),
+      status:          find('status'),
+      owner:           find('owner'),
+      designAss:       find('design assess', 'design effectiveness', 'design rating', 'design'),
+      opAss:           find('operation assess', 'operational assess', 'operation effectiveness', 'operation rating', 'operation'),
+      residual:        find('residual score', 'residual risk score', 'residual rating score', 'residual'),
+      controlStatus:   find('control: status', 'control status'),
+      lastAssessDate:  find('last control assessment', 'last assessment', 'assessment date'),
     };
   }
 
@@ -259,8 +261,33 @@
         value = totalRisks > 0
           ? Math.round(((totalRisks - draftRisks.length) / totalRisks) * 100)
           : null;
+      } else if (m.id === 'control_implementation_rate') {
+        const implemented = rows.filter(row =>
+          (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
+        ).length;
+        value = rows.length > 0 ? Math.round((implemented / rows.length) * 100) : null;
+      } else if (m.id === 'control_assessment_currency') {
+        const now    = new Date();
+        const qMonth = Math.floor(now.getMonth() / 3) * 3;
+        const qStart = new Date(now.getFullYear(), qMonth, 1);
+        const qEnd   = new Date(now.getFullYear(), qMonth + 3, 0);
+        function parseDMY(str) {
+          if (!str || !str.trim()) return null;
+          const p = str.trim().split('/');
+          if (p.length !== 3) return null;
+          return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+        }
+        const implemented = rows.filter(row =>
+          (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
+        );
+        const assessedThisQ = implemented.filter(row => {
+          const d = parseDMY(cols.lastAssessDate ? row[cols.lastAssessDate] : '');
+          return d && d >= qStart && d <= qEnd;
+        });
+        value = implemented.length > 0
+          ? Math.round((assessedThisQ.length / implemented.length) * 100)
+          : null;
       }
-      // Future metrics: add else-if branches here when new metrics are defined
       metricsData[m.id] = { value };
     });
 

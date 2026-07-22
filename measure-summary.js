@@ -185,9 +185,7 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
     return '';
   }
 
-  // ── Build rows + collect corrective actions ───────────────────
-  // caGroups: { `metricId|action` → { shortName, action, entries:[{capName,value}] } }
-  const caGroups = {};
+  // ── Build rows ────────────────────────────────────────────────
   let countGood = 0, countWarn = 0, countBad = 0, countNoData = 0;
 
   const tableRows = CONFIG.capabilities.map(cap => {
@@ -201,22 +199,15 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
       ? `<span class="risk-residual-badge" style="background:${rCol};color:#fff" title="${rm.residualRating}">${abbrev}</span>`
       : `<span class="risk-residual-badge risk-badge-na">—</span>`;
 
-    // Per-metric cells + RAG tracking
+    // Per-metric cells
     let worstStatus = 'good';
     const metricCells = riskMetrics.map(m => {
       const curr    = metricValue(assessment, cap.id, m.id);
       const prevVal = prev ? metricValue(prev, cap.id, m.id) : null;
       const cls     = ragClass(curr, m);
-
       if (curr !== null) {
         if (cls === 'rcsa-metric-bad')  worstStatus = 'bad';
         else if (cls === 'rcsa-metric-warn' && worstStatus !== 'bad') worstStatus = 'warn';
-
-        if (cls === 'rcsa-metric-bad' || cls === 'rcsa-metric-warn') {
-          const key = `${m.id}|${m.correctiveAction}`;
-          if (!caGroups[key]) caGroups[key] = { name: m.shortName || m.name, action: m.correctiveAction, entries: [] };
-          caGroups[key].entries.push({ capName: shortName(cap.name), value: fmtValue(curr, m.unit), cls });
-        }
       }
       return `<td class="rcsa-metric-cell ${cls}">${fmtValue(curr, m.unit)}${trendHtml(curr, prevVal)}</td>`;
     }).join('');
@@ -241,22 +232,19 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
     `<th title="${m.name} — ${m.formulaNote || ''}">${m.shortName || m.name}</th>`
   ).join('');
 
-  // ── Corrective actions ────────────────────────────────────────
-  const caEntries = Object.values(caGroups);
-  const caHtml = caEntries.length > 0 ? `
+  // ── Metric legend ─────────────────────────────────────────────
+  const legendHtml = riskMetrics.length > 0 ? `
     <div class="rcsa-ca-section">
-      <div class="rcsa-ca-title">Corrective Actions Required</div>
-      ${caEntries.map(g => {
-        const capList = g.entries.map(e =>
-          `<span class="${e.cls === 'rcsa-metric-bad' ? 'rcsa-ca-bad' : 'rcsa-ca-warn'}">${e.capName} (${e.value})</span>`
-        ).join(' · ');
-        return `<div class="rcsa-ca-item">
-          <span class="rcsa-ca-metric">${g.name}:</span>
-          <span class="rcsa-ca-caps">${capList}</span>
-          <span class="rcsa-ca-arrow">→</span>
-          <span class="rcsa-ca-action">${g.action}</span>
-        </div>`;
-      }).join('')}
+      <div class="rcsa-ca-title">Metric Definitions &amp; Corrective Actions</div>
+      ${riskMetrics.map(m => `
+        <div class="rcsa-legend-item">
+          <span class="rcsa-legend-short">${m.shortName || m.name}</span>
+          <span class="rcsa-legend-name">${m.name}</span>
+          <span class="rcsa-legend-sep">—</span>
+          <span class="rcsa-legend-desc">${m.description || ''}</span>
+          <span class="rcsa-legend-arrow">→</span>
+          <span class="rcsa-legend-action">${m.correctiveAction || ''}</span>
+        </div>`).join('')}
     </div>` : '';
 
   // ── Summary badge ─────────────────────────────────────────────
@@ -298,6 +286,6 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
           <tbody>${tableRows}</tbody>
         </table>
       </div>
-      ${caHtml}
+      ${legendHtml}
     </div>`;
 }

@@ -143,122 +143,137 @@ function renderMeasureSummary(assessment) {
   }).join("");
 
   document.getElementById("scores-card-slot").innerHTML = scoresCard;
-  row.innerHTML = measureCards + renderRiskMgmtSummaryCard(assessment);
+  row.innerHTML = measureCards + renderRiskMgmtSummaryCard(assessment, prev);
 }
 
-// ── ICT Risk Management Summary Card ─────────────────────────
-function renderRiskMgmtSummaryCard(assessment) {
-  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
-  const HDR = 'font-size:.62rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);flex-shrink:0';
+// ── ICT Risk Management Metrics Card ─────────────────────────
+function renderRiskMgmtSummaryCard(assessment, prev) {
+  const riskMetrics = CONFIG.riskMetrics || [];
+  const riskKeys    = Object.keys(CONFIG.riskScoreMatrix || {});
 
-  function getResidualAbbrev(value) {
-    if (!value) return null;
-    if (value.startsWith('Extreme'))     return 'EXT';
-    if (value.startsWith('Significant')) return 'SIG';
-    if (value.startsWith('Moderate'))    return 'MOD';
-    if (value.startsWith('Low'))         return 'LOW';
+  // ── Helpers ──────────────────────────────────────────────────
+  function residualAbbrev(v) {
+    if (!v) return null;
+    if (v.startsWith('Extreme'))     return 'EXT';
+    if (v.startsWith('Significant')) return 'SIG';
+    if (v.startsWith('Moderate'))    return 'MOD';
+    if (v.startsWith('Low'))         return 'LOW';
     return null;
   }
-
-  function getResidualColor(value) {
-    const idx = riskKeys.indexOf(value);
+  function residualColor(v) {
+    const idx = riskKeys.indexOf(v);
     return idx >= 0 ? (CONFIG.levels[idx]?.color || null) : null;
   }
+  function metricValue(a, capId, metricId) {
+    return getRiskManagement(a, capId)?.metrics?.[metricId]?.value ?? null;
+  }
+  function ragClass(value, metric) {
+    if (value === null) return 'rcsa-metric-na';
+    if (value >= metric.thresholds.good)    return 'rcsa-metric-good';
+    if (value >= metric.thresholds.warning) return 'rcsa-metric-warn';
+    return 'rcsa-metric-bad';
+  }
+  function fmtValue(value, unit) {
+    if (value === null) return '—';
+    return unit === 'percent' ? value + '%' : String(value);
+  }
+  function trendHtml(curr, prevVal) {
+    if (curr === null || prevVal === null || prevVal === undefined) return '';
+    const d = curr - prevVal;
+    if (d > 0) return `<span class="rcsa-trend-up"> ▲</span>`;
+    if (d < 0) return `<span class="rcsa-trend-dn"> ▼</span>`;
+    return '';
+  }
 
-  // Sustainability level counts for summary badge
-  const sustCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, na: 0 };
+  // ── Build rows + collect corrective actions ───────────────────
+  // caGroups: { `metricId|action` → { shortName, action, entries:[{capName,value}] } }
+  const caGroups = {};
+  let countGood = 0, countWarn = 0, countBad = 0, countNoData = 0;
 
-  const rows = CONFIG.capabilities.map(cap => {
-    const rm        = getRiskManagement(assessment, cap.id);
-    const residual  = rm.residualRating || '';
-    const abbrev    = getResidualAbbrev(residual);
-    const rColor    = getResidualColor(residual);
-
-    // Sustainability level — use stored value if set, otherwise derive
-    const sustLevel = rm.sustainabilityLevel || computeSustainabilityLevel(rm);
-    const sustDef   = sustLevelDef(sustLevel);
-    const sustColor = CONFIG.levels[sustLevel - 1]?.color || 'var(--clr-badge-empty)';
-
+  const tableRows = CONFIG.capabilities.map(cap => {
+    const rm         = getRiskManagement(assessment, cap.id);
     const hasAnyData = (rm.risksAssessed > 0) || (rm.risksDraft > 0) || (rm.openRisks > 0) || !!rm.residualRating;
-    if (!hasAnyData) {
-      sustCounts.na++;
-    } else {
-      sustCounts[sustLevel] = (sustCounts[sustLevel] || 0) + 1;
-    }
 
     // Residual badge
-    const residualBadge = (rm.risksAssessed > 0) && abbrev
-      ? `<span class="risk-residual-badge" style="background:${rColor};color:#fff" title="${residual}">${abbrev}</span>`
-      : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
+    const abbrev = residualAbbrev(rm.residualRating);
+    const rCol   = residualColor(rm.residualRating);
+    const resBadge = (rm.risksAssessed > 0) && abbrev
+      ? `<span class="risk-residual-badge" style="background:${rCol};color:#fff" title="${rm.residualRating}">${abbrev}</span>`
+      : `<span class="risk-residual-badge risk-badge-na">—</span>`;
 
-    // Sustainability level badge — only show if capability has any data
-    const sustBadge = hasAnyData
-      ? `<span class="sust-level-badge" style="background:${sustColor}" title="${sustDef ? sustDef.name : ''}">
-           ${sustLevel}<span class="sust-level-short">${sustDef && sustLevel >= 4 ? (sustLevel === 5 ? 'E' : 'J') : ''}</span>
-         </span>`
-      : `<span class="sust-level-badge sust-badge-na" title="No risk data">—</span>`;
+    // Per-metric cells + RAG tracking
+    let worstStatus = 'good';
+    const metricCells = riskMetrics.map(m => {
+      const curr    = metricValue(assessment, cap.id, m.id);
+      const prevVal = prev ? metricValue(prev, cap.id, m.id) : null;
+      const cls     = ragClass(curr, m);
 
-    // Pending flag — draft risks not yet formally assessed
-    const draft = rm.risksDraft || 0;
-    const pendingHtml = draft > 0
-      ? `<span class="risk-gap-flag" title="${draft} draft risk${draft > 1 ? 's' : ''} pending assessment">⚠${draft}</span>`
-      : `<span class="risk-gap-flag"></span>`;
+      if (curr !== null) {
+        if (cls === 'rcsa-metric-bad')  worstStatus = 'bad';
+        else if (cls === 'rcsa-metric-warn' && worstStatus !== 'bad') worstStatus = 'warn';
 
-    // Row highlight for out-of-tolerance (sustLevel 2 or 3)
-    const rowBorder = (sustLevel === 2 || sustLevel === 3) && hasAnyData
-      ? ` style="border-left:2px solid ${sustColor};padding-left:.35rem;margin-left:-.4rem"`
-      : '';
+        if (cls === 'rcsa-metric-bad' || cls === 'rcsa-metric-warn') {
+          const key = `${m.id}|${m.correctiveAction}`;
+          if (!caGroups[key]) caGroups[key] = { name: m.shortName || m.name, action: m.correctiveAction, entries: [] };
+          caGroups[key].entries.push({ capName: shortName(cap.name), value: fmtValue(curr, m.unit), cls });
+        }
+      }
+      return `<td class="rcsa-metric-cell ${cls}">${fmtValue(curr, m.unit)}${trendHtml(curr, prevVal)}</td>`;
+    }).join('');
 
-    // Control columns
-    const eff  = rm.controlsEffective   || 0;
-    const part = rm.controlsPartial     || 0;
-    const naC  = rm.controlsNotAssessed || 0;
-    const rmAssessed = rm.risksAssessed > 0;
-    const effHtml  = rmAssessed ? (eff  > 0 ? `${eff}`  : '—') : '—';
-    const partHtml = rmAssessed ? (part > 0 ? `${part}` : '—') : '—';
-    const naHtml   = rmAssessed ? (naC  > 0 ? `${naC}`  : '—') : '—';
+    if (hasAnyData) {
+      if      (worstStatus === 'bad')  countBad++;
+      else if (worstStatus === 'warn') countWarn++;
+      else                             countGood++;
+    } else {
+      countNoData++;
+    }
 
-    return `<div class="mini-bar-row"${rowBorder}>
-      <span class="mini-bar-label">${shortName(cap.name)}</span>
-      <div class="mini-bar-track"></div>
-      ${sustBadge}
-      ${residualBadge}
-      ${pendingHtml}
-      <span class="risk-ctrl-col">${effHtml}</span>
-      <span class="risk-ctrl-col">${partHtml}</span>
-      <span class="risk-ctrl-col">${naHtml}</span>
-    </div>`;
+    return `<tr>
+      <td class="rcsa-cap-cell">${shortName(cap.name)}</td>
+      <td class="rcsa-residual-cell">${resBadge}</td>
+      ${metricCells}
+    </tr>`;
   }).join('');
 
-  // Summary badge — show worst sustainability concern
-  const worstLevel = [1, 2, 3].find(l => sustCounts[l] > 0);
+  // ── Metric column headers ─────────────────────────────────────
+  const metricHeaders = riskMetrics.map(m =>
+    `<th title="${m.name} — ${m.formulaNote || ''}">${m.shortName || m.name}</th>`
+  ).join('');
+
+  // ── Corrective actions ────────────────────────────────────────
+  const caEntries = Object.values(caGroups);
+  const caHtml = caEntries.length > 0 ? `
+    <div class="rcsa-ca-section">
+      <div class="rcsa-ca-title">Corrective Actions Required</div>
+      ${caEntries.map(g => {
+        const capList = g.entries.map(e =>
+          `<span class="${e.cls === 'rcsa-metric-bad' ? 'rcsa-ca-bad' : 'rcsa-ca-warn'}">${e.capName} (${e.value})</span>`
+        ).join(' · ');
+        return `<div class="rcsa-ca-item">
+          <span class="rcsa-ca-metric">${g.name}:</span>
+          <span class="rcsa-ca-caps">${capList}</span>
+          <span class="rcsa-ca-arrow">→</span>
+          <span class="rcsa-ca-action">${g.action}</span>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  // ── Summary badge ─────────────────────────────────────────────
   let badgeText, badgeBg;
-  if (sustCounts.na === CONFIG.capabilities.length) {
-    badgeText = 'No risks assessed';
+  const total = CONFIG.capabilities.length;
+  if (riskMetrics.length === 0 || countNoData === total) {
+    badgeText = 'No data imported';
     badgeBg   = 'var(--clr-badge-empty)';
-  } else if (worstLevel) {
-    const def = sustLevelDef(worstLevel);
-    badgeText = `${sustCounts[worstLevel]} ${def ? def.shortName : 'Level ' + worstLevel}`;
-    if (sustCounts[worstLevel + 1] || sustCounts[worstLevel + 2]) {
-      const higher = [2,3,4,5].filter(l => l > worstLevel && sustCounts[l] > 0)
-        .map(l => `${sustCounts[l]} L${l}`).join(' · ');
-      if (higher) badgeText += ' · ' + higher;
-    }
-    badgeBg = CONFIG.levels[worstLevel - 1]?.color || 'var(--clr-danger)';
+  } else if (countBad > 0) {
+    badgeText = `${countBad} below target`;
+    badgeBg   = CONFIG.levels[0]?.color || 'var(--clr-danger)';
+  } else if (countWarn > 0) {
+    badgeText = `${countWarn} need attention`;
+    badgeBg   = CONFIG.levels[1]?.color || '#bc7439';
   } else {
-    // All within tolerance
-    const evid = sustCounts[5] || 0;
-    const judg = sustCounts[4] || 0;
-    if (evid > 0 && judg === 0) {
-      badgeText = `${evid} Within Tolerance — Evidenced`;
-      badgeBg   = CONFIG.levels[4]?.color || 'var(--clr-success)';
-    } else if (evid > 0) {
-      badgeText = `${evid} Evidenced · ${judg} Judgment`;
-      badgeBg   = CONFIG.levels[3]?.color || 'var(--clr-success)';
-    } else {
-      badgeText = `${judg} Within Tolerance`;
-      badgeBg   = CONFIG.levels[3]?.color || 'var(--clr-success)';
-    }
+    badgeText = `${countGood} on track`;
+    badgeBg   = CONFIG.levels[3]?.color || 'var(--clr-success)';
   }
 
   return `
@@ -266,22 +281,23 @@ function renderRiskMgmtSummaryCard(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">🛡️</span>
         <div>
-          <h3 class="measure-card-title">ICT RCSA & CSA — Risk Management Sustainability</h3>
-          <p class="measure-card-desc">Can our teams consistently perform their risk controls without it becoming unsustainable?</p>
+          <h3 class="measure-card-title">ICT RCSA &amp; CSA — Risk Management Metrics</h3>
+          <p class="measure-card-desc">Quarterly metrics derived from Riskonnect data import. Trends show movement vs previous assessment.</p>
         </div>
-        <span class="measure-avg-badge" style="background:${badgeBg}">
-          ${badgeText}
-        </span>
+        <span class="measure-avg-badge" style="background:${badgeBg}">${badgeText}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.25rem;padding-left:calc(90px + 0.4rem)">
-        <span style="flex:1"></span>
-        <span style="${HDR};width:44px;text-align:center">Sust</span>
-        <span style="${HDR};width:36px;text-align:center">Risk</span>
-        <span style="${HDR};width:28px;text-align:center">Pend</span>
-        <span style="${HDR};width:48px;text-align:right">Eff</span>
-        <span style="${HDR};width:48px;text-align:right">Part Eff</span>
-        <span style="${HDR};width:48px;text-align:right">Not Ass</span>
+      <div class="rcsa-table-wrap">
+        <table class="rcsa-metrics-table">
+          <thead>
+            <tr>
+              <th class="rcsa-th-cap">Capability</th>
+              <th>Residual</th>
+              ${metricHeaders}
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
       </div>
-      <div class="mini-bars">${rows}</div>
+      ${caHtml}
     </div>`;
 }

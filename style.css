@@ -1982,3 +1982,60 @@ details[open] .profile-card-chevron {
   flex-shrink: 0;
   text-align: center;
 }
+
+/* ── RCSA Metrics Table ──────────────────────────────────────── */
+.rcsa-table-wrap { overflow-x: auto; margin: 0 -.1rem; }
+
+.rcsa-metrics-table {
+  width: 100%; border-collapse: collapse;
+  font-size: .78rem;
+}
+.rcsa-metrics-table th {
+  font-family: var(--font-mono);
+  font-size: .6rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--text-muted);
+  padding: .32rem .55rem; text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.rcsa-metrics-table th.rcsa-th-cap { text-align: left; min-width: 100px; }
+.rcsa-metrics-table td {
+  padding: .28rem .55rem;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rcsa-metrics-table tbody tr:last-child td { border-bottom: none; }
+.rcsa-cap-cell      { text-align: left !important; color: var(--text-muted); font-size: .72rem; }
+.rcsa-residual-cell { text-align: center !important; }
+.rcsa-metric-cell   { }
+
+.rcsa-metric-good { color: #418f64; font-weight: 600; }
+.rcsa-metric-warn { color: #bc7439; font-weight: 600; }
+.rcsa-metric-bad  { color: #b34d4d; font-weight: 600; }
+.rcsa-metric-na   { color: var(--text-dim); }
+
+.rcsa-trend-up { font-size: .6rem; }
+.rcsa-trend-dn { font-size: .6rem; }
+
+/* Corrective actions */
+.rcsa-ca-section { margin-top: .8rem; }
+.rcsa-ca-title {
+  font-family: var(--font-mono); font-size: .6rem;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-dim); margin-bottom: .3rem;
+  padding-bottom: .2rem; border-bottom: 1px solid var(--border);
+}
+.rcsa-ca-item {
+  display: flex; align-items: baseline; gap: .4rem;
+  padding: .22rem 0; border-bottom: 1px solid var(--border);
+  font-size: .76rem; flex-wrap: wrap;
+}
+.rcsa-ca-item:last-child { border-bottom: none; }
+.rcsa-ca-metric { color: var(--text-muted); flex-shrink: 0; }
+.rcsa-ca-caps   { flex: 1; }
+.rcsa-ca-arrow  { color: var(--text-dim); flex-shrink: 0; }
+.rcsa-ca-action { font-style: italic; }
+.rcsa-ca-bad    { color: #b34d4d; font-weight: 600; }
+.rcsa-ca-warn   { color: #bc7439; font-weight: 600; }

@@ -129,14 +129,6 @@ function buildRiskMgmtCard(cap) {
       </div>
 
       <div class="risk-mgmt-section">
-        <label>Risk Appetite</label>
-        <input type="hidden" id="appetite-${cap.id}" value="">
-        <div class="risk-btn-group" id="risk-group-appetite-${cap.id}">
-          ${buildRiskRatingBtns(cap.id, 'appetite')}
-        </div>
-      </div>
-
-      <div class="risk-mgmt-section">
         <label>Control Effectiveness</label>
         <div class="control-row">
           <span class="control-row-label">Risks — Draft</span>

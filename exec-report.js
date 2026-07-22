@@ -70,6 +70,12 @@ function execDimCard(measure, prevA, currentA, plannedA) {
     ? `${pAvg.toFixed(1)} → ${cAvg.toFixed(1)}${d !== null && d !== 0 ? (d > 0 ? ' ▲' : ' ▼') : ''}`
     : cAvg > 0 ? cAvg.toFixed(1) : '—';
 
+  const narr1 = execNarrative(prevA, currentA, measure, 'achieved');
+  const narr2 = execNarrative(currentA, plannedA, measure, 'planned');
+  const narrHtml = (narr1 || narr2)
+    ? `<div class="exec-narr-row">${narr1}${narr2}</div>`
+    : '';
+
   return `
     <div class="card exec-dim-card">
       <div class="exec-card-hdr">
@@ -82,54 +88,54 @@ function execDimCard(measure, prevA, currentA, plannedA) {
           ${badge}
         </span>
       </div>
-      <div class="exec-split">
-        <div class="exec-half">
-          <div class="exec-half-lbl">Current — ${currentA.label}</div>
-          ${execBars(currentA, measure, prevA)}
-          ${execNarrative(prevA, currentA, measure, 'achieved')}
-        </div>
-        <div class="exec-split-div"></div>
-        <div class="exec-half">
-          <div class="exec-half-lbl">Planned — ${plannedA.label}</div>
-          ${execBars(plannedA, measure, currentA)}
-          ${execNarrative(currentA, plannedA, measure, 'planned')}
-        </div>
-      </div>
+      ${execBarsCombo(currentA, plannedA, measure, prevA)}
+      ${narrHtml}
     </div>`;
 }
 
-// ── Bar chart with per-level goal lines ───────────────────────
-function execBars(assessment, measure, compareA) {
+// ── Merged bar chart: solid current + striped planned extension ─
+function execBarsCombo(currentA, plannedA, measure, prevA) {
   // 5 tick lines at 20%, 40%, 60%, 80%, 100%
   const levelLines = [1, 2, 3, 4, 5].map(l =>
     `<div class="exec-goal-line" style="left:${l * 20}%"></div>`
   ).join('');
 
+  // Header labels — full names, uppercase
   const levelHdrLabels = [1, 2, 3, 4, 5].map(l => {
     const ls = measure.levels ? measure.levels.find(ls => ls.level === l) : null;
-    const abbrev = abbrevMeasureLevel(ls?.name || '');
-    return `<span class="exec-goal-lbl" style="left:${l * 20}%">${abbrev}</span>`;
+    const name = ls?.name ? ls.name.toUpperCase() : String(l);
+    // Last label right-anchors to avoid overflow beyond track edge
+    const style = l === 5
+      ? 'right:0;transform:none'
+      : `left:${l * 20}%;transform:translateX(-50%)`;
+    return `<span class="exec-goal-lbl" style="${style}">${name}</span>`;
   }).join('');
 
   const rows = CONFIG.capabilities.map(cap => {
-    const s  = getMeasureScore(assessment, cap.id, measure.id) || 0;
-    const ps = compareA ? getMeasureScore(compareA, cap.id, measure.id) || 0 : 0;
-    const lv = levelForScore(s);
-    const w  = (s / 5) * 100;
-    const at = s > 0 && s >= 3;
-    const dd = compareA && s > 0 && ps > 0 ? s - ps : null;
-    const dh = dd !== null
-      ? `<span class="delta ${dd > 0 ? 'delta-up' : dd < 0 ? 'delta-down' : 'delta-flat'}">${dd > 0 ? '▲' : dd < 0 ? '▼' : '●'}${Math.abs(dd) > 0 ? Math.abs(dd) : ''}</span>`
-      : `<span class="delta delta-flat">●</span>`;
+    const curr   = getMeasureScore(currentA, cap.id, measure.id) || 0;
+    const plan   = getMeasureScore(plannedA, cap.id, measure.id) || 0;
+    const lvCurr = levelForScore(curr);
+    const lvPlan = levelForScore(plan);
+    const currW  = (curr / 5) * 100;
+    const planW  = (plan / 5) * 100;
+    const extW   = Math.max(0, planW - currW);
+    const planColor = lvPlan ? lvPlan.color : 'var(--clr-fill-dark)';
+    const at = curr > 0 && curr >= 3;
+
+    const planExt = extW > 0
+      ? `<div class="exec-bar-plan-ext" style="left:${currW}%;width:${extW}%;--plan-color:${planColor}"></div>`
+      : '';
+
     return `
       <div class="exec-bar-row">
         <span class="exec-bar-lbl" title="${cap.name}">${shortName(cap.name)}</span>
         <div class="exec-bar-track">
-          <div class="exec-bar-fill" style="width:${w}%;background:${lv ? lv.color : 'var(--clr-fill-dark)'}"></div>
+          <div class="exec-bar-fill" style="width:${currW}%;background:${lvCurr ? lvCurr.color : 'var(--clr-fill-dark)'}"></div>
+          ${planExt}
           ${levelLines}
         </div>
-        <span class="exec-bar-sc${at ? ' exec-at-goal' : ''}">${s > 0 ? s : '—'}</span>
-        <span class="exec-bar-d">${dh}</span>
+        <span class="exec-bar-sc${at ? ' exec-at-goal' : ''}">${curr > 0 ? curr : '—'}</span>
+        <span class="exec-bar-tgt">${plan > 0 ? plan : '—'}</span>
       </div>`;
   }).join('');
 
@@ -141,7 +147,7 @@ function execBars(assessment, measure, compareA) {
           ${levelHdrLabels}
         </div>
         <span class="exec-bar-sc" style="color:var(--text-muted);font-size:.65rem;font-weight:normal">SC</span>
-        <span class="exec-bar-d"  style="color:var(--text-muted);font-size:.65rem">Δ</span>
+        <span class="exec-bar-tgt" style="color:var(--text-muted);font-size:.65rem;font-weight:normal">TGT</span>
       </div>
       ${rows}
     </div>`;

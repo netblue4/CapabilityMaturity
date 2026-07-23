@@ -146,10 +146,10 @@ function renderMeasureSummary(assessment) {
   row.innerHTML = measureCards + renderRiskMgmtSummaryCard(assessment, prev);
 }
 
-// ── ICT Risk Management Metrics Card ─────────────────────────
-function renderRiskMgmtSummaryCard(assessment, prev) {
-  const curr  = assessment.factSummary || {};
-  const prevF = prev?.factSummary     || {};
+// ── Shared 4-table body (used by the card AND import review screens) ──
+function renderFactSummaryTables(curr, prevF) {
+  curr  = curr  || {};
+  prevF = prevF || {};
 
   // ── Trend arrow ───────────────────────────────────────────────
   function arrow(cv, pv) {
@@ -324,6 +324,17 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
       </div>`;
   }
 
+  return renderPoTable() +
+    renderControlTable('locPolControls', 'DORA — Local Policy Controls', 'ft-col-d') +
+    renderControlTable('grpStdControls', 'DORA — Group Standard Controls', 'ft-col-g') +
+    renderOpTable();
+}
+
+// ── ICT Risk Management Metrics Card ─────────────────────────
+function renderRiskMgmtSummaryCard(assessment, prev) {
+  const curr  = assessment.factSummary || {};
+  const prevF = prev?.factSummary     || {};
+
   const noData = !curr.policyObjectives?.length && !curr.locPolControls?.length &&
                  !curr.grpStdControls?.length   && !curr.operational?.length;
 
@@ -337,9 +348,6 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
         </div>
       </div>
       ${noData ? '<p class="policy-no-data" style="margin:.5rem 0">No risk or policy data imported yet.</p>' : ''}
-      ${renderPoTable()}
-      ${renderControlTable('locPolControls', 'DORA — Local Policy Controls', 'ft-col-d')}
-      ${renderControlTable('grpStdControls', 'DORA — Group Standard Controls', 'ft-col-g')}
-      ${renderOpTable()}
+      ${renderFactSummaryTables(curr, prevF)}
     </div>`;
 }

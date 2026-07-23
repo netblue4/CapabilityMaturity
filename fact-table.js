@@ -11,7 +11,8 @@ function isLocPolType(t) {
 }
 function isGrpStdType(t) {
   const s = (t || '').toLowerCase().trim();
-  return s === 'grpstd' || s === 'group standard' || s === 'group std' || s.startsWith('grp');
+  return s === 'grpstd' || s === 'group standard' || s === 'group standards' ||
+         s === 'group std' || s.startsWith('grp');
 }
 
 // ── Normalise string for case-insensitive matching ────────────────

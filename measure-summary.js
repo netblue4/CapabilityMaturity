@@ -279,30 +279,40 @@ function renderFactSummaryTables(curr, prevF) {
   // ── Table 4: Pre-DORA Operational ────────────────────────────
   function renderOpTable() {
     const rows = curr.operational || [];
-    const pm   = prevMap(prevF.operational, r => r.capId);
-    const gone = removedRows(rows, prevF.operational, r => r.capId);
+    const keyFn = r => r.capId + '||' + ftNorm(r.riskTitle || '');
+    const pm   = prevMap(prevF.operational, keyFn);
+    const gone = removedRows(rows, prevF.operational, keyFn);
 
     if (!rows.length && !gone.length) return '';
 
-    const KEYS = ['risks','open','draft','controls','implemented','assessed','effective','partly','notAssessed'];
+    const KEYS = ['open','draft','controls','implemented','assessed','effective','partly','notAssessed'];
 
-    function dataCells(r, p, removed) {
+    function numCells(r, p, removed) {
       return KEYS.map(k =>
-        `<td class="ft-col-p${removed ? ' ft-removed-val' : ''}">${r[k]}${removed ? '' : arrow(r[k], p?.[k])}</td>`
+        `<td class="ft-col-p${removed ? ' ft-removed-val' : ''}">${r[k] ?? 0}${removed ? '' : arrow(r[k] ?? 0, p?.[k])}</td>`
       ).join('');
+    }
+    function scoreCell(val, removed) {
+      return `<td class="ft-col-p${removed ? ' ft-removed-val' : ''}">${val != null ? val.toFixed(1) : '—'}</td>`;
     }
 
     const activeHtml = rows.map(r => {
-      const p = pm[r.capId];
+      const p = pm[keyFn(r)];
       return `<tr>
         <td class="ft-td-cap">${shortName(r.capName)}</td>
-        ${dataCells(r, p, false)}
+        <td class="ft-td-rtitle" title="${r.riskTitle || ''}">${r.riskTitle || '—'}</td>
+        ${scoreCell(r.inherentScore, false)}
+        ${scoreCell(r.residualScore, false)}
+        ${numCells(r, p, false)}
       </tr>`;
     }).join('');
 
     const removedHtml = gone.map(r => `<tr class="ft-row-removed">
       <td class="ft-td-cap">${shortName(r.capName)}&nbsp;<span class="ft-removed-badge">REMOVED</span></td>
-      ${dataCells(r, null, true)}
+      <td class="ft-td-rtitle ft-removed-val">${r.riskTitle || '—'}</td>
+      ${scoreCell(r.inherentScore, true)}
+      ${scoreCell(r.residualScore, true)}
+      ${numCells(r, null, true)}
     </tr>`).join('');
 
     return `
@@ -312,9 +322,11 @@ function renderFactSummaryTables(curr, prevF) {
           <table class="rcsa-metrics-table ft-sub-table">
             <thead><tr>
               <th class="ft-th-cap">Capability</th>
-              <th class="ft-col-p ft-sub-hdr" title="Unique risks">Risks</th>
-              <th class="ft-col-p ft-sub-hdr" title="Open risks">Open</th>
-              <th class="ft-col-p ft-sub-hdr" title="Draft risks">Draft</th>
+              <th class="ft-th-rtitle">Risk Title</th>
+              <th class="ft-col-p ft-sub-hdr" title="Inherent risk score">Inherent</th>
+              <th class="ft-col-p ft-sub-hdr" title="Residual risk score">Residual</th>
+              <th class="ft-col-p ft-sub-hdr" title="Open risk">Open</th>
+              <th class="ft-col-p ft-sub-hdr" title="Draft risk">Draft</th>
               <th class="ft-col-p ft-sub-hdr" title="Total controls">Controls</th>
               <th class="ft-col-p ft-sub-hdr" title="Implemented">Impl</th>
               <th class="ft-col-p ft-sub-hdr" title="Assessed">Assessed</th>

@@ -502,6 +502,8 @@ textarea { resize: vertical; }
 .cap-desc { font-size: .8rem; color: var(--text-muted); }
 
 .measures-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.measures-grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .measures-grid-3 { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .measures-grid { grid-template-columns: 1fr; } }
 
 .measure-block {
@@ -2349,12 +2351,14 @@ details[open] .profile-card-chevron {
 .ft-sub-table thead tr { background: var(--bg2); }
 
 /* Fixed column widths keep numeric columns aligned across all three tables */
-.ft-th-cap  { width: 120px; text-align: left; }
-.ft-th-doc  { width: 150px; text-align: left; }
-.ft-sub-hdr { width: 60px; }  /* all numeric columns */
+.ft-th-cap    { width: 120px; text-align: left; }
+.ft-th-doc    { width: 150px; text-align: left; }
+.ft-th-rtitle { width: 200px; text-align: left; }
+.ft-sub-hdr   { width: 60px; }  /* all numeric columns */
 
-.ft-td-cap { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ft-td-doc { color: var(--text-dim); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
+.ft-td-cap    { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ft-td-doc    { color: var(--text-dim); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
+.ft-td-rtitle { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
 
 /* REMOVED rows */
 .ft-row-removed td { opacity: .55; }

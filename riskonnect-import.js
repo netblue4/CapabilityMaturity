@@ -66,6 +66,7 @@
       owner:          find('owner'),
       designAss:      find('design assess', 'design effectiveness', 'design rating', 'design'),
       opAss:          find('operation assess', 'operational assess', 'operation effectiveness', 'operation rating', 'operation'),
+      inherent:       find('inherent score', 'inherent risk score', 'inherent rating score', 'inherent'),
       residual:       find('residual score', 'residual risk score', 'residual rating score', 'residual'),
       controlStatus:  find('control: status', 'control status'),
       lastAssessDate: find('last control assessment', 'last assessment', 'assessment date'),
@@ -149,6 +150,8 @@
         if (s.includes('amber') || s.includes('partial'))  return 'amber';
         return 'grey';
       }
+      const inherentRaw = cols.inherent ? row[cols.inherent] : null;
+      const inherentNum = inherentRaw ? (parseFloat(inherentRaw) || null) : null;
       const residualRaw = cols.residual ? row[cols.residual] : null;
       const residualNum = residualRaw ? (parseFloat(residualRaw) || null) : null;
 
@@ -162,6 +165,7 @@
         designAssess:   toGAG(dRaw),
         opAssess:       toGAG(oRaw),
         lastAssessDate: cols.lastAssessDate ? (row[cols.lastAssessDate] || '').trim() : '',
+        inherentScore:  inherentNum,
         residualScore:  residualNum,
         statementRefs:  extractStatementRefs(rawName),
         matchedPolicyRows: [],

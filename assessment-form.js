@@ -178,8 +178,10 @@ function buildRiskMgmtCard(cap) {
 
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
-  const nonRiskMeasures = CONFIG.measures.filter(m => m.id !== 'risk');
-  const riskMeasure     = CONFIG.measures.find(m => m.id === 'risk');
+  // All 3 measures in order: Governance, Reporting, Risk
+  const orderedMeasures = ['governance', 'reporting', 'risk']
+    .map(id => CONFIG.measures.find(m => m.id === id))
+    .filter(Boolean);
 
   const allCapCheckbox = `
     <label class="dimension-check-label" style="border-color:var(--accent)">
@@ -233,7 +235,7 @@ function buildCapabilityFields() {
       </div>
     </div>`;
 
-  container.innerHTML = importCardsRow + capFilterCard + CONFIG.capabilities.map(cap => `
+  container.innerHTML = capFilterCard + CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}" data-capability="${cap.id}">
       <div class="cap-card-header">
         <div>
@@ -242,20 +244,10 @@ function buildCapabilityFields() {
         </div>
       </div>
 
-      <!-- Row 1: Governance + Reporting -->
-      <div class="measures-grid">
-        ${nonRiskMeasures.map(m => buildMeasureBlock(cap, m)).join("")}
+      <!-- Governance · Reporting · Risk — all three side by side -->
+      <div class="measures-grid measures-grid-3">
+        ${orderedMeasures.map(m => buildMeasureBlock(cap, m)).join("")}
       </div>
-
-      <!-- Row 2: ICT Risk maturity + Uploaded Risk Data + Uploaded Policy Data -->
-      ${riskMeasure ? `
-      <div class="measures-grid" style="margin-top:1rem">
-        ${buildMeasureBlock(cap, riskMeasure)}
-        <div class="data-cards-stack">
-          ${buildRiskMgmtCard(cap)}
-          ${buildPolicyDataCard(cap)}
-        </div>
-      </div>` : ''}
 
       <div class="form-row" style="margin-top:1rem">
         <label>Overall notes for this capability</label>
@@ -523,6 +515,9 @@ function saveAssessment(e) {
     [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
   );
 
+  // Fetch prevData before the loop so we can preserve imported risk values
+  const prevData = editingId ? db.assessments.find(a => a.id === editingId) : null;
+
   const measureScores = {}, measureTargets = {}, measureNotes = {}, measureTimeEstimates = {}, capNotes = {};
   CONFIG.capabilities.forEach(cap => {
     measureScores[cap.id] = {};
@@ -548,24 +543,12 @@ function saveAssessment(e) {
       measureTimeEstimates[cap.id][mId] = document.getElementById(`timeest-${cap.id}-${mId}`)?.value.trim() || '';
     });
 
-    // riskManagement data nested inside measureScores (no maturity number, no time estimate)
-    measureScores[cap.id].riskManagement = {
-      residualRating:      document.getElementById(`residual-${cap.id}`)?.value                       || '',
-      appetiteRating:      document.getElementById(`appetite-${cap.id}`)?.value                       || '',
-      risksDraft:          parseInt(document.getElementById(`ctrl-draftrisks-${cap.id}`)?.value)      || 0,
-      openRisks:           parseInt(document.getElementById(`ctrl-openrisks-${cap.id}`)?.value)       || 0,
-      risksAssessed:       parseInt(document.getElementById(`ctrl-risksassessed-${cap.id}`)?.value)   || 0,
-      controlsNotAssessed: parseInt(document.getElementById(`ctrl-not-${cap.id}`)?.value)             || 0,
-      controlsPartial:     parseInt(document.getElementById(`ctrl-partial-${cap.id}`)?.value)         || 0,
-      controlsEffective:   parseInt(document.getElementById(`ctrl-effective-${cap.id}`)?.value)       || 0
-    };
-
-    // Risk management notes stored in measureNotes
-    measureNotes[cap.id].riskManagement = document.getElementById(`note-risk-mgmt-${cap.id}`)?.value.trim() || '';
+    // riskManagement: preserve whatever the Riskonnect import stored (no manual UI)
+    measureScores[cap.id].riskManagement = prevData?.measureScores?.[cap.id]?.riskManagement || {};
+    measureNotes[cap.id].riskManagement  = prevData?.measureNotes?.[cap.id]?.riskManagement  || '';
   });
 
   // Preserve imported data blobs that live outside the form fields
-  const prevData = editingId ? db.assessments.find(a => a.id === editingId) : null;
   const assessment = {
     id: editingId || Date.now().toString(),
     label: document.getElementById("assessment-label").value.trim(),

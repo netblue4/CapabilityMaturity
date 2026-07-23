@@ -2228,6 +2228,9 @@ details[open] .profile-card-chevron {
   white-space: nowrap;
 }
 
+/* ── Import buttons slim row ─────────────────────────────────── */
+.import-btn-row { display: flex; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+
 /* ── Import cards row (side-by-side risk + policy cards) ──────── */
 .import-cards-row {
   display: grid;

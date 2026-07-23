@@ -221,7 +221,8 @@ function renderFactSummaryTables(curr, prevF) {
   }
 
   // ── Tables 2 & 3: LocPol / GrpStd Controls ───────────────────
-  // Column order: Risks · Open · Draft · Controls · Impl · Assessed · Eff · Partly · Not Ass.
+  // Column order: Inherent · Residual · Open · Draft · Controls · Impl · Assessed · Eff · Partly · Not Ass.
+  // Identical structure to Operational except "Document" replaces "Risk Title"
   function renderControlTable(fsKey, title, colCls) {
     const rows = curr[fsKey] || [];
     const pm   = prevMap(prevF[fsKey], r => r.capId + '||' + r.document);
@@ -229,8 +230,11 @@ function renderFactSummaryTables(curr, prevF) {
 
     if (!rows.length && !gone.length) return '';
 
-    const KEYS = ['risks','open','draft','controls','implemented','assessed','effective','partly','notAssessed'];
+    const KEYS = ['open','draft','controls','implemented','assessed','effective','partly','notAssessed'];
 
+    function scoreCell(val, removed) {
+      return `<td class="${colCls}${removed ? ' ft-removed-val' : ''}">${val != null ? val.toFixed(1) : '—'}</td>`;
+    }
     function dataCells(r, p, cls, removed) {
       return KEYS.map(k =>
         `<td class="${cls}${removed ? ' ft-removed-val' : ''}">${r[k] ?? 0}${removed ? '' : arrow(r[k] ?? 0, p?.[k])}</td>`
@@ -242,6 +246,8 @@ function renderFactSummaryTables(curr, prevF) {
       return `<tr>
         <td class="ft-td-cap">${shortName(r.capName)}</td>
         <td class="ft-td-doc">${r.document}</td>
+        ${scoreCell(r.inherentScore, false)}
+        ${scoreCell(r.residualScore, false)}
         ${dataCells(r, p, colCls, false)}
       </tr>`;
     }).join('');
@@ -249,6 +255,8 @@ function renderFactSummaryTables(curr, prevF) {
     const removedHtml = gone.map(r => `<tr class="ft-row-removed">
       <td class="ft-td-cap">${shortName(r.capName)}</td>
       <td class="ft-td-doc">${r.document}&nbsp;<span class="ft-removed-badge">REMOVED</span></td>
+      ${scoreCell(r.inherentScore, true)}
+      ${scoreCell(r.residualScore, true)}
       ${dataCells(r, null, colCls, true)}
     </tr>`).join('');
 
@@ -260,7 +268,8 @@ function renderFactSummaryTables(curr, prevF) {
             <thead><tr>
               <th class="ft-th-cap">Capability</th>
               <th class="ft-th-doc">Document</th>
-              <th class="${colCls} ft-sub-hdr" title="Unique risks">Risks</th>
+              <th class="${colCls} ft-sub-hdr" title="Inherent risk score">Inherent</th>
+              <th class="${colCls} ft-sub-hdr" title="Residual risk score">Residual</th>
               <th class="${colCls} ft-sub-hdr" title="Open risks">Open</th>
               <th class="${colCls} ft-sub-hdr" title="Draft risks">Draft</th>
               <th class="${colCls} ft-sub-hdr" title="Total controls">Controls</th>

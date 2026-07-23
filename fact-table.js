@@ -186,6 +186,7 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
       if (!map[key]) map[key] = {
         capId, capName: capName(capId), document: doc,
         risks: 0, open: 0, draft: 0,
+        inherentScore: null, residualScore: null,
         controls: 0, implemented: 0, assessed: 0,
         effective: 0, partly: 0, notAssessed: 0,
         _seen: new Set(),
@@ -216,6 +217,10 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
           row.risks++;
           if (ftNorm(f.riskStatus).includes('open'))  row.open++;
           if (ftNorm(f.riskStatus).includes('draft')) row.draft++;
+          if (f.inherentScore != null && (row.inherentScore === null || f.inherentScore > row.inherentScore))
+            row.inherentScore = f.inherentScore;
+          if (f.residualScore != null && (row.residualScore === null || f.residualScore > row.residualScore))
+            row.residualScore = f.residualScore;
         }
         if (ftIsImplemented(f))  row.implemented++;
         if (ftIsAssessed(f))     row.assessed++;

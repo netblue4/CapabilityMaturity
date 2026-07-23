@@ -214,34 +214,48 @@
 
   "riskMetrics": [
     {
-      "id": "risk_coverage",
-      "name": "Risk Coverage",
-      "shortName": "Risk Cov.",
-      "description": "Percentage of roles and responsibilities covered by approved risks",
-      "formulaNote": "(Total risks − Draft risks) ÷ Total risks",
+      "id": "policy_risk_coverage",
+      "name": "Policy Objective Risk Approval Rate",
+      "shortName": "Policy Risk",
+      "layer": "L2",
+      "description": "Percentage of in-scope DORA policy objectives (statement refs) with at least one Open risk",
+      "formulaNote": "Policy statement refs with an Open risk ÷ Total policy statement refs (from LocPol/GrpStd control names)",
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },
-      "correctiveAction": "Approve draft risks and controls"
+      "correctiveAction": "Approve and open draft risks against uncovered DORA policy objectives"
     },
     {
-      "id": "control_implementation_rate",
-      "name": "Control Coverage",
-      "shortName": "Control Cov.",
-      "description": "Percentage of roles and responsibilities covered by approved controls",
-      "formulaNote": "Implemented controls ÷ Total controls",
+      "id": "pre_dora_control_strength",
+      "name": "Pre-DORA Control Strength",
+      "shortName": "Pre-DORA",
+      "layer": "L1",
+      "description": "Percentage of existing operational controls (non-LocPol/GrpStd) that are Implemented",
+      "formulaNote": "Implemented L1 controls ÷ Total L1 controls",
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },
-      "correctiveAction": "Implement outstanding controls"
+      "correctiveAction": "Implement outstanding pre-DORA operational controls"
+    },
+    {
+      "id": "dora_control_readiness",
+      "name": "DORA Control Readiness",
+      "shortName": "DORA Ready",
+      "layer": "L2",
+      "description": "Percentage of DORA policy-linked controls (LocPol/GrpStd) that are Implemented",
+      "formulaNote": "Implemented L2 controls ÷ Total L2 controls",
+      "unit": "percent",
+      "thresholds": { "good": 80, "warning": 50 },
+      "correctiveAction": "Implement outstanding DORA policy-linked controls"
     },
     {
       "id": "control_assessment_currency",
-      "name": "Controls Assessed",
-      "shortName": "Controls Ass.",
-      "description": "Percentage of implemented controls formally assessed",
-      "formulaNote": "Implemented controls with any Last Control Assessment Date ÷ Total implemented controls",
+      "name": "Controls Formally Assessed",
+      "shortName": "Assessed",
+      "layer": "L1",
+      "description": "Percentage of implemented pre-DORA controls that have ever been formally assessed",
+      "formulaNote": "Implemented L1 controls with any Last Control Assessment Date ÷ Total implemented L1 controls",
       "unit": "percent",
       "thresholds": { "good": 80, "warning": 50 },
-      "correctiveAction": "Schedule and complete formal control assessments for all implemented controls"
+      "correctiveAction": "Schedule and complete formal control assessments for all implemented pre-DORA controls"
     }
   ],
 

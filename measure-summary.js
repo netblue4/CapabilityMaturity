@@ -147,7 +147,7 @@ function renderMeasureSummary(assessment) {
 }
 
 // ── ICT Risk Management Metrics Card ─────────────────────────
-function renderRiskMgmtSummaryCard(assessment, prev) {
+function renderRiskMgmtSummaryCard(assessment, prev, opts = {}) {
   const riskMetrics = CONFIG.riskMetrics || [];
   const riskKeys    = Object.keys(CONFIG.riskScoreMatrix || {});
 
@@ -209,10 +209,59 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
     </tr>`;
   }).join('');
 
+  // ── Exec-mode dual bars (L1 vs L2 visual) ────────────────────
+  function renderExecBars() {
+    const l1Metrics = riskMetrics.filter(m => m.layer === 'L1');
+    const l2Metrics = riskMetrics.filter(m => m.layer === 'L2');
+    const capRows = CONFIG.capabilities.map(cap => {
+      const rm = getRiskManagement(assessment, cap.id);
+      const metrics = rm.metrics || {};
+      const l1Vals = l1Metrics.map(m => metrics[m.id]?.value).filter(v => v !== null && v !== undefined);
+      const l1Avg  = l1Vals.length ? Math.round(l1Vals.reduce((a,b) => a+b, 0) / l1Vals.length) : null;
+      const l2Vals = l2Metrics.map(m => metrics[m.id]?.value).filter(v => v !== null && v !== undefined);
+      const l2Avg  = l2Vals.length ? Math.round(l2Vals.reduce((a,b) => a+b, 0) / l2Vals.length) : null;
+      const l1W = l1Avg !== null ? l1Avg : 0;
+      const l2W = l2Avg !== null ? l2Avg : 0;
+      return `<div class="rcsa-exec-bar-row">
+        <span class="rcsa-exec-bar-lbl">${shortName(cap.name)}</span>
+        <div class="rcsa-exec-bar-track">
+          <div class="rcsa-exec-l1-fill" style="width:${l1W}%"></div>
+          <div class="rcsa-exec-tick" style="left:80%"></div>
+        </div>
+        <span class="rcsa-exec-bar-pct rcsa-l1-pct${l1Avg !== null && l1Avg >= 80 ? ' rcsa-pct-good' : ''}">${l1Avg !== null ? l1Avg + '%' : '—'}</span>
+        <div class="rcsa-exec-bar-track">
+          <div class="rcsa-exec-l2-fill" style="width:${l2W}%"></div>
+          <div class="rcsa-exec-tick" style="left:80%"></div>
+        </div>
+        <span class="rcsa-exec-bar-pct rcsa-l2-pct${l2Avg !== null && l2Avg >= 80 ? ' rcsa-pct-good' : ''}">${l2Avg !== null ? l2Avg + '%' : '—'}</span>
+      </div>`;
+    }).join('');
+    return `
+      <div class="rcsa-exec-bars">
+        <div class="rcsa-exec-bars-title">Coverage at a Glance — Pre-DORA vs DORA</div>
+        <div class="rcsa-exec-bars-key">
+          <span class="rcsa-key-dot rcsa-key-l1"></span><span>Pre-DORA (L1) — ${l1Metrics.map(m => m.shortName).join(', ')}</span>
+          <span class="rcsa-key-dot rcsa-key-l2" style="margin-left:.75rem"></span><span>DORA (L2) — ${l2Metrics.map(m => m.shortName).join(', ')}</span>
+          <span style="margin-left:auto;color:var(--text-dim);font-size:.68rem">│ = 80% target</span>
+        </div>
+        <div class="rcsa-exec-bar-row rcsa-exec-bar-hdr">
+          <span class="rcsa-exec-bar-lbl"></span>
+          <span class="rcsa-exec-bar-track-hdr">Pre-DORA avg</span>
+          <span class="rcsa-exec-bar-pct"></span>
+          <span class="rcsa-exec-bar-track-hdr">DORA avg</span>
+          <span class="rcsa-exec-bar-pct"></span>
+        </div>
+        ${capRows}
+      </div>`;
+  }
+
   // ── Metric column headers ─────────────────────────────────────
-  const metricHeaders = riskMetrics.map(m =>
-    `<th title="${m.name} — ${m.formulaNote || ''}">${m.shortName || m.name}</th>`
-  ).join('');
+  const metricHeaders = riskMetrics.map(m => {
+    const layerBadge = m.layer
+      ? `<br><span class="metric-layer-badge metric-layer-${m.layer.toLowerCase()}">${m.layer}</span>`
+      : '';
+    return `<th title="${m.name} — ${m.formulaNote || ''}">${m.shortName || m.name}${layerBadge}</th>`;
+  }).join('');
 
   // ── Metric legend ─────────────────────────────────────────────
   const legendHtml = riskMetrics.length > 0 ? `
@@ -221,6 +270,7 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
       ${riskMetrics.map(m => `
         <div class="rcsa-legend-item">
           <span class="rcsa-legend-short">${m.shortName || m.name}</span>
+          ${m.layer ? `<span class="rcsa-legend-layer rcsa-legend-layer-${m.layer.toLowerCase()}">${m.layer}</span>` : ''}
           <span class="rcsa-legend-name">${m.name}</span>
           <span class="rcsa-legend-sep">—</span>
           <span class="rcsa-legend-desc">${m.description || ''}</span>
@@ -238,6 +288,7 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
           <p class="measure-card-desc">Quarterly metrics derived from Riskonnect data import. Trends show movement vs previous assessment.</p>
         </div>
       </div>
+      ${opts.execMode ? renderExecBars() : ''}
       <div class="rcsa-table-wrap">
         <table class="rcsa-metrics-table">
           <thead>

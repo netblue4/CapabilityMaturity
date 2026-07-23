@@ -49,7 +49,7 @@ function generateExecReport() {
     <div class="exec-sec-div">ICT Maturity — Continuous Improvement Cycle</div>
     ${dimCards}
     <div class="exec-sec-div">Current Risk Profile</div>
-    <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA)}</div>
+    <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, { execMode: true })}</div>
   `;
   showView('exec-report');
 }

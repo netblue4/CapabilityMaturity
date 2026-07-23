@@ -69,6 +69,7 @@
       residual:        find('residual score', 'residual risk score', 'residual rating score', 'residual'),
       controlStatus:   find('control: status', 'control status'),
       lastAssessDate:  find('last control assessment', 'last assessment', 'assessment date'),
+      controlName:     find('control: name', 'control name', 'control: title', 'control title'),
     };
   }
 
@@ -252,22 +253,52 @@
     };
     const level = computeSustainabilityLevel(rmForLevel);
 
+    // ── L1/L2 control split ───────────────────────────────────────
+    // L2 = DORA policy-linked controls (LocPol / GrpStd prefix in control name)
+    // L1 = everything else (pre-DORA operational controls)
+    function isDoraControl(row) {
+      if (!cols.controlName) return false;
+      const name = (row[cols.controlName] || '').trim();
+      return name.startsWith('LocPol') || name.startsWith('GrpStd');
+    }
+    function statementRef(row) {
+      const name = cols.controlName ? (row[cols.controlName] || '') : '';
+      const m = name.match(/\(([^)]+)\)\s*$/);
+      return m ? m[1].trim() : null;
+    }
+    const l1Rows = rows.filter(r => !isDoraControl(r));
+    const l2Rows = rows.filter(r =>  isDoraControl(r));
+
     // ── Compute configured risk metrics ──────────────────────────
     const totalRisks = riskRows.length;
     const metricsData = {};
     (CONFIG.riskMetrics || []).forEach(m => {
       let value = null;
-      if (m.id === 'risk_coverage') {
-        value = totalRisks > 0
-          ? Math.round(((totalRisks - draftRisks.length) / totalRisks) * 100)
-          : null;
-      } else if (m.id === 'control_implementation_rate') {
-        const implemented = rows.filter(row =>
+      if (m.id === 'policy_risk_coverage') {
+        // Count unique DORA policy statement refs; check if any has an Open risk
+        const stmtRefs = {};
+        l2Rows.forEach(row => {
+          const ref = statementRef(row);
+          if (!ref) return;
+          if (!(ref in stmtRefs)) stmtRefs[ref] = false;
+          if ((row[cols.status] || '').toLowerCase().includes('open')) stmtRefs[ref] = true;
+        });
+        const total   = Object.keys(stmtRefs).length;
+        const covered = Object.values(stmtRefs).filter(Boolean).length;
+        value = total > 0 ? Math.round((covered / total) * 100) : null;
+      } else if (m.id === 'pre_dora_control_strength') {
+        const implemented = l1Rows.filter(row =>
           (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
         ).length;
-        value = rows.length > 0 ? Math.round((implemented / rows.length) * 100) : null;
+        value = l1Rows.length > 0 ? Math.round((implemented / l1Rows.length) * 100) : null;
+      } else if (m.id === 'dora_control_readiness') {
+        const implemented = l2Rows.filter(row =>
+          (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
+        ).length;
+        value = l2Rows.length > 0 ? Math.round((implemented / l2Rows.length) * 100) : null;
       } else if (m.id === 'control_assessment_currency') {
-        const implemented = rows.filter(row =>
+        // Applied to L1 (pre-DORA) controls only
+        const implemented = l1Rows.filter(row =>
           (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
         );
         const everAssessed = implemented.filter(row => {

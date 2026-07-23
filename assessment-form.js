@@ -207,35 +207,15 @@ function buildCapabilityFields() {
       </div>
     </div>`;
 
-  const importCardsRow = `
-    <div class="import-cards-row">
-      <div class="card form-meta import-data-card">
-        <div class="import-data-card-hdr">
-          <span class="measure-icon">🛡️</span>
-          <div style="flex:1;min-width:0">
-            <div class="import-data-card-title">Uploaded Risk Data</div>
-            <p class="import-data-card-desc">Import RiskData.csv from Riskonnect to populate RCSA metrics for each capability.</p>
-          </div>
-        </div>
-        <div id="rk-data-summary" class="import-data-status">No risk data uploaded</div>
-        <button type="button" class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
-          onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data →</button>
-      </div>
-      <div class="card form-meta import-data-card">
-        <div class="import-data-card-hdr">
-          <span class="measure-icon">📋</span>
-          <div style="flex:1;min-width:0">
-            <div class="import-data-card-title">Uploaded Policy Data</div>
-            <p class="import-data-card-desc">Upload PolicyStatements.csv to record which DORA policy objectives apply to each capability.</p>
-          </div>
-        </div>
-        <div id="policy-import-summary" class="import-data-status">No policy data uploaded</div>
-        <button type="button" class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
-          onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data →</button>
-      </div>
+  const importBtnsRow = `
+    <div class="import-btn-row">
+      <button type="button" class="btn btn-outline"
+        onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data</button>
+      <button type="button" class="btn btn-outline"
+        onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data</button>
     </div>`;
 
-  container.innerHTML = capFilterCard + CONFIG.capabilities.map(cap => `
+  container.innerHTML = importBtnsRow + capFilterCard + CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}" data-capability="${cap.id}">
       <div class="cap-card-header">
         <div>

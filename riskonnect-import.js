@@ -174,6 +174,7 @@
     aSel.innerHTML = [...db.assessments].reverse()
       .map(a => `<option value="${a.id}">${a.label} · ${formatDate(a.date)}</option>`)
       .join('');
+    if (editingId) aSel.value = editingId;
 
     showRkSection('rk-review');
   }
@@ -242,16 +243,6 @@
       else if (isAmber(d) || isAmber(o)) part++;
       else notAss++;
     });
-
-    // ── Sustainability level (1–5) using shared helper ────────────
-    const rmForLevel = {
-      risksAssessed:       assessedRisks.length,
-      residualRating:      scoreToRating(maxScore),
-      controlsEffective:   eff,
-      controlsPartial:     part,
-      controlsNotAssessed: notAss,
-    };
-    const level = computeSustainabilityLevel(rmForLevel);
 
     // ── L1/L2 control split ───────────────────────────────────────
     // L2 = DORA policy-linked controls (LocPol / GrpStd prefix in control name)
@@ -322,8 +313,6 @@
     if (notAss) ev.push(notAss + ' ctrl NA');
 
     return {
-      level,
-      sustainabilityLevel: level,
       totalRisks,
       risksDraft:          draftRisks.length,
       openRisksCount:      openRisks.length,
@@ -348,7 +337,18 @@
 
   // ── Step 2: review table ─────────────────────────────────────
   function renderReviewTable() {
+    const metrics  = CONFIG.riskMetrics || [];
     const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+
+    // Inject metric columns into thead
+    const thead = document.getElementById('rk-rev-table-head');
+    if (thead) {
+      const metricThs = metrics.map(m =>
+        `<th><span class="metric-layer-badge metric-layer-${m.layer.toLowerCase()}">${m.layer}</span> ${m.shortName}</th>`
+      ).join('');
+      thead.innerHTML = `<tr><th>Capability</th><th>Evidence</th><th>Residual</th>${metricThs}</tr>`;
+    }
+
     function getAbbrev(v) {
       if (!v) return null;
       if (v.startsWith('Extreme'))     return 'EXT';
@@ -358,7 +358,7 @@
       return null;
     }
 
-    const rows = _computed.map((r, i) => {
+    const rows = _computed.map(r => {
       const abbrev = getAbbrev(r.residualRating);
       const rIdx   = riskKeys.indexOf(r.residualRating);
       const rColor = rIdx >= 0 ? (CONFIG.levels[rIdx]?.color || 'var(--bg3)') : 'var(--bg3)';
@@ -366,13 +366,13 @@
         ? `<span class="risk-residual-badge" style="background:${rColor};color:#fff">${abbrev}</span>`
         : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
 
-      const lvColor = CONFIG.levels[r.level - 1]?.color || 'var(--bg3)';
-      const lvDef   = sustLevelDef(r.level);
-      const lvName  = lvDef ? lvDef.shortName : '';
-
-      const overrideOpts = [1, 2, 3, 4, 5].map(l => {
-        const def = sustLevelDef(l);
-        return `<option value="${l}"${l === r.level ? ' selected' : ''}>${l} — ${def ? def.shortName : ''}</option>`;
+      const metricCells = metrics.map(m => {
+        const mv = r.metrics?.[m.id]?.value;
+        if (mv === null || mv === undefined) return `<td class="rk-metric-na">—</td>`;
+        const good = m.thresholds?.good ?? 80;
+        const warn = m.thresholds?.warning ?? 50;
+        const cls  = mv >= good ? 'rk-metric-good' : mv >= warn ? 'rk-metric-warn' : 'rk-metric-bad';
+        return `<td class="${cls}">${mv}%</td>`;
       }).join('');
 
       return `
@@ -380,19 +380,13 @@
           <td class="rk-rev-cap" title="${r.capName}">${shortName(r.capName)}</td>
           <td class="rk-rev-ev">${r.evidence}</td>
           <td class="rk-rev-risk">${rBadge}</td>
-          <td class="rk-rev-sug">
-            <span class="rk-level-badge" style="background:${lvColor}">${r.level}</span>
-            <span class="rk-level-name">${lvName}</span>
-          </td>
-          <td class="rk-rev-ovr">
-            <select class="rk-override-sel" data-idx="${i}">${overrideOpts}</select>
-          </td>
+          ${metricCells}
         </tr>`;
     }).join('');
 
     document.getElementById('rk-review-body').innerHTML = rows;
     document.getElementById('rk-review-count').textContent =
-      _computed.length + ' capabilities ready — review suggested levels and adjust if needed.';
+      _computed.length + ' capabilities ready — review metrics and save.';
   }
 
   // ── Save ─────────────────────────────────────────────────────
@@ -401,16 +395,10 @@
     const assessment = db.assessments.find(a => a.id === aId);
     if (!assessment) { alert('Please select an assessment.'); return; }
 
-    const overrides = {};
-    document.querySelectorAll('.rk-override-sel').forEach(sel => {
-      overrides[parseInt(sel.dataset.idx)] = parseInt(sel.value);
-    });
-
     if (!assessment.measureScores)  assessment.measureScores  = {};
     if (!assessment.measureTargets) assessment.measureTargets = {};
 
-    _computed.forEach((r, i) => {
-      const level = overrides[i] !== undefined ? overrides[i] : r.level;
+    _computed.forEach(r => {
       const capId = r.capId;
 
       if (!assessment.measureScores[capId])  assessment.measureScores[capId]  = {};
@@ -420,7 +408,6 @@
       const existing = assessment.measureScores[capId].riskManagement || {};
       assessment.measureScores[capId].riskManagement = {
         ...existing,
-        sustainabilityLevel: level,
         totalRisks:          r.totalRisks          || 0,
         risksDraft:          r.risksDraft,
         openRisks:           r.openRisksCount,
@@ -435,7 +422,7 @@
 
     saveToLocalStorage();
     loadFromLocalStorage();
-    showView('dashboard');
+    openAssessmentForm(aId);
   }
 
   // ── Section toggle helper ────────────────────────────────────

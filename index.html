@@ -46,7 +46,6 @@
           </label>
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
           <button class="btn btn-outline" onclick="showExecReportModal()">📋 Exec Report</button>
-          <button class="btn btn-outline" onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data</button>
         </div>
       </div>
 
@@ -230,11 +229,11 @@
     <!-- Riskonnect Import View -->
     <section id="view-riskonnect-import" class="view">
       <div class="section-header">
-        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <button class="btn btn-ghost" onclick="showView('assessment')">← Back</button>
         <h2>Import Risk Data from Riskonnect</h2>
       </div>
 
-      <!-- Step 1a: Upload -->
+      <!-- Step 1: Upload -->
       <div id="rk-upload" class="card rk-section">
         <h3 class="rk-step-title">Step 1 — Upload CSV export from Riskonnect</h3>
         <p class="rk-step-desc">Export your RCSA/CSA data from Riskonnect as a CSV file and upload it here. The import will update the <strong>Risk maturity score</strong> and <strong>RCSA fields</strong> only — Governance and Reporting scores are not touched.</p>
@@ -247,7 +246,7 @@
         </div>
       </div>
 
-      <!-- Step 1b: Capability mapping -->
+      <!-- Step 2: Capability mapping -->
       <div id="rk-mapping" class="card rk-section" style="display:none">
         <h3 class="rk-step-title">Step 2 — Confirm capability mappings</h3>
         <p id="rk-map-count" class="rk-step-desc"></p>
@@ -261,32 +260,98 @@
           <tbody id="rk-map-body"></tbody>
         </table>
         <div class="rk-actions">
-          <button class="btn btn-primary" onclick="processRkImport()">Import Quarter's Data</button>
-          <button class="btn btn-ghost" onclick="showView('dashboard')">Cancel</button>
+          <button class="btn btn-primary" onclick="processRkImport()">Confirm Mappings</button>
+          <button class="btn btn-ghost" onclick="showView('assessment')">Cancel</button>
         </div>
       </div>
 
-      <!-- Step 2: Review & save -->
+      <!-- Step 3: Review & save -->
       <div id="rk-review" class="card rk-section" style="display:none">
-        <h3 class="rk-step-title">Step 3 — Review suggested levels &amp; save</h3>
+        <h3 class="rk-step-title">Step 3 — Review upload data &amp; save</h3>
         <p id="rk-review-count" class="rk-step-desc"></p>
-        <table class="rk-rev-table">
-          <thead>
-            <tr>
-              <th>Capability</th>
-              <th>Evidence</th>
-              <th>Residual</th>
-              <th>Suggested</th>
-              <th>Override</th>
-            </tr>
-          </thead>
-          <tbody id="rk-review-body"></tbody>
-        </table>
+        <div style="overflow-x:auto">
+          <table class="rk-rev-table" id="rk-rev-table">
+            <thead id="rk-rev-table-head">
+              <tr>
+                <th>Capability</th>
+                <th>Evidence</th>
+                <th>Residual</th>
+              </tr>
+            </thead>
+            <tbody id="rk-review-body"></tbody>
+          </table>
+        </div>
         <div class="rk-save-row">
           <label class="rk-save-lbl">Save to assessment</label>
           <select id="rk-assessment-sel" class="rk-assessment-sel"></select>
           <button class="btn btn-primary" onclick="saveRkImport()">Save to Assessment</button>
-          <button class="btn btn-ghost" onclick="showView('dashboard')">Cancel</button>
+          <button class="btn btn-ghost" onclick="showView('assessment')">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Policy Import Wizard View -->
+    <section id="view-policy-import" class="view">
+      <div class="section-header">
+        <button class="btn btn-ghost" onclick="showView('assessment')">← Back</button>
+        <h2>Import Policy Statement Data</h2>
+      </div>
+
+      <!-- Step 1: Upload -->
+      <div id="pi-upload" class="card rk-section">
+        <h3 class="rk-step-title">Step 1 — Upload CSV export of Policy Statements</h3>
+        <p class="rk-step-desc">Upload your PolicyStatements.csv file. The file must contain a <strong>Capability</strong> column and a <strong>Statement Ref</strong> column. Type and Document columns are optional but recommended.</p>
+        <div class="rk-upload-row">
+          <label class="btn btn-primary rk-file-label">
+            Choose CSV file
+            <input type="file" id="pi-file-input" accept=".csv,.txt" style="display:none" onchange="handlePiFile(this)" />
+          </label>
+          <span id="pi-upload-info" class="rk-upload-info"></span>
+        </div>
+      </div>
+
+      <!-- Step 2: Capability mapping -->
+      <div id="pi-mapping" class="card rk-section" style="display:none">
+        <h3 class="rk-step-title">Step 2 — Confirm capability mappings</h3>
+        <p id="pi-map-count" class="rk-step-desc"></p>
+        <table class="rk-map-table">
+          <thead>
+            <tr>
+              <th>CSV Capability Name</th>
+              <th>Map to System Capability</th>
+            </tr>
+          </thead>
+          <tbody id="pi-map-body"></tbody>
+        </table>
+        <div class="rk-actions">
+          <button class="btn btn-primary" onclick="processPolicyImport()">Confirm Mappings</button>
+          <button class="btn btn-ghost" onclick="showView('assessment')">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Review & save -->
+      <div id="pi-review" class="card rk-section" style="display:none">
+        <h3 class="rk-step-title">Step 3 — Review upload data &amp; save</h3>
+        <p id="pi-review-count" class="rk-step-desc"></p>
+        <div style="overflow-x:auto">
+          <table class="rk-rev-table">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Statements</th>
+                <th>Local Policy</th>
+                <th>Group Standard</th>
+                <th>Statement Refs</th>
+              </tr>
+            </thead>
+            <tbody id="pi-review-body"></tbody>
+          </table>
+        </div>
+        <div class="rk-save-row">
+          <label class="rk-save-lbl">Save to</label>
+          <span id="pi-assessment-name" class="rk-save-lbl" style="font-weight:600;font-style:normal"></span>
+          <button class="btn btn-primary" onclick="savePolicyImport()">Save to Assessment</button>
+          <button class="btn btn-ghost" onclick="showView('assessment')">Cancel</button>
         </div>
       </div>
     </section>

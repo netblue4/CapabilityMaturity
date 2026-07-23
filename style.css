@@ -2225,3 +2225,45 @@ details[open] .profile-card-chevron {
   font-style: italic;
   white-space: nowrap;
 }
+
+/* ── Import cards row (side-by-side risk + policy cards) ──────── */
+.import-cards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+@media (max-width: 700px) {
+  .import-cards-row { grid-template-columns: 1fr; }
+}
+.import-data-card { margin: 0; }
+.import-data-card-hdr {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  margin-bottom: .4rem;
+}
+.import-data-card-title {
+  font-family: var(--font-mono);
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin-bottom: .2rem;
+}
+.import-data-card-desc {
+  font-size: .76rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+.import-data-status {
+  font-size: .76rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Metric cells in rk review table ─────────────────────────── */
+.rk-metric-good { color: #418f64; font-weight: 700; text-align: center; }
+.rk-metric-warn { color: #d1a520; font-weight: 700; text-align: center; }
+.rk-metric-bad  { color: #b34d4d; font-weight: 700; text-align: center; }
+.rk-metric-na   { color: var(--text-dim); text-align: center; }

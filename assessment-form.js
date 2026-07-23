@@ -205,26 +205,35 @@ function buildCapabilityFields() {
       </div>
     </div>`;
 
-  const policyImportCard = `
-    <div class="card form-meta policy-import-card">
-      <div class="policy-import-hdr">
-        <span class="measure-icon">📋</span>
-        <div style="flex:1;min-width:0">
-          <div class="policy-import-title">Uploaded Policy Data</div>
-          <p class="policy-import-desc">Upload PolicyStatements.csv to record which DORA policy objectives apply to each capability for this quarter.</p>
+  const importCardsRow = `
+    <div class="import-cards-row">
+      <div class="card form-meta import-data-card">
+        <div class="import-data-card-hdr">
+          <span class="measure-icon">🛡️</span>
+          <div style="flex:1;min-width:0">
+            <div class="import-data-card-title">Uploaded Risk Data</div>
+            <p class="import-data-card-desc">Import RiskData.csv from Riskonnect to populate RCSA metrics for each capability.</p>
+          </div>
         </div>
-        <div class="policy-import-ctrl">
-          <span class="policy-import-status" id="policy-import-summary">No policy data uploaded</span>
-          <label class="btn btn-outline" style="cursor:pointer;font-size:.8rem">
-            📥 Upload CSV
-            <input type="file" id="policy-file-input" accept=".csv,.txt" style="display:none" onchange="handlePolicyFile(this)">
-          </label>
-        </div>
+        <div id="rk-data-summary" class="import-data-status">No risk data uploaded</div>
+        <button class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
+          onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data →</button>
       </div>
-      <div id="policy-import-msg" style="display:none;margin-top:.5rem;font-size:.8rem;color:var(--clr-success)"></div>
+      <div class="card form-meta import-data-card">
+        <div class="import-data-card-hdr">
+          <span class="measure-icon">📋</span>
+          <div style="flex:1;min-width:0">
+            <div class="import-data-card-title">Uploaded Policy Data</div>
+            <p class="import-data-card-desc">Upload PolicyStatements.csv to record which DORA policy objectives apply to each capability.</p>
+          </div>
+        </div>
+        <div id="policy-import-summary" class="import-data-status">No policy data uploaded</div>
+        <button class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
+          onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data →</button>
+      </div>
     </div>`;
 
-  container.innerHTML = policyImportCard + capFilterCard + CONFIG.capabilities.map(cap => `
+  container.innerHTML = importCardsRow + capFilterCard + CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}" data-capability="${cap.id}">
       <div class="cap-card-header">
         <div>

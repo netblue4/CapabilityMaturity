@@ -2341,14 +2341,20 @@ details[open] .profile-card-chevron {
   .ft-hdr-p  { color: #f0a06a; }
 }
 
-.ft-sub-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+/* Risk-card full-width row below the 3 measure cards */
+.risk-card-row { margin-bottom: 1.25rem; }
+
+.ft-sub-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
 .ft-sub-table th, .ft-sub-table td { padding: .3rem .5rem; border: 1px solid var(--border); }
 .ft-sub-table thead tr { background: var(--bg2); }
 
-.ft-th-cap { min-width: 110px; text-align: left; }
-.ft-th-doc { min-width: 140px; text-align: left; }
-.ft-td-cap { font-weight: 500; white-space: nowrap; }
-.ft-td-doc { color: var(--text-dim); font-size: .78rem; }
+/* Fixed column widths keep numeric columns aligned across all three tables */
+.ft-th-cap  { width: 120px; text-align: left; }
+.ft-th-doc  { width: 150px; text-align: left; }
+.ft-sub-hdr { width: 60px; }  /* all numeric columns */
+
+.ft-td-cap { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ft-td-doc { color: var(--text-dim); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
 
 /* REMOVED rows */
 .ft-row-removed td { opacity: .55; }

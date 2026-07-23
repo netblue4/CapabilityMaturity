@@ -2044,3 +2044,77 @@ details[open] .profile-card-chevron {
 .rcsa-legend-desc   { color: var(--text-muted); flex: 1; min-width: 160px; }
 .rcsa-legend-arrow  { color: var(--text-dim); flex-shrink: 0; }
 .rcsa-legend-action { font-style: italic; color: var(--text-muted); }
+
+/* Layer badges — metric table headers and legend */
+.metric-layer-badge {
+  display: inline-block; font-size: .52rem; font-weight: 700; letter-spacing: .03em;
+  padding: .04rem .22rem; border-radius: 2px; line-height: 1.4;
+  vertical-align: middle; white-space: nowrap;
+}
+.metric-layer-l1 { background: #418f64; color: #fff; }
+.metric-layer-l2 { background: #3498db; color: #fff; }
+.rcsa-legend-layer {
+  font-size: .58rem; font-weight: 700; padding: .04rem .22rem;
+  border-radius: 2px; flex-shrink: 0; line-height: 1.4;
+}
+.rcsa-legend-layer-l1 { background: #418f64; color: #fff; }
+.rcsa-legend-layer-l2 { background: #3498db; color: #fff; }
+
+/* Exec-mode dual bars (Pre-DORA vs DORA coverage) */
+.rcsa-exec-bars {
+  margin-bottom: .9rem; padding-bottom: .8rem;
+  border-bottom: 1px solid var(--border);
+}
+.rcsa-exec-bars-title {
+  font-family: var(--font-mono); font-size: .6rem;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-dim); margin-bottom: .4rem;
+}
+.rcsa-exec-bars-key {
+  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  font-size: .7rem; color: var(--text-muted); margin-bottom: .5rem;
+}
+.rcsa-key-dot {
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 2px; flex-shrink: 0;
+}
+.rcsa-key-l1 { background: #418f64; }
+.rcsa-key-l2 { background: #3498db; }
+.rcsa-exec-bar-row {
+  display: flex; align-items: center; gap: .4rem; padding: .18rem 0;
+}
+.rcsa-exec-bar-hdr { margin-bottom: .1rem; }
+.rcsa-exec-bar-lbl {
+  width: 100px; flex-shrink: 0; font-size: .72rem;
+  color: var(--text-muted); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.rcsa-exec-bar-track {
+  flex: 1; height: 10px; background: var(--bg3);
+  border-radius: 3px; position: relative; min-width: 60px;
+}
+.rcsa-exec-bar-track-hdr {
+  flex: 1; font-size: .6rem; color: var(--text-muted);
+  font-family: var(--font-mono); text-transform: uppercase;
+  letter-spacing: .04em; min-width: 60px;
+}
+.rcsa-exec-l1-fill {
+  height: 100%; border-radius: 3px; background: #418f64;
+  position: absolute; top: 0; left: 0;
+}
+.rcsa-exec-l2-fill {
+  height: 100%; border-radius: 3px; background: #3498db;
+  position: absolute; top: 0; left: 0;
+}
+.rcsa-exec-tick {
+  position: absolute; top: -3px; bottom: -3px;
+  width: 1px; background: var(--text-dim); opacity: .5;
+}
+.rcsa-exec-bar-pct {
+  width: 38px; flex-shrink: 0; text-align: right;
+  font-size: .72rem; font-family: var(--font-mono); font-weight: 600;
+  color: var(--text-muted);
+}
+.rcsa-l1-pct { color: #418f64; }
+.rcsa-l2-pct { color: #3498db; }
+.rcsa-pct-good { font-weight: 700; }

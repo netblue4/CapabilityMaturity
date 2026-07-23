@@ -276,12 +276,20 @@
     const l1Rows = rows.filter(r => !isDoraControl(r));
     const l2Rows = rows.filter(r =>  isDoraControl(r));
 
-    // ── Pre-compute all L2 statement refs (used for metric + storage) ──
-    const l2RefMap = {};
+    // ── Pre-compute all L2 statement refs split by prefix ────────
+    // grpStdRefSet / locPolRefSet power the policy step 3 columns
+    const l2RefMap    = {};
+    const grpStdRefSet = new Set();
+    const locPolRefSet = new Set();
+
     l2Rows.forEach(row => {
+      const rawName = cols.controlName ? (row[cols.controlName] || '').trim() : '';
+      const isGrpStd = rawName.startsWith('GrpStd');
       statementRefs(row).forEach(ref => {
         if (!(ref in l2RefMap)) l2RefMap[ref] = false;
         if ((row[cols.status] || '').toLowerCase().includes('open')) l2RefMap[ref] = true;
+        if (isGrpStd) grpStdRefSet.add(ref);
+        else           locPolRefSet.add(ref);
       });
     });
     const allL2Refs = Object.keys(l2RefMap);
@@ -342,6 +350,8 @@
       evidence:        ev.join(' · ') || totalRisks + ' risks',
       metrics:         metricsData,
       l2StatementRefs: allL2Refs,
+      grpStdRefs:      [...grpStdRefSet],
+      locPolRefs:      [...locPolRefSet],
     };
   }
 
@@ -437,6 +447,8 @@
         residualRating:      r.residualRating,
         metrics:             r.metrics             || {},
         l2StatementRefs:     r.l2StatementRefs     || [],
+        grpStdRefs:          r.grpStdRefs          || [],
+        locPolRefs:          r.locPolRefs          || [],
       };
     });
 

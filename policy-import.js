@@ -198,21 +198,33 @@
     const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
 
     const rows = _piComputed.map(r => {
-      // Count types case-insensitively
-      let locPolCount = 0, grpStdCount = 0;
-      Object.entries(r.types || {}).forEach(([t, n]) => {
-        if (isLocPolType(t))  locPolCount  += n;
-        else if (isGrpStdType(t)) grpStdCount += n;
-      });
+      const riskMgmt    = assessment?.measureScores?.[r.capId]?.riskManagement;
+      const grpStdSet   = new Set((riskMgmt?.grpStdRefs || []).map(s => s.toLowerCase().trim()));
+      const locPolSet   = new Set((riskMgmt?.locPolRefs  || []).map(s => s.toLowerCase().trim()));
+      const allL2Set    = new Set([...grpStdSet, ...locPolSet]);
+      const normRefs    = r.refs.map(s => s.toLowerCase().trim());
 
-      // Cross-reference with risk data: how many policy refs have a matching L2 control?
-      const riskMgmt = assessment?.measureScores?.[r.capId]?.riskManagement;
-      const l2RefSet = new Set((riskMgmt?.l2StatementRefs || []).map(s => s.toLowerCase().trim()));
+      // Classify refs by the type of control that covers them in the risk data.
+      // Fall back to the Type column in the policy CSV when no risk data exists.
+      let locPolCount, grpStdCount;
+      if (allL2Set.size > 0) {
+        const lp = normRefs.filter(ref => locPolSet.has(ref)).length;
+        const gs = normRefs.filter(ref => grpStdSet.has(ref)).length;
+        locPolCount = lp || null;
+        grpStdCount = gs || null;
+      } else {
+        Object.entries(r.types || {}).forEach(([t, n]) => {
+          if (isLocPolType(t))      locPolCount  = (locPolCount  || 0) + n;
+          else if (isGrpStdType(t)) grpStdCount  = (grpStdCount  || 0) + n;
+        });
+      }
+
+      // Risk Coverage column
       let coverageCell;
-      if (!l2RefSet.size) {
+      if (!allL2Set.size) {
         coverageCell = '<span style="color:var(--text-dim)">No risk data</span>';
       } else {
-        const covered = r.refs.filter(ref => l2RefSet.has(ref.toLowerCase().trim())).length;
+        const covered = normRefs.filter(ref => allL2Set.has(ref)).length;
         const cls = covered === r.refs.length ? 'rk-metric-good'
                   : covered > 0              ? 'rk-metric-warn'
                                              : 'rk-metric-bad';

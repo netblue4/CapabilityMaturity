@@ -174,44 +174,6 @@
     }
   },
 
-  "riskSustainabilityLevels": [
-    {
-      "level": 1,
-      "name": "No Visibility",
-      "shortName": "NO VIS",
-      "description": "Risks not assessed and controls untested. No assurance can be provided to executives.",
-      "exit": "Formally assess at least one risk. Record a residual risk rating in Riskonnect."
-    },
-    {
-      "level": 2,
-      "name": "Out of Tolerance",
-      "shortName": "OUT TOL",
-      "description": "Risks assessed. Significant or Extreme residual risk remains and controls have not yet been proven effective.",
-      "exit": "Begin formally assessing controls. Demonstrate at least some controls are partially or fully effective."
-    },
-    {
-      "level": 3,
-      "name": "Actively Managing",
-      "shortName": "ACTIVE",
-      "description": "Still out of tolerance but controls are being formally tested and gaps are being closed. Progress is visible.",
-      "exit": "Bring all assessed risks to Moderate or Low residual rating through treatment and control improvement."
-    },
-    {
-      "level": 4,
-      "name": "Within Tolerance — Judgment",
-      "shortName": "TOL (J)",
-      "description": "Within tolerance based on expert judgment. Residual risk is Moderate or Low but no formal control testing has been completed. We believe we are safe.",
-      "exit": "Formally assess at least one control as operating effectively. Move from belief to evidence."
-    },
-    {
-      "level": 5,
-      "name": "Within Tolerance — Evidenced",
-      "shortName": "TOL (E)",
-      "description": "Within tolerance and formally evidenced. Controls are assessed as operating effectively and residual risk is Moderate or Low. We can prove we are safe.",
-      "exit": "No exit. This is the target state. Maintain through continuous control assessment and re-testing."
-    }
-  ],
-
   "riskMetrics": [
     {
       "id": "policy_risk_coverage",

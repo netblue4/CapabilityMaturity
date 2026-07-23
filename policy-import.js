@@ -1,118 +1,268 @@
-// ── Policy Statements Import ──────────────────────────────────
+// ── Policy Statements Import Wizard ──────────────────────────
 
-function handlePolicyFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    parsePolicyCSV(e.target.result);
-    input.value = '';
-  };
-  reader.readAsText(file);
-}
+(function () {
+  let _piRows       = [];
+  let _piCsvCapNames = [];
+  let _piCols       = {};
+  let _piComputed   = [];
 
-function parsePolicyCSV(text) {
-  const lines = text.split(/\r?\n/);
-  if (lines.length < 2) { alert('No data found in file.'); return; }
+  // ── Entry point ──────────────────────────────────────────────
+  function initPolicyImport() {
+    _piRows = []; _piCsvCapNames = []; _piCols = {}; _piComputed = [];
+    const fi = document.getElementById('pi-file-input');
+    if (fi) fi.value = '';
+    document.getElementById('pi-upload-info').textContent = '';
+    showPiSection('pi-upload');
 
-  // Parse header row
-  const headers = policyParseRow(lines[0]).map(h => h.toLowerCase().trim());
-  function col() {
-    for (let i = 0; i < arguments.length; i++) {
-      const idx = headers.findIndex(h => h.includes(arguments[i]));
-      if (idx >= 0) return idx;
+    // Show the assessment name we'll save to
+    const nameEl = document.getElementById('pi-assessment-name');
+    if (nameEl) {
+      const a = editingId ? db.assessments.find(x => x.id === editingId) : null;
+      nameEl.textContent = a ? (a.label + ' · ' + formatDate(a.date)) : '(no assessment selected)';
     }
-    return -1;
   }
-  const capCol  = col('capability', 'process', 'domain', 'function');
-  const refCol  = col('statement ref', 'ref', 'reference');
-  const typeCol = col('type');
-  const docCol  = col('document');
 
-  if (refCol < 0) { alert('Could not find a Statement Ref column.'); return; }
-
-  // Parse data rows
-  const byCapability = {};
-  let total = 0, unmapped = 0;
-
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const row = policyParseRow(lines[i]);
-    const ref    = row[refCol]  ? row[refCol].trim()  : '';
-    const csvCap = capCol >= 0  ? (row[capCol]  || '').trim() : '';
-    const type   = typeCol >= 0 ? (row[typeCol] || '').trim() : '';
-    const doc    = docCol  >= 0 ? (row[docCol]  || '').trim() : '';
-    if (!ref) continue;
-    total++;
-
-    const capId = matchPolicyCap(csvCap);
-    if (!capId) { unmapped++; continue; }
-
-    if (!byCapability[capId]) {
-      byCapability[capId] = { count: 0, refs: [], types: {}, documents: [] };
+  // ── CSV parsing ──────────────────────────────────────────────
+  function piParseRow(line) {
+    const out = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) {
+        out.push(cur); cur = '';
+      } else { cur += ch; }
     }
-    const c = byCapability[capId];
-    c.count++;
-    c.refs.push(ref);
-    if (type) c.types[type] = (c.types[type] || 0) + 1;
-    if (doc && !c.documents.includes(doc)) c.documents.push(doc);
+    out.push(cur);
+    return out;
   }
 
-  const assessment = db.assessments.find(a => a.id === editingId);
-  if (!assessment) { alert('No assessment selected — open an assessment before uploading policy data.'); return; }
-
-  assessment.policyStatements = {
-    uploadDate: new Date().toISOString().slice(0, 10),
-    totalStatements: total - unmapped,
-    unmapped,
-    byCapability
-  };
-  saveToLocalStorage();
-  refreshPolicyCards();
-
-  const msg = unmapped > 0
-    ? `Saved ${total - unmapped} statements across ${Object.keys(byCapability).length} capabilities. (${unmapped} rows could not be matched.)`
-    : `Saved ${total} statements across ${Object.keys(byCapability).length} capabilities.`;
-  const msgEl = document.getElementById('policy-import-msg');
-  if (msgEl) {
-    msgEl.textContent = msg;
-    msgEl.style.display = 'block';
-    setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+  function piParseCSV(text) {
+    const lines = text.split(/\r?\n/);
+    if (!lines.length) return { headers: [], rows: [] };
+    const headers = piParseRow(lines[0]).map(h => h.trim());
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const vals = piParseRow(lines[i]);
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').trim(); });
+      rows.push(obj);
+    }
+    return { headers, rows };
   }
-}
 
-function policyParseRow(line) {
-  const out = [];
-  let cur = '', inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
-      else inQ = !inQ;
-    } else if (ch === ',' && !inQ) {
-      out.push(cur); cur = '';
-    } else { cur += ch; }
+  // ── Column detection ─────────────────────────────────────────
+  function detectPiColumns(headers) {
+    const hl = headers.map(h => h.toLowerCase());
+    function find(...terms) {
+      for (const t of terms) {
+        const idx = hl.findIndex(h => h.includes(t));
+        if (idx >= 0) return headers[idx];
+      }
+      return null;
+    }
+    return {
+      capability: find('capability', 'process', 'domain', 'function'),
+      ref:        find('statement ref', 'ref', 'reference'),
+      type:       find('type'),
+      document:   find('document'),
+    };
   }
-  out.push(cur);
-  return out;
-}
 
-function matchPolicyCap(csvName) {
-  if (!csvName) return null;
-  const norm = s => s.toLowerCase()
-    .replace(/\bict\b/g, '')
-    .replace(/\bmgmt\b/g, 'management')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .split(' ')
-    .filter(w => w.length > 2);
-  const nWords = new Set(norm(csvName));
-  let bestId = null, bestScore = 0;
-  for (const cap of CONFIG.capabilities) {
-    const score = norm(cap.name).filter(w => nWords.has(w)).length;
-    if (score > bestScore) { bestScore = score; bestId = cap.id; }
+  // ── File handler ─────────────────────────────────────────────
+  function handlePiFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const { headers, rows } = piParseCSV(e.target.result);
+      if (!rows.length) { alert('No data rows found in the CSV file.'); return; }
+      _piCols = detectPiColumns(headers);
+      if (!_piCols.ref) {
+        alert('Could not find a Statement Ref column.\nColumns found: ' + headers.join(', '));
+        return;
+      }
+      if (!_piCols.capability) {
+        alert('Could not find a Capability column.\nColumns found: ' + headers.join(', '));
+        return;
+      }
+      _piRows = rows;
+      _piCsvCapNames = [...new Set(rows.map(r => r[_piCols.capability]).filter(Boolean))];
+      document.getElementById('pi-upload-info').textContent =
+        file.name + ' — ' + rows.length + ' rows, ' + _piCsvCapNames.length + ' unique capabilities detected.';
+      renderPiMappingTable();
+      showPiSection('pi-mapping');
+    };
+    reader.readAsText(file);
   }
-  return bestScore > 0 ? bestId : null;
-}
+
+  // ── Fuzzy capability matching ────────────────────────────────
+  function piAutoMatch(csvName) {
+    const norm = s => s.toLowerCase()
+      .replace(/\bict\b/g, '')
+      .replace(/\bmgmt\b/g, 'management')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(' ')
+      .filter(w => w.length > 2);
+    const nWords = new Set(norm(csvName));
+    let bestId = null, bestScore = 0;
+    for (const cap of CONFIG.capabilities) {
+      const score = norm(cap.name).filter(w => nWords.has(w)).length;
+      if (score > bestScore) { bestScore = score; bestId = cap.id; }
+    }
+    return bestScore > 0 ? bestId : null;
+  }
+
+  // ── Step 2: mapping table ────────────────────────────────────
+  function renderPiMappingTable() {
+    const rows = _piCsvCapNames.map((name, i) => {
+      const match = piAutoMatch(name);
+      const opts = CONFIG.capabilities.map(c =>
+        `<option value="${c.id}"${c.id === match ? ' selected' : ''}>${c.name}</option>`
+      ).join('');
+      return `
+        <tr>
+          <td class="rk-map-csv">${name}</td>
+          <td>
+            <select class="pi-cap-sel" data-idx="${i}">
+              <option value="">— skip —</option>
+              ${opts}
+            </select>
+          </td>
+        </tr>`;
+    }).join('');
+    document.getElementById('pi-map-body').innerHTML = rows;
+    const countEl = document.getElementById('pi-map-count');
+    if (countEl) countEl.textContent =
+      _piCsvCapNames.length + ' capabilities found — confirm or adjust the mappings below, then click Confirm Mappings.';
+  }
+
+  // ── Step 3: process mappings → review ────────────────────────
+  function processPolicyImport() {
+    const sels = document.querySelectorAll('.pi-cap-sel');
+    const mapping = {};
+    sels.forEach(sel => {
+      if (sel.value) mapping[_piCsvCapNames[parseInt(sel.dataset.idx)]] = sel.value;
+    });
+    if (!Object.keys(mapping).length) {
+      alert('Map at least one capability before confirming.');
+      return;
+    }
+
+    const grouped = {};
+    _piRows.forEach(row => {
+      const csvCap = row[_piCols.capability] || '';
+      const capId  = mapping[csvCap];
+      if (!capId) return;
+      const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
+      const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
+      const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
+      if (!ref) return;
+      if (!grouped[capId]) grouped[capId] = { count: 0, refs: [], types: {}, documents: [] };
+      const g = grouped[capId];
+      g.count++;
+      g.refs.push(ref);
+      if (type) g.types[type] = (g.types[type] || 0) + 1;
+      if (doc && !g.documents.includes(doc)) g.documents.push(doc);
+    });
+
+    _piComputed = Object.entries(grouped).map(([capId, data]) => {
+      const cap = CONFIG.capabilities.find(c => c.id === capId);
+      return { capId, capName: cap ? cap.name : capId, ...data };
+    });
+
+    if (!_piComputed.length) {
+      alert('No statement refs matched the configured mappings.');
+      return;
+    }
+
+    renderPiReviewTable();
+    showPiSection('pi-review');
+  }
+
+  // ── Step 3: review table ─────────────────────────────────────
+  function renderPiReviewTable() {
+    const rows = _piComputed.map(r => {
+      const localPolicy   = r.types['Local Policy'] || r.types['LocPol'] || 0;
+      const groupStandard = r.types['Group Standard'] || r.types['GrpStd'] || 0;
+
+      // Find the most common "other" type name for display
+      const otherTypes = Object.entries(r.types)
+        .filter(([t]) => t !== 'Local Policy' && t !== 'LocPol' && t !== 'Group Standard' && t !== 'GrpStd')
+        .map(([t, n]) => `${t}(${n})`).join(', ');
+
+      const refsPreview = r.refs.slice(0, 6).join(' · ') + (r.refs.length > 6 ? ` +${r.refs.length - 6} more` : '');
+
+      return `
+        <tr>
+          <td class="rk-rev-cap" title="${r.capName}">${shortName(r.capName)}</td>
+          <td style="text-align:center">${r.count}</td>
+          <td style="text-align:center">${localPolicy || '—'}</td>
+          <td style="text-align:center">${groupStandard || '—'}</td>
+          <td class="rk-rev-ev">${refsPreview || '—'}</td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('pi-review-body').innerHTML = rows;
+    const countEl = document.getElementById('pi-review-count');
+    if (countEl) countEl.textContent =
+      _piComputed.length + ' capabilities with statement data — review and save.';
+  }
+
+  // ── Save ─────────────────────────────────────────────────────
+  function savePolicyImport() {
+    const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
+    if (!assessment) { alert('No assessment open — return to an assessment before saving.'); return; }
+
+    let total = 0, unmapped = 0;
+    const byCapability = {};
+    _piComputed.forEach(r => {
+      byCapability[r.capId] = { count: r.count, refs: r.refs, types: r.types, documents: r.documents };
+      total += r.count;
+    });
+
+    // Count original unmapped rows
+    const sels = document.querySelectorAll('.pi-cap-sel');
+    const mapping = {};
+    sels.forEach(sel => {
+      if (sel.value) mapping[_piCsvCapNames[parseInt(sel.dataset.idx)]] = sel.value;
+    });
+    _piRows.forEach(row => {
+      const csvCap = row[_piCols.capability] || '';
+      if (!mapping[csvCap]) unmapped++;
+    });
+
+    assessment.policyStatements = {
+      uploadDate:       new Date().toISOString().slice(0, 10),
+      totalStatements:  total,
+      unmapped,
+      byCapability,
+    };
+
+    saveToLocalStorage();
+    loadFromLocalStorage();
+    openAssessmentForm(editingId);
+  }
+
+  // ── Section toggle helper ────────────────────────────────────
+  function showPiSection(id) {
+    ['pi-upload', 'pi-mapping', 'pi-review'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.style.display = s === id ? 'block' : 'none';
+    });
+  }
+
+  // ── Expose globals ───────────────────────────────────────────
+  window.initPolicyImport    = initPolicyImport;
+  window.handlePiFile        = handlePiFile;
+  window.processPolicyImport = processPolicyImport;
+  window.savePolicyImport    = savePolicyImport;
+})();
+
+// ── Per-capability policy data helpers (used by assessment-form) ─
 
 function getPolicyData(assessment, capId) {
   return assessment?.policyStatements?.byCapability?.[capId] || null;
@@ -121,7 +271,7 @@ function getPolicyData(assessment, capId) {
 function renderPolicyCardContent(assessment, capId) {
   const pd = getPolicyData(assessment, capId);
   if (!pd || !pd.count) {
-    return '<p class="policy-no-data">No data for this capability</p>';
+    return '<p class="policy-no-data">No policy data uploaded</p>';
   }
   const typeItems = Object.entries(pd.types || {})
     .map(([t, n]) => `<span class="policy-type-pill">${t}: <strong>${n}</strong></span>`)
@@ -142,16 +292,26 @@ function renderPolicyCardContent(assessment, capId) {
 function refreshPolicyCards() {
   const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
 
-  // Assessment-level summary
-  const summaryEl = document.getElementById('policy-import-summary');
-  if (summaryEl) {
-    const ps = assessment?.policyStatements;
-    summaryEl.textContent = ps
+  // Assessment-level summaries
+  const ps = assessment?.policyStatements;
+  const polSummary = document.getElementById('policy-import-summary');
+  if (polSummary) {
+    polSummary.textContent = ps
       ? `${ps.totalStatements} statements · Uploaded ${ps.uploadDate}`
       : 'No policy data uploaded';
   }
 
-  // Per-capability cards
+  // Risk data summary — detect if any capability has riskManagement data
+  const rkSummary = document.getElementById('rk-data-summary');
+  if (rkSummary) {
+    const scores = assessment?.measureScores || {};
+    const capsWithRisk = Object.values(scores).filter(s => s.riskManagement && s.riskManagement.totalRisks > 0).length;
+    rkSummary.textContent = capsWithRisk > 0
+      ? `Risk data for ${capsWithRisk} capabilities`
+      : 'No risk data uploaded';
+  }
+
+  // Per-capability policy cards
   (CONFIG.capabilities || []).forEach(cap => {
     const el = document.getElementById(`policy-card-${cap.id}`);
     if (!el) return;

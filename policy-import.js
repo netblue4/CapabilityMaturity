@@ -1,14 +1,15 @@
 // ── Policy Statements Import Wizard ──────────────────────────────
 
 (function () {
-  let _piRows       = [];
-  let _piCsvCapNames = [];
-  let _piCols       = {};
-  let _piComputed   = [];
+  let _piRows                = [];
+  let _piCsvCapNames         = [];
+  let _piCols                = {};
+  let _piComputed            = [];
+  let _piCandidatePolicyRows = [];
 
   // ── Entry point ──────────────────────────────────────────────────
   function initPolicyImport() {
-    _piRows = []; _piCsvCapNames = []; _piCols = {}; _piComputed = [];
+    _piRows = []; _piCsvCapNames = []; _piCols = {}; _piComputed = []; _piCandidatePolicyRows = [];
     const fi = document.getElementById('pi-file-input');
     if (fi) fi.value = '';
     document.getElementById('pi-upload-info').textContent = '';
@@ -178,59 +179,37 @@
       return;
     }
 
+    // Build flat policy rows for the preview (same logic as savePolicyImport)
+    _piCandidatePolicyRows = [];
+    _piRows.forEach(row => {
+      const csvCap = row[_piCols.capability] || '';
+      const capId  = mapping[csvCap];
+      if (!capId) return;
+      const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
+      const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
+      const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
+      if (!ref) return;
+      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc });
+    });
+
     renderPiReviewTable();
     showPiSection('pi-review');
   }
 
-  // ── Step 3: review table ─────────────────────────────────────────
+  // ── Step 3: review table (uses same 4-table layout as main metrics card) ──
   function renderPiReviewTable() {
-    const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
+    const assessment      = editingId ? db.assessments.find(a => a.id === editingId) : null;
+    const existingRiskRows = assessment?.riskRows || [];
+    const enriched         = buildRiskPolicyFacts(existingRiskRows, _piCandidatePolicyRows);
+    const candidateSummary = buildFactSummary(enriched, _piCandidatePolicyRows);
 
-    // Build set of normalised statement refs from risk controls for coverage check
-    const riskFacts = assessment ? (assessment.riskPolicyFacts || assessment.riskRows || []) : [];
-    const riskRefSet = new Set(
-      riskFacts.flatMap(f => (f.statementRefs || []).map(r => ftNorm(r)))
-    );
-    const hasRiskData = riskFacts.length > 0;
+    document.getElementById('pi-review-wrap').innerHTML =
+      renderFactSummaryTables(candidateSummary, null);
 
-    const rows = _piComputed.map(r => {
-      // Classify statements by type from the policy CSV's own Type column
-      let locPolCount = 0, grpStdCount = 0;
-      Object.entries(r.types || {}).forEach(([t, n]) => {
-        if (isLocPolType(t))      locPolCount  += n;
-        else if (isGrpStdType(t)) grpStdCount  += n;
-      });
-
-      // Risk coverage: how many of these refs appear in risk controls
-      let coverageCell;
-      if (!hasRiskData) {
-        coverageCell = '<span style="color:var(--text-dim)">No risk data</span>';
-      } else {
-        const normRefs = r.refs.map(ref => ftNorm(ref));
-        const covered  = normRefs.filter(ref => riskRefSet.has(ref)).length;
-        const cls = covered === r.refs.length ? 'rk-metric-good'
-                  : covered > 0              ? 'rk-metric-warn'
-                                             : 'rk-metric-bad';
-        coverageCell = `<span class="${cls}">${covered} / ${r.refs.length}</span>`;
-      }
-
-      const refsPreview = r.refs.slice(0, 6).join(' · ') + (r.refs.length > 6 ? ` +${r.refs.length - 6} more` : '');
-
-      return `
-        <tr>
-          <td class="rk-rev-cap" title="${r.capName}">${shortName(r.capName)}</td>
-          <td style="text-align:center">${r.count}</td>
-          <td style="text-align:center">${locPolCount || '—'}</td>
-          <td style="text-align:center">${grpStdCount || '—'}</td>
-          <td style="text-align:center">${coverageCell}</td>
-          <td class="rk-rev-ev">${refsPreview || '—'}</td>
-        </tr>`;
-    }).join('');
-
-    document.getElementById('pi-review-body').innerHTML = rows;
-    const countEl = document.getElementById('pi-review-count');
+    const capCount = new Set(_piCandidatePolicyRows.map(r => r.capId)).size;
+    const countEl  = document.getElementById('pi-review-count');
     if (countEl) countEl.textContent =
-      _piComputed.length + ' capabilities with statement data — review and save.';
+      capCount + ' capabilities with statement data — review and save.';
   }
 
   // ── Save ─────────────────────────────────────────────────────────

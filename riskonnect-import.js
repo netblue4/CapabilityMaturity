@@ -232,55 +232,18 @@
     return keys.find(k => k.startsWith('Low')) || '';
   }
 
-  // ── Step 2: review table ─────────────────────────────────────────
+  // ── Step 2: review table (uses same 4-table layout as main metrics card) ──
   function renderReviewTable() {
-    const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+    const allFacts      = _computed.flatMap(r => r.facts);
+    const aId           = document.getElementById('rk-assessment-sel')?.value;
+    const assessment    = (aId && db.assessments.find(a => a.id === aId)) ||
+                          (editingId && db.assessments.find(a => a.id === editingId)) || null;
+    const existingPolRows = assessment?.policyRows || [];
+    const enriched        = buildRiskPolicyFacts(allFacts, existingPolRows);
+    const candidateSummary = buildFactSummary(enriched, existingPolRows);
 
-    const thead = document.getElementById('rk-rev-table-head');
-    if (thead) {
-      thead.innerHTML = `<tr>
-        <th>Capability</th>
-        <th>Risks</th>
-        <th>Open</th>
-        <th>Draft</th>
-        <th>Operational</th>
-        <th>LocPol</th>
-        <th>GrpStd</th>
-        <th>Residual</th>
-      </tr>`;
-    }
-
-    function residualBadge(rating) {
-      if (!rating) return `<span class="risk-residual-badge risk-badge-na">—</span>`;
-      function abbr(v) {
-        if (v.startsWith('Extreme'))     return 'EXT';
-        if (v.startsWith('Significant')) return 'SIG';
-        if (v.startsWith('Moderate'))    return 'MOD';
-        if (v.startsWith('Low'))         return 'LOW';
-        return '?';
-      }
-      const idx = riskKeys.indexOf(rating);
-      const color = idx >= 0 ? (CONFIG.levels[idx]?.color || 'var(--bg3)') : 'var(--bg3)';
-      return `<span class="risk-residual-badge" style="background:${color};color:#fff">${abbr(rating)}</span>`;
-    }
-
-    const rows = _computed.map(r => {
-      const lp = ftLocPol(r.facts).length;
-      const gs = ftGrpStd(r.facts).length;
-      const op = ftOperational(r.facts).length;
-      return `<tr>
-        <td class="rk-rev-cap" title="${r.capName}">${shortName(r.capName)}</td>
-        <td style="text-align:center">${r.totalRisks}</td>
-        <td style="text-align:center">${r.openRisks}</td>
-        <td style="text-align:center">${r.draftRisks}</td>
-        <td style="text-align:center">${op || '—'}</td>
-        <td style="text-align:center">${lp || '—'}</td>
-        <td style="text-align:center">${gs || '—'}</td>
-        <td style="text-align:center">${residualBadge(r.residualRating)}</td>
-      </tr>`;
-    }).join('');
-
-    document.getElementById('rk-review-body').innerHTML = rows;
+    document.getElementById('rk-review-wrap').innerHTML =
+      renderFactSummaryTables(candidateSummary, null);
     document.getElementById('rk-review-count').textContent =
       _computed.length + ' capabilities ready — review and save.';
   }

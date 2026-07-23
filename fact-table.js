@@ -173,11 +173,13 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
   const policyObjectives = Object.values(poMap);
 
   // ── Tables 2 & 3: LocPol / GrpStd Controls — by capId × document ─
-  // Each control can link to multiple documents via matchedPolicyRows.
-  // We count it in every document it links to (it's implementing all of them).
-  // Controls with no policy match go into an "(unlinked)" bucket, but only
-  // when policy data exists — without policy data we skip the bucket entirely.
-  function buildControlTable(controlType) {
+  // A control is included when:
+  //   (a) its name starts with LocPol/GrpStd (legacy naming convention), OR
+  //   (b) any of its matchedPolicyRows has the matching policy type.
+  // Document bucketing uses the matched policy rows of the relevant type.
+  function buildControlTable(policyType) {
+    const typeCheck = policyType === 'locPol' ? isLocPolType : isGrpStdType;
+
     const map = {};
     function getOrCreate(capId, doc) {
       const key = capId + '||' + doc;
@@ -191,13 +193,19 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
       return map[key];
     }
 
-    facts.filter(f => f.controlType === controlType).forEach(f => {
-      const docs = (f.matchedPolicyRows || [])
-        .map(p => (p.document || '').trim() || '(no document)')
-        .filter((d, i, arr) => arr.indexOf(d) === i); // unique
+    facts.forEach(f => {
+      const byPrefix      = f.controlType === policyType;
+      const matchedOfType = (f.matchedPolicyRows || []).filter(p => typeCheck(p.type));
+      const byPolicyMatch = matchedOfType.length > 0;
+      if (!byPrefix && !byPolicyMatch) return;
 
-      const buckets = docs.length > 0 ? docs
-        : (hasPolicyData ? ['(unlinked)'] : []);
+      // Prefer matched policy rows of this type for document bucketing
+      const docSource = byPolicyMatch ? matchedOfType : (f.matchedPolicyRows || []);
+      const docs = docSource
+        .map(p => (p.document || '').trim() || '(no document)')
+        .filter((d, i, arr) => arr.indexOf(d) === i);
+
+      const buckets = docs.length > 0 ? docs : (hasPolicyData ? ['(unlinked)'] : []);
 
       buckets.forEach(doc => {
         const row = getOrCreate(f.capId, doc);
@@ -220,32 +228,36 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
     return Object.values(map).map(r => { delete r._seen; return r; });
   }
 
-  // ── Table 4: Operational — one row per capId ──────────────────────
+  // ── Table 4: Operational — one row per capId × riskTitle ─────────────
   const opMap = {};
   facts.filter(f => f.controlType === 'operational').forEach(f => {
-    if (!opMap[f.capId]) opMap[f.capId] = {
+    const rk  = ftNorm(f.riskTitle) || '';
+    const key = f.capId + '||' + rk;
+    if (!opMap[key]) opMap[key] = {
       capId: f.capId, capName: capName(f.capId),
-      risks: 0, open: 0, draft: 0,
+      riskTitle:     f.riskTitle || '(unknown)',
+      open: 0, draft: 0,
+      inherentScore: null, residualScore: null,
       controls: 0, implemented: 0, assessed: 0,
       effective: 0, partly: 0, notAssessed: 0,
-      _seen: new Set(),
+      _riskCounted: false,
     };
-    const o = opMap[f.capId];
+    const o = opMap[key];
     o.controls++;
-    const rk = ftNorm(f.riskTitle) || ('__op_' + o.controls);
-    if (f.riskTitle && !o._seen.has(rk)) {
-      o._seen.add(rk);
-      o.risks++;
-      if (ftNorm(f.riskStatus).includes('open'))  o.open++;
-      if (ftNorm(f.riskStatus).includes('draft')) o.draft++;
+    if (!o._riskCounted) {
+      o._riskCounted = true;
+      if (ftNorm(f.riskStatus).includes('open'))  o.open  = 1;
+      if (ftNorm(f.riskStatus).includes('draft')) o.draft = 1;
     }
+    if (o.inherentScore === null && f.inherentScore != null) o.inherentScore = f.inherentScore;
+    if (o.residualScore === null && f.residualScore != null) o.residualScore = f.residualScore;
     if (ftIsImplemented(f))  o.implemented++;
     if (ftIsAssessed(f))     o.assessed++;
     if (ftIsEffective(f))    o.effective++;
     else if (ftIsPartly(f))  o.partly++;
     else                     o.notAssessed++;
   });
-  const operational = Object.values(opMap).map(r => { delete r._seen; return r; });
+  const operational = Object.values(opMap).map(r => { delete r._riskCounted; return r; });
 
   return {
     policyObjectives,

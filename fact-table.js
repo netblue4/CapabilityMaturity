@@ -183,7 +183,8 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
       const key = capId + '||' + doc;
       if (!map[key]) map[key] = {
         capId, capName: capName(capId), document: doc,
-        risks: 0, controls: 0, implemented: 0, assessed: 0,
+        risks: 0, open: 0, draft: 0,
+        controls: 0, implemented: 0, assessed: 0,
         effective: 0, partly: 0, notAssessed: 0,
         _seen: new Set(),
       };
@@ -202,7 +203,12 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
         const row = getOrCreate(f.capId, doc);
         row.controls++;
         const rk = ftNorm(f.riskTitle) || ('__ctrl_' + row.controls);
-        if (f.riskTitle && !row._seen.has(rk)) { row._seen.add(rk); row.risks++; }
+        if (f.riskTitle && !row._seen.has(rk)) {
+          row._seen.add(rk);
+          row.risks++;
+          if (ftNorm(f.riskStatus).includes('open'))  row.open++;
+          if (ftNorm(f.riskStatus).includes('draft')) row.draft++;
+        }
         if (ftIsImplemented(f))  row.implemented++;
         if (ftIsAssessed(f))     row.assessed++;
         if (ftIsEffective(f))    row.effective++;

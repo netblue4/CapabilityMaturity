@@ -60,8 +60,9 @@ function renderMeasureSummary(assessment) {
 
   // — Dimension measure cards —
 
-  // Render in display order: Governance, Risk, Reporting (Risk Mgmt card follows as 4th)
-  const measureOrder = ['governance', 'risk', 'reporting'];
+  // Render in display order: Governance, Reporting, Risk
+  // (Reporting sits next to Governance; Risk Mgmt metrics card goes on its own full-width row)
+  const measureOrder = ['governance', 'reporting', 'risk'];
   const orderedMeasures = measureOrder
     .map(id => CONFIG.measures.find(m => m.id === id))
     .filter(Boolean);
@@ -143,7 +144,8 @@ function renderMeasureSummary(assessment) {
   }).join("");
 
   document.getElementById("scores-card-slot").innerHTML = scoresCard;
-  row.innerHTML = measureCards + renderRiskMgmtSummaryCard(assessment, prev);
+  row.innerHTML = measureCards;
+  document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
 }
 
 // ── Shared 4-table body (used by the card AND import review screens) ──
@@ -219,7 +221,7 @@ function renderFactSummaryTables(curr, prevF) {
   }
 
   // ── Tables 2 & 3: LocPol / GrpStd Controls ───────────────────
-  // Column order: Risks · Controls · Impl · Assessed · Eff · Partly · Not Assessed
+  // Column order: Risks · Open · Draft · Controls · Impl · Assessed · Eff · Partly · Not Ass.
   function renderControlTable(fsKey, title, colCls) {
     const rows = curr[fsKey] || [];
     const pm   = prevMap(prevF[fsKey], r => r.capId + '||' + r.document);
@@ -227,11 +229,11 @@ function renderFactSummaryTables(curr, prevF) {
 
     if (!rows.length && !gone.length) return '';
 
-    const KEYS = ['risks','controls','implemented','assessed','effective','partly','notAssessed'];
+    const KEYS = ['risks','open','draft','controls','implemented','assessed','effective','partly','notAssessed'];
 
     function dataCells(r, p, cls, removed) {
       return KEYS.map(k =>
-        `<td class="${cls}${removed ? ' ft-removed-val' : ''}">${r[k]}${removed ? '' : arrow(r[k], p?.[k])}</td>`
+        `<td class="${cls}${removed ? ' ft-removed-val' : ''}">${r[k] ?? 0}${removed ? '' : arrow(r[k] ?? 0, p?.[k])}</td>`
       ).join('');
     }
 
@@ -259,6 +261,8 @@ function renderFactSummaryTables(curr, prevF) {
               <th class="ft-th-cap">Capability</th>
               <th class="ft-th-doc">Document</th>
               <th class="${colCls} ft-sub-hdr" title="Unique risks">Risks</th>
+              <th class="${colCls} ft-sub-hdr" title="Open risks">Open</th>
+              <th class="${colCls} ft-sub-hdr" title="Draft risks">Draft</th>
               <th class="${colCls} ft-sub-hdr" title="Total controls">Controls</th>
               <th class="${colCls} ft-sub-hdr" title="Implemented">Impl</th>
               <th class="${colCls} ft-sub-hdr" title="Assessed">Assessed</th>

@@ -58,15 +58,10 @@ function saveToLocalStorage() {
 function bindEvents() {
   document.getElementById("btn-new-assessment").addEventListener("click", () => openAssessmentForm(null));
   document.getElementById("btn-back").addEventListener("click", () => showView("dashboard"));
-  document.getElementById("btn-back-detail").addEventListener("click", () => showView("dashboard"));
   document.getElementById("btn-cancel").addEventListener("click", () => showView("dashboard"));
   document.getElementById("btn-export").addEventListener("click", exportJSON);
   document.getElementById("import-file").addEventListener("change", importJSON);
   document.getElementById("assessment-form").addEventListener("submit", saveAssessment);
-  document.getElementById("btn-delete-assessment").addEventListener("click", deleteCurrentAssessment);
-  document.getElementById("btn-edit-from-detail").addEventListener("click", () => {
-    if (currentDetailId) openAssessmentForm(currentDetailId);
-  });
 }
 
 // ── Views ────────────────────────────────────────────────────

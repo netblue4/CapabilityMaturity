@@ -118,16 +118,6 @@
 
         <div id="measure-summary-row" class="measure-summary-row"></div>
 
-        <div id="print-profile-cards">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="font-size: 1.5rem; margin-bottom: 4px;">Maturity Detail - Current Quarter</h2>
-          </div>
-          <div class="no-print" style="text-align:right;margin-bottom:0.5rem">
-            <button class="btn-link" style="font-size:0.78rem;padding:0.2rem 0.5rem" onclick="exportForPowerPoint()">↓ Export for PowerPoint</button>
-          </div>
-          <div id="profile-cards-container" class="profile-cards-container"></div>
-        </div>
-
         <div class="card history-card">
           <h3 class="card-title">Assessment History</h3>
           <div id="history-table-wrap">
@@ -176,19 +166,6 @@
           <button type="submit" id="btn-save-assessment" class="btn btn-primary">Save Assessment</button>
         </div>
       </form>
-    </section>
-
-    <!-- Detail View -->
-    <section id="view-detail" class="view">
-      <div class="section-header">
-        <button id="btn-back-detail" class="btn btn-ghost">← Back</button>
-        <h2 id="detail-title">Assessment Detail</h2>
-        <div class="detail-actions">
-          <button id="btn-edit-from-detail" class="btn btn-outline">Edit</button>
-          <button id="btn-delete-assessment" class="btn btn-danger">Delete</button>
-        </div>
-      </div>
-      <div id="detail-content"></div>
     </section>
 
     <!-- Executive Report View -->
@@ -381,10 +358,8 @@
   <script src="modals.js"></script>
   <script src="history.js"></script>
   <script src="measure-summary.js"></script>
-  <script src="risk-profile-summary.js"></script>
   <script src="radar.js"></script>
   <script src="assessment-form.js"></script>
-  <script src="detail-view.js"></script>
   <script src="import-export.js"></script>
   <script src="dashboard.js"></script>
   <script src="exec-report.js"></script>

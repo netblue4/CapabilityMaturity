@@ -11,6 +11,5 @@ function renderDashboard() {
   buildAssessmentFilter();
   renderRadar("radar-chart", null, getSelectedRadarCaps(), getSelectedAssessments());
   renderMeasureSummary(latest);
-  renderProfileCards(latest);
   renderHistory();
 }

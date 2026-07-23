@@ -1,4 +1,4 @@
-// ── Policy Statements Import Wizard ──────────────────────────
+// ── Policy Statements Import Wizard ──────────────────────────────
 
 (function () {
   let _piRows       = [];
@@ -6,7 +6,7 @@
   let _piCols       = {};
   let _piComputed   = [];
 
-  // ── Entry point ──────────────────────────────────────────────
+  // ── Entry point ──────────────────────────────────────────────────
   function initPolicyImport() {
     _piRows = []; _piCsvCapNames = []; _piCols = {}; _piComputed = [];
     const fi = document.getElementById('pi-file-input');
@@ -14,7 +14,6 @@
     document.getElementById('pi-upload-info').textContent = '';
     showPiSection('pi-upload');
 
-    // Show the assessment name we'll save to
     const nameEl = document.getElementById('pi-assessment-name');
     if (nameEl) {
       const a = editingId ? db.assessments.find(x => x.id === editingId) : null;
@@ -22,7 +21,7 @@
     }
   }
 
-  // ── CSV parsing ──────────────────────────────────────────────
+  // ── CSV parsing ──────────────────────────────────────────────────
   function piParseRow(line) {
     const out = [];
     let cur = '', inQ = false;
@@ -54,7 +53,7 @@
     return { headers, rows };
   }
 
-  // ── Column detection ─────────────────────────────────────────
+  // ── Column detection ─────────────────────────────────────────────
   function detectPiColumns(headers) {
     const hl = headers.map(h => h.toLowerCase());
     function find(...terms) {
@@ -72,7 +71,7 @@
     };
   }
 
-  // ── File handler ─────────────────────────────────────────────
+  // ── File handler ─────────────────────────────────────────────────
   function handlePiFile(input) {
     const file = input.files[0];
     if (!file) return;
@@ -99,7 +98,7 @@
     reader.readAsText(file);
   }
 
-  // ── Fuzzy capability matching ────────────────────────────────
+  // ── Fuzzy capability matching ────────────────────────────────────
   function piAutoMatch(csvName) {
     const norm = s => s.toLowerCase()
       .replace(/\bict\b/g, '')
@@ -116,7 +115,7 @@
     return bestScore > 0 ? bestId : null;
   }
 
-  // ── Step 2: mapping table ────────────────────────────────────
+  // ── Step 2: mapping table ────────────────────────────────────────
   function renderPiMappingTable() {
     const rows = _piCsvCapNames.map((name, i) => {
       const match = piAutoMatch(name);
@@ -140,7 +139,7 @@
       _piCsvCapNames.length + ' capabilities found — confirm or adjust the mappings below, then click Confirm Mappings.';
   }
 
-  // ── Step 3: process mappings → review ────────────────────────
+  // ── Step 3: process mappings → review ────────────────────────────
   function processPolicyImport() {
     const sels = document.querySelectorAll('.pi-cap-sel');
     const mapping = {};
@@ -183,48 +182,32 @@
     showPiSection('pi-review');
   }
 
-  // ── Type normalisation helpers ───────────────────────────────
-  function isLocPolType(t) {
-    const s = (t || '').toLowerCase().trim();
-    return s === 'locpol' || s === 'local policy' || s === 'local pol' || s.startsWith('loc');
-  }
-  function isGrpStdType(t) {
-    const s = (t || '').toLowerCase().trim();
-    return s === 'grpstd' || s === 'group standard' || s === 'group std' || s.startsWith('grp');
-  }
-
-  // ── Step 3: review table ─────────────────────────────────────
+  // ── Step 3: review table ─────────────────────────────────────────
   function renderPiReviewTable() {
     const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
 
+    // Build set of normalised statement refs from risk controls for coverage check
+    const riskFacts = assessment ? (assessment.riskPolicyFacts || assessment.riskRows || []) : [];
+    const riskRefSet = new Set(
+      riskFacts.flatMap(f => (f.statementRefs || []).map(r => ftNorm(r)))
+    );
+    const hasRiskData = riskFacts.length > 0;
+
     const rows = _piComputed.map(r => {
-      const riskMgmt    = assessment?.measureScores?.[r.capId]?.riskManagement;
-      const grpStdSet   = new Set((riskMgmt?.grpStdRefs || []).map(s => s.toLowerCase().trim()));
-      const locPolSet   = new Set((riskMgmt?.locPolRefs  || []).map(s => s.toLowerCase().trim()));
-      const allL2Set    = new Set([...grpStdSet, ...locPolSet]);
-      const normRefs    = r.refs.map(s => s.toLowerCase().trim());
+      // Classify statements by type from the policy CSV's own Type column
+      let locPolCount = 0, grpStdCount = 0;
+      Object.entries(r.types || {}).forEach(([t, n]) => {
+        if (isLocPolType(t))      locPolCount  += n;
+        else if (isGrpStdType(t)) grpStdCount  += n;
+      });
 
-      // Classify refs by the type of control that covers them in the risk data.
-      // Fall back to the Type column in the policy CSV when no risk data exists.
-      let locPolCount, grpStdCount;
-      if (allL2Set.size > 0) {
-        const lp = normRefs.filter(ref => locPolSet.has(ref)).length;
-        const gs = normRefs.filter(ref => grpStdSet.has(ref)).length;
-        locPolCount = lp || null;
-        grpStdCount = gs || null;
-      } else {
-        Object.entries(r.types || {}).forEach(([t, n]) => {
-          if (isLocPolType(t))      locPolCount  = (locPolCount  || 0) + n;
-          else if (isGrpStdType(t)) grpStdCount  = (grpStdCount  || 0) + n;
-        });
-      }
-
-      // Risk Coverage column
+      // Risk coverage: how many of these refs appear in risk controls
       let coverageCell;
-      if (!allL2Set.size) {
+      if (!hasRiskData) {
         coverageCell = '<span style="color:var(--text-dim)">No risk data</span>';
       } else {
-        const covered = normRefs.filter(ref => allL2Set.has(ref)).length;
+        const normRefs = r.refs.map(ref => ftNorm(ref));
+        const covered  = normRefs.filter(ref => riskRefSet.has(ref)).length;
         const cls = covered === r.refs.length ? 'rk-metric-good'
                   : covered > 0              ? 'rk-metric-warn'
                                              : 'rk-metric-bad';
@@ -250,42 +233,49 @@
       _piComputed.length + ' capabilities with statement data — review and save.';
   }
 
-  // ── Save ─────────────────────────────────────────────────────
+  // ── Save ─────────────────────────────────────────────────────────
   function savePolicyImport() {
     const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
     if (!assessment) { alert('No assessment open — return to an assessment before saving.'); return; }
 
-    let total = 0, unmapped = 0;
-    const byCapability = {};
-    _piComputed.forEach(r => {
-      byCapability[r.capId] = { count: r.count, refs: r.refs, types: r.types, documents: r.documents };
-      total += r.count;
-    });
-
-    // Count original unmapped rows
+    // Rebuild mapping from current select state
     const sels = document.querySelectorAll('.pi-cap-sel');
     const mapping = {};
     sels.forEach(sel => {
       if (sel.value) mapping[_piCsvCapNames[parseInt(sel.dataset.idx)]] = sel.value;
     });
+
+    // Build flat policyRows (one per statement) from _piRows
+    const policyRows = [];
+    let unmapped = 0;
     _piRows.forEach(row => {
       const csvCap = row[_piCols.capability] || '';
-      if (!mapping[csvCap]) unmapped++;
+      const capId  = mapping[csvCap];
+      if (!capId) { unmapped++; return; }
+      const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
+      const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
+      const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
+      if (!ref) return;
+      policyRows.push({ capId, statementRef: ref, type, document: doc });
     });
 
+    assessment.policyRows = policyRows;
     assessment.policyStatements = {
-      uploadDate:       new Date().toISOString().slice(0, 10),
-      totalStatements:  total,
+      uploadDate:      new Date().toISOString().slice(0, 10),
+      totalStatements: policyRows.length,
       unmapped,
-      byCapability,
+      byCapability:    buildPolicyByCapability(policyRows),
     };
+
+    // Rebuild enriched fact table
+    assessment.riskPolicyFacts = buildRiskPolicyFacts(assessment.riskRows || [], policyRows);
 
     saveToLocalStorage();
     loadFromLocalStorage();
     openAssessmentForm(editingId);
   }
 
-  // ── Section toggle helper ────────────────────────────────────
+  // ── Section toggle helper ────────────────────────────────────────
   function showPiSection(id) {
     ['pi-upload', 'pi-mapping', 'pi-review'].forEach(s => {
       const el = document.getElementById(s);
@@ -293,14 +283,14 @@
     });
   }
 
-  // ── Expose globals ───────────────────────────────────────────
+  // ── Expose globals ───────────────────────────────────────────────
   window.initPolicyImport    = initPolicyImport;
   window.handlePiFile        = handlePiFile;
   window.processPolicyImport = processPolicyImport;
   window.savePolicyImport    = savePolicyImport;
 })();
 
-// ── Per-capability policy data helpers (used by assessment-form) ─
+// ── Per-capability policy data helpers (used by assessment-form) ──
 
 function getPolicyData(assessment, capId) {
   return assessment?.policyStatements?.byCapability?.[capId] || null;
@@ -330,7 +320,6 @@ function renderPolicyCardContent(assessment, capId) {
 function refreshPolicyCards() {
   const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
 
-  // Assessment-level summaries
   const ps = assessment?.policyStatements;
   const polSummary = document.getElementById('policy-import-summary');
   if (polSummary) {
@@ -339,17 +328,15 @@ function refreshPolicyCards() {
       : 'No policy data uploaded';
   }
 
-  // Risk data summary — detect if any capability has riskManagement data
   const rkSummary = document.getElementById('rk-data-summary');
   if (rkSummary) {
-    const scores = assessment?.measureScores || {};
-    const capsWithRisk = Object.values(scores).filter(s => s.riskManagement && s.riskManagement.totalRisks > 0).length;
-    rkSummary.textContent = capsWithRisk > 0
-      ? `Risk data for ${capsWithRisk} capabilities`
+    const riskRows = assessment?.riskRows || [];
+    const caps = new Set(riskRows.map(r => r.capId)).size;
+    rkSummary.textContent = caps > 0
+      ? `Risk data for ${caps} capabilities · ${riskRows.length} controls`
       : 'No risk data uploaded';
   }
 
-  // Per-capability policy cards
   (CONFIG.capabilities || []).forEach(cap => {
     const el = document.getElementById(`policy-card-${cap.id}`);
     if (!el) return;

@@ -1,4 +1,4 @@
-// ── Riskonnect CSV Import ────────────────────────────────────
+// ── Riskonnect CSV Import ────────────────────────────────────────
 
 (function () {
   let _parsedRows   = [];
@@ -6,7 +6,7 @@
   let _detectedCols = {};
   let _computed     = [];
 
-  // ── Entry point ──────────────────────────────────────────────
+  // ── Entry point ──────────────────────────────────────────────────
   function initRiskonnectImport() {
     _parsedRows = []; _csvCapNames = []; _detectedCols = {}; _computed = [];
     const fi = document.getElementById('rk-file-input');
@@ -15,7 +15,7 @@
     document.getElementById('rk-upload-info').textContent = '';
   }
 
-  // ── CSV parsing ──────────────────────────────────────────────
+  // ── CSV parsing ──────────────────────────────────────────────────
   function parseCSVRow(line) {
     const out = [];
     let cur = '', inQ = false;
@@ -49,7 +49,7 @@
     return rows;
   }
 
-  // ── Column detection ─────────────────────────────────────────
+  // ── Column detection ─────────────────────────────────────────────
   function detectColumns(headers) {
     const hl = headers.map(h => h.toLowerCase());
     function find(...terms) {
@@ -60,20 +60,20 @@
       return null;
     }
     return {
-      capability:      find('business process', 'process', 'capability', 'function', 'domain'),
-      riskTitle:       find('risk title', 'risk name', 'title'),
-      status:          find('status'),
-      owner:           find('owner'),
-      designAss:       find('design assess', 'design effectiveness', 'design rating', 'design'),
-      opAss:           find('operation assess', 'operational assess', 'operation effectiveness', 'operation rating', 'operation'),
-      residual:        find('residual score', 'residual risk score', 'residual rating score', 'residual'),
-      controlStatus:   find('control: status', 'control status'),
-      lastAssessDate:  find('last control assessment', 'last assessment', 'assessment date'),
-      controlName:     find('control: name', 'control name', 'control: title', 'control title'),
+      capability:     find('business process', 'process', 'capability', 'function', 'domain'),
+      riskTitle:      find('risk title', 'risk name', 'title'),
+      status:         find('status'),
+      owner:          find('owner'),
+      designAss:      find('design assess', 'design effectiveness', 'design rating', 'design'),
+      opAss:          find('operation assess', 'operational assess', 'operation effectiveness', 'operation rating', 'operation'),
+      residual:       find('residual score', 'residual risk score', 'residual rating score', 'residual'),
+      controlStatus:  find('control: status', 'control status'),
+      lastAssessDate: find('last control assessment', 'last assessment', 'assessment date'),
+      controlName:    find('control: name', 'control name', 'control: title', 'control title'),
     };
   }
 
-  // ── File handler ─────────────────────────────────────────────
+  // ── File handler ─────────────────────────────────────────────────
   function handleRkFile(input) {
     const file = input.files[0];
     if (!file) return;
@@ -81,10 +81,7 @@
     reader.onload = function (e) {
       const text = e.target.result;
       _parsedRows = parseCSV(text);
-      if (!_parsedRows.length) {
-        alert('No data rows found in the CSV file.');
-        return;
-      }
+      if (!_parsedRows.length) { alert('No data rows found in the CSV file.'); return; }
       const headers = Object.keys(_parsedRows[0]);
       _detectedCols = detectColumns(headers);
       if (!_detectedCols.capability) {
@@ -100,7 +97,7 @@
     reader.readAsText(file);
   }
 
-  // ── Fuzzy capability matching ────────────────────────────────
+  // ── Fuzzy capability matching ────────────────────────────────────
   function autoMatch(csvName) {
     const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ');
     const csvW = new Set(norm(csvName).split(/\s+/).filter(w => w.length > 2));
@@ -114,7 +111,7 @@
     return bestId;
   }
 
-  // ── Step 1: mapping table ────────────────────────────────────
+  // ── Step 1: mapping table ────────────────────────────────────────
   function renderMappingTable() {
     const rows = _csvCapNames.map((name, i) => {
       const match = autoMatch(name);
@@ -137,7 +134,42 @@
       _csvCapNames.length + ' capabilities found — confirm or adjust the mappings below, then click Import.';
   }
 
-  // ── Process: CSV rows → computed results ─────────────────────
+  // ── Build flat fact rows for one capability ───────────────────────
+  function buildFactRows(rows, cols, capId) {
+    return rows.map(row => {
+      const rawName = cols.controlName ? (row[cols.controlName] || '').trim() : '';
+      let controlType = 'operational';
+      if (rawName.startsWith('LocPol')) controlType = 'locPol';
+      else if (rawName.startsWith('GrpStd')) controlType = 'grpStd';
+
+      const dRaw = (row[cols.designAss] || '').toLowerCase();
+      const oRaw = (row[cols.opAss]     || '').toLowerCase();
+      function toGAG(s) {
+        if (s.includes('green') || s.includes('effective')) return 'green';
+        if (s.includes('amber') || s.includes('partial'))  return 'amber';
+        return 'grey';
+      }
+      const residualRaw = cols.residual ? row[cols.residual] : null;
+      const residualNum = residualRaw ? (parseFloat(residualRaw) || null) : null;
+
+      return {
+        capId,
+        riskTitle:      cols.riskTitle      ? (row[cols.riskTitle]      || '').trim() : '',
+        riskStatus:     cols.status         ? (row[cols.status]         || '').toLowerCase().trim() : '',
+        controlName:    rawName,
+        controlType,
+        controlStatus:  cols.controlStatus  ? (row[cols.controlStatus]  || '').toLowerCase().trim() : '',
+        designAssess:   toGAG(dRaw),
+        opAssess:       toGAG(oRaw),
+        lastAssessDate: cols.lastAssessDate ? (row[cols.lastAssessDate] || '').trim() : '',
+        residualScore:  residualNum,
+        statementRefs:  extractStatementRefs(rawName),
+        matchedPolicyRows: [],
+      };
+    });
+  }
+
+  // ── Process: CSV rows → per-capability fact rows ─────────────────
   function processRkImport() {
     const sels = document.querySelectorAll('.rk-cap-sel');
     const mapping = {};
@@ -159,8 +191,20 @@
     });
 
     _computed = Object.entries(grouped).map(([capId, rows]) => {
-      const cap = CONFIG.capabilities.find(c => c.id === capId);
-      return { capId, capName: cap ? cap.name : capId, ...computeMaturity(rows, cols) };
+      const cap   = CONFIG.capabilities.find(c => c.id === capId);
+      const facts = buildFactRows(rows, cols, capId);
+      const rm    = ftRiskMetrics(facts);
+      const scores = facts.map(f => f.residualScore || 0).filter(n => n > 0);
+      const maxScore = scores.length ? Math.max(...scores) : 0;
+      return {
+        capId,
+        capName:        cap ? cap.name : capId,
+        facts,
+        totalRisks:     rm.total,
+        openRisks:      rm.open,
+        draftRisks:     rm.draft,
+        residualRating: scoreToRating(maxScore),
+      };
     });
 
     if (!_computed.length) {
@@ -179,182 +223,6 @@
     showRkSection('rk-review');
   }
 
-  // ── Maturity derivation ──────────────────────────────────────
-  //
-  // The CSV has ONE ROW PER CONTROL. Each risk repeats across multiple
-  // rows (one per control it has). We must deduplicate by Risk Title
-  // before counting risks; control rows are counted as-is.
-  //
-  function computeMaturity(rows, cols) {
-    if (!rows.length) {
-      return {
-        level: 1, risksDraft: 0, risksAssessed: 0,
-        controlsEffective: 0, controlsPartial: 0, controlsNotAssessed: 0,
-        residualRating: '', evidence: 'No risks',
-      };
-    }
-
-    // ── Deduplicate risks by title (one row per unique risk) ──────
-    // Each risk appears once per control in the CSV. We keep the first
-    // row per unique title to count risk-level fields (status, residual).
-    const uniqueRisks = new Map(); // title → first representative row
-    rows.forEach(row => {
-      const title = cols.riskTitle ? row[cols.riskTitle] : null;
-      const key   = (title && title.trim()) ? title.trim() : '__row_' + rows.indexOf(row);
-      if (!uniqueRisks.has(key)) uniqueRisks.set(key, row);
-    });
-    const riskRows = [...uniqueRisks.values()];
-
-    // ── Risk-level counts (use deduplicated risk rows) ────────────
-    const statusOf   = r => (r[cols.status] || '').toLowerCase();
-    const draftRisks = riskRows.filter(r => statusOf(r).includes('draft'));
-    const openRisks  = riskRows.filter(r => statusOf(r).includes('open'));
-
-    // A risk is "assessed" when it has a non-empty Residual Score
-    const assessedRisks = riskRows.filter(r => {
-      if (!cols.residual) return false;
-      const sc = (r[cols.residual] || '').trim();
-      return sc !== '' && sc !== '0' && !isNaN(parseFloat(sc));
-    });
-
-    // Highest residual score → rating (use deduplicated risk rows)
-    let maxScore = 0;
-    if (cols.residual) {
-      riskRows.forEach(r => {
-        const sc = parseFloat(r[cols.residual] || '0');
-        if (sc > maxScore) maxScore = sc;
-      });
-    }
-    const residualRating = scoreToRating(maxScore);
-
-    // ── Control counts (use ALL rows — one row per control) ───────
-    let eff = 0, part = 0, notAss = 0, anyCtrlAssessed = false;
-    rows.forEach(row => {
-      const d = (row[cols.designAss] || '').toLowerCase();
-      const o = (row[cols.opAss]     || '').toLowerCase();
-
-      const isGreen  = s => s.includes('green')  || s.includes('effective');
-      const isAmber  = s => s.includes('amber')  || s.includes('partial');
-      const isGrey   = s => s.includes('grey')   || s.includes('gray') || s.includes('not assess') || s === '';
-
-      if (isGrey(d) && isGrey(o)) { notAss++; return; }
-      anyCtrlAssessed = true;
-      if (isGreen(d) && isGreen(o)) eff++;
-      else if (isAmber(d) || isAmber(o)) part++;
-      else notAss++;
-    });
-
-    // ── L1/L2 control split ───────────────────────────────────────
-    // L2 = DORA policy-linked controls (LocPol / GrpStd prefix in control name)
-    // L1 = everything else (pre-DORA operational controls)
-    function isDoraControl(row) {
-      if (!cols.controlName) return false;
-      const name = (row[cols.controlName] || '').trim();
-      return name.startsWith('LocPol') || name.startsWith('GrpStd');
-    }
-
-    // Returns an array of statement refs embedded in a control name.
-    // Handles two formats:
-    //   Parentheses suffix: "Control Desc (REF1 / REF2)"
-    //   Slash-separated body: "GrpStd LP-20 PS05 / ITAM SR1"
-    function statementRefs(row) {
-      if (!cols.controlName) return [];
-      const rawName = (row[cols.controlName] || '').trim();
-      if (!rawName) return [];
-      // Strip GrpStd/LocPol prefix to isolate the ref portion
-      const stripped = rawName.replace(/^(GrpStd|LocPol)\s*/i, '').trim();
-      if (!stripped) return [];
-      // Parentheses format: extract content from trailing "(…)"
-      const parenMatch = stripped.match(/\(([^)]+)\)\s*$/);
-      if (parenMatch) {
-        return parenMatch[1].split('/').map(r => r.trim()).filter(Boolean);
-      }
-      // Otherwise every "/" segment is a distinct ref
-      return stripped.split('/').map(r => r.trim()).filter(Boolean);
-    }
-
-    const l1Rows = rows.filter(r => !isDoraControl(r));
-    const l2Rows = rows.filter(r =>  isDoraControl(r));
-
-    // ── Pre-compute all L2 statement refs split by prefix ────────
-    // grpStdRefSet / locPolRefSet power the policy step 3 columns
-    const l2RefMap    = {};
-    const grpStdRefSet = new Set();
-    const locPolRefSet = new Set();
-
-    l2Rows.forEach(row => {
-      const rawName = cols.controlName ? (row[cols.controlName] || '').trim() : '';
-      const isGrpStd = rawName.startsWith('GrpStd');
-      statementRefs(row).forEach(ref => {
-        if (!(ref in l2RefMap)) l2RefMap[ref] = false;
-        if ((row[cols.status] || '').toLowerCase().includes('open')) l2RefMap[ref] = true;
-        if (isGrpStd) grpStdRefSet.add(ref);
-        else           locPolRefSet.add(ref);
-      });
-    });
-    const allL2Refs = Object.keys(l2RefMap);
-
-    // ── Compute configured risk metrics ──────────────────────────
-    const totalRisks = riskRows.length;
-    const metricsData = {};
-    (CONFIG.riskMetrics || []).forEach(m => {
-      let value = null;
-      if (m.id === 'policy_risk_coverage') {
-        const total   = allL2Refs.length;
-        const covered = Object.values(l2RefMap).filter(Boolean).length;
-        value = total > 0 ? Math.round((covered / total) * 100) : null;
-      } else if (m.id === 'pre_dora_control_strength') {
-        const implemented = l1Rows.filter(row =>
-          (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
-        ).length;
-        value = l1Rows.length > 0 ? Math.round((implemented / l1Rows.length) * 100) : null;
-      } else if (m.id === 'dora_control_readiness') {
-        const implemented = l2Rows.filter(row =>
-          (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
-        ).length;
-        value = l2Rows.length > 0 ? Math.round((implemented / l2Rows.length) * 100) : null;
-      } else if (m.id === 'control_assessment_currency') {
-        // Applied to L1 (pre-DORA) controls only
-        const implemented = l1Rows.filter(row =>
-          (row[cols.controlStatus] || '').toLowerCase().trim() === 'implemented'
-        );
-        const everAssessed = implemented.filter(row => {
-          const d = cols.lastAssessDate ? (row[cols.lastAssessDate] || '').trim() : '';
-          return d !== '';
-        });
-        value = implemented.length > 0
-          ? Math.round((everAssessed.length / implemented.length) * 100)
-          : null;
-      }
-      metricsData[m.id] = { value };
-    });
-
-    // ── Evidence summary ──────────────────────────────────────────
-    const ev = [];
-    if (draftRisks.length)    ev.push(draftRisks.length    + ' draft');
-    if (openRisks.length)     ev.push(openRisks.length      + ' open');
-    if (assessedRisks.length) ev.push(assessedRisks.length  + ' assessed');
-    if (eff)    ev.push(eff    + ' ctrl eff');
-    if (part)   ev.push(part   + ' ctrl part');
-    if (notAss) ev.push(notAss + ' ctrl NA');
-
-    return {
-      totalRisks,
-      risksDraft:          draftRisks.length,
-      openRisksCount:      openRisks.length,
-      risksAssessed:       assessedRisks.length,
-      controlsEffective:   eff,
-      controlsPartial:     part,
-      controlsNotAssessed: notAss,
-      residualRating,
-      evidence:        ev.join(' · ') || totalRisks + ' risks',
-      metrics:         metricsData,
-      l2StatementRefs: allL2Refs,
-      grpStdRefs:      [...grpStdRefSet],
-      locPolRefs:      [...locPolRefSet],
-    };
-  }
-
   function scoreToRating(score) {
     if (!score || score < 4) return '';
     const keys = Object.keys(CONFIG.riskScoreMatrix || {});
@@ -364,91 +232,84 @@
     return keys.find(k => k.startsWith('Low')) || '';
   }
 
-  // ── Step 2: review table ─────────────────────────────────────
+  // ── Step 2: review table ─────────────────────────────────────────
   function renderReviewTable() {
-    const metrics  = CONFIG.riskMetrics || [];
     const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
 
-    // Inject metric columns into thead
     const thead = document.getElementById('rk-rev-table-head');
     if (thead) {
-      const metricThs = metrics.map(m =>
-        `<th><span class="metric-layer-badge metric-layer-${m.layer.toLowerCase()}">${m.layer}</span> ${m.shortName}</th>`
-      ).join('');
-      thead.innerHTML = `<tr><th>Capability</th><th>Evidence</th><th>Residual</th>${metricThs}</tr>`;
+      thead.innerHTML = `<tr>
+        <th>Capability</th>
+        <th>Risks</th>
+        <th>Open</th>
+        <th>Draft</th>
+        <th>Operational</th>
+        <th>LocPol</th>
+        <th>GrpStd</th>
+        <th>Residual</th>
+      </tr>`;
     }
 
-    function getAbbrev(v) {
-      if (!v) return null;
-      if (v.startsWith('Extreme'))     return 'EXT';
-      if (v.startsWith('Significant')) return 'SIG';
-      if (v.startsWith('Moderate'))    return 'MOD';
-      if (v.startsWith('Low'))         return 'LOW';
-      return null;
+    function residualBadge(rating) {
+      if (!rating) return `<span class="risk-residual-badge risk-badge-na">—</span>`;
+      function abbr(v) {
+        if (v.startsWith('Extreme'))     return 'EXT';
+        if (v.startsWith('Significant')) return 'SIG';
+        if (v.startsWith('Moderate'))    return 'MOD';
+        if (v.startsWith('Low'))         return 'LOW';
+        return '?';
+      }
+      const idx = riskKeys.indexOf(rating);
+      const color = idx >= 0 ? (CONFIG.levels[idx]?.color || 'var(--bg3)') : 'var(--bg3)';
+      return `<span class="risk-residual-badge" style="background:${color};color:#fff">${abbr(rating)}</span>`;
     }
 
     const rows = _computed.map(r => {
-      const abbrev = getAbbrev(r.residualRating);
-      const rIdx   = riskKeys.indexOf(r.residualRating);
-      const rColor = rIdx >= 0 ? (CONFIG.levels[rIdx]?.color || 'var(--bg3)') : 'var(--bg3)';
-      const rBadge = abbrev
-        ? `<span class="risk-residual-badge" style="background:${rColor};color:#fff">${abbrev}</span>`
-        : `<span class="risk-residual-badge risk-badge-na">NA</span>`;
-
-      const metricCells = metrics.map(m => {
-        const mv = r.metrics?.[m.id]?.value;
-        if (mv === null || mv === undefined) return `<td class="rk-metric-na">—</td>`;
-        const good = m.thresholds?.good ?? 80;
-        const warn = m.thresholds?.warning ?? 50;
-        const cls  = mv >= good ? 'rk-metric-good' : mv >= warn ? 'rk-metric-warn' : 'rk-metric-bad';
-        return `<td class="${cls}">${mv}%</td>`;
-      }).join('');
-
-      return `
-        <tr>
-          <td class="rk-rev-cap" title="${r.capName}">${shortName(r.capName)}</td>
-          <td class="rk-rev-ev">${r.evidence}</td>
-          <td class="rk-rev-risk">${rBadge}</td>
-          ${metricCells}
-        </tr>`;
+      const lp = ftLocPol(r.facts).length;
+      const gs = ftGrpStd(r.facts).length;
+      const op = ftOperational(r.facts).length;
+      return `<tr>
+        <td class="rk-rev-cap" title="${r.capName}">${shortName(r.capName)}</td>
+        <td style="text-align:center">${r.totalRisks}</td>
+        <td style="text-align:center">${r.openRisks}</td>
+        <td style="text-align:center">${r.draftRisks}</td>
+        <td style="text-align:center">${op || '—'}</td>
+        <td style="text-align:center">${lp || '—'}</td>
+        <td style="text-align:center">${gs || '—'}</td>
+        <td style="text-align:center">${residualBadge(r.residualRating)}</td>
+      </tr>`;
     }).join('');
 
     document.getElementById('rk-review-body').innerHTML = rows;
     document.getElementById('rk-review-count').textContent =
-      _computed.length + ' capabilities ready — review metrics and save.';
+      _computed.length + ' capabilities ready — review and save.';
   }
 
-  // ── Save ─────────────────────────────────────────────────────
+  // ── Save ─────────────────────────────────────────────────────────
   function saveRkImport() {
     const aId = document.getElementById('rk-assessment-sel').value;
     const assessment = db.assessments.find(a => a.id === aId);
     if (!assessment) { alert('Please select an assessment.'); return; }
 
-    if (!assessment.measureScores)  assessment.measureScores  = {};
-    if (!assessment.measureTargets) assessment.measureTargets = {};
+    if (!assessment.measureScores) assessment.measureScores = {};
 
+    // Flat risk rows for the fact table
+    const newRiskRows = _computed.flatMap(r => r.facts);
+    assessment.riskRows = newRiskRows;
+
+    // Join with any existing policy rows
+    assessment.riskPolicyFacts = buildRiskPolicyFacts(newRiskRows, assessment.policyRows || []);
+
+    // Keep residual + count fields in measureScores for the assessment form
     _computed.forEach(r => {
-      const capId = r.capId;
-
-      if (!assessment.measureScores[capId])  assessment.measureScores[capId]  = {};
-      if (!assessment.measureTargets[capId]) assessment.measureTargets[capId] = {};
-
-      // Merge RCSA fields — governance/reporting/riskFramework scores untouched
-      const existing = assessment.measureScores[capId].riskManagement || {};
-      assessment.measureScores[capId].riskManagement = {
+      if (!assessment.measureScores[r.capId]) assessment.measureScores[r.capId] = {};
+      const existing = assessment.measureScores[r.capId].riskManagement || {};
+      assessment.measureScores[r.capId].riskManagement = {
         ...existing,
-        totalRisks:          r.totalRisks          || 0,
-        risksDraft:          r.risksDraft,
-        openRisks:           r.openRisksCount,
-        risksAssessed:       r.risksAssessed,
-        controlsEffective:   r.controlsEffective,
-        controlsPartial:     r.controlsPartial,
-        controlsNotAssessed: r.controlsNotAssessed,
-        residualRating:      r.residualRating,
-        metrics:             r.metrics             || {},
-        l2StatementRefs:     r.l2StatementRefs     || [],
-        grpStdRefs:          r.grpStdRefs          || [],
-        locPolRefs:          r.locPolRefs          || [],
+        totalRisks:     r.totalRisks,
+        openRisks:      r.openRisks,
+        risksDraft:     r.draftRisks,
+        residualRating: r.residualRating,
       };
     });
 
@@ -457,7 +318,7 @@
     openAssessmentForm(aId);
   }
 
-  // ── Section toggle helper ────────────────────────────────────
+  // ── Section toggle helper ────────────────────────────────────────
   function showRkSection(id) {
     ['rk-upload', 'rk-mapping', 'rk-review'].forEach(s => {
       const el = document.getElementById(s);
@@ -465,7 +326,7 @@
     });
   }
 
-  // ── Expose globals ───────────────────────────────────────────
+  // ── Expose globals ───────────────────────────────────────────────
   window.initRiskonnectImport = initRiskonnectImport;
   window.handleRkFile        = handleRkFile;
   window.processRkImport     = processRkImport;

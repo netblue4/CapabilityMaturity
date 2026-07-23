@@ -2118,3 +2118,110 @@ details[open] .profile-card-chevron {
 .rcsa-l1-pct { color: #418f64; }
 .rcsa-l2-pct { color: #3498db; }
 .rcsa-pct-good { font-weight: 700; }
+
+/* ── Data cards stack (right column of Row 2 in cap card) ───── */
+.data-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  min-width: 0;
+}
+.data-cards-stack .risk-mgmt-card {
+  margin: 0;
+}
+
+/* ── Policy data card (per-capability, read-only) ─────────────── */
+.policy-data-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.policy-data-card-hdr {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-family: var(--font-mono);
+  font-size: .88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+  margin-bottom: .75rem;
+}
+.policy-no-data {
+  font-size: .78rem;
+  color: var(--text-dim);
+  font-style: italic;
+  margin: 0;
+}
+.policy-card-body { }
+.policy-stat-row {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+  flex-wrap: wrap;
+  margin-bottom: .45rem;
+}
+.policy-stat-num {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+.policy-stat-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin-right: .25rem;
+}
+.policy-type-pill {
+  font-size: .67rem;
+  background: var(--bg3);
+  color: var(--text-muted);
+  padding: .1rem .32rem;
+  border-radius: 3px;
+}
+.policy-refs-list {
+  font-size: .68rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* ── Assessment-level policy import card ──────────────────────── */
+.policy-import-card { margin-bottom: .75rem; }
+.policy-import-hdr {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.policy-import-title {
+  font-family: var(--font-mono);
+  font-size: .85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+  margin-bottom: .2rem;
+}
+.policy-import-desc {
+  font-size: .76rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+.policy-import-ctrl {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.policy-import-status {
+  font-size: .76rem;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}

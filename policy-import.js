@@ -270,6 +270,9 @@
     // Rebuild enriched fact table
     assessment.riskPolicyFacts = buildRiskPolicyFacts(assessment.riskRows || [], policyRows);
 
+    // Rebuild stored summary tables for trend arrows
+    assessment.factSummary = buildFactSummary(assessment.riskPolicyFacts, policyRows);
+
     saveToLocalStorage();
     loadFromLocalStorage();
     openAssessmentForm(editingId);

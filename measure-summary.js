@@ -147,131 +147,185 @@ function renderMeasureSummary(assessment) {
 }
 
 // ── ICT Risk Management Metrics Card ─────────────────────────
-function renderRiskMgmtSummaryCard(assessment, prev, opts = {}) {
-  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
+function renderRiskMgmtSummaryCard(assessment, prev) {
+  const curr  = assessment.factSummary || {};
+  const prevF = prev?.factSummary     || {};
 
-  function residualAbbrev(v) {
-    if (!v) return null;
-    if (v.startsWith('Extreme'))     return 'EXT';
-    if (v.startsWith('Significant')) return 'SIG';
-    if (v.startsWith('Moderate'))    return 'MOD';
-    if (v.startsWith('Low'))         return 'LOW';
-    return null;
+  // ── Trend arrow ───────────────────────────────────────────────
+  function arrow(cv, pv) {
+    if (pv === null || pv === undefined) return '';
+    const d = cv - pv;
+    if (d > 0) return `<span class="ft-trend-up"> ▲${d}</span>`;
+    if (d < 0) return `<span class="ft-trend-dn"> ▼${Math.abs(d)}</span>`;
+    return '';
   }
-  function residualColor(v) {
-    const idx = riskKeys.indexOf(v);
-    return idx >= 0 ? (CONFIG.levels[idx]?.color || null) : null;
+
+  // ── Build lookup from previous rows ──────────────────────────
+  function prevMap(rows, keyFn) {
+    const m = {};
+    (rows || []).forEach(r => { m[keyFn(r)] = r; });
+    return m;
   }
-  function fmtN(n) { return n === 0 ? '—' : String(n); }
 
-  // ── Per-capability table rows ─────────────────────────────────
-  const tableRows = CONFIG.capabilities.map(cap => {
-    const rm    = getRiskManagement(assessment, cap.id);
-    const facts = ftForCap(assessment, cap.id);
-    const pRows = ftPolicyRowsForCap(assessment, cap.id);
+  // ── REMOVED rows: in prev but not in current ──────────────────
+  function removedRows(currRows, prevRows, keyFn) {
+    const currKeys = new Set((currRows || []).map(keyFn));
+    return (prevRows || []).filter(r => !currKeys.has(keyFn(r)));
+  }
 
-    const abbrev = residualAbbrev(rm.residualRating);
-    const rCol   = residualColor(rm.residualRating);
-    const resBadge = abbrev
-      ? `<span class="risk-residual-badge" style="background:${rCol};color:#fff" title="${rm.residualRating}">${abbrev}</span>`
-      : `<span class="risk-residual-badge risk-badge-na">—</span>`;
+  // ── Table 1: Policy Objectives ────────────────────────────────
+  function renderPoTable() {
+    const rows = curr.policyObjectives || [];
+    const pm   = prevMap(prevF.policyObjectives, r => r.capId + '||' + r.document);
+    const gone = removedRows(rows, prevF.policyObjectives, r => r.capId + '||' + r.document);
 
-    const ps    = ftPolicyMetrics(pRows);
-    const dFacts = ftLocPol(facts);
-    const dCtrl  = ftControlMetrics(dFacts);
-    const dRisk  = ftRiskMetrics(dFacts);
-    const gFacts = ftGrpStd(facts);
-    const gCtrl  = ftControlMetrics(gFacts);
-    const gRisk  = ftRiskMetrics(gFacts);
-    const pFacts = ftOperational(facts);
-    const pCtrl  = ftControlMetrics(pFacts);
-    const pRisk  = ftRiskMetrics(pFacts);
+    if (!rows.length && !gone.length) return '';
 
-    const noData = facts.length === 0 && pRows.length === 0 && !abbrev;
-    if (noData) {
+    const activeHtml = rows.map(r => {
+      const p = pm[r.capId + '||' + r.document];
       return `<tr>
-        <td class="rcsa-cap-cell">${shortName(cap.name)}</td>
-        <td class="rcsa-residual-cell">${resBadge}</td>
-        <td colspan="26" style="text-align:center;color:var(--text-dim);font-size:.78rem">No data imported</td>
+        <td class="ft-td-cap">${shortName(r.capName)}</td>
+        <td class="ft-td-doc">${r.document}</td>
+        <td class="ft-col-ps">${r.ps1}${arrow(r.ps1, p?.ps1)}</td>
+        <td class="ft-col-ps">${r.ps2}${arrow(r.ps2, p?.ps2)}</td>
+        <td class="ft-col-ps">${r.ps3}${arrow(r.ps3, p?.ps3)}</td>
       </tr>`;
+    }).join('');
+
+    const removedHtml = gone.map(r => `<tr class="ft-row-removed">
+      <td class="ft-td-cap">${shortName(r.capName)}</td>
+      <td class="ft-td-doc">${r.document}&nbsp;<span class="ft-removed-badge">REMOVED</span></td>
+      <td class="ft-col-ps ft-removed-val">${r.ps1}</td>
+      <td class="ft-col-ps ft-removed-val">${r.ps2}</td>
+      <td class="ft-col-ps ft-removed-val">${r.ps3}</td>
+    </tr>`).join('');
+
+    return `
+      <div class="ft-section">
+        <div class="ft-section-hdr ft-hdr-ps">Policy Objectives</div>
+        <div class="rcsa-table-wrap">
+          <table class="rcsa-metrics-table ft-sub-table">
+            <thead><tr>
+              <th class="ft-th-cap">Capability</th>
+              <th class="ft-th-doc">Document</th>
+              <th class="ft-col-ps ft-sub-hdr" title="Total statements">Total</th>
+              <th class="ft-col-ps ft-sub-hdr" title="Local Policy">LocPol</th>
+              <th class="ft-col-ps ft-sub-hdr" title="Group Standard">GrpStd</th>
+            </tr></thead>
+            <tbody>${activeHtml}${removedHtml}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  // ── Tables 2 & 3: LocPol / GrpStd Controls ───────────────────
+  // Column order: Risks · Controls · Impl · Assessed · Eff · Partly · Not Assessed
+  function renderControlTable(fsKey, title, colCls) {
+    const rows = curr[fsKey] || [];
+    const pm   = prevMap(prevF[fsKey], r => r.capId + '||' + r.document);
+    const gone = removedRows(rows, prevF[fsKey], r => r.capId + '||' + r.document);
+
+    if (!rows.length && !gone.length) return '';
+
+    const KEYS = ['risks','controls','implemented','assessed','effective','partly','notAssessed'];
+
+    function dataCells(r, p, cls, removed) {
+      return KEYS.map(k =>
+        `<td class="${cls}${removed ? ' ft-removed-val' : ''}">${r[k]}${removed ? '' : arrow(r[k], p?.[k])}</td>`
+      ).join('');
     }
 
-    return `<tr>
-      <td class="rcsa-cap-cell">${shortName(cap.name)}</td>
-      <td class="rcsa-residual-cell">${resBadge}</td>
-      <td class="ft-col-ps">${fmtN(ps.total)}</td>
-      <td class="ft-col-ps">${fmtN(ps.locPol)}</td>
-      <td class="ft-col-ps">${fmtN(ps.grpStd)}</td>
-      <td class="ft-col-d">${fmtN(dCtrl.total)}</td>
-      <td class="ft-col-d">${fmtN(dRisk.total)}</td>
-      <td class="ft-col-d">${fmtN(dCtrl.implemented)}</td>
-      <td class="ft-col-d">${fmtN(dCtrl.assessed)}</td>
-      <td class="ft-col-d">${fmtN(dCtrl.effective)}</td>
-      <td class="ft-col-d">${fmtN(dCtrl.partlyEffective)}</td>
-      <td class="ft-col-d">${fmtN(dCtrl.notAssessed)}</td>
-      <td class="ft-col-g">${fmtN(gCtrl.total)}</td>
-      <td class="ft-col-g">${fmtN(gRisk.total)}</td>
-      <td class="ft-col-g">${fmtN(gCtrl.implemented)}</td>
-      <td class="ft-col-g">${fmtN(gCtrl.assessed)}</td>
-      <td class="ft-col-g">${fmtN(gCtrl.effective)}</td>
-      <td class="ft-col-g">${fmtN(gCtrl.partlyEffective)}</td>
-      <td class="ft-col-g">${fmtN(gCtrl.notAssessed)}</td>
-      <td class="ft-col-p">${fmtN(pRisk.total)}</td>
-      <td class="ft-col-p">${fmtN(pRisk.open)}</td>
-      <td class="ft-col-p">${fmtN(pRisk.draft)}</td>
-      <td class="ft-col-p">${fmtN(pCtrl.total)}</td>
-      <td class="ft-col-p">${fmtN(pCtrl.implemented)}</td>
-      <td class="ft-col-p">${fmtN(pCtrl.assessed)}</td>
-      <td class="ft-col-p">${fmtN(pCtrl.effective)}</td>
-      <td class="ft-col-p">${fmtN(pCtrl.partlyEffective)}</td>
-      <td class="ft-col-p">${fmtN(pCtrl.notAssessed)}</td>
-    </tr>`;
-  }).join('');
-
-  // ── Exec-mode dual bars (Operational vs DORA implementation %) ─
-  function renderExecBars() {
-    const capRows = CONFIG.capabilities.map(cap => {
-      const facts   = ftForCap(assessment, cap.id);
-      const opFacts = ftOperational(facts);
-      const dorFacts = [...ftLocPol(facts), ...ftGrpStd(facts)];
-      const opImpl  = opFacts.filter(ftIsImplemented).length;
-      const opPct   = opFacts.length > 0 ? Math.round((opImpl / opFacts.length) * 100) : null;
-      const dorImpl = dorFacts.filter(ftIsImplemented).length;
-      const dorPct  = dorFacts.length > 0 ? Math.round((dorImpl / dorFacts.length) * 100) : null;
-      const opW  = opPct  !== null ? opPct  : 0;
-      const dorW = dorPct !== null ? dorPct : 0;
-      return `<div class="rcsa-exec-bar-row">
-        <span class="rcsa-exec-bar-lbl">${shortName(cap.name)}</span>
-        <div class="rcsa-exec-bar-track">
-          <div class="rcsa-exec-l1-fill" style="width:${opW}%"></div>
-          <div class="rcsa-exec-tick" style="left:80%"></div>
-        </div>
-        <span class="rcsa-exec-bar-pct rcsa-l1-pct${opPct !== null && opPct >= 80 ? ' rcsa-pct-good' : ''}">${opPct !== null ? opPct + '%' : '—'}</span>
-        <div class="rcsa-exec-bar-track">
-          <div class="rcsa-exec-l2-fill" style="width:${dorW}%"></div>
-          <div class="rcsa-exec-tick" style="left:80%"></div>
-        </div>
-        <span class="rcsa-exec-bar-pct rcsa-l2-pct${dorPct !== null && dorPct >= 80 ? ' rcsa-pct-good' : ''}">${dorPct !== null ? dorPct + '%' : '—'}</span>
-      </div>`;
+    const activeHtml = rows.map(r => {
+      const p = pm[r.capId + '||' + r.document];
+      return `<tr>
+        <td class="ft-td-cap">${shortName(r.capName)}</td>
+        <td class="ft-td-doc">${r.document}</td>
+        ${dataCells(r, p, colCls, false)}
+      </tr>`;
     }).join('');
+
+    const removedHtml = gone.map(r => `<tr class="ft-row-removed">
+      <td class="ft-td-cap">${shortName(r.capName)}</td>
+      <td class="ft-td-doc">${r.document}&nbsp;<span class="ft-removed-badge">REMOVED</span></td>
+      ${dataCells(r, null, colCls, true)}
+    </tr>`).join('');
+
     return `
-      <div class="rcsa-exec-bars">
-        <div class="rcsa-exec-bars-title">Coverage at a Glance — Pre-DORA vs DORA</div>
-        <div class="rcsa-exec-bars-key">
-          <span class="rcsa-key-dot rcsa-key-l1"></span><span>Pre-DORA — Operational Controls Implemented</span>
-          <span class="rcsa-key-dot rcsa-key-l2" style="margin-left:.75rem"></span><span>DORA — LocPol &amp; GrpStd Controls Implemented</span>
-          <span style="margin-left:auto;color:var(--text-dim);font-size:.68rem">│ = 80% target</span>
+      <div class="ft-section">
+        <div class="ft-section-hdr ${colCls.replace('ft-col-','ft-hdr-')}">${title}</div>
+        <div class="rcsa-table-wrap">
+          <table class="rcsa-metrics-table ft-sub-table">
+            <thead><tr>
+              <th class="ft-th-cap">Capability</th>
+              <th class="ft-th-doc">Document</th>
+              <th class="${colCls} ft-sub-hdr" title="Unique risks">Risks</th>
+              <th class="${colCls} ft-sub-hdr" title="Total controls">Controls</th>
+              <th class="${colCls} ft-sub-hdr" title="Implemented">Impl</th>
+              <th class="${colCls} ft-sub-hdr" title="Assessed">Assessed</th>
+              <th class="${colCls} ft-sub-hdr" title="Effective">Effective</th>
+              <th class="${colCls} ft-sub-hdr" title="Partly effective">Partly</th>
+              <th class="${colCls} ft-sub-hdr" title="Not assessed">Not Ass.</th>
+            </tr></thead>
+            <tbody>${activeHtml}${removedHtml}</tbody>
+          </table>
         </div>
-        <div class="rcsa-exec-bar-row rcsa-exec-bar-hdr">
-          <span class="rcsa-exec-bar-lbl"></span>
-          <span class="rcsa-exec-bar-track-hdr">Pre-DORA avg</span>
-          <span class="rcsa-exec-bar-pct"></span>
-          <span class="rcsa-exec-bar-track-hdr">DORA avg</span>
-          <span class="rcsa-exec-bar-pct"></span>
-        </div>
-        ${capRows}
       </div>`;
   }
+
+  // ── Table 4: Pre-DORA Operational ────────────────────────────
+  function renderOpTable() {
+    const rows = curr.operational || [];
+    const pm   = prevMap(prevF.operational, r => r.capId);
+    const gone = removedRows(rows, prevF.operational, r => r.capId);
+
+    if (!rows.length && !gone.length) return '';
+
+    const KEYS = ['risks','open','draft','controls','implemented','assessed','effective','partly','notAssessed'];
+
+    function dataCells(r, p, removed) {
+      return KEYS.map(k =>
+        `<td class="ft-col-p${removed ? ' ft-removed-val' : ''}">${r[k]}${removed ? '' : arrow(r[k], p?.[k])}</td>`
+      ).join('');
+    }
+
+    const activeHtml = rows.map(r => {
+      const p = pm[r.capId];
+      return `<tr>
+        <td class="ft-td-cap">${shortName(r.capName)}</td>
+        ${dataCells(r, p, false)}
+      </tr>`;
+    }).join('');
+
+    const removedHtml = gone.map(r => `<tr class="ft-row-removed">
+      <td class="ft-td-cap">${shortName(r.capName)}&nbsp;<span class="ft-removed-badge">REMOVED</span></td>
+      ${dataCells(r, null, true)}
+    </tr>`).join('');
+
+    return `
+      <div class="ft-section">
+        <div class="ft-section-hdr ft-hdr-p">Pre-DORA Operational</div>
+        <div class="rcsa-table-wrap">
+          <table class="rcsa-metrics-table ft-sub-table">
+            <thead><tr>
+              <th class="ft-th-cap">Capability</th>
+              <th class="ft-col-p ft-sub-hdr" title="Unique risks">Risks</th>
+              <th class="ft-col-p ft-sub-hdr" title="Open risks">Open</th>
+              <th class="ft-col-p ft-sub-hdr" title="Draft risks">Draft</th>
+              <th class="ft-col-p ft-sub-hdr" title="Total controls">Controls</th>
+              <th class="ft-col-p ft-sub-hdr" title="Implemented">Impl</th>
+              <th class="ft-col-p ft-sub-hdr" title="Assessed">Assessed</th>
+              <th class="ft-col-p ft-sub-hdr" title="Effective">Effective</th>
+              <th class="ft-col-p ft-sub-hdr" title="Partly effective">Partly</th>
+              <th class="ft-col-p ft-sub-hdr" title="Not assessed">Not Ass.</th>
+            </tr></thead>
+            <tbody>${activeHtml}${removedHtml}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  const noData = !curr.policyObjectives?.length && !curr.locPolControls?.length &&
+                 !curr.grpStdControls?.length   && !curr.operational?.length;
 
   return `
     <div class="card measure-card">
@@ -279,58 +333,13 @@ function renderRiskMgmtSummaryCard(assessment, prev, opts = {}) {
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">ICT RCSA &amp; CSA — Risk Management Metrics</h3>
-          <p class="measure-card-desc">Metrics derived from Riskonnect and Policy Statement imports.</p>
+          <p class="measure-card-desc">Metrics derived from Riskonnect and Policy Statement imports.${prev ? ' ▲▼ shows movement vs previous assessment.' : ''}</p>
         </div>
       </div>
-      ${opts.execMode ? renderExecBars() : ''}
-      <div class="rcsa-table-wrap">
-        <table class="rcsa-metrics-table ft-metrics-table">
-          <thead>
-            <tr>
-              <th class="rcsa-th-cap" rowspan="2">Capability</th>
-              <th rowspan="2">Residual</th>
-              <th colspan="3" class="ft-grp-hdr ft-grp-ps">Policy Objectives</th>
-              <th colspan="7" class="ft-grp-hdr ft-grp-d">DORA LocPol Controls</th>
-              <th colspan="7" class="ft-grp-hdr ft-grp-g">DORA GrpStd Controls</th>
-              <th colspan="9" class="ft-grp-hdr ft-grp-p">Pre-DORA Operational</th>
-            </tr>
-            <tr>
-              <th class="ft-col-ps ft-sub-hdr" title="Total policy statements">PS1</th>
-              <th class="ft-col-ps ft-sub-hdr" title="Local Policy statements">PS2</th>
-              <th class="ft-col-ps ft-sub-hdr" title="Group Standard statements">PS3</th>
-              <th class="ft-col-d ft-sub-hdr" title="Total LocPol controls">D1</th>
-              <th class="ft-col-d ft-sub-hdr" title="Unique risks">D2</th>
-              <th class="ft-col-d ft-sub-hdr" title="Implemented controls">D3</th>
-              <th class="ft-col-d ft-sub-hdr" title="Assessed controls">D4</th>
-              <th class="ft-col-d ft-sub-hdr" title="Effective controls">D5</th>
-              <th class="ft-col-d ft-sub-hdr" title="Partly effective">D6</th>
-              <th class="ft-col-d ft-sub-hdr" title="Not assessed">D7</th>
-              <th class="ft-col-g ft-sub-hdr" title="Total GrpStd controls">G1</th>
-              <th class="ft-col-g ft-sub-hdr" title="Unique risks">G2</th>
-              <th class="ft-col-g ft-sub-hdr" title="Implemented controls">G3</th>
-              <th class="ft-col-g ft-sub-hdr" title="Assessed controls">G4</th>
-              <th class="ft-col-g ft-sub-hdr" title="Effective controls">G5</th>
-              <th class="ft-col-g ft-sub-hdr" title="Partly effective">G6</th>
-              <th class="ft-col-g ft-sub-hdr" title="Not assessed">G7</th>
-              <th class="ft-col-p ft-sub-hdr" title="Unique risks">P1</th>
-              <th class="ft-col-p ft-sub-hdr" title="Open risks">P2</th>
-              <th class="ft-col-p ft-sub-hdr" title="Draft risks">P3</th>
-              <th class="ft-col-p ft-sub-hdr" title="Total operational controls">P4</th>
-              <th class="ft-col-p ft-sub-hdr" title="Implemented controls">P5</th>
-              <th class="ft-col-p ft-sub-hdr" title="Assessed controls">P6</th>
-              <th class="ft-col-p ft-sub-hdr" title="Effective controls">P7</th>
-              <th class="ft-col-p ft-sub-hdr" title="Partly effective">P8</th>
-              <th class="ft-col-p ft-sub-hdr" title="Not assessed">P9</th>
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </div>
-      <div class="ft-legend">
-        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-ps"></span> <strong>PS1–PS3</strong> Policy Objectives · PS1=Total · PS2=Local Policy · PS3=Group Standard</div>
-        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-d"></span> <strong>D1–D7</strong> DORA LocPol · D1=Controls · D2=Risks · D3=Implemented · D4=Assessed · D5=Effective · D6=Partly · D7=Not Assessed</div>
-        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-g"></span> <strong>G1–G7</strong> DORA GrpStd · G1=Controls · G2=Risks · G3=Implemented · G4=Assessed · G5=Effective · G6=Partly · G7=Not Assessed</div>
-        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-p"></span> <strong>P1–P9</strong> Pre-DORA · P1=Risks · P2=Open · P3=Draft · P4=Controls · P5=Implemented · P6=Assessed · P7=Effective · P8=Partly · P9=Not Assessed</div>
-      </div>
+      ${noData ? '<p class="policy-no-data" style="margin:.5rem 0">No risk or policy data imported yet.</p>' : ''}
+      ${renderPoTable()}
+      ${renderControlTable('locPolControls', 'DORA — Local Policy Controls', 'ft-col-d')}
+      ${renderControlTable('grpStdControls', 'DORA — Group Standard Controls', 'ft-col-g')}
+      ${renderOpTable()}
     </div>`;
 }

@@ -300,6 +300,9 @@
     // Join with any existing policy rows
     assessment.riskPolicyFacts = buildRiskPolicyFacts(newRiskRows, assessment.policyRows || []);
 
+    // Rebuild stored summary tables for trend arrows
+    assessment.factSummary = buildFactSummary(assessment.riskPolicyFacts, assessment.policyRows || []);
+
     // Keep residual + count fields in measureScores for the assessment form
     _computed.forEach(r => {
       if (!assessment.measureScores[r.capId]) assessment.measureScores[r.capId] = {};

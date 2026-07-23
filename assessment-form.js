@@ -582,6 +582,7 @@ function saveAssessment(e) {
     if (prevData.policyRows)       assessment.policyRows       = prevData.policyRows;
     if (prevData.riskPolicyFacts)  assessment.riskPolicyFacts  = prevData.riskPolicyFacts;
     if (prevData.policyStatements) assessment.policyStatements = prevData.policyStatements;
+    if (prevData.factSummary)      assessment.factSummary      = prevData.factSummary;
   }
 
   if (editingId) {

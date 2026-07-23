@@ -148,10 +148,8 @@ function renderMeasureSummary(assessment) {
 
 // ── ICT Risk Management Metrics Card ─────────────────────────
 function renderRiskMgmtSummaryCard(assessment, prev, opts = {}) {
-  const riskMetrics = CONFIG.riskMetrics || [];
-  const riskKeys    = Object.keys(CONFIG.riskScoreMatrix || {});
+  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
 
-  // ── Helpers ──────────────────────────────────────────────────
   function residualAbbrev(v) {
     if (!v) return null;
     if (v.startsWith('Extreme'))     return 'EXT';
@@ -164,84 +162,104 @@ function renderRiskMgmtSummaryCard(assessment, prev, opts = {}) {
     const idx = riskKeys.indexOf(v);
     return idx >= 0 ? (CONFIG.levels[idx]?.color || null) : null;
   }
-  function metricValue(a, capId, metricId) {
-    return getRiskManagement(a, capId)?.metrics?.[metricId]?.value ?? null;
-  }
-  function ragClass(value, metric) {
-    if (value === null) return 'rcsa-metric-na';
-    if (value >= metric.thresholds.good)    return 'rcsa-metric-good';
-    if (value >= metric.thresholds.warning) return 'rcsa-metric-warn';
-    return 'rcsa-metric-bad';
-  }
-  function fmtValue(value, unit) {
-    if (value === null) return '—';
-    return unit === 'percent' ? value + '%' : String(value);
-  }
-  function trendHtml(curr, prevVal) {
-    if (curr === null || prevVal === null || prevVal === undefined) return '';
-    const d = curr - prevVal;
-    if (d > 0) return `<span class="rcsa-trend-up"> ▲</span>`;
-    if (d < 0) return `<span class="rcsa-trend-dn"> ▼</span>`;
-    return '';
-  }
+  function fmtN(n) { return n === 0 ? '—' : String(n); }
 
-  // ── Build rows ────────────────────────────────────────────────
+  // ── Per-capability table rows ─────────────────────────────────
   const tableRows = CONFIG.capabilities.map(cap => {
-    const rm = getRiskManagement(assessment, cap.id);
+    const rm    = getRiskManagement(assessment, cap.id);
+    const facts = ftForCap(assessment, cap.id);
+    const pRows = ftPolicyRowsForCap(assessment, cap.id);
 
     const abbrev = residualAbbrev(rm.residualRating);
     const rCol   = residualColor(rm.residualRating);
-    const resBadge = (rm.risksAssessed > 0) && abbrev
+    const resBadge = abbrev
       ? `<span class="risk-residual-badge" style="background:${rCol};color:#fff" title="${rm.residualRating}">${abbrev}</span>`
       : `<span class="risk-residual-badge risk-badge-na">—</span>`;
 
-    const metricCells = riskMetrics.map(m => {
-      const curr    = metricValue(assessment, cap.id, m.id);
-      const prevVal = prev ? metricValue(prev, cap.id, m.id) : null;
-      const cls     = ragClass(curr, m);
-      return `<td class="rcsa-metric-cell ${cls}">${fmtValue(curr, m.unit)}${trendHtml(curr, prevVal)}</td>`;
-    }).join('');
+    const ps    = ftPolicyMetrics(pRows);
+    const dFacts = ftLocPol(facts);
+    const dCtrl  = ftControlMetrics(dFacts);
+    const dRisk  = ftRiskMetrics(dFacts);
+    const gFacts = ftGrpStd(facts);
+    const gCtrl  = ftControlMetrics(gFacts);
+    const gRisk  = ftRiskMetrics(gFacts);
+    const pFacts = ftOperational(facts);
+    const pCtrl  = ftControlMetrics(pFacts);
+    const pRisk  = ftRiskMetrics(pFacts);
+
+    const noData = facts.length === 0 && pRows.length === 0 && !abbrev;
+    if (noData) {
+      return `<tr>
+        <td class="rcsa-cap-cell">${shortName(cap.name)}</td>
+        <td class="rcsa-residual-cell">${resBadge}</td>
+        <td colspan="26" style="text-align:center;color:var(--text-dim);font-size:.78rem">No data imported</td>
+      </tr>`;
+    }
 
     return `<tr>
       <td class="rcsa-cap-cell">${shortName(cap.name)}</td>
       <td class="rcsa-residual-cell">${resBadge}</td>
-      ${metricCells}
+      <td class="ft-col-ps">${fmtN(ps.total)}</td>
+      <td class="ft-col-ps">${fmtN(ps.locPol)}</td>
+      <td class="ft-col-ps">${fmtN(ps.grpStd)}</td>
+      <td class="ft-col-d">${fmtN(dCtrl.total)}</td>
+      <td class="ft-col-d">${fmtN(dRisk.total)}</td>
+      <td class="ft-col-d">${fmtN(dCtrl.implemented)}</td>
+      <td class="ft-col-d">${fmtN(dCtrl.assessed)}</td>
+      <td class="ft-col-d">${fmtN(dCtrl.effective)}</td>
+      <td class="ft-col-d">${fmtN(dCtrl.partlyEffective)}</td>
+      <td class="ft-col-d">${fmtN(dCtrl.notAssessed)}</td>
+      <td class="ft-col-g">${fmtN(gCtrl.total)}</td>
+      <td class="ft-col-g">${fmtN(gRisk.total)}</td>
+      <td class="ft-col-g">${fmtN(gCtrl.implemented)}</td>
+      <td class="ft-col-g">${fmtN(gCtrl.assessed)}</td>
+      <td class="ft-col-g">${fmtN(gCtrl.effective)}</td>
+      <td class="ft-col-g">${fmtN(gCtrl.partlyEffective)}</td>
+      <td class="ft-col-g">${fmtN(gCtrl.notAssessed)}</td>
+      <td class="ft-col-p">${fmtN(pRisk.total)}</td>
+      <td class="ft-col-p">${fmtN(pRisk.open)}</td>
+      <td class="ft-col-p">${fmtN(pRisk.draft)}</td>
+      <td class="ft-col-p">${fmtN(pCtrl.total)}</td>
+      <td class="ft-col-p">${fmtN(pCtrl.implemented)}</td>
+      <td class="ft-col-p">${fmtN(pCtrl.assessed)}</td>
+      <td class="ft-col-p">${fmtN(pCtrl.effective)}</td>
+      <td class="ft-col-p">${fmtN(pCtrl.partlyEffective)}</td>
+      <td class="ft-col-p">${fmtN(pCtrl.notAssessed)}</td>
     </tr>`;
   }).join('');
 
-  // ── Exec-mode dual bars (L1 vs L2 visual) ────────────────────
+  // ── Exec-mode dual bars (Operational vs DORA implementation %) ─
   function renderExecBars() {
-    const l1Metrics = riskMetrics.filter(m => m.layer === 'L1');
-    const l2Metrics = riskMetrics.filter(m => m.layer === 'L2');
     const capRows = CONFIG.capabilities.map(cap => {
-      const rm = getRiskManagement(assessment, cap.id);
-      const metrics = rm.metrics || {};
-      const l1Vals = l1Metrics.map(m => metrics[m.id]?.value).filter(v => v !== null && v !== undefined);
-      const l1Avg  = l1Vals.length ? Math.round(l1Vals.reduce((a,b) => a+b, 0) / l1Vals.length) : null;
-      const l2Vals = l2Metrics.map(m => metrics[m.id]?.value).filter(v => v !== null && v !== undefined);
-      const l2Avg  = l2Vals.length ? Math.round(l2Vals.reduce((a,b) => a+b, 0) / l2Vals.length) : null;
-      const l1W = l1Avg !== null ? l1Avg : 0;
-      const l2W = l2Avg !== null ? l2Avg : 0;
+      const facts   = ftForCap(assessment, cap.id);
+      const opFacts = ftOperational(facts);
+      const dorFacts = [...ftLocPol(facts), ...ftGrpStd(facts)];
+      const opImpl  = opFacts.filter(ftIsImplemented).length;
+      const opPct   = opFacts.length > 0 ? Math.round((opImpl / opFacts.length) * 100) : null;
+      const dorImpl = dorFacts.filter(ftIsImplemented).length;
+      const dorPct  = dorFacts.length > 0 ? Math.round((dorImpl / dorFacts.length) * 100) : null;
+      const opW  = opPct  !== null ? opPct  : 0;
+      const dorW = dorPct !== null ? dorPct : 0;
       return `<div class="rcsa-exec-bar-row">
         <span class="rcsa-exec-bar-lbl">${shortName(cap.name)}</span>
         <div class="rcsa-exec-bar-track">
-          <div class="rcsa-exec-l1-fill" style="width:${l1W}%"></div>
+          <div class="rcsa-exec-l1-fill" style="width:${opW}%"></div>
           <div class="rcsa-exec-tick" style="left:80%"></div>
         </div>
-        <span class="rcsa-exec-bar-pct rcsa-l1-pct${l1Avg !== null && l1Avg >= 80 ? ' rcsa-pct-good' : ''}">${l1Avg !== null ? l1Avg + '%' : '—'}</span>
+        <span class="rcsa-exec-bar-pct rcsa-l1-pct${opPct !== null && opPct >= 80 ? ' rcsa-pct-good' : ''}">${opPct !== null ? opPct + '%' : '—'}</span>
         <div class="rcsa-exec-bar-track">
-          <div class="rcsa-exec-l2-fill" style="width:${l2W}%"></div>
+          <div class="rcsa-exec-l2-fill" style="width:${dorW}%"></div>
           <div class="rcsa-exec-tick" style="left:80%"></div>
         </div>
-        <span class="rcsa-exec-bar-pct rcsa-l2-pct${l2Avg !== null && l2Avg >= 80 ? ' rcsa-pct-good' : ''}">${l2Avg !== null ? l2Avg + '%' : '—'}</span>
+        <span class="rcsa-exec-bar-pct rcsa-l2-pct${dorPct !== null && dorPct >= 80 ? ' rcsa-pct-good' : ''}">${dorPct !== null ? dorPct + '%' : '—'}</span>
       </div>`;
     }).join('');
     return `
       <div class="rcsa-exec-bars">
         <div class="rcsa-exec-bars-title">Coverage at a Glance — Pre-DORA vs DORA</div>
         <div class="rcsa-exec-bars-key">
-          <span class="rcsa-key-dot rcsa-key-l1"></span><span>Pre-DORA (L1) — ${l1Metrics.map(m => m.shortName).join(', ')}</span>
-          <span class="rcsa-key-dot rcsa-key-l2" style="margin-left:.75rem"></span><span>DORA (L2) — ${l2Metrics.map(m => m.shortName).join(', ')}</span>
+          <span class="rcsa-key-dot rcsa-key-l1"></span><span>Pre-DORA — Operational Controls Implemented</span>
+          <span class="rcsa-key-dot rcsa-key-l2" style="margin-left:.75rem"></span><span>DORA — LocPol &amp; GrpStd Controls Implemented</span>
           <span style="margin-left:auto;color:var(--text-dim);font-size:.68rem">│ = 80% target</span>
         </div>
         <div class="rcsa-exec-bar-row rcsa-exec-bar-hdr">
@@ -255,52 +273,64 @@ function renderRiskMgmtSummaryCard(assessment, prev, opts = {}) {
       </div>`;
   }
 
-  // ── Metric column headers ─────────────────────────────────────
-  const metricHeaders = riskMetrics.map(m => {
-    const layerBadge = m.layer
-      ? `<br><span class="metric-layer-badge metric-layer-${m.layer.toLowerCase()}">${m.layer}</span>`
-      : '';
-    return `<th title="${m.name} — ${m.formulaNote || ''}">${m.shortName || m.name}${layerBadge}</th>`;
-  }).join('');
-
-  // ── Metric legend ─────────────────────────────────────────────
-  const legendHtml = riskMetrics.length > 0 ? `
-    <div class="rcsa-ca-section">
-      <div class="rcsa-ca-title">Metric Definitions &amp; Corrective Actions</div>
-      ${riskMetrics.map(m => `
-        <div class="rcsa-legend-item">
-          <span class="rcsa-legend-short">${m.shortName || m.name}</span>
-          ${m.layer ? `<span class="rcsa-legend-layer rcsa-legend-layer-${m.layer.toLowerCase()}">${m.layer}</span>` : ''}
-          <span class="rcsa-legend-name">${m.name}</span>
-          <span class="rcsa-legend-sep">—</span>
-          <span class="rcsa-legend-desc">${m.description || ''}</span>
-          <span class="rcsa-legend-arrow">→</span>
-          <span class="rcsa-legend-action">${m.correctiveAction || ''}</span>
-        </div>`).join('')}
-    </div>` : '';
-
   return `
     <div class="card measure-card">
       <div class="measure-card-header">
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">ICT RCSA &amp; CSA — Risk Management Metrics</h3>
-          <p class="measure-card-desc">Quarterly metrics derived from Riskonnect data import. Trends show movement vs previous assessment.</p>
+          <p class="measure-card-desc">Metrics derived from Riskonnect and Policy Statement imports.</p>
         </div>
       </div>
       ${opts.execMode ? renderExecBars() : ''}
       <div class="rcsa-table-wrap">
-        <table class="rcsa-metrics-table">
+        <table class="rcsa-metrics-table ft-metrics-table">
           <thead>
             <tr>
-              <th class="rcsa-th-cap">Capability</th>
-              <th>Residual</th>
-              ${metricHeaders}
+              <th class="rcsa-th-cap" rowspan="2">Capability</th>
+              <th rowspan="2">Residual</th>
+              <th colspan="3" class="ft-grp-hdr ft-grp-ps">Policy Objectives</th>
+              <th colspan="7" class="ft-grp-hdr ft-grp-d">DORA LocPol Controls</th>
+              <th colspan="7" class="ft-grp-hdr ft-grp-g">DORA GrpStd Controls</th>
+              <th colspan="9" class="ft-grp-hdr ft-grp-p">Pre-DORA Operational</th>
+            </tr>
+            <tr>
+              <th class="ft-col-ps ft-sub-hdr" title="Total policy statements">PS1</th>
+              <th class="ft-col-ps ft-sub-hdr" title="Local Policy statements">PS2</th>
+              <th class="ft-col-ps ft-sub-hdr" title="Group Standard statements">PS3</th>
+              <th class="ft-col-d ft-sub-hdr" title="Total LocPol controls">D1</th>
+              <th class="ft-col-d ft-sub-hdr" title="Unique risks">D2</th>
+              <th class="ft-col-d ft-sub-hdr" title="Implemented controls">D3</th>
+              <th class="ft-col-d ft-sub-hdr" title="Assessed controls">D4</th>
+              <th class="ft-col-d ft-sub-hdr" title="Effective controls">D5</th>
+              <th class="ft-col-d ft-sub-hdr" title="Partly effective">D6</th>
+              <th class="ft-col-d ft-sub-hdr" title="Not assessed">D7</th>
+              <th class="ft-col-g ft-sub-hdr" title="Total GrpStd controls">G1</th>
+              <th class="ft-col-g ft-sub-hdr" title="Unique risks">G2</th>
+              <th class="ft-col-g ft-sub-hdr" title="Implemented controls">G3</th>
+              <th class="ft-col-g ft-sub-hdr" title="Assessed controls">G4</th>
+              <th class="ft-col-g ft-sub-hdr" title="Effective controls">G5</th>
+              <th class="ft-col-g ft-sub-hdr" title="Partly effective">G6</th>
+              <th class="ft-col-g ft-sub-hdr" title="Not assessed">G7</th>
+              <th class="ft-col-p ft-sub-hdr" title="Unique risks">P1</th>
+              <th class="ft-col-p ft-sub-hdr" title="Open risks">P2</th>
+              <th class="ft-col-p ft-sub-hdr" title="Draft risks">P3</th>
+              <th class="ft-col-p ft-sub-hdr" title="Total operational controls">P4</th>
+              <th class="ft-col-p ft-sub-hdr" title="Implemented controls">P5</th>
+              <th class="ft-col-p ft-sub-hdr" title="Assessed controls">P6</th>
+              <th class="ft-col-p ft-sub-hdr" title="Effective controls">P7</th>
+              <th class="ft-col-p ft-sub-hdr" title="Partly effective">P8</th>
+              <th class="ft-col-p ft-sub-hdr" title="Not assessed">P9</th>
             </tr>
           </thead>
           <tbody>${tableRows}</tbody>
         </table>
       </div>
-      ${legendHtml}
+      <div class="ft-legend">
+        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-ps"></span> <strong>PS1–PS3</strong> Policy Objectives · PS1=Total · PS2=Local Policy · PS3=Group Standard</div>
+        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-d"></span> <strong>D1–D7</strong> DORA LocPol · D1=Controls · D2=Risks · D3=Implemented · D4=Assessed · D5=Effective · D6=Partly · D7=Not Assessed</div>
+        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-g"></span> <strong>G1–G7</strong> DORA GrpStd · G1=Controls · G2=Risks · G3=Implemented · G4=Assessed · G5=Effective · G6=Partly · G7=Not Assessed</div>
+        <div class="ft-legend-row"><span class="ft-grp-dot ft-dot-p"></span> <strong>P1–P9</strong> Pre-DORA · P1=Risks · P2=Open · P3=Draft · P4=Controls · P5=Implemented · P6=Assessed · P7=Effective · P8=Partly · P9=Not Assessed</div>
+      </div>
     </div>`;
 }

@@ -564,6 +564,8 @@ function saveAssessment(e) {
     measureNotes[cap.id].riskManagement = document.getElementById(`note-risk-mgmt-${cap.id}`)?.value.trim() || '';
   });
 
+  // Preserve imported data blobs that live outside the form fields
+  const prevData = editingId ? db.assessments.find(a => a.id === editingId) : null;
   const assessment = {
     id: editingId || Date.now().toString(),
     label: document.getElementById("assessment-label").value.trim(),
@@ -573,8 +575,14 @@ function saveAssessment(e) {
     measureTargets,
     measureNotes,
     measureTimeEstimates,
-    capNotes
+    capNotes,
   };
+  if (prevData) {
+    if (prevData.riskRows)         assessment.riskRows         = prevData.riskRows;
+    if (prevData.policyRows)       assessment.policyRows       = prevData.policyRows;
+    if (prevData.riskPolicyFacts)  assessment.riskPolicyFacts  = prevData.riskPolicyFacts;
+    if (prevData.policyStatements) assessment.policyStatements = prevData.policyStatements;
+  }
 
   if (editingId) {
     const idx = db.assessments.findIndex(a => a.id === editingId);

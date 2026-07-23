@@ -2267,3 +2267,58 @@ details[open] .profile-card-chevron {
 .rk-metric-warn { color: #d1a520; font-weight: 700; text-align: center; }
 .rk-metric-bad  { color: #b34d4d; font-weight: 700; text-align: center; }
 .rk-metric-na   { color: var(--text-dim); text-align: center; }
+
+/* ── Fact Table metrics (PS/D/G/P columns) ───────────────────── */
+.ft-metrics-table { min-width: 1100px; }
+
+.ft-grp-hdr {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: .58rem; text-transform: uppercase; letter-spacing: .06em;
+  padding: .3rem .4rem;
+  border-left: 2px solid var(--bg2);
+}
+.ft-grp-ps { background: rgba(155, 89, 182, .12); color: #9b59b6; }
+.ft-grp-d  { background: rgba( 52,152,219, .12); color: #3498db; }
+.ft-grp-g  { background: rgba( 46,204,113, .12); color: #27ae60; }
+.ft-grp-p  { background: rgba(230,126, 34, .12); color: #d35400; }
+
+.ft-sub-hdr {
+  font-family: var(--font-mono); font-size: .58rem;
+  text-transform: uppercase; letter-spacing: .04em;
+  text-align: center; padding: .2rem .35rem;
+  border-left: none;
+}
+.ft-col-ps { background: rgba(155, 89,182, .06); text-align: center; }
+.ft-col-d  { background: rgba( 52,152,219, .06); text-align: center; }
+.ft-col-g  { background: rgba( 46,204,113, .06); text-align: center; }
+.ft-col-p  { background: rgba(230,126, 34, .06); text-align: center; }
+
+/* Column group left border */
+.ft-metrics-table td.ft-col-ps:first-of-type,
+.ft-metrics-table th.ft-col-ps:first-of-type { border-left: 2px solid rgba(155,89,182,.25); }
+.ft-metrics-table td.ft-col-d:first-of-type,
+.ft-metrics-table th.ft-col-d:first-of-type  { border-left: 2px solid rgba(52,152,219,.25); }
+.ft-metrics-table td.ft-col-g:first-of-type,
+.ft-metrics-table th.ft-col-g:first-of-type  { border-left: 2px solid rgba(46,204,113,.25); }
+.ft-metrics-table td.ft-col-p:first-of-type,
+.ft-metrics-table th.ft-col-p:first-of-type  { border-left: 2px solid rgba(230,126,34,.25); }
+
+/* Legend */
+.ft-legend {
+  margin-top: .75rem; padding-top: .6rem;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: .2rem;
+}
+.ft-legend-row {
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .72rem; color: var(--text-muted);
+}
+.ft-grp-dot {
+  display: inline-block; width: 9px; height: 9px;
+  border-radius: 2px; flex-shrink: 0;
+}
+.ft-dot-ps { background: #9b59b6; }
+.ft-dot-d  { background: #3498db; }
+.ft-dot-g  { background: #27ae60; }
+.ft-dot-p  { background: #d35400; }

@@ -144,3 +144,106 @@ function ftForCap(assessment, capId) {
 function ftPolicyRowsForCap(assessment, capId) {
   return (assessment.policyRows || []).filter(r => r.capId === capId);
 }
+
+// ── Build stored fact summary (4 rolled-up tables) ────────────────
+//
+// Called after every import. Stores a snapshot on assessment.factSummary
+// so quarter-over-quarter trend arrows can be computed.
+//
+function buildFactSummary(riskPolicyFacts, policyRows) {
+  const facts   = riskPolicyFacts || [];
+  const polRows = policyRows      || [];
+  const hasPolicyData = polRows.length > 0;
+
+  function capName(id) {
+    return (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  }
+
+  // ── Table 1: Policy Objectives — one row per capId × document ────
+  const poMap = {};
+  polRows.forEach(pr => {
+    const doc = (pr.document || '').trim() || '(no document)';
+    const key = pr.capId + '||' + doc;
+    if (!poMap[key]) poMap[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, ps1: 0, ps2: 0, ps3: 0 };
+    poMap[key].ps1++;
+    if (isLocPolType(pr.type))      poMap[key].ps2++;
+    else if (isGrpStdType(pr.type)) poMap[key].ps3++;
+  });
+  const policyObjectives = Object.values(poMap);
+
+  // ── Tables 2 & 3: LocPol / GrpStd Controls — by capId × document ─
+  // Each control can link to multiple documents via matchedPolicyRows.
+  // We count it in every document it links to (it's implementing all of them).
+  // Controls with no policy match go into an "(unlinked)" bucket, but only
+  // when policy data exists — without policy data we skip the bucket entirely.
+  function buildControlTable(controlType) {
+    const map = {};
+    function getOrCreate(capId, doc) {
+      const key = capId + '||' + doc;
+      if (!map[key]) map[key] = {
+        capId, capName: capName(capId), document: doc,
+        risks: 0, controls: 0, implemented: 0, assessed: 0,
+        effective: 0, partly: 0, notAssessed: 0,
+        _seen: new Set(),
+      };
+      return map[key];
+    }
+
+    facts.filter(f => f.controlType === controlType).forEach(f => {
+      const docs = (f.matchedPolicyRows || [])
+        .map(p => (p.document || '').trim() || '(no document)')
+        .filter((d, i, arr) => arr.indexOf(d) === i); // unique
+
+      const buckets = docs.length > 0 ? docs
+        : (hasPolicyData ? ['(unlinked)'] : []);
+
+      buckets.forEach(doc => {
+        const row = getOrCreate(f.capId, doc);
+        row.controls++;
+        const rk = ftNorm(f.riskTitle) || ('__ctrl_' + row.controls);
+        if (f.riskTitle && !row._seen.has(rk)) { row._seen.add(rk); row.risks++; }
+        if (ftIsImplemented(f))  row.implemented++;
+        if (ftIsAssessed(f))     row.assessed++;
+        if (ftIsEffective(f))    row.effective++;
+        else if (ftIsPartly(f))  row.partly++;
+        else                     row.notAssessed++;
+      });
+    });
+
+    return Object.values(map).map(r => { delete r._seen; return r; });
+  }
+
+  // ── Table 4: Operational — one row per capId ──────────────────────
+  const opMap = {};
+  facts.filter(f => f.controlType === 'operational').forEach(f => {
+    if (!opMap[f.capId]) opMap[f.capId] = {
+      capId: f.capId, capName: capName(f.capId),
+      risks: 0, open: 0, draft: 0,
+      controls: 0, implemented: 0, assessed: 0,
+      effective: 0, partly: 0, notAssessed: 0,
+      _seen: new Set(),
+    };
+    const o = opMap[f.capId];
+    o.controls++;
+    const rk = ftNorm(f.riskTitle) || ('__op_' + o.controls);
+    if (f.riskTitle && !o._seen.has(rk)) {
+      o._seen.add(rk);
+      o.risks++;
+      if (ftNorm(f.riskStatus).includes('open'))  o.open++;
+      if (ftNorm(f.riskStatus).includes('draft')) o.draft++;
+    }
+    if (ftIsImplemented(f))  o.implemented++;
+    if (ftIsAssessed(f))     o.assessed++;
+    if (ftIsEffective(f))    o.effective++;
+    else if (ftIsPartly(f))  o.partly++;
+    else                     o.notAssessed++;
+  });
+  const operational = Object.values(opMap).map(r => { delete r._seen; return r; });
+
+  return {
+    policyObjectives,
+    locPolControls: buildControlTable('locPol'),
+    grpStdControls: buildControlTable('grpStd'),
+    operational,
+  };
+}

@@ -216,7 +216,7 @@ function buildCapabilityFields() {
           </div>
         </div>
         <div id="rk-data-summary" class="import-data-status">No risk data uploaded</div>
-        <button class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
+        <button type="button" class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
           onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data →</button>
       </div>
       <div class="card form-meta import-data-card">
@@ -228,7 +228,7 @@ function buildCapabilityFields() {
           </div>
         </div>
         <div id="policy-import-summary" class="import-data-status">No policy data uploaded</div>
-        <button class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
+        <button type="button" class="btn btn-outline" style="margin-top:.6rem;font-size:.8rem"
           onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data →</button>
       </div>
     </div>`;

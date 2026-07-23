@@ -108,14 +108,26 @@ function buildMeasureBlock(cap, m) {
     </div>`;
 }
 
-// ── Card 2: ICT Risk Management (per capability) ──────────────
+// ── Card: Uploaded Policy Data (per capability, read-only) ───
+function buildPolicyDataCard(cap) {
+  return `
+    <div class="policy-data-card" id="policy-card-${cap.id}">
+      <div class="policy-data-card-hdr">
+        <span>📋</span>
+        <span>Uploaded Policy Data</span>
+      </div>
+      <p class="policy-no-data">No policy data uploaded</p>
+    </div>`;
+}
+
+// ── Card: Uploaded Risk Data (per capability) ─────────────────
 function buildRiskMgmtCard(cap) {
   return `
     <div class="risk-mgmt-card" data-measure="risk">
       <div class="risk-mgmt-card-header">
         <div class="risk-mgmt-card-title">
           <span>🛡️</span>
-          <span>ICT Risk Management</span>
+          <span>Uploaded Risk Data</span>
         </div>
         <p class="risk-mgmt-card-subtitle">Record the residual risk profile for this capability</p>
       </div>
@@ -193,7 +205,26 @@ function buildCapabilityFields() {
       </div>
     </div>`;
 
-  container.innerHTML = capFilterCard + CONFIG.capabilities.map(cap => `
+  const policyImportCard = `
+    <div class="card form-meta policy-import-card">
+      <div class="policy-import-hdr">
+        <span class="measure-icon">📋</span>
+        <div style="flex:1;min-width:0">
+          <div class="policy-import-title">Uploaded Policy Data</div>
+          <p class="policy-import-desc">Upload PolicyStatements.csv to record which DORA policy objectives apply to each capability for this quarter.</p>
+        </div>
+        <div class="policy-import-ctrl">
+          <span class="policy-import-status" id="policy-import-summary">No policy data uploaded</span>
+          <label class="btn btn-outline" style="cursor:pointer;font-size:.8rem">
+            📥 Upload CSV
+            <input type="file" id="policy-file-input" accept=".csv,.txt" style="display:none" onchange="handlePolicyFile(this)">
+          </label>
+        </div>
+      </div>
+      <div id="policy-import-msg" style="display:none;margin-top:.5rem;font-size:.8rem;color:var(--clr-success)"></div>
+    </div>`;
+
+  container.innerHTML = policyImportCard + capFilterCard + CONFIG.capabilities.map(cap => `
     <div class="card cap-card" id="capcard-${cap.id}" data-capability="${cap.id}">
       <div class="cap-card-header">
         <div>
@@ -207,11 +238,14 @@ function buildCapabilityFields() {
         ${nonRiskMeasures.map(m => buildMeasureBlock(cap, m)).join("")}
       </div>
 
-      <!-- Row 2: ICT Risk maturity + ICT Risk Management -->
+      <!-- Row 2: ICT Risk maturity + Uploaded Risk Data + Uploaded Policy Data -->
       ${riskMeasure ? `
       <div class="measures-grid" style="margin-top:1rem">
         ${buildMeasureBlock(cap, riskMeasure)}
-        ${buildRiskMgmtCard(cap)}
+        <div class="data-cards-stack">
+          ${buildRiskMgmtCard(cap)}
+          ${buildPolicyDataCard(cap)}
+        </div>
       </div>` : ''}
 
       <div class="form-row" style="margin-top:1rem">
@@ -433,6 +467,7 @@ function openAssessmentForm(id) {
     });
   }
   updateDimensionVisibility();
+  refreshPolicyCards();
   showView("assessment");
 }
 

@@ -183,16 +183,41 @@
     showPiSection('pi-review');
   }
 
+  // ── Type normalisation helpers ───────────────────────────────
+  function isLocPolType(t) {
+    const s = (t || '').toLowerCase().trim();
+    return s === 'locpol' || s === 'local policy' || s === 'local pol' || s.startsWith('loc');
+  }
+  function isGrpStdType(t) {
+    const s = (t || '').toLowerCase().trim();
+    return s === 'grpstd' || s === 'group standard' || s === 'group std' || s.startsWith('grp');
+  }
+
   // ── Step 3: review table ─────────────────────────────────────
   function renderPiReviewTable() {
-    const rows = _piComputed.map(r => {
-      const localPolicy   = r.types['Local Policy'] || r.types['LocPol'] || 0;
-      const groupStandard = r.types['Group Standard'] || r.types['GrpStd'] || 0;
+    const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
 
-      // Find the most common "other" type name for display
-      const otherTypes = Object.entries(r.types)
-        .filter(([t]) => t !== 'Local Policy' && t !== 'LocPol' && t !== 'Group Standard' && t !== 'GrpStd')
-        .map(([t, n]) => `${t}(${n})`).join(', ');
+    const rows = _piComputed.map(r => {
+      // Count types case-insensitively
+      let locPolCount = 0, grpStdCount = 0;
+      Object.entries(r.types || {}).forEach(([t, n]) => {
+        if (isLocPolType(t))  locPolCount  += n;
+        else if (isGrpStdType(t)) grpStdCount += n;
+      });
+
+      // Cross-reference with risk data: how many policy refs have a matching L2 control?
+      const riskMgmt = assessment?.measureScores?.[r.capId]?.riskManagement;
+      const l2RefSet = new Set((riskMgmt?.l2StatementRefs || []).map(s => s.toLowerCase().trim()));
+      let coverageCell;
+      if (!l2RefSet.size) {
+        coverageCell = '<span style="color:var(--text-dim)">No risk data</span>';
+      } else {
+        const covered = r.refs.filter(ref => l2RefSet.has(ref.toLowerCase().trim())).length;
+        const cls = covered === r.refs.length ? 'rk-metric-good'
+                  : covered > 0              ? 'rk-metric-warn'
+                                             : 'rk-metric-bad';
+        coverageCell = `<span class="${cls}">${covered} / ${r.refs.length}</span>`;
+      }
 
       const refsPreview = r.refs.slice(0, 6).join(' · ') + (r.refs.length > 6 ? ` +${r.refs.length - 6} more` : '');
 
@@ -200,8 +225,9 @@
         <tr>
           <td class="rk-rev-cap" title="${r.capName}">${shortName(r.capName)}</td>
           <td style="text-align:center">${r.count}</td>
-          <td style="text-align:center">${localPolicy || '—'}</td>
-          <td style="text-align:center">${groupStandard || '—'}</td>
+          <td style="text-align:center">${locPolCount || '—'}</td>
+          <td style="text-align:center">${grpStdCount || '—'}</td>
+          <td style="text-align:center">${coverageCell}</td>
           <td class="rk-rev-ev">${refsPreview || '—'}</td>
         </tr>`;
     }).join('');

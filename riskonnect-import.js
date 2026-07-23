@@ -252,13 +252,39 @@
       const name = (row[cols.controlName] || '').trim();
       return name.startsWith('LocPol') || name.startsWith('GrpStd');
     }
-    function statementRef(row) {
-      const name = cols.controlName ? (row[cols.controlName] || '') : '';
-      const m = name.match(/\(([^)]+)\)\s*$/);
-      return m ? m[1].trim() : null;
+
+    // Returns an array of statement refs embedded in a control name.
+    // Handles two formats:
+    //   Parentheses suffix: "Control Desc (REF1 / REF2)"
+    //   Slash-separated body: "GrpStd LP-20 PS05 / ITAM SR1"
+    function statementRefs(row) {
+      if (!cols.controlName) return [];
+      const rawName = (row[cols.controlName] || '').trim();
+      if (!rawName) return [];
+      // Strip GrpStd/LocPol prefix to isolate the ref portion
+      const stripped = rawName.replace(/^(GrpStd|LocPol)\s*/i, '').trim();
+      if (!stripped) return [];
+      // Parentheses format: extract content from trailing "(…)"
+      const parenMatch = stripped.match(/\(([^)]+)\)\s*$/);
+      if (parenMatch) {
+        return parenMatch[1].split('/').map(r => r.trim()).filter(Boolean);
+      }
+      // Otherwise every "/" segment is a distinct ref
+      return stripped.split('/').map(r => r.trim()).filter(Boolean);
     }
+
     const l1Rows = rows.filter(r => !isDoraControl(r));
     const l2Rows = rows.filter(r =>  isDoraControl(r));
+
+    // ── Pre-compute all L2 statement refs (used for metric + storage) ──
+    const l2RefMap = {};
+    l2Rows.forEach(row => {
+      statementRefs(row).forEach(ref => {
+        if (!(ref in l2RefMap)) l2RefMap[ref] = false;
+        if ((row[cols.status] || '').toLowerCase().includes('open')) l2RefMap[ref] = true;
+      });
+    });
+    const allL2Refs = Object.keys(l2RefMap);
 
     // ── Compute configured risk metrics ──────────────────────────
     const totalRisks = riskRows.length;
@@ -266,16 +292,8 @@
     (CONFIG.riskMetrics || []).forEach(m => {
       let value = null;
       if (m.id === 'policy_risk_coverage') {
-        // Count unique DORA policy statement refs; check if any has an Open risk
-        const stmtRefs = {};
-        l2Rows.forEach(row => {
-          const ref = statementRef(row);
-          if (!ref) return;
-          if (!(ref in stmtRefs)) stmtRefs[ref] = false;
-          if ((row[cols.status] || '').toLowerCase().includes('open')) stmtRefs[ref] = true;
-        });
-        const total   = Object.keys(stmtRefs).length;
-        const covered = Object.values(stmtRefs).filter(Boolean).length;
+        const total   = allL2Refs.length;
+        const covered = Object.values(l2RefMap).filter(Boolean).length;
         value = total > 0 ? Math.round((covered / total) * 100) : null;
       } else if (m.id === 'pre_dora_control_strength') {
         const implemented = l1Rows.filter(row =>
@@ -321,8 +339,9 @@
       controlsPartial:     part,
       controlsNotAssessed: notAss,
       residualRating,
-      evidence: ev.join(' · ') || totalRisks + ' risks',
-      metrics:  metricsData,
+      evidence:        ev.join(' · ') || totalRisks + ' risks',
+      metrics:         metricsData,
+      l2StatementRefs: allL2Refs,
     };
   }
 
@@ -417,6 +436,7 @@
         controlsNotAssessed: r.controlsNotAssessed,
         residualRating:      r.residualRating,
         metrics:             r.metrics             || {},
+        l2StatementRefs:     r.l2StatementRefs     || [],
       };
     });
 

@@ -2229,7 +2229,9 @@ details[open] .profile-card-chevron {
 }
 
 /* ── Import buttons slim row ─────────────────────────────────── */
-.import-btn-row { display: flex; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.import-btn-row { display: flex; gap: 1rem 2rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.import-btn-item { display: flex; flex-direction: column; gap: .3rem; }
+.import-data-summary { font-size: .72rem; font-family: var(--font-mono); color: var(--text-muted); padding-left: .1rem; }
 
 /* ── Import cards row (side-by-side risk + policy cards) ──────── */
 .import-cards-row {

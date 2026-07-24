@@ -209,10 +209,16 @@ function buildCapabilityFields() {
 
   const importBtnsRow = `
     <div class="import-btn-row">
-      <button type="button" class="btn btn-outline"
-        onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data</button>
-      <button type="button" class="btn btn-outline"
-        onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data</button>
+      <div class="import-btn-item">
+        <button type="button" class="btn btn-outline"
+          onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data</button>
+        <span id="rk-data-summary" class="import-data-summary">No risk data uploaded</span>
+      </div>
+      <div class="import-btn-item">
+        <button type="button" class="btn btn-outline"
+          onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data</button>
+        <span id="policy-import-summary" class="import-data-summary">No policy data uploaded</span>
+      </div>
     </div>`;
 
   container.innerHTML = importBtnsRow + capFilterCard + CONFIG.capabilities.map(cap => `

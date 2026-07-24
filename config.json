@@ -238,6 +238,14 @@
       "description": "% of assets that deviate from an approved baseline configuration",
       "numeratorLabel": "Assets deviating from baseline",
       "denominatorLabel": "Total assets scanned"
+    },
+    {
+      "id": "access_review_completion",
+      "capId": "access_control",
+      "label": "Access Review Completion Rate",
+      "description": "% of scheduled user access reviews completed on time (ITGC - User access management - Periodic access reviews)",
+      "numeratorLabel": "Reviews completed on schedule",
+      "denominatorLabel": "Total reviews scheduled"
     }
   ],
 

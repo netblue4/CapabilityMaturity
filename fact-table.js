@@ -157,6 +157,56 @@ function ftPolicyRowsForCap(assessment, capId) {
   return (assessment.policyRows || []).filter(r => r.capId === capId);
 }
 
+// ── Build auto-computed KPI summary ──────────────────────────────
+function buildKpiSummary(polRows, riskPolicyFacts) {
+  const facts = riskPolicyFacts || [];
+
+  // 1. LocPol blind spots — statements with no implemented control mapped
+  const locPolRows = polRows.filter(r => isLocPolType(r.type));
+  let locPolOps = null;
+  if (locPolRows.length) {
+    const operationalised = locPolRows.filter(ps => {
+      const key = ftNorm(ps.statementRef);
+      return facts.some(f =>
+        (f.matchedPolicyRows || []).some(mp => ftNorm(mp.statementRef) === key) &&
+        ftIsImplemented(f)
+      );
+    });
+    locPolOps = {
+      total:           locPolRows.length,
+      operationalised: operationalised.length,
+      blindSpots:      locPolRows.length - operationalised.length,
+    };
+  }
+
+  // 2. GrpStd localisation — requirements in capabilities that also have locPol statements
+  const grpStdRows = polRows.filter(r => isGrpStdType(r.type));
+  let grpStdLocal = null;
+  if (grpStdRows.length) {
+    const capsWithLocPol = new Set(locPolRows.map(r => r.capId));
+    const localised = grpStdRows.filter(r => capsWithLocPol.has(r.capId));
+    grpStdLocal = { total: grpStdRows.length, localised: localised.length };
+  }
+
+  // 3. Full chain: Policy → Risk → Control → Assessment, per configured capability
+  const caps = (CONFIG.capabilities || []);
+  let chainResult = null;
+  if (caps.length) {
+    const details = caps.map(cap => {
+      const hasPolicy     = polRows.some(r => r.capId === cap.id);
+      const capFacts      = facts.filter(f => f.capId === cap.id);
+      const hasRisk       = capFacts.some(f => (f.riskTitle || '').trim());
+      const hasControl    = capFacts.length > 0;
+      const hasAssessment = capFacts.some(ftIsAssessed);
+      const complete      = hasPolicy && hasRisk && hasControl && hasAssessment;
+      return { capId: cap.id, capName: cap.name, hasPolicy, hasRisk, hasControl, hasAssessment, complete };
+    });
+    chainResult = { total: caps.length, complete: details.filter(d => d.complete).length, details };
+  }
+
+  return { locPolOperationalisation: locPolOps, grpStdLocalisation: grpStdLocal, chainCompleteness: chainResult };
+}
+
 // ── Build stored fact summary (4 rolled-up tables) ────────────────
 //
 // Called after every import. Stores a snapshot on assessment.factSummary
@@ -286,5 +336,6 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
     locPolControls: buildControlTable('locPol'),
     grpStdControls: buildControlTable('grpStd'),
     operational,
+    kpiSummary: buildKpiSummary(polRows, facts),
   };
 }

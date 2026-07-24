@@ -176,6 +176,40 @@ function buildRiskMgmtCard(cap) {
     </div>`;
 }
 
+// ── KPI input block (per capability) ─────────────────────────
+function buildKpiInputsBlock(cap) {
+  const capKpis = (CONFIG.kpis || []).filter(k => k.capId === cap.id);
+  if (!capKpis.length) return '';
+  return `
+    <div class="kpi-inputs-block">
+      <div class="kpi-inputs-hdr">Strategic KPIs</div>
+      ${capKpis.map(kpi => `
+        <div class="kpi-input-row">
+          <div class="kpi-input-meta">
+            <span class="kpi-input-name">${kpi.label}</span>
+            <span class="kpi-input-desc">${kpi.description}</span>
+          </div>
+          <div class="kpi-input-controls">
+            <label class="kpi-ctrl-lbl">${kpi.numeratorLabel}</label>
+            <input type="number" min="0" value="0" id="kpi-n-${kpi.id}"
+              class="kpi-ctrl-input" oninput="updateKpiPct('${kpi.id}')" />
+            <span class="kpi-ctrl-sep">/</span>
+            <label class="kpi-ctrl-lbl">${kpi.denominatorLabel}</label>
+            <input type="number" min="0" value="0" id="kpi-d-${kpi.id}"
+              class="kpi-ctrl-input" oninput="updateKpiPct('${kpi.id}')" />
+            <span class="kpi-ctrl-pct" id="kpi-pct-${kpi.id}">—</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function updateKpiPct(kpiId) {
+  const n  = parseFloat(document.getElementById(`kpi-n-${kpiId}`)?.value) || 0;
+  const d  = parseFloat(document.getElementById(`kpi-d-${kpiId}`)?.value) || 0;
+  const el = document.getElementById(`kpi-pct-${kpiId}`);
+  if (el) el.textContent = d > 0 ? Math.round((n / d) * 100) + '%' : '—';
+}
+
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
   // All 3 measures in order: Governance, Reporting, Risk
@@ -234,6 +268,8 @@ function buildCapabilityFields() {
       <div class="measures-grid measures-grid-3">
         ${orderedMeasures.map(m => buildMeasureBlock(cap, m)).join("")}
       </div>
+
+      ${buildKpiInputsBlock(cap)}
 
       <div class="form-row" style="margin-top:1rem">
         <label>Overall notes for this capability</label>
@@ -438,6 +474,15 @@ function openAssessmentForm(id) {
         const cb = document.querySelector(`.dimension-check[value="${m.id}"]`);
         if (cb) cb.checked = hasScore;
       });
+
+      (CONFIG.kpis || []).forEach(kpi => {
+        const val = a.kpiValues?.[kpi.id];
+        const nEl = document.getElementById(`kpi-n-${kpi.id}`);
+        const dEl = document.getElementById(`kpi-d-${kpi.id}`);
+        if (nEl) nEl.value = val?.n ?? 0;
+        if (dEl) dEl.value = val?.d ?? 0;
+        updateKpiPct(kpi.id);
+      });
     }
   } else {
     CONFIG.capabilities.forEach(cap => {
@@ -451,6 +496,10 @@ function openAssessmentForm(id) {
       clearRiskRatingBtns(cap.id, 'residual');
       clearRiskRatingBtns(cap.id, 'appetite');
       clearRiskCountInputs(cap.id);
+    });
+    (CONFIG.kpis || []).forEach(kpi => {
+      const el = document.getElementById(`kpi-pct-${kpi.id}`);
+      if (el) el.textContent = '—';
     });
   }
   updateDimensionVisibility();
@@ -534,6 +583,13 @@ function saveAssessment(e) {
     measureNotes[cap.id].riskManagement  = prevData?.measureNotes?.[cap.id]?.riskManagement  || '';
   });
 
+  const kpiValues = {};
+  (CONFIG.kpis || []).forEach(kpi => {
+    const n = parseInt(document.getElementById(`kpi-n-${kpi.id}`)?.value) || 0;
+    const d = parseInt(document.getElementById(`kpi-d-${kpi.id}`)?.value) || 0;
+    kpiValues[kpi.id] = { n, d };
+  });
+
   // Preserve imported data blobs that live outside the form fields
   const assessment = {
     id: editingId || Date.now().toString(),
@@ -545,6 +601,7 @@ function saveAssessment(e) {
     measureNotes,
     measureTimeEstimates,
     capNotes,
+    kpiValues,
   };
   if (prevData) {
     if (prevData.riskRows)         assessment.riskRows         = prevData.riskRows;

@@ -106,6 +106,15 @@ function copyAssessment(id) {
     if (rmNotesEl) rmNotesEl.value = rmNote;
   });
 
+  (CONFIG.kpis || []).forEach(kpi => {
+    const val = source.kpiValues?.[kpi.id];
+    const nEl = document.getElementById(`kpi-n-${kpi.id}`);
+    const dEl = document.getElementById(`kpi-d-${kpi.id}`);
+    if (nEl) nEl.value = val?.n ?? 0;
+    if (dEl) dEl.value = val?.d ?? 0;
+    updateKpiPct(kpi.id);
+  });
+
   updateDimensionVisibility();
   showView("assessment");
 }

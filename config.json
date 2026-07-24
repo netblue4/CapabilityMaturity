@@ -174,6 +174,81 @@
     }
   },
 
+  "kpis": [
+    {
+      "id": "availability_proactive_detection",
+      "capId": "performance_capacity",
+      "label": "Proactive Detection Rate",
+      "description": "% of IT availability incidents that generated a prior alert before users reported",
+      "numeratorLabel": "Incidents with prior alert",
+      "denominatorLabel": "Total availability incidents"
+    },
+    {
+      "id": "availability_sla_business_owner",
+      "capId": "performance_capacity",
+      "label": "SLA Business Owner Coverage",
+      "description": "% of critical assets with availability SLA defined, measured and reported to a named business owner",
+      "numeratorLabel": "Assets with SLA reported to business owner",
+      "denominatorLabel": "Total critical assets"
+    },
+    {
+      "id": "dr_third_party_verified",
+      "capId": "disaster_recovery",
+      "label": "Third-Party DR Verified",
+      "description": "% of critical third parties where DR capability has been independently verified (not just contractually stated)",
+      "numeratorLabel": "Third parties with verified DR",
+      "denominatorLabel": "Total critical third parties"
+    },
+    {
+      "id": "change_security_assessed",
+      "capId": "change_mgmt",
+      "label": "Security-Assessed Changes",
+      "description": "% of significant changes that received a formal security assessment before approval",
+      "numeratorLabel": "Changes with security assessment",
+      "denominatorLabel": "Total significant changes"
+    },
+    {
+      "id": "project_security_review",
+      "capId": "project_mgmt",
+      "label": "Security Review at Initiation",
+      "description": "% of ICT projects that completed a formal security review at project initiation",
+      "numeratorLabel": "Projects with security review at initiation",
+      "denominatorLabel": "Total projects initiated"
+    },
+    {
+      "id": "vuln_unmapped_assets",
+      "capId": "vulnerability_mgmt",
+      "label": "Unmapped Asset Vulnerability Exposure",
+      "description": "% of vulnerabilities found on assets not in the asset register (shadow IT risk surface)",
+      "numeratorLabel": "Vulnerabilities on unregistered assets",
+      "denominatorLabel": "Total vulnerabilities identified"
+    },
+    {
+      "id": "third_party_exit_plan",
+      "capId": "third_party_risk",
+      "label": "Third-Party Exit Plan Coverage",
+      "description": "% of critical third parties with a documented exit or substitution plan",
+      "numeratorLabel": "Third parties with exit/substitution plan",
+      "denominatorLabel": "Total critical third parties"
+    },
+    {
+      "id": "config_drift_rate",
+      "capId": "asset_mgmt",
+      "label": "Configuration Drift Rate",
+      "description": "% of assets that deviate from an approved baseline configuration",
+      "numeratorLabel": "Assets deviating from baseline",
+      "denominatorLabel": "Total assets scanned"
+    },
+    {
+      "id": "access_review_completion",
+      "capId": "access_control",
+      "label": "Access Review Completion Rate",
+      "description": "% of scheduled user access reviews completed on time (ITGC - User access management - Periodic access reviews)",
+      "numeratorLabel": "Reviews completed on schedule",
+      "denominatorLabel": "Total reviews scheduled"
+    }
+  ],
+
   "capabilities": [
     {
       "id": "asset_mgmt",

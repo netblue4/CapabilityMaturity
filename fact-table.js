@@ -40,12 +40,23 @@ function buildRiskPolicyFacts(riskRows, policyRows) {
     if (!polByRef[key]) polByRef[key] = [];
     polByRef[key].push(pr);
   });
+  const polKeys = Object.keys(polByRef);
 
   return (riskRows || []).map(rr => {
     const matched = [];
     (rr.statementRefs || []).forEach(ref => {
       const key = ftNorm(ref);
-      if (polByRef[key]) matched.push(...polByRef[key]);
+      if (polByRef[key]) {
+        matched.push(...polByRef[key]);
+      } else {
+        // Parent-ref match: sub-ref DCLH SR3.1 → parent policy statement DCLH SR3
+        // Guard: next char must be '.' to avoid DCLH SR30 matching DCLH SR3
+        polKeys.forEach(pk => {
+          if (key.startsWith(pk) && key[pk.length] === '.') {
+            matched.push(...polByRef[pk]);
+          }
+        });
+      }
     });
     const seen = new Set();
     const uniqueMatched = matched.filter(pr => {

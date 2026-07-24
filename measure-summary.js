@@ -355,6 +355,117 @@ function renderFactSummaryTables(curr, prevF) {
     renderOpTable();
 }
 
+// ── Coverage & Governance KPI section ────────────────────────
+function renderKpiSection(curr, prevF, currA, prevA) {
+  const ks    = curr?.kpiSummary  || {};
+  const prevKs = prevF?.kpiSummary || {};
+
+  function pct(n, d)  { return d > 0 ? Math.round((n / d) * 100) : null; }
+  function ppArrow(cv, pv, lowerIsBetter) {
+    if (pv == null || cv == null) return '';
+    const d = cv - pv;
+    if (!d) return '';
+    const good = lowerIsBetter ? d < 0 : d > 0;
+    return good
+      ? `<span class="ft-trend-up"> ▲${Math.abs(d)}pp</span>`
+      : `<span class="ft-trend-dn"> ▼${Math.abs(d)}pp</span>`;
+  }
+  function nArrow(cv, pv, lowerIsBetter) {
+    if (pv == null || cv == null) return '';
+    const d = cv - pv;
+    if (!d) return '';
+    const good = lowerIsBetter ? d < 0 : d > 0;
+    return good
+      ? `<span class="ft-trend-up"> ▲${Math.abs(d)}</span>`
+      : `<span class="ft-trend-dn"> ▼${Math.abs(d)}</span>`;
+  }
+
+  const rows = [];
+
+  // Computed: LocPol blind spots
+  if (ks.locPolOperationalisation) {
+    const c = ks.locPolOperationalisation, p = prevKs.locPolOperationalisation;
+    const cp = pct(c.blindSpots, c.total), pp2 = p ? pct(p.blindSpots, p.total) : null;
+    rows.push(`<tr>
+      <td class="kpi-td-label">LocPol Blind Spots</td>
+      <td class="kpi-td-sub">Statements with no implemented control</td>
+      <td class="kpi-td-count">${c.blindSpots}/${c.total}${nArrow(c.blindSpots, p?.blindSpots, true)}</td>
+      <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, true)}</td>
+    </tr>`);
+  }
+
+  // Computed: GrpStd localisation
+  if (ks.grpStdLocalisation) {
+    const c = ks.grpStdLocalisation, p = prevKs.grpStdLocalisation;
+    const cp = pct(c.localised, c.total), pp2 = p ? pct(p.localised, p.total) : null;
+    rows.push(`<tr>
+      <td class="kpi-td-label">GrpStd Localisation</td>
+      <td class="kpi-td-sub">Requirements in capabilities that also have local policies</td>
+      <td class="kpi-td-count">${c.localised}/${c.total}${nArrow(c.localised, p?.localised, false)}</td>
+      <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, false)}</td>
+    </tr>`);
+  }
+
+  // Computed: full chain completeness
+  if (ks.chainCompleteness) {
+    const c = ks.chainCompleteness, p = prevKs.chainCompleteness;
+    const cp = pct(c.complete, c.total), pp2 = p ? pct(p.complete, p.total) : null;
+    const gaps = (c.details || [])
+      .filter(d => !d.complete)
+      .map(d => {
+        const missing = ['Policy','Risk','Control','Assessed']
+          .filter((_, i) => ![d.hasPolicy,d.hasRisk,d.hasControl,d.hasAssessment][i]);
+        return `${shortName(d.capName)}: missing ${missing.join(', ')}`;
+      }).join('\n');
+    rows.push(`<tr>
+      <td class="kpi-td-label">Full Chain Complete</td>
+      <td class="kpi-td-sub" title="${gaps}">Policy → Risk → Control → Assessment (hover for gaps)</td>
+      <td class="kpi-td-count">${c.complete}/${c.total}${nArrow(c.complete, p?.complete, false)}</td>
+      <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, false)}</td>
+    </tr>`);
+  }
+
+  // Manual KPIs from config
+  (CONFIG.kpis || []).forEach(kpi => {
+    const cv = currA?.kpiValues?.[kpi.id];
+    const pv = prevA?.kpiValues?.[kpi.id];
+    const hasData = cv && (cv.d > 0);
+    if (!hasData) {
+      rows.push(`<tr>
+        <td class="kpi-td-label">${kpi.label}</td>
+        <td class="kpi-td-sub">${kpi.description}</td>
+        <td class="kpi-td-count kpi-not-recorded" colspan="2">Not recorded this period</td>
+      </tr>`);
+      return;
+    }
+    const cp = pct(cv.n, cv.d);
+    const pp2 = (pv && pv.d > 0) ? pct(pv.n, pv.d) : null;
+    rows.push(`<tr>
+      <td class="kpi-td-label">${kpi.label}</td>
+      <td class="kpi-td-sub">${kpi.description}</td>
+      <td class="kpi-td-count">${cv.n}/${cv.d}${nArrow(cv.n, pv?.n, false)}</td>
+      <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, false)}</td>
+    </tr>`);
+  });
+
+  if (!rows.length) return '';
+  return `
+    <div class="ft-section">
+      <div class="ft-section-hdr kpi-section-hdr">Coverage &amp; Governance KPIs</div>
+      <div class="rcsa-table-wrap">
+        <table class="rcsa-metrics-table ft-sub-table kpi-table">
+          <thead><tr>
+            <th class="kpi-td-label">KPI</th>
+            <th class="kpi-td-sub">Description</th>
+            <th class="kpi-td-count">Count</th>
+            <th class="kpi-td-pct">Rate</th>
+          </tr></thead>
+          <tbody>${rows.join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 // ── ICT Risk Management Metrics Card ─────────────────────────
 function renderRiskMgmtSummaryCard(assessment, prev) {
   const curr  = assessment.factSummary || {};
@@ -372,6 +483,7 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
           <p class="measure-card-desc">Metrics derived from Riskonnect and Policy Statement imports.${prev ? ' ▲▼ shows movement vs previous assessment.' : ''}</p>
         </div>
       </div>
+      ${renderKpiSection(curr, prevF, assessment, prev)}
       ${noData ? '<p class="policy-no-data" style="margin:.5rem 0">No risk or policy data imported yet.</p>' : ''}
       ${renderFactSummaryTables(curr, prevF)}
     </div>`;

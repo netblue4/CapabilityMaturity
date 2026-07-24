@@ -173,10 +173,9 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
   const policyObjectives = Object.values(poMap);
 
   // ── Tables 2 & 3: LocPol / GrpStd Controls — by capId × document ─
-  // A control is included when:
-  //   (a) its name starts with LocPol/GrpStd (legacy naming convention), OR
-  //   (b) any of its matchedPolicyRows has the matching policy type.
-  // Document bucketing uses the matched policy rows of the relevant type.
+  // Policy-document-driven: every capId × document from the policy CSV
+  // appears as a row even when no risk data exists yet. Risk/control
+  // data from the fact rows fills in where available.
   function buildControlTable(policyType) {
     const typeCheck = policyType === 'locPol' ? isLocPolType : isGrpStdType;
 
@@ -194,6 +193,13 @@ function buildFactSummary(riskPolicyFacts, policyRows) {
       return map[key];
     }
 
+    // Baseline: initialise one row per capId × document from the policy CSV
+    // so every document appears even when no risk data has been imported yet.
+    polRows.filter(pr => typeCheck(pr.type)).forEach(pr => {
+      getOrCreate(pr.capId, (pr.document || '').trim() || '(no document)');
+    });
+
+    // Fill in: aggregate risk/control data from matching fact rows.
     facts.forEach(f => {
       const byPrefix      = f.controlType === policyType;
       const matchedOfType = (f.matchedPolicyRows || []).filter(p => typeCheck(p.type));

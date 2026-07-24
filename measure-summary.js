@@ -467,9 +467,26 @@ function renderKpiSection(curr, prevF, currA, prevA) {
 }
 
 // ── ICT Risk Management Metrics Card ─────────────────────────
-function renderRiskMgmtSummaryCard(assessment, prev) {
+// mode 'detail' (edit assessment screen): full fact-summary tables.
+// mode 'exec'   (executive report):       Coverage & Governance KPI metrics only.
+function renderRiskMgmtSummaryCard(assessment, prev, mode = 'detail') {
   const curr  = assessment.factSummary || {};
   const prevF = prev?.factSummary     || {};
+
+  if (mode === 'exec') {
+    const kpiHtml = renderKpiSection(curr, prevF, assessment, prev);
+    return `
+      <div class="card measure-card">
+        <div class="measure-card-header">
+          <span class="measure-icon">🛡️</span>
+          <div>
+            <h3 class="measure-card-title">ICT RCSA &amp; CSA — Risk Management Metrics</h3>
+            <p class="measure-card-desc">Coverage &amp; governance KPIs derived from Riskonnect and Policy Statement imports.${prev ? ' ▲▼ shows movement vs previous assessment.' : ''}</p>
+          </div>
+        </div>
+        ${kpiHtml || '<p class="policy-no-data" style="margin:.5rem 0">No KPI metrics recorded yet.</p>'}
+      </div>`;
+  }
 
   const noData = !curr.policyObjectives?.length && !curr.locPolControls?.length &&
                  !curr.grpStdControls?.length   && !curr.operational?.length;
@@ -483,7 +500,6 @@ function renderRiskMgmtSummaryCard(assessment, prev) {
           <p class="measure-card-desc">Metrics derived from Riskonnect and Policy Statement imports.${prev ? ' ▲▼ shows movement vs previous assessment.' : ''}</p>
         </div>
       </div>
-      ${renderKpiSection(curr, prevF, assessment, prev)}
       ${noData ? '<p class="policy-no-data" style="margin:.5rem 0">No risk or policy data imported yet.</p>' : ''}
       ${renderFactSummaryTables(curr, prevF)}
     </div>`;

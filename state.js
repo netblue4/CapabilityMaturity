@@ -51,7 +51,12 @@ function loadFromLocalStorage() {
 }
 
 function saveToLocalStorage() {
-  localStorage.setItem("ict_maturity_db", JSON.stringify(db));
+  try {
+    localStorage.setItem("ict_maturity_db", JSON.stringify(db));
+  } catch (e) {
+    console.error("Could not save to localStorage", e);
+    alert("Warning: could not save data to browser storage. Your data may not persist after a page reload.\n\n" + e.message);
+  }
 }
 
 // ── Events ───────────────────────────────────────────────────

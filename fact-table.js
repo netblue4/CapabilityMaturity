@@ -159,36 +159,73 @@ function ftPolicyRowsForCap(assessment, capId) {
 
 // ── Build auto-computed KPI summary ──────────────────────────────
 function buildKpiSummary(polRows, riskPolicyFacts) {
-  const facts = riskPolicyFacts || [];
-
-  // 1. LocPol blind spots — statements with no implemented control mapped
+  const facts      = riskPolicyFacts || [];
+  polRows          = polRows || [];
   const locPolRows = polRows.filter(r => isLocPolType(r.type));
-  let locPolOps = null;
-  if (locPolRows.length) {
-    const operationalised = locPolRows.filter(ps => {
-      const key = ftNorm(ps.statementRef);
-      return facts.some(f =>
-        (f.matchedPolicyRows || []).some(mp => ftNorm(mp.statementRef) === key) &&
-        ftIsImplemented(f)
-      );
+  const grpStdRows = polRows.filter(r => isGrpStdType(r.type));
+
+  // Reference maps: which policy statement refs are picked up by a control row,
+  // and which are picked up by an *implemented* control row.
+  const refAny  = new Set();  // referenced by ≥1 control of any status
+  const refImpl = new Set();  // referenced by ≥1 implemented control
+  facts.forEach(f => {
+    const impl = ftIsImplemented(f);
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const k = ftNorm(mp.statementRef);
+      if (!k) return;
+      refAny.add(k);
+      if (impl) refImpl.add(k);
     });
-    locPolOps = {
-      total:           locPolRows.length,
-      operationalised: operationalised.length,
-      blindSpots:      locPolRows.length - operationalised.length,
-    };
+  });
+
+  // Coverage — statements referenced by ≥1 control (any status)
+  function coverage(rows) {
+    if (!rows.length) return null;
+    const covered = rows.filter(r => refAny.has(ftNorm(r.statementRef))).length;
+    return { total: rows.length, covered };
+  }
+  // Operationalisation — statements with ≥1 implemented control
+  function operationalisation(rows) {
+    if (!rows.length) return null;
+    const operationalised = rows.filter(r => refImpl.has(ftNorm(r.statementRef))).length;
+    return { total: rows.length, operationalised, blindSpots: rows.length - operationalised };
   }
 
-  // 2. GrpStd localisation — requirements in capabilities that also have locPol statements
-  const grpStdRows = polRows.filter(r => isGrpStdType(r.type));
+  const locPolCoverage = coverage(locPolRows);
+  const grpStdCoverage = coverage(grpStdRows);
+  const locPolOps      = operationalisation(locPolRows);
+  const grpStdOps      = operationalisation(grpStdRows);
+
+  // Localisation (ref-based) — a group-standard requirement is localised when a
+  // local-policy control explicitly cites its ref (e.g. "LocPol … (LP-20 PS03 / ITAM SR3)").
   let grpStdLocal = null;
   if (grpStdRows.length) {
-    const capsWithLocPol = new Set(locPolRows.map(r => r.capId));
-    const localised = grpStdRows.filter(r => capsWithLocPol.has(r.capId));
-    grpStdLocal = { total: grpStdRows.length, localised: localised.length };
+    const locPolCited = new Set();
+    facts.filter(f => f.controlType === 'locPol').forEach(f => {
+      (f.statementRefs || []).forEach(ref => locPolCited.add(ftNorm(ref)));
+    });
+    const localised = grpStdRows.filter(r => locPolCited.has(ftNorm(r.statementRef))).length;
+    grpStdLocal = { total: grpStdRows.length, localised };
   }
 
-  // 3. Full chain: Policy → Risk → Control → Assessment, per configured capability
+  // Policy-type control rows (LocPol / GrpStd prefix)
+  const polTypeFacts = facts.filter(f => f.controlType === 'locPol' || f.controlType === 'grpStd');
+
+  // Traceability — orphan controls that cite a ref not present in the policy register
+  let orphanResult = null;
+  if (polTypeFacts.length) {
+    const orphans = polTypeFacts.filter(f => !(f.matchedPolicyRows || []).length).length;
+    orphanResult = { total: polTypeFacts.length, orphans };
+  }
+
+  // Effectiveness — of implemented policy controls, how many are rated effective
+  let effResult = null;
+  if (polTypeFacts.length) {
+    const impl = polTypeFacts.filter(ftIsImplemented);
+    effResult = { total: impl.length, effective: impl.filter(ftIsEffective).length };
+  }
+
+  // Full chain: Policy → Risk → Control → Assessment, per configured capability
   const caps = (CONFIG.capabilities || []);
   let chainResult = null;
   if (caps.length) {
@@ -204,7 +241,18 @@ function buildKpiSummary(polRows, riskPolicyFacts) {
     chainResult = { total: caps.length, complete: details.filter(d => d.complete).length, details };
   }
 
-  return { locPolOperationalisation: locPolOps, grpStdLocalisation: grpStdLocal, chainCompleteness: chainResult };
+  return {
+    // Policy Operationalisation
+    locPolCoverage,
+    grpStdCoverage,
+    locPolOperationalisation:   locPolOps,
+    grpStdOperationalisation:   grpStdOps,
+    orphanControls:             orphanResult,
+    policyControlEffectiveness: effResult,
+    // Cross Team Cooperation
+    grpStdLocalisation: grpStdLocal,
+    chainCompleteness:  chainResult,
+  };
 }
 
 // ── Build stored fact summary (4 rolled-up tables) ────────────────

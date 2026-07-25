@@ -355,9 +355,9 @@ function renderFactSummaryTables(curr, prevF) {
     renderOpTable();
 }
 
-// ── Coverage & Governance KPI section ────────────────────────
+// ── Policy Operationalisation + Cross Team Cooperation KPI sections ──
 function renderKpiSection(curr, prevF, currA, prevA) {
-  const ks    = curr?.kpiSummary  || {};
+  const ks     = curr?.kpiSummary  || {};
   const prevKs = prevF?.kpiSummary || {};
 
   function pct(n, d)  { return d > 0 ? Math.round((n / d) * 100) : null; }
@@ -380,33 +380,67 @@ function renderKpiSection(curr, prevF, currA, prevA) {
       : `<span class="ft-trend-dn"> ▼${Math.abs(d)}</span>`;
   }
 
-  const rows = [];
+  // Generic count/rate row: numKey/denKey read from current (c) and previous (p) sub-objects.
+  function row(label, sub, c, p, numKey, denKey, lowerIsBetter, subTitle) {
+    if (!c) return '';
+    const cp  = pct(c[numKey], c[denKey]);
+    const pp2 = p ? pct(p[numKey], p[denKey]) : null;
+    const titleAttr = subTitle ? ` title="${subTitle}"` : '';
+    return `<tr>
+      <td class="kpi-td-label">${label}</td>
+      <td class="kpi-td-sub"${titleAttr}>${sub}</td>
+      <td class="kpi-td-count">${c[numKey]}/${c[denKey]}${nArrow(c[numKey], p?.[numKey], lowerIsBetter)}</td>
+      <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, lowerIsBetter)}</td>
+    </tr>`;
+  }
 
-  // Computed: LocPol blind spots
-  if (ks.locPolOperationalisation) {
-    const c = ks.locPolOperationalisation, p = prevKs.locPolOperationalisation;
-    const cp = pct(c.blindSpots, c.total), pp2 = p ? pct(p.blindSpots, p.total) : null;
-    rows.push(`<tr>
-      <td class="kpi-td-label">LocPol Blind Spots</td>
-      <td class="kpi-td-sub">Statements with no implemented control</td>
-      <td class="kpi-td-count">${c.blindSpots}/${c.total}${nArrow(c.blindSpots, p?.blindSpots, true)}</td>
-      <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, true)}</td>
+  function tableBlock(title, rows) {
+    if (!rows.length) return '';
+    return `
+      <div class="ft-section">
+        <div class="ft-section-hdr kpi-section-hdr">${title}</div>
+        <div class="rcsa-table-wrap">
+          <table class="rcsa-metrics-table ft-sub-table kpi-table">
+            <thead><tr>
+              <th class="kpi-td-label">KPI</th>
+              <th class="kpi-td-sub">Description</th>
+              <th class="kpi-td-count">Count</th>
+              <th class="kpi-td-pct">Rate</th>
+            </tr></thead>
+            <tbody>${rows.join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  // ── Block 1: Policy Operationalisation ──────────────────────────
+  const polRows = [];
+  polRows.push(row('LocPol Coverage', 'Local-policy statements referenced by ≥1 control (any status)',
+    ks.locPolCoverage, prevKs.locPolCoverage, 'covered', 'total', false));
+  polRows.push(row('LocPol Blind Spots', 'Statements with no implemented control',
+    ks.locPolOperationalisation, prevKs.locPolOperationalisation, 'blindSpots', 'total', true));
+  polRows.push(row('GrpStd Coverage', 'Group-standard requirements referenced by ≥1 control (any status)',
+    ks.grpStdCoverage, prevKs.grpStdCoverage, 'covered', 'total', false));
+  polRows.push(row('GrpStd Operationalised', 'Requirements with ≥1 implemented control',
+    ks.grpStdOperationalisation, prevKs.grpStdOperationalisation, 'operationalised', 'total', false));
+  polRows.push(row('Orphan Controls', 'Policy controls citing a ref not in the policy register',
+    ks.orphanControls, prevKs.orphanControls, 'orphans', 'total', true));
+  if (ks.policyControlEffectiveness && ks.policyControlEffectiveness.total > 0) {
+    polRows.push(row('Policy Control Effectiveness', 'Implemented policy controls rated effective (green design + op)',
+      ks.policyControlEffectiveness, prevKs.policyControlEffectiveness, 'effective', 'total', false));
+  } else if (ks.policyControlEffectiveness) {
+    polRows.push(`<tr>
+      <td class="kpi-td-label">Policy Control Effectiveness</td>
+      <td class="kpi-td-sub">Implemented policy controls rated effective (green design + op)</td>
+      <td class="kpi-td-count kpi-not-recorded" colspan="2">No implemented policy controls yet</td>
     </tr>`);
   }
 
-  // Computed: GrpStd localisation
-  if (ks.grpStdLocalisation) {
-    const c = ks.grpStdLocalisation, p = prevKs.grpStdLocalisation;
-    const cp = pct(c.localised, c.total), pp2 = p ? pct(p.localised, p.total) : null;
-    rows.push(`<tr>
-      <td class="kpi-td-label">GrpStd Localisation</td>
-      <td class="kpi-td-sub">Requirements in capabilities that also have local policies</td>
-      <td class="kpi-td-count">${c.localised}/${c.total}${nArrow(c.localised, p?.localised, false)}</td>
-      <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, false)}</td>
-    </tr>`);
-  }
+  // ── Block 2: Cross Team Cooperation ─────────────────────────────
+  const ctcRows = [];
+  ctcRows.push(row('GrpStd Localisation', 'Requirements a local policy maps to (via cited ref)',
+    ks.grpStdLocalisation, prevKs.grpStdLocalisation, 'localised', 'total', false));
 
-  // Computed: full chain completeness
   if (ks.chainCompleteness) {
     const c = ks.chainCompleteness, p = prevKs.chainCompleteness;
     const cp = pct(c.complete, c.total), pp2 = p ? pct(p.complete, p.total) : null;
@@ -417,7 +451,7 @@ function renderKpiSection(curr, prevF, currA, prevA) {
           .filter((_, i) => ![d.hasPolicy,d.hasRisk,d.hasControl,d.hasAssessment][i]);
         return `${shortName(d.capName)}: missing ${missing.join(', ')}`;
       }).join('\n');
-    rows.push(`<tr>
+    ctcRows.push(`<tr>
       <td class="kpi-td-label">Full Chain Complete</td>
       <td class="kpi-td-sub" title="${gaps}">Policy → Risk → Control → Assessment (hover for gaps)</td>
       <td class="kpi-td-count">${c.complete}/${c.total}${nArrow(c.complete, p?.complete, false)}</td>
@@ -431,7 +465,7 @@ function renderKpiSection(curr, prevF, currA, prevA) {
     const pv = prevA?.kpiValues?.[kpi.id];
     const hasData = cv && (cv.d > 0);
     if (!hasData) {
-      rows.push(`<tr>
+      ctcRows.push(`<tr>
         <td class="kpi-td-label">${kpi.label}</td>
         <td class="kpi-td-sub">${kpi.description}</td>
         <td class="kpi-td-count kpi-not-recorded" colspan="2">Not recorded this period</td>
@@ -440,7 +474,7 @@ function renderKpiSection(curr, prevF, currA, prevA) {
     }
     const cp = pct(cv.n, cv.d);
     const pp2 = (pv && pv.d > 0) ? pct(pv.n, pv.d) : null;
-    rows.push(`<tr>
+    ctcRows.push(`<tr>
       <td class="kpi-td-label">${kpi.label}</td>
       <td class="kpi-td-sub">${kpi.description}</td>
       <td class="kpi-td-count">${cv.n}/${cv.d}${nArrow(cv.n, pv?.n, false)}</td>
@@ -448,22 +482,10 @@ function renderKpiSection(curr, prevF, currA, prevA) {
     </tr>`);
   });
 
-  if (!rows.length) return '';
-  return `
-    <div class="ft-section">
-      <div class="ft-section-hdr kpi-section-hdr">Cross Team Cooperation</div>
-      <div class="rcsa-table-wrap">
-        <table class="rcsa-metrics-table ft-sub-table kpi-table">
-          <thead><tr>
-            <th class="kpi-td-label">KPI</th>
-            <th class="kpi-td-sub">Description</th>
-            <th class="kpi-td-count">Count</th>
-            <th class="kpi-td-pct">Rate</th>
-          </tr></thead>
-          <tbody>${rows.join('')}</tbody>
-        </table>
-      </div>
-    </div>`;
+  const filteredPol = polRows.filter(Boolean);
+  const filteredCtc = ctcRows.filter(Boolean);
+  return tableBlock('Policy Operationalisation', filteredPol) +
+         tableBlock('Cross Team Cooperation',    filteredCtc);
 }
 
 // ── ICT Risk Management Metrics Card ─────────────────────────
@@ -474,7 +496,13 @@ function renderRiskMgmtSummaryCard(assessment, prev, mode = 'detail') {
   const prevF = prev?.factSummary     || {};
 
   if (mode === 'exec') {
-    const kpiHtml = renderKpiSection(curr, prevF, assessment, prev);
+    // Recompute kpiSummary live from stored facts so new metric definitions
+    // apply to previously-saved assessments without needing a re-import.
+    const currLive = { ...curr,  kpiSummary: buildKpiSummary(assessment.policyRows || [], assessment.riskPolicyFacts || []) };
+    const prevLive = prev
+      ? { ...prevF, kpiSummary: buildKpiSummary(prev.policyRows || [], prev.riskPolicyFacts || []) }
+      : {};
+    const kpiHtml = renderKpiSection(currLive, prevLive, assessment, prev);
     return `
       <div class="card measure-card">
         <div class="measure-card-header">

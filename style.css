@@ -2417,16 +2417,27 @@ details[open] .profile-card-chevron {
   font-weight: 500; white-space: nowrap; max-width: 150px;
   overflow: hidden; text-overflow: ellipsis;
 }
-.opcov-cell { display: flex; align-items: center; gap: .4rem; min-width: 96px; }
+.opcov-cell { display: flex; align-items: center; gap: .4rem; min-width: 104px; }
 .opcov-bar {
   flex: 1; height: 8px; background: var(--clr-fill-dark); border-radius: 4px;
-  overflow: hidden; min-width: 46px;
+  overflow: hidden; min-width: 40px;
 }
 .opcov-bar-fill { height: 100%; background: var(--clr-success); border-radius: 4px; }
-.opcov-pct {
-  font-size: .68rem; font-variant-numeric: tabular-nums;
-  color: var(--text-muted); min-width: 30px; text-align: right;
+.opcov-val {
+  display: flex; flex-direction: column; align-items: flex-end; line-height: 1.05;
+  min-width: 40px; font-variant-numeric: tabular-nums;
 }
+.opcov-val b { font-size: .72rem; font-weight: 600; }
+.opcov-frac { font-size: .58rem; color: var(--text-muted); }
+
+/* Legend — travels with the card into slide screenshots */
+.opcov-legend {
+  display: flex; flex-wrap: wrap; gap: .3rem .7rem; align-items: center;
+  margin-top: .7rem; padding-top: .6rem; border-top: 1px solid var(--border-subtle);
+  font-size: .68rem; color: var(--text-muted); line-height: 1.5;
+}
+.opcov-legend-lead { flex-basis: 100%; }
+.opcov-legend-item { display: inline-flex; align-items: center; gap: .35rem; }
 .opcov-chip-cell { text-align: center; white-space: nowrap; }
 .opcov-chip {
   display: inline-block; font-size: .68rem; font-weight: 600;

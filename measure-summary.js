@@ -510,9 +510,9 @@ function renderOpCoverageCard(assessment) {
 
   const bar = o => {
     const p = o.d > 0 ? Math.round(100 * o.n / o.d) : 0;
-    return `<div class="opcov-cell" title="${o.n} / ${o.d}">
+    return `<div class="opcov-cell">
       <div class="opcov-bar"><div class="opcov-bar-fill" style="width:${p}%"></div></div>
-      <span class="opcov-pct">${o.d > 0 ? p + '%' : '—'}</span>
+      <span class="opcov-val"><b>${o.d > 0 ? p + '%' : '—'}</b><span class="opcov-frac">${o.n}/${o.d}</span></span>
     </div>`;
   };
 
@@ -561,8 +561,8 @@ function renderOpCoverageCard(assessment) {
         <table class="opcov-table">
           <thead><tr>
             <th class="opcov-cap"></th>
-            <th>Approved<span class="opcov-th-sub">open / all risks</span></th>
-            <th>Assessed<span class="opcov-th-sub">assessed / all risks</span></th>
+            <th>Risks Approved<span class="opcov-th-sub">open / all risks</span></th>
+            <th>Risks Assessed<span class="opcov-th-sub">assessed / all risks</span></th>
             <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>
             <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
             <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
@@ -571,6 +571,23 @@ function renderOpCoverageCard(assessment) {
           <tbody>${bodyRows}</tbody>
         </table>
       </div>
+      ${renderOpCoverageLegend()}
+    </div>`;
+}
+
+// ── In-card legend (so it travels with the screenshot into slides) ──
+function renderOpCoverageLegend() {
+  const cfg   = (CONFIG && CONFIG.opCoverage) || {};
+  const floor = cfg.ownershipFloorPct != null ? cfg.ownershipFloorPct : 20;
+  const low   = cfg.confidenceLowPct  != null ? cfg.confidenceLowPct  : 40;
+  const ok    = cfg.confidenceOkPct   != null ? cfg.confidenceOkPct   : 75;
+  return `
+    <div class="opcov-legend">
+      <span class="opcov-legend-lead"><b>Confidence</b> = controls assessed ÷ risks assessed — how well risk conclusions are backed by control evidence:</span>
+      <span class="opcov-legend-item"><span class="opcov-chip opcov-chip-ok">● OK</span> evidence keeps pace (≥ ${ok}%)</span>
+      <span class="opcov-legend-item"><span class="opcov-chip opcov-chip-building">◐ Building</span> partial evidence (${low}–${ok - 1}%)</span>
+      <span class="opcov-legend-item"><span class="opcov-chip opcov-chip-low">⚠ Low</span> risks ran ahead of controls (&lt; ${low}%, or &lt; ${floor}% of controls owned)</span>
+      <span class="opcov-legend-item"><span class="opcov-chip opcov-chip-none">– None</span> no risks assessed yet</span>
     </div>`;
 }
 

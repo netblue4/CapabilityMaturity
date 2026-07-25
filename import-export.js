@@ -23,6 +23,7 @@ function importJSON(e) {
           : `Import ${imported.assessments.length} assessment(s)?`;
         if (confirm(msg)) {
           db.assessments = imported.assessments.slice();
+          migrateRemovedMeasures(db);
           db.assessments.sort((a, b) => a.date.localeCompare(b.date));
           saveToLocalStorage();
           renderDashboard();

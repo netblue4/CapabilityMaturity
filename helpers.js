@@ -40,9 +40,9 @@ function getMeasureNote(assessment, capId, measureId) {
   return val || '';
 }
 
-// Returns free-text time estimate for a maturity measure (governance, risk, reporting only)
+// Returns free-text time estimate for a maturity measure
 function getTimeEstimate(assessment, capId, measureId) {
-  if (!['governance', 'risk', 'reporting'].includes(measureId)) return '';
+  if (!CONFIG.measures.some(m => m.id === measureId)) return '';
   return assessment.measureTimeEstimates?.[capId]?.[measureId] || '';
 }
 

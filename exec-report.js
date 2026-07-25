@@ -157,7 +157,7 @@ function execBarsCombo(currentA, plannedA, measure, prevA) {
 
 // ── Executive Summary Panel ───────────────────────────────────
 function execSummaryPanel(prevA, currentA) {
-  const shortLabel = { governance: 'Governance', risk: 'Risk Management', reporting: 'Reporting' };
+  const shortLabel = { governance: 'Governance' };
 
   // KPI tile per dimension
   const tiles = CONFIG.measures.map(m => {

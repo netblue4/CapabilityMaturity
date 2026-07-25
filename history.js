@@ -62,16 +62,8 @@ function copyAssessment(id) {
       updateMeasureDisplay(cap.id, m.id, score);
       updateTargetDisplay(cap.id, m.id, target);
 
-      if (['governance', 'risk', 'reporting'].includes(m.id)) {
-        const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
-        if (timeEstEl) {
-          let timeEst = source.measureTimeEstimates?.[cap.id]?.[m.id] || '';
-          if (!timeEst && m.id === 'risk' && source.weeksToNext?.[cap.id]) {
-            timeEst = String(source.weeksToNext[cap.id]);
-          }
-          timeEstEl.value = timeEst;
-        }
-      }
+      const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
+      if (timeEstEl) timeEstEl.value = source.measureTimeEstimates?.[cap.id]?.[m.id] || '';
     });
 
     const rmData   = source.measureScores?.[cap.id]?.riskManagement;

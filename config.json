@@ -1,6 +1,5 @@
 {
   "appTitle": "ICT Capability Maturity Tracker",
-
   "levels": [
     {
       "level": 1,
@@ -33,7 +32,6 @@
       "description": "Continuous improvement culture. Predictive analytics. Proactive excellence."
     }
   ],
-
   "measures": [
     {
       "id": "governance",
@@ -73,113 +71,63 @@
           "exit": "No exit. This is the target state. Maintain through continuous review and demonstrate ongoing responsiveness to inputs from the ICT Risk and Reporting dimensions."
         }
       ]
-    },
-    {
-      "id": "risk",
-      "name": "ICT Risk Management Framework - Holistic Risk Coverage",
-      "icon": "🛡️",
-      "color": "#e74c3c",
-      "type": "risk_profile",
-      "description": "All ICT risks and controls are formally defined, owned, and included in our risk and control self assessment.",
-      "levels": [
-        {
-          "level": 1,
-          "name": "Initial",
-          "label": "No risks or controls have been identified against any Role or Responsibility for this capability. We do not yet know what could go wrong if our responsibilities are not performed.",
-          "exit": "Draft risks describing what could go wrong if that responsibility is not performed, and controls to prevent or detect that failure."
-        },
-        {
-          "level": 2,
-          "name": "Drafted",
-          "label": "Risks and controls have been drafted against the most important Roles and Responsibilities. We know what could go wrong but have not yet formally validated whether our controls are adequate or assessed the residual risk.",
-          "exit": "Formally assess and approve drafted risks and controls."
-        },
-        {
-          "level": 3,
-          "name": "Approved",
-          "label": "All drafted risks and controls have been formally assessed and approved, and controls are owned.",
-          "exit": "Plan each approved risk and control into the risk and control self assessment (RCSA)."
-        },
-        {
-          "level": 4,
-          "name": "In RCSA",
-          "label": "Risks and controls have been planned into the risk and control self assessment (RCSA). The risk profile for this capability is formally established, actively tracked and reported.",
-          "exit": "Assess risks and controls and record their performance."
-        },
-        {
-          "level": 5,
-          "name": "Reviewed",
-          "label": "All risks are within tolerance and the reassessment cycle is continuous and active. Risk and control findings proactively drive updates to the Governance Profile — the improvement loop is fully closed and self-sustaining.",
-          "exit": "No exit. This is the target state. Maintain through continuous reassessment and demonstrate that risk findings are actively and consistently driving updates to the Governance Profile."
-        }
-      ]
-    },
-    {
-      "id": "reporting",
-      "name": "ICT Reporting Profile - Accurate and Timely Insights",
-      "icon": "📊",
-      "color": "#2ecc71",
-      "description": "Do we provide accurate and timely insights into ICT risk management performance?",
-      "levels": [
-        {
-          "level": 1,
-          "name": "Initial",
-          "label": "No KPIs defined for this capability. There is no visibility of whether Roles and Responsibilities are being performed, whether controls are working, or whether outcomes are being achieved.",
-          "exit": "Draft at least one KPI for this capability that is directly grounded in the Roles and Responsibilities and the identified risks."
-        },
-        {
-          "level": 2,
-          "name": "Drafted",
-          "label": "KPIs have been drafted and are grounded in the Roles and Responsibilities and identified risks. They are not yet being measured consistently or reported to stakeholders.",
-          "exit": "Obtain formal approval of the drafted KPIs from the appropriate authority."
-        },
-        {
-          "level": 3,
-          "name": "Approved",
-          "label": "KPIs are formally approved and the owner is accountable.",
-          "exit": "Review approved KPIs, considering inputs from the ICT Risk dimensions."
-        },
-        {
-          "level": 4,
-          "name": "Measured",
-          "label": "KPIs are reported to management on a formal schedule. Exceptions are escalated, tracked and owned. Reporting is reliable, consistent and used to hold accountable those responsible for performance.",
-          "exit": "Update KPIs with the results of the Risk dimension finding or gaps."
-        },
-        {
-          "level": 5,
-          "name": "Reviewed",
-          "label": "KPI trends are analysed proactively and gaps consistently drive updates to the Governance Profile. Reporting is no longer just measurement — it is the mechanism by which continuous improvement is sustained.",
-          "exit": "No exit. This is the target state. Maintain through continuous KPI review and demonstrate ongoing responsiveness — that reporting outcomes are actively and consistently driving updates to Roles and Responsibilities."
-        }
-      ]
     }
   ],
-
   "riskScoreMatrix": {
     "Extreme (28 to 40)": {
-      "Exceeds Appetite": { "Not Assessed": 1, "Partially Effective": 1, "Effective": 1 },
-      "Within Appetite":  { "Not Assessed": 1, "Partially Effective": 2, "Effective": 2 }
+      "Exceeds Appetite": {
+        "Not Assessed": 1,
+        "Partially Effective": 1,
+        "Effective": 1
+      },
+      "Within Appetite": {
+        "Not Assessed": 1,
+        "Partially Effective": 2,
+        "Effective": 2
+      }
     },
     "Significant (20 to 24)": {
-      "Exceeds Appetite": { "Not Assessed": 1, "Partially Effective": 2, "Effective": 2 },
-      "Within Appetite":  { "Not Assessed": 2, "Partially Effective": 3, "Effective": 3 }
+      "Exceeds Appetite": {
+        "Not Assessed": 1,
+        "Partially Effective": 2,
+        "Effective": 2
+      },
+      "Within Appetite": {
+        "Not Assessed": 2,
+        "Partially Effective": 3,
+        "Effective": 3
+      }
     },
     "Moderate (12 to 16)": {
-      "Exceeds Appetite": { "Not Assessed": 2, "Partially Effective": 3, "Effective": 3 },
-      "Within Appetite":  { "Not Assessed": 3, "Partially Effective": 3, "Effective": 4 }
+      "Exceeds Appetite": {
+        "Not Assessed": 2,
+        "Partially Effective": 3,
+        "Effective": 3
+      },
+      "Within Appetite": {
+        "Not Assessed": 3,
+        "Partially Effective": 3,
+        "Effective": 4
+      }
     },
     "Low (4 to 10)": {
-      "Exceeds Appetite": { "Not Assessed": 3, "Partially Effective": 3, "Effective": 4 },
-      "Within Appetite":  { "Not Assessed": 3, "Partially Effective": 4, "Effective": 5 }
+      "Exceeds Appetite": {
+        "Not Assessed": 3,
+        "Partially Effective": 3,
+        "Effective": 4
+      },
+      "Within Appetite": {
+        "Not Assessed": 3,
+        "Partially Effective": 4,
+        "Effective": 5
+      }
     }
   },
-
   "opCoverage": {
     "ownershipFloorPct": 20,
     "confidenceLowPct": 40,
     "confidenceOkPct": 75
   },
-
   "kpis": [
     {
       "id": "availability_proactive_detection",
@@ -254,7 +202,6 @@
       "denominatorLabel": "Total reviews scheduled"
     }
   ],
-
   "capabilities": [
     {
       "id": "asset_mgmt",

@@ -60,12 +60,7 @@ function renderMeasureSummary(assessment) {
 
   // — Dimension measure cards —
 
-  // Render in display order: Governance, Reporting, Risk
-  // (Reporting sits next to Governance; Risk Mgmt metrics card goes on its own full-width row)
-  const measureOrder = ['governance', 'reporting', 'risk'];
-  const orderedMeasures = measureOrder
-    .map(id => CONFIG.measures.find(m => m.id === id))
-    .filter(Boolean);
+  const orderedMeasures = CONFIG.measures;
 
   const measureCards = orderedMeasures.map(m => {
     const scores = CONFIG.capabilities.map(cap => getMeasureScore(assessment, cap.id, m.id) || 0);

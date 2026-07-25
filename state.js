@@ -47,7 +47,30 @@ function loadFromLocalStorage() {
   try {
     const saved = localStorage.getItem("ict_maturity_db");
     if (saved) db = JSON.parse(saved);
+    if (migrateRemovedMeasures(db)) saveToLocalStorage();
   } catch (e) { console.warn("Could not load localStorage", e); }
+}
+
+// One-time cleanup: the Risk and Reporting maturity dimensions were removed.
+// Strip their saved scores/targets/notes/time-estimates so no dormant data
+// lingers. Risk *data* (riskManagement, riskRows, factSummary, …) is untouched.
+function migrateRemovedMeasures(database) {
+  const REMOVED = ['risk', 'reporting'];
+  let changed = false;
+  (database?.assessments || []).forEach(a => {
+    ['measureScores', 'measureTargets', 'measureNotes', 'measureTimeEstimates'].forEach(dict => {
+      const byCap = a[dict];
+      if (!byCap) return;
+      Object.keys(byCap).forEach(capId => {
+        const entry = byCap[capId];
+        if (!entry || typeof entry !== 'object') return;
+        REMOVED.forEach(mid => {
+          if (mid in entry) { delete entry[mid]; changed = true; }
+        });
+      });
+    });
+  });
+  return changed;
 }
 
 function saveToLocalStorage() {

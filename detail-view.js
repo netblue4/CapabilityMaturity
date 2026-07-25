@@ -6,7 +6,7 @@ function viewAssessment(id) {
   document.getElementById("detail-title").textContent = `${a.label} — ${formatDate(a.date)}`;
 
   const content = document.getElementById("detail-content");
-  const maturityIds = ['governance', 'risk', 'reporting'];
+  const maturityIds = CONFIG.measures.map(m => m.id);
 
   // ── Local helpers ────────────────────────────────────────────
   function filledBadge(score, fsz, pad) {
@@ -268,7 +268,7 @@ function viewAssessment(id) {
       const mDef  = CONFIG.measures.find(md => md.id === m.id);
       const exit  = mDef ? (mDef.levels.find(l => l.level === score)?.exit || '') : '';
       const timeEst = getTimeEstimate(a, cap.id, m.id);
-      const shortLabels = { governance: 'GOVERNANCE', risk: 'RISK', reporting: 'REPORTING' };
+      const shortLabels = { governance: 'GOVERNANCE' };
 
       let condHtml;
       if (score === 5) {
@@ -426,16 +426,8 @@ function copyAssessment(id) {
       updateMeasureDisplay(cap.id, m.id, score);
       updateTargetDisplay(cap.id, m.id, target);
 
-      if (['governance', 'risk', 'reporting'].includes(m.id)) {
-        const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
-        if (timeEstEl) {
-          let timeEst = source.measureTimeEstimates?.[cap.id]?.[m.id] || '';
-          if (!timeEst && m.id === 'risk' && source.weeksToNext?.[cap.id]) {
-            timeEst = String(source.weeksToNext[cap.id]);
-          }
-          timeEstEl.value = timeEst;
-        }
-      }
+      const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
+      if (timeEstEl) timeEstEl.value = source.measureTimeEstimates?.[cap.id]?.[m.id] || '';
     });
 
     const rmData   = source.measureScores?.[cap.id]?.riskManagement;

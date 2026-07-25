@@ -11,56 +11,7 @@ function buildRiskRatingBtns(capId, field) {
 
 // ── Assessment Form — Build ───────────────────────────────────
 function buildMeasureBlock(cap, m) {
-  if (m.id === 'risk') {
-    // Maturity slider block for ICT Risk Management Framework — same layout as Governance/Reporting
-    return `
-      <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color || 'var(--clr-danger)'}">
-        <div class="measure-block-header">
-          <span class="measure-icon-sm">${m.icon}</span>
-          <span class="measure-block-name">Capability Maturity · ICT Risk Management Framework</span>
-        </div>
-        <p class="measure-block-desc">${m.description}</p>
-
-        <div class="slider-row">
-          <div class="slider-wrap">
-            <input type="range" min="1" max="5" value="1"
-              id="score-${cap.id}-${m.id}"
-              oninput="updateMeasureDisplay('${cap.id}','${m.id}',this.value)" />
-            <div class="slider-labels">
-              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-            </div>
-          </div>
-          <div id="display-${cap.id}-${m.id}" class="level-display"></div>
-        </div>
-
-        <div class="form-row" style="margin-top:.5rem">
-          <label>Target Level</label>
-          <div class="slider-wrap">
-            <input type="range" min="1" max="5" value="3"
-              id="target-${cap.id}-${m.id}"
-              oninput="updateTargetDisplay('${cap.id}','${m.id}',this.value)" />
-            <div class="slider-labels">
-              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-            </div>
-          </div>
-          <div id="target-display-${cap.id}-${m.id}" class="level-display target"></div>
-        </div>
-
-        <div class="form-row" style="margin-top:.5rem">
-          <label>TIME ESTIMATE</label>
-          <textarea id="timeest-${cap.id}-${m.id}" rows="2"
-            placeholder="Describe how long you estimate it will take to reach the next maturity level for ICT Risk…"></textarea>
-        </div>
-
-        <div class="form-row" style="margin-top:.5rem">
-          <label>Notes</label>
-          <textarea id="note-${cap.id}-${m.id}" rows="3"
-            placeholder="ICT Risk maturity observations for ${cap.name}…"></textarea>
-        </div>
-      </div>`;
-  }
-
-  // Standard slider block (Governance, Reporting)
+  // Maturity slider block (Governance)
   return `
     <div class="measure-block" data-measure="${m.id}" style="--m-color:${m.color}">
       <div class="measure-block-header">
@@ -212,10 +163,7 @@ function updateKpiPct(kpiId) {
 
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
-  // All 3 measures in order: Governance, Reporting, Risk
-  const orderedMeasures = ['governance', 'reporting', 'risk']
-    .map(id => CONFIG.measures.find(m => m.id === id))
-    .filter(Boolean);
+  const orderedMeasures = CONFIG.measures;
 
   const allCapCheckbox = `
     <label class="dimension-check-label" style="border-color:var(--accent)">
@@ -264,8 +212,7 @@ function buildCapabilityFields() {
         </div>
       </div>
 
-      <!-- Governance · Reporting · Risk — all three side by side -->
-      <div class="measures-grid measures-grid-3">
+      <div class="measures-grid measures-grid-${orderedMeasures.length}">
         ${orderedMeasures.map(m => buildMeasureBlock(cap, m)).join("")}
       </div>
 
@@ -415,18 +362,8 @@ function openAssessmentForm(id) {
           updateTargetDisplay(cap.id, m.id, target);
 
           // Time estimate on each maturity measure card
-          if (['governance', 'risk', 'reporting'].includes(m.id)) {
-            const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
-            if (timeEstEl) {
-              let timeEst = a.measureTimeEstimates?.[cap.id]?.[m.id] || '';
-              // Backward compat: weeksToNext used to be a single number per capability on "risk"
-              if (!timeEst && m.id === 'risk' && a.weeksToNext?.[cap.id]) {
-                console.info(`Legacy weeksToNext for ${cap.id} — using as risk time estimate.`);
-                timeEst = String(a.weeksToNext[cap.id]);
-              }
-              timeEstEl.value = timeEst;
-            }
-          }
+          const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
+          if (timeEstEl) timeEstEl.value = a.measureTimeEstimates?.[cap.id]?.[m.id] || '';
         });
 
         // riskManagement fields — prefer new structure, fall back to legacy riskProfile
@@ -573,9 +510,9 @@ function saveAssessment(e) {
       }
     });
 
-    // Time estimates live on each maturity measure card (governance, risk, reporting)
-    ['governance', 'risk', 'reporting'].forEach(mId => {
-      measureTimeEstimates[cap.id][mId] = document.getElementById(`timeest-${cap.id}-${mId}`)?.value.trim() || '';
+    // Time estimates live on each maturity measure card
+    CONFIG.measures.forEach(m => {
+      measureTimeEstimates[cap.id][m.id] = document.getElementById(`timeest-${cap.id}-${m.id}`)?.value.trim() || '';
     });
 
     // riskManagement: preserve whatever the Riskonnect import stored (no manual UI)

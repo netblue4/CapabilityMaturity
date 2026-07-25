@@ -502,6 +502,7 @@ textarea { resize: vertical; }
 .cap-desc { font-size: .8rem; color: var(--text-muted); }
 
 .measures-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.measures-grid-1 { grid-template-columns: 1fr; }
 .measures-grid-3 { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 900px) { .measures-grid-3 { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .measures-grid { grid-template-columns: 1fr; } }

@@ -451,7 +451,7 @@ function renderKpiSection(curr, prevF, currA, prevA) {
   if (!rows.length) return '';
   return `
     <div class="ft-section">
-      <div class="ft-section-hdr kpi-section-hdr">Coverage &amp; Governance KPIs</div>
+      <div class="ft-section-hdr kpi-section-hdr">Cross Team Cooperation</div>
       <div class="rcsa-table-wrap">
         <table class="rcsa-metrics-table ft-sub-table kpi-table">
           <thead><tr>

@@ -435,12 +435,8 @@ function renderKpiSection(curr, prevF, currA, prevA) {
       <td class="kpi-td-count kpi-not-recorded" colspan="2">No implemented policy controls yet</td>
     </tr>`);
   }
-
-  // ── Block 2: Cross Team Cooperation ─────────────────────────────
-  const ctcRows = [];
-  ctcRows.push(row('GrpStd Localisation', 'Requirements a local policy maps to (via cited ref)',
+  polRows.push(row('GrpStd Localisation', 'Requirements a local policy maps to (via cited ref)',
     ks.grpStdLocalisation, prevKs.grpStdLocalisation, 'localised', 'total', false));
-
   if (ks.chainCompleteness) {
     const c = ks.chainCompleteness, p = prevKs.chainCompleteness;
     const cp = pct(c.complete, c.total), pp2 = p ? pct(p.complete, p.total) : null;
@@ -451,13 +447,16 @@ function renderKpiSection(curr, prevF, currA, prevA) {
           .filter((_, i) => ![d.hasPolicy,d.hasRisk,d.hasControl,d.hasAssessment][i]);
         return `${shortName(d.capName)}: missing ${missing.join(', ')}`;
       }).join('\n');
-    ctcRows.push(`<tr>
+    polRows.push(`<tr>
       <td class="kpi-td-label">Full Chain Complete</td>
       <td class="kpi-td-sub" title="${gaps}">Policy → Risk → Control → Assessment (hover for gaps)</td>
       <td class="kpi-td-count">${c.complete}/${c.total}${nArrow(c.complete, p?.complete, false)}</td>
       <td class="kpi-td-pct">${cp != null ? cp+'%' : '—'}${ppArrow(cp, pp2, false)}</td>
     </tr>`);
   }
+
+  // ── Block 2: Cross Team Cooperation (manual KPIs) ───────────────
+  const ctcRows = [];
 
   // Manual KPIs from config
   (CONFIG.kpis || []).forEach(kpi => {

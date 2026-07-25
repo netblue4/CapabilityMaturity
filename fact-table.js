@@ -102,6 +102,7 @@ function ftUniqueRisks(facts) {
 // ── Control assessment predicates ─────────────────────────────────
 function ftIsImplemented(f) { return ftNorm(f.controlStatus) === 'implemented'; }
 function ftIsAssessed(f)    { return !!(f.lastAssessDate && f.lastAssessDate.trim()); }
+function ftIsOwned(f)       { return !!(f.controlOwner && f.controlOwner.trim()); }
 function ftIsEffective(f) {
   const g = s => s.includes('green') || s.includes('effective');
   return g(ftNorm(f.designAssess)) && g(ftNorm(f.opAssess));
@@ -253,6 +254,89 @@ function buildKpiSummary(polRows, riskPolicyFacts) {
     grpStdLocalisation: grpStdLocal,
     chainCompleteness:  chainResult,
   };
+}
+
+// ── Operationalisation Coverage — per-capability funnel bars + confidence ──
+//
+// Five independent coverage ratios per capability (risks are deduplicated by
+// title; controls are the individual fact rows). The confidence chip judges
+// how well the risk-assessment *claim* is backed by control *evidence*.
+//
+function buildOperationalisationCoverage(riskPolicyFacts) {
+  const facts = riskPolicyFacts || [];
+  const cfg   = (CONFIG && CONFIG.opCoverage) || {};
+  const floor = cfg.ownershipFloorPct != null ? cfg.ownershipFloorPct : 20;
+  const lowCut = cfg.confidenceLowPct  != null ? cfg.confidenceLowPct  : 40;
+  const okCut  = cfg.confidenceOkPct   != null ? cfg.confidenceOkPct   : 75;
+
+  const isClosed = f => {
+    const s = ftNorm(f.riskStatus);
+    return s.includes('closed') || s.includes('proposed close');
+  };
+  const isOpen  = f => ftNorm(f.riskStatus).includes('open');
+  const isDraft = f => ftNorm(f.riskStatus).includes('draft');
+
+  const rows = (CONFIG.capabilities || []).map(cap => {
+    const capFacts = facts.filter(f => f.capId === cap.id);
+    if (!capFacts.length) return null;
+
+    // ── Risk side — dedupe by risk title, ignore closed risks ──
+    const riskMap = {};
+    capFacts.forEach(f => {
+      const title = ftNorm(f.riskTitle);
+      if (!title || isClosed(f)) return;
+      if (!riskMap[title]) riskMap[title] = { open: false, draft: false, assessed: false };
+      const r = riskMap[title];
+      if (isOpen(f))  r.open  = true;
+      if (isDraft(f)) r.draft = true;
+      if (f.residualScore != null && f.residualScore > 0) r.assessed = true;
+    });
+    const risks       = Object.values(riskMap);
+    const totalRisks  = risks.length;
+    const openRisks   = risks.filter(r => r.open).length;
+    const draftRisks  = risks.filter(r => r.draft && !r.open).length;
+    const assessedRk  = risks.filter(r => r.assessed).length;
+
+    // ── Control side — every fact row is a control ──
+    const totalCtrls = capFacts.length;
+    const ownedCtrls = capFacts.filter(ftIsOwned).length;
+    const implCtrls  = capFacts.filter(ftIsImplemented).length;
+    const assdCtrls  = capFacts.filter(ftIsAssessed).length;
+
+    const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0;
+    const assessedPct = pct(assessedRk, totalRisks);
+    const ctrlAssdPct = pct(assdCtrls, totalCtrls);
+    const ownedPct    = pct(ownedCtrls, totalCtrls);
+
+    // ── Confidence chip ──
+    // index = control evidence as a fraction of the risk-assessment claim
+    let index = null;
+    let chip;
+    if (assessedRk === 0) {
+      chip = 'none';
+    } else {
+      index = Math.min(100, Math.round((ctrlAssdPct / assessedPct) * 100));
+      if (ownedPct < floor)     chip = 'low';       // ownership floor
+      else if (index < lowCut)  chip = 'low';
+      else if (index < okCut)   chip = 'building';
+      else                      chip = 'ok';
+    }
+
+    return {
+      capId: cap.id, capName: cap.name,
+      approved:    { n: openRisks,  d: openRisks + draftRisks },
+      assessed:    { n: assessedRk, d: totalRisks },
+      owned:       { n: ownedCtrls, d: totalCtrls },
+      implemented: { n: implCtrls,  d: totalCtrls },
+      ctrlAssessed:{ n: assdCtrls,  d: totalCtrls },
+      index, chip,
+    };
+  }).filter(Boolean);
+
+  const rollup = { none: 0, low: 0, building: 0, ok: 0 };
+  rows.forEach(r => { rollup[r.chip] = (rollup[r.chip] || 0) + 1; });
+
+  return { rows, rollup };
 }
 
 // ── Build stored fact summary (4 rolled-up tables) ────────────────

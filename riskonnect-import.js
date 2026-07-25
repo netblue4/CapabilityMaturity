@@ -161,6 +161,7 @@
         riskStatus:     cols.status         ? (row[cols.status]         || '').toLowerCase().trim() : '',
         controlName:    rawName,
         controlType,
+        controlOwner:   cols.owner          ? (row[cols.owner]          || '').trim() : '',
         controlStatus:  cols.controlStatus  ? (row[cols.controlStatus]  || '').toLowerCase().trim() : '',
         designAssess:   toGAG(dRaw),
         opAssess:       toGAG(oRaw),

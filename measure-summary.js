@@ -145,6 +145,8 @@ function renderMeasureSummary(assessment) {
 
   document.getElementById("scores-card-slot").innerHTML = scoresCard;
   row.innerHTML = measureCards;
+  const opcovSlot = document.getElementById("opcov-card-row");
+  if (opcovSlot) opcovSlot.innerHTML = renderOpCoverageCard(assessment);
   document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
 }
 
@@ -485,6 +487,91 @@ function renderKpiSection(curr, prevF, currA, prevA) {
   const filteredCtc = ctcRows.filter(Boolean);
   return tableBlock('Policy Operationalisation', filteredPol) +
          tableBlock('Cross Team Cooperation',    filteredCtc);
+}
+
+// ── Policy Operationalisation Coverage Card ──────────────────
+// Per-capability funnel: five independent coverage bars + a confidence chip
+// that judges how well risk-assessment claims are backed by control evidence.
+function renderOpCoverageCard(assessment) {
+  const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || []);
+  if (!oc.rows.length) {
+    return `
+      <div class="card measure-card">
+        <div class="measure-card-header">
+          <span class="measure-icon">🎯</span>
+          <div>
+            <h3 class="measure-card-title">Policy Operationalisation Coverage</h3>
+            <p class="measure-card-desc">How far each capability's risks and controls have progressed, and how well risk conclusions are backed by control evidence.</p>
+          </div>
+        </div>
+        <p class="policy-no-data" style="margin:.5rem 0">No risk data imported yet.</p>
+      </div>`;
+  }
+
+  const bar = o => {
+    const p = o.d > 0 ? Math.round(100 * o.n / o.d) : 0;
+    return `<div class="opcov-cell" title="${o.n} / ${o.d}">
+      <div class="opcov-bar"><div class="opcov-bar-fill" style="width:${p}%"></div></div>
+      <span class="opcov-pct">${o.d > 0 ? p + '%' : '—'}</span>
+    </div>`;
+  };
+
+  const chipMap = {
+    none:     { cls: 'opcov-chip-none',     txt: '– None' },
+    low:      { cls: 'opcov-chip-low',      txt: '⚠ Low' },
+    building: { cls: 'opcov-chip-building', txt: '◐ Building' },
+    ok:       { cls: 'opcov-chip-ok',       txt: '● OK' },
+  };
+
+  const bodyRows = oc.rows.map(r => {
+    const c = chipMap[r.chip] || chipMap.none;
+    const title = r.index != null
+      ? `Confidence ${r.index}% = control-assessed ÷ risk-assessed`
+      : 'No approved risks assessed yet';
+    return `<tr>
+      <td class="opcov-cap" title="${r.capName}">${shortName(r.capName)}</td>
+      <td>${bar(r.approved)}</td>
+      <td>${bar(r.assessed)}</td>
+      <td>${bar(r.owned)}</td>
+      <td>${bar(r.implemented)}</td>
+      <td>${bar(r.ctrlAssessed)}</td>
+      <td class="opcov-chip-cell"><span class="opcov-chip ${c.cls}" title="${title}">${c.txt}</span></td>
+    </tr>`;
+  }).join('');
+
+  const ru = oc.rollup;
+  const rollup = [
+    ru.low      ? `<span class="opcov-chip opcov-chip-low">${ru.low} Low</span>` : '',
+    ru.building ? `<span class="opcov-chip opcov-chip-building">${ru.building} Building</span>` : '',
+    ru.ok       ? `<span class="opcov-chip opcov-chip-ok">${ru.ok} OK</span>` : '',
+    ru.none     ? `<span class="opcov-chip opcov-chip-none">${ru.none} None</span>` : '',
+  ].filter(Boolean).join('');
+
+  return `
+    <div class="card measure-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">🎯</span>
+        <div style="flex:1">
+          <h3 class="measure-card-title">Policy Operationalisation Coverage</h3>
+          <p class="measure-card-desc">Each capability's progress across the risk and control lifecycle. Confidence flags where risk conclusions run ahead of the control evidence.</p>
+        </div>
+        <div class="opcov-rollup">${rollup}</div>
+      </div>
+      <div class="rcsa-table-wrap">
+        <table class="opcov-table">
+          <thead><tr>
+            <th class="opcov-cap"></th>
+            <th>Approved<span class="opcov-th-sub">open / all risks</span></th>
+            <th>Assessed<span class="opcov-th-sub">assessed / all risks</span></th>
+            <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>
+            <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
+            <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
+            <th class="opcov-chip-cell">Confidence</th>
+          </tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 // ── ICT Risk Management Metrics Card ─────────────────────────

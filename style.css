@@ -2400,3 +2400,39 @@ details[open] .profile-card-chevron {
 /* Trend arrows */
 .ft-trend-up { color: #27ae60; font-size: .75rem; white-space: nowrap; }
 .ft-trend-dn { color: #e74c3c; font-size: .75rem; white-space: nowrap; }
+
+/* ── Policy Operationalisation Coverage card ────────────────── */
+.opcov-rollup { display: flex; gap: .35rem; flex-wrap: wrap; align-items: center; }
+.opcov-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.opcov-table th {
+  text-align: left; font-size: .6rem; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); font-weight: 600; padding: .3rem .45rem; vertical-align: bottom;
+}
+.opcov-th-sub {
+  display: block; font-size: .55rem; font-weight: 400; text-transform: none;
+  letter-spacing: 0; color: var(--text-muted); opacity: .72; margin-top: 1px;
+}
+.opcov-table td { padding: .3rem .45rem; border-top: 1px solid var(--border-subtle); }
+.opcov-cap {
+  font-weight: 500; white-space: nowrap; max-width: 150px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.opcov-cell { display: flex; align-items: center; gap: .4rem; min-width: 96px; }
+.opcov-bar {
+  flex: 1; height: 8px; background: var(--clr-fill-dark); border-radius: 4px;
+  overflow: hidden; min-width: 46px;
+}
+.opcov-bar-fill { height: 100%; background: var(--clr-success); border-radius: 4px; }
+.opcov-pct {
+  font-size: .68rem; font-variant-numeric: tabular-nums;
+  color: var(--text-muted); min-width: 30px; text-align: right;
+}
+.opcov-chip-cell { text-align: center; white-space: nowrap; }
+.opcov-chip {
+  display: inline-block; font-size: .68rem; font-weight: 600;
+  padding: .14rem .55rem; border-radius: 11px;
+}
+.opcov-chip-none     { background: rgba(139,148,158,.16); color: var(--text-muted); }
+.opcov-chip-low      { background: rgba(168,84,80,.20);   color: var(--clr-danger); }
+.opcov-chip-building { background: rgba(176,125,69,.20);  color: var(--clr-warning); }
+.opcov-chip-ok       { background: rgba(74,140,101,.22);  color: var(--clr-success); }

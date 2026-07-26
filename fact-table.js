@@ -339,6 +339,77 @@ function buildOperationalisationCoverage(riskPolicyFacts) {
   return { rows, rollup };
 }
 
+// ── Risk Portfolio summary — register, exposure & control assurance ──
+//
+// Portfolio-level roll-up of the RCSA: risk counts by status, assessment
+// completion, residual-severity distribution, inherent→residual reduction,
+// control-assessment coverage on assessed risks, and under-assured risks
+// (assessed ratings not backed by enough control evidence).
+//
+function buildRiskPortfolioSummary(riskPolicyFacts) {
+  const facts = riskPolicyFacts || [];
+  const cfg      = (CONFIG && CONFIG.riskManagement) || {};
+  const severeAt = cfg.severeResidualThreshold != null ? cfg.severeResidualThreshold : 20;
+  const underAt  = cfg.underAssuredCoveragePct  != null ? cfg.underAssuredCoveragePct  : 50;
+
+  const isClosed = s => { s = ftNorm(s); return s.includes('closed') || s.includes('proposed close'); };
+
+  // One entry per unique risk (capId + title); scores repeat across control rows.
+  const map = {};
+  facts.forEach(f => {
+    const t = ftNorm(f.riskTitle);
+    if (!t) return;
+    const key = f.capId + '|' + t;
+    if (!map[key]) map[key] = { capId: f.capId, title: f.riskTitle, status: ftNorm(f.riskStatus), inh: 0, res: 0, ctrls: 0, ctrlAssd: 0 };
+    const r = map[key];
+    r.status = ftNorm(f.riskStatus);
+    if ((f.inherentScore || 0) > r.inh) r.inh = f.inherentScore || 0;
+    if ((f.residualScore || 0) > r.res) r.res = f.residualScore || 0;
+    r.ctrls++;
+    if (ftIsAssessed(f)) r.ctrlAssd++;
+  });
+  const risks = Object.values(map);
+  if (!risks.length) return null;
+
+  const closed   = risks.filter(r => isClosed(r.status)).length;
+  const open     = risks.filter(r => r.status.includes('open')).length;
+  const draft    = risks.filter(r => r.status.includes('draft')).length;
+  const active   = risks.filter(r => !isClosed(r.status));
+  const assessed = active.filter(r => r.res > 0);
+
+  const band = res => res >= 28 ? 'extreme' : res >= severeAt ? 'significant' : res >= 12 ? 'moderate' : res >= 4 ? 'low' : 'none';
+  const severity = { extreme: 0, significant: 0, moderate: 0, low: 0 };
+  assessed.forEach(r => { const b = band(r.res); if (severity[b] != null) severity[b]++; });
+  const severe = severity.extreme + severity.significant;
+
+  const avg = arr => arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : 0;
+  const avgInh = avg(assessed.map(r => r.inh));
+  const avgRes = avg(assessed.map(r => r.res));
+  const reductionPct = avgInh > 0 ? Math.round(100 * (avgInh - avgRes) / avgInh) : null;
+
+  const totCtrls    = assessed.reduce((s, r) => s + r.ctrls, 0);
+  const totCtrlAssd = assessed.reduce((s, r) => s + r.ctrlAssd, 0);
+  const ctrlCoveragePct = totCtrls > 0 ? Math.round(100 * totCtrlAssd / totCtrls) : null;
+
+  // Under-assured: assessed risk whose control-assessment coverage is below the floor.
+  const underAssured = assessed
+    .filter(r => (r.ctrls > 0 ? (100 * r.ctrlAssd / r.ctrls) : 0) < underAt)
+    .map(r => r.title);
+
+  return {
+    total: risks.length, open, draft, closed,
+    active: active.length,
+    assessed: assessed.length,
+    assessedPct: active.length ? Math.round(100 * assessed.length / active.length) : 0,
+    severity, severe, severeThreshold: severeAt,
+    avgInherent: Math.round(avgInh * 10) / 10,
+    avgResidual: Math.round(avgRes * 10) / 10,
+    reductionPct,
+    ctrlCoveragePct, ctrlAssessed: totCtrlAssd, ctrlTotal: totCtrls,
+    underAssured, underAssuredCount: underAssured.length,
+  };
+}
+
 // ── Build stored fact summary (4 rolled-up tables) ────────────────
 //
 // Called after every import. Stores a snapshot on assessment.factSummary

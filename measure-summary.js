@@ -140,6 +140,8 @@ function renderMeasureSummary(assessment) {
 
   document.getElementById("scores-card-slot").innerHTML = scoresCard;
   row.innerHTML = measureCards;
+  const rmSlot = document.getElementById("riskmgmt-card-row");
+  if (rmSlot) rmSlot.innerHTML = renderRiskPortfolioCard(assessment);
   const opcovSlot = document.getElementById("opcov-card-row");
   if (opcovSlot) opcovSlot.innerHTML = renderOpCoverageCard(assessment);
   document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
@@ -482,6 +484,69 @@ function renderKpiSection(curr, prevF, currA, prevA) {
   const filteredCtc = ctcRows.filter(Boolean);
   return tableBlock('Policy Operationalisation', filteredPol) +
          tableBlock('Cross Team Cooperation',    filteredCtc);
+}
+
+// ── Risk Management — Portfolio Health Card ──────────────────
+// Portfolio roll-up of the RCSA: register, assessment, severity, and the
+// control assurance behind the risk ratings.
+function renderRiskPortfolioCard(assessment) {
+  const s = buildRiskPortfolioSummary(assessment.riskPolicyFacts || []);
+  if (!s) return '';
+
+  const tile = (label, num, sub, cls) => `
+    <div class="rm-tile">
+      <div class="rm-tile-lbl">${label}</div>
+      <div class="rm-tile-num ${cls || ''}">${num}</div>
+      <div class="rm-tile-sub">${sub}</div>
+    </div>`;
+
+  const tiles = [
+    tile('Total Risks',      s.total, `${s.open} open · ${s.draft} draft · ${s.closed} closed`, ''),
+    tile('Assessed',         s.assessedPct + '%', `${s.assessed} of ${s.active} active`, ''),
+    tile('Severe',           s.severe, `residual ≥ ${s.severeThreshold}`, s.severe > 0 ? 'rm-num-warn' : ''),
+    tile('Risk Reduction',   s.reductionPct != null ? s.reductionPct + '%' : '—', `inherent ${s.avgInherent} → residual ${s.avgResidual}`, 'rm-num-good'),
+    tile('Control Coverage', s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—', `controls assessed on assessed risks (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
+    tile('Under-assured',    s.underAssuredCount, 'ratings lacking control evidence', s.underAssuredCount > 0 ? 'rm-num-warn' : ''),
+  ].join('');
+
+  const sevDefs = [
+    { k: 'extreme',     label: 'Extreme',     color: '#b34d4d' },
+    { k: 'significant', label: 'Significant', color: '#bc7439' },
+    { k: 'moderate',    label: 'Moderate',    color: '#d1c73b' },
+    { k: 'low',         label: 'Low',         color: '#418f64' },
+  ];
+  const totalSev = sevDefs.reduce((n, d) => n + s.severity[d.k], 0);
+  const segs = totalSev > 0
+    ? sevDefs.filter(d => s.severity[d.k] > 0).map(d =>
+        `<div class="rm-sev-seg" style="width:${100 * s.severity[d.k] / totalSev}%;background:${d.color}" title="${d.label}: ${s.severity[d.k]}"></div>`).join('')
+    : '<div class="rm-sev-empty">No assessed risks yet</div>';
+  const legend = sevDefs.map(d =>
+    `<span class="rm-sev-leg"><span class="rm-sev-dot" style="background:${d.color}"></span>${d.label} ${s.severity[d.k]}</span>`).join('');
+
+  const trunc = t => (t.length > 42 ? t.slice(0, 42) + '…' : t);
+  const under = s.underAssuredCount ? `
+    <div class="rm-underassured">
+      <span class="rm-ua-flag">⚠ ${s.underAssuredCount} assessed ${s.underAssuredCount === 1 ? 'risk' : 'risks'} not backed by control evidence (&lt; ${(CONFIG.riskManagement || {}).underAssuredCoveragePct || 50}% of controls assessed):</span>
+      <span class="rm-ua-list">${s.underAssured.map(trunc).join(' · ')}</span>
+    </div>` : '';
+
+  return `
+    <div class="card measure-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">🛡️</span>
+        <div>
+          <h3 class="measure-card-title">Risk Management — Portfolio Health</h3>
+          <p class="measure-card-desc">Register, exposure and the control assurance behind the risk ratings — from the RCSA.</p>
+        </div>
+      </div>
+      <div class="rm-tiles">${tiles}</div>
+      <div class="rm-sev">
+        <div class="rm-sev-hdr">Residual severity of assessed risks</div>
+        <div class="rm-sev-bar">${segs}</div>
+        <div class="rm-sev-legend">${legend}</div>
+      </div>
+      ${under}
+    </div>`;
 }
 
 // ── Policy Operationalisation Coverage Card ──────────────────

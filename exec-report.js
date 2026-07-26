@@ -48,6 +48,8 @@ function generateExecReport() {
     ${execSummaryPanel(prevA, currentA)}
     <div class="exec-sec-div">ICT Maturity — Continuous Improvement Cycle</div>
     ${dimCards}
+    <div class="exec-sec-div">Risk Management — Portfolio Health</div>
+    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA)}</div>
     <div class="exec-sec-div">Policy Operationalisation Coverage</div>
     <div class="exec-rcsa-wrap">${renderOpCoverageCard(currentA)}</div>
     <div class="exec-sec-div">Current Risk Profile</div>

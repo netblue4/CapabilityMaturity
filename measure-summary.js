@@ -625,6 +625,13 @@ function renderOpCoverageCard(assessment, theme) {
     </div>`;
   };
 
+  // Binary Yes/No — Yes only when every risk in the row qualifies.
+  const yesNo = o => {
+    if (o.d === 0) return `<span class="opcov-yn opcov-yn-na" title="no risks">—</span>`;
+    const yes = o.n === o.d;
+    return `<span class="opcov-yn ${yes ? 'opcov-yn-yes' : 'opcov-yn-no'}" title="${o.n}/${o.d}">${yes ? 'Yes' : 'No'}</span>`;
+  };
+
   const chipMap = {
     none:     { cls: 'opcov-chip-none',     txt: '– None' },
     low:      { cls: 'opcov-chip-low',      txt: '⚠ Low' },
@@ -639,8 +646,8 @@ function renderOpCoverageCard(assessment, theme) {
       : 'No approved risks assessed yet';
     return `<tr>
       <td class="opcov-cap" title="${r.capName}">${named ? r.capName : shortName(r.capName)}</td>
-      <td>${bar(r.approved)}</td>
-      <td>${bar(r.assessed)}</td>
+      <td>${yesNo(r.approved)}</td>
+      <td>${yesNo(r.assessed)}</td>
       <td>${bar(r.owned)}</td>
       <td>${bar(r.implemented)}</td>
       <td>${bar(r.ctrlAssessed)}</td>
@@ -674,8 +681,8 @@ function renderOpCoverageCard(assessment, theme) {
         <table class="opcov-table${named ? ' opcov-table-named' : ''}">
           <thead><tr>
             <th class="opcov-cap">${theme ? theme.rowHeader : ''}</th>
-            <th>Risks Approved<span class="opcov-th-sub">open / all risks</span></th>
-            <th>Risks Assessed<span class="opcov-th-sub">assessed / all risks</span></th>
+            <th>Risks Approved<span class="opcov-th-sub">Yes if all open</span></th>
+            <th>Risks Assessed<span class="opcov-th-sub">Yes if all rated</span></th>
             <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>
             <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
             <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>

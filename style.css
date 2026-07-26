@@ -2514,3 +2514,7 @@ details[open] .profile-card-chevron {
 .rr-table .rr-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rr-weak { background: rgba(168,84,80,.12); }
 .rr-flag { color: var(--clr-danger); font-size: .68rem; font-weight: 600; white-space: nowrap; }
+
+/* Multiple info links in a card header (Metrics / Confidence) */
+.card-info-links { text-align: right; margin-bottom: .6rem; }
+.ratings-link-inline { display: inline-block; margin: 0 0 0 .9rem; }

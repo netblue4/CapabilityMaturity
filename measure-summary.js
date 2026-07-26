@@ -485,9 +485,9 @@ function renderKpiSection(curr, prevF, currA, prevA) {
 
 // ── Risk themes (by control type) ────────────────────────────
 const RISK_THEMES = [
-  { key: 'locPol',      name: 'Local Policy',   dora: true,  desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.' },
-  { key: 'grpStd',      name: 'Group Standard', dora: true,  desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.' },
-  { key: 'operational', name: 'Pre-DORA',       dora: false, desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.' },
+  { key: 'locPol',      name: 'Local Policy',   dora: true,  rowBy: 'document', rowHeader: 'Local policy',   covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.' },
+  { key: 'grpStd',      name: 'Group Standard', dora: true,  rowBy: 'document', rowHeader: 'Group standard', covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.' },
+  { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',     rowHeader: 'Risk',           covPrefix: 'Control Operationalisation Coverage', desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.' },
 ];
 
 // One themed Risk Management card + its scoped Policy Operationalisation card.
@@ -599,8 +599,10 @@ function renderRiskPortfolioCard(assessment, theme) {
 // Per-capability funnel: five independent coverage bars + a confidence chip
 // that judges how well risk-assessment claims are backed by control evidence.
 function renderOpCoverageCard(assessment, theme) {
-  const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || [], theme ? theme.key : null);
-  const ocTitle = 'Policy Operationalisation Coverage' + (theme ? ` — ${theme.name}` : '');
+  const rowBy = theme ? theme.rowBy : null;
+  const named = !!rowBy && rowBy !== 'capability';
+  const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || [], theme ? theme.key : null, rowBy);
+  const ocTitle = theme ? `${theme.covPrefix} — ${theme.name}` : 'Policy Operationalisation Coverage';
   if (!oc.rows.length) {
     return `
       <div class="card measure-card">
@@ -636,7 +638,7 @@ function renderOpCoverageCard(assessment, theme) {
       ? `Confidence ${r.index}% = control-assessed ÷ risk-assessed`
       : 'No approved risks assessed yet';
     return `<tr>
-      <td class="opcov-cap" title="${r.capName}">${shortName(r.capName)}</td>
+      <td class="opcov-cap" title="${r.capName}">${named ? r.capName : shortName(r.capName)}</td>
       <td>${bar(r.approved)}</td>
       <td>${bar(r.assessed)}</td>
       <td>${bar(r.owned)}</td>
@@ -669,9 +671,9 @@ function renderOpCoverageCard(assessment, theme) {
         <button class="btn-link ratings-link ratings-link-inline" onclick="showConfidenceModal()">ℹ Confidence</button>
       </div>
       <div class="rcsa-table-wrap">
-        <table class="opcov-table">
+        <table class="opcov-table${named ? ' opcov-table-named' : ''}">
           <thead><tr>
-            <th class="opcov-cap"></th>
+            <th class="opcov-cap">${theme ? theme.rowHeader : ''}</th>
             <th>Risks Approved<span class="opcov-th-sub">open / all risks</span></th>
             <th>Risks Assessed<span class="opcov-th-sub">assessed / all risks</span></th>
             <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>

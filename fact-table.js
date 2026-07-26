@@ -262,7 +262,9 @@ function buildKpiSummary(polRows, riskPolicyFacts) {
 // title; controls are the individual fact rows). The confidence chip judges
 // how well the risk-assessment *claim* is backed by control *evidence*.
 //
-function buildOperationalisationCoverage(riskPolicyFacts, theme) {
+// rowBy: 'capability' (default) | 'control' (one row per control/statement name)
+//        | 'risk' (one row per risk title).
+function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy) {
   let facts = riskPolicyFacts || [];
   if (theme) facts = facts.filter(f => f.controlType === theme);
   const cfg   = (CONFIG && CONFIG.opCoverage) || {};
@@ -276,14 +278,12 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme) {
   };
   const isOpen  = f => ftNorm(f.riskStatus).includes('open');
   const isDraft = f => ftNorm(f.riskStatus).includes('draft');
+  const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0;
 
-  const rows = (CONFIG.capabilities || []).map(cap => {
-    const capFacts = facts.filter(f => f.capId === cap.id);
-    if (!capFacts.length) return null;
-
-    // ── Risk side — dedupe by risk title, ignore closed risks ──
+  // One row's metrics from a display name + its set of control facts.
+  function makeRow(name, groupFacts) {
     const riskMap = {};
-    capFacts.forEach(f => {
+    groupFacts.forEach(f => {
       const title = ftNorm(f.riskTitle);
       if (!title || isClosed(f)) return;
       if (!riskMap[title]) riskMap[title] = { open: false, draft: false, assessed: false };
@@ -292,39 +292,33 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme) {
       if (isDraft(f)) r.draft = true;
       if (f.residualScore != null && f.residualScore > 0) r.assessed = true;
     });
-    const risks       = Object.values(riskMap);
-    const totalRisks  = risks.length;
-    const openRisks   = risks.filter(r => r.open).length;
-    const draftRisks  = risks.filter(r => r.draft && !r.open).length;
-    const assessedRk  = risks.filter(r => r.assessed).length;
+    const risks      = Object.values(riskMap);
+    const totalRisks = risks.length;
+    const openRisks  = risks.filter(r => r.open).length;
+    const draftRisks = risks.filter(r => r.draft && !r.open).length;
+    const assessedRk = risks.filter(r => r.assessed).length;
 
-    // ── Control side — every fact row is a control ──
-    const totalCtrls = capFacts.length;
-    const ownedCtrls = capFacts.filter(ftIsOwned).length;
-    const implCtrls  = capFacts.filter(ftIsImplemented).length;
-    const assdCtrls  = capFacts.filter(ftIsAssessed).length;
+    const totalCtrls = groupFacts.length;
+    const ownedCtrls = groupFacts.filter(ftIsOwned).length;
+    const implCtrls  = groupFacts.filter(ftIsImplemented).length;
+    const assdCtrls  = groupFacts.filter(ftIsAssessed).length;
 
-    const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0;
     const assessedPct = pct(assessedRk, totalRisks);
     const ctrlAssdPct = pct(assdCtrls, totalCtrls);
     const ownedPct    = pct(ownedCtrls, totalCtrls);
 
-    // ── Confidence chip ──
-    // index = control evidence as a fraction of the risk-assessment claim
-    let index = null;
-    let chip;
+    let index = null, chip;
     if (assessedRk === 0) {
       chip = 'none';
     } else {
       index = Math.min(100, Math.round((ctrlAssdPct / assessedPct) * 100));
-      if (ownedPct < floor)     chip = 'low';       // ownership floor
+      if (ownedPct < floor)     chip = 'low';
       else if (index < lowCut)  chip = 'low';
       else if (index < okCut)   chip = 'building';
       else                      chip = 'ok';
     }
-
     return {
-      capId: cap.id, capName: cap.name,
+      capName: name,
       approved:    { n: openRisks,  d: openRisks + draftRisks },
       assessed:    { n: assessedRk, d: totalRisks },
       owned:       { n: ownedCtrls, d: totalCtrls },
@@ -332,7 +326,25 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme) {
       ctrlAssessed:{ n: assdCtrls,  d: totalCtrls },
       index, chip,
     };
-  }).filter(Boolean);
+  }
+
+  let rows;
+  if (rowBy === 'control' || rowBy === 'risk' || rowBy === 'document') {
+    const keyOf =
+      rowBy === 'control' ? f => (f.controlName || '').trim() || '(unnamed control)' :
+      rowBy === 'risk'    ? f => (f.riskTitle   || '').trim() || '(no risk)' :
+      /* document */        f => ((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '(unmapped)';
+    const groups = {};
+    facts.forEach(f => { const k = keyOf(f); (groups[k] = groups[k] || []).push(f); });
+    rows = Object.entries(groups).map(([name, gf]) => makeRow(name, gf));
+    // Push the "(unmapped)" catch-all to the bottom so registered rows lead.
+    rows.sort((a, b) => (a.capName === '(unmapped)' ? 1 : 0) - (b.capName === '(unmapped)' ? 1 : 0));
+  } else {
+    rows = (CONFIG.capabilities || []).map(cap => {
+      const cf = facts.filter(f => f.capId === cap.id);
+      return cf.length ? makeRow(cap.name, cf) : null;
+    }).filter(Boolean);
+  }
 
   const rollup = { none: 0, low: 0, building: 0, ok: 0 };
   rows.forEach(r => { rollup[r.chip] = (rollup[r.chip] || 0) + 1; });

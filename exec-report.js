@@ -71,37 +71,38 @@ function execComplianceSummary(a) {
   const grpCount = polRows.filter(r => isGrpStdType(r.type)).length;
 
   const pct  = (n, d) => (d > 0 ? Math.round(100 * n / d) : 0);
-  const govVals = CONFIG.capabilities.map(c => getMeasureScore(a, c.id, 'governance')).filter(s => s > 0);
-  const govAvg  = govVals.length ? (govVals.reduce((x, y) => x + y, 0) / govVals.length) : 0;
-
   const metric = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
 
   // Policy layer
-  const grpCovPct = ks.grpStdCoverage ? pct(ks.grpStdCoverage.covered, ks.grpStdCoverage.total) : 0;
+  const locCov    = ks.locPolCoverage || { covered: 0, total: 0 };
+  const grpCov    = ks.grpStdCoverage || { covered: 0, total: 0 };
+  const locCovPct = pct(locCov.covered, locCov.total);
+  const grpCovPct = pct(grpCov.covered, grpCov.total);
   const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
   const policyCol = `
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr">📜 Policy Layer — Written &amp; Approved</div>
-      ${metric(polRows.length || '—', `policy statements catalogued (${locCount} local · ${grpCount} group)`)}
-      ${metric(grpCovPct + '%', 'group requirements represented in the register')}
+      ${metric(locCount || '—', 'policy statements catalogued')}
+      ${metric(locCovPct + '%', `local policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
+      ${metric(grpCount || '—', 'group standards catalogued')}
+      ${metric(grpCovPct + '%', `group standards with associated risks (${grpCov.covered}/${grpCov.total})`)}
       ${metric(locPct + '%', 'group requirements mapped into a local policy')}
-      ${metric(govAvg > 0 ? govAvg.toFixed(1) + '/5' : '—', 'governance maturity (defined · owned · approved)')}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
-  // Operational layer
-  const grpOpPct  = ks.grpStdOperationalisation ? pct(ks.grpStdOperationalisation.operationalised, ks.grpStdOperationalisation.total) : 0;
-  const blindPct  = ks.locPolOperationalisation ? pct(ks.locPolOperationalisation.blindSpots, ks.locPolOperationalisation.total) : 0;
-  const assessedPct = rp ? rp.assessedPct : 0;
-  const ctrlCovPct  = rp && rp.ctrlCoveragePct != null ? rp.ctrlCoveragePct : 0;
-  const underCount  = rp ? rp.underAssuredCount : 0;
+  // Operational layer — controls behind the policies & standards
+  const locOp = ks.locPolOperationalisation || { total: 0, operationalised: 0 };
+  const grpOp = ks.grpStdOperationalisation || { total: 0, operationalised: 0 };
+  const locBackedPct = pct(locOp.operationalised, locOp.total);
+  const grpBackedPct = pct(grpOp.operationalised, grpOp.total);
+  const ctrlCovPct   = rp && rp.ctrlCoveragePct != null ? rp.ctrlCoveragePct : 0;
+  const underCount   = rp ? rp.underAssuredCount : 0;
   const ru = oc.rollup || { ok: 0, building: 0, low: 0, none: 0 };
   const opsCol = `
     <div class="pvo-col pvo-ops">
       <div class="pvo-col-hdr">⚙️ Operational Layer — Operationalised</div>
-      ${metric(assessedPct + '%', 'risks assessed (RCSA completion)')}
-      ${metric(grpOpPct + '%', 'group standards backed by an implemented control')}
-      ${metric(blindPct + '%', 'local-policy statements with no implemented control')}
+      ${metric(locBackedPct + '%', `policy statements backed by an implemented control (${locOp.operationalised}/${locOp.total})`)}
+      ${metric(grpBackedPct + '%', `group standards backed by an implemented control (${grpOp.operationalised}/${grpOp.total})`)}
       ${metric(ctrlCovPct + '%', 'controls assessed behind assessed risks')}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
@@ -151,9 +152,6 @@ function execDimCard(measure, prevA, currentA, plannedA) {
           <h3 class="measure-card-title">${measure.name}</h3>
           <p class="measure-card-desc">${measure.description}</p>
         </div>
-        <span class="measure-avg-badge" style="background:${lv ? lv.color : 'var(--clr-badge-empty)'}">
-          ${badge}
-        </span>
       </div>
       ${execBarsCombo(currentA, plannedA, measure, prevA)}
       ${narrHtml}

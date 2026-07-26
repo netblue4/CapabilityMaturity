@@ -485,9 +485,9 @@ function renderKpiSection(curr, prevF, currA, prevA) {
 
 // ── Risk themes (by control type) ────────────────────────────
 const RISK_THEMES = [
-  { key: 'locPol',      name: 'Local Policy',   dora: true,  rowBy: 'control', rowHeader: 'Policy statement', desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.' },
-  { key: 'grpStd',      name: 'Group Standard', dora: true,  rowBy: 'control', rowHeader: 'Group standard',   desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.' },
-  { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',    rowHeader: 'Risk',             desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.' },
+  { key: 'locPol',      name: 'Local Policy',   dora: true,  rowBy: 'document', rowHeader: 'Local policy',   covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.' },
+  { key: 'grpStd',      name: 'Group Standard', dora: true,  rowBy: 'document', rowHeader: 'Group standard', covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.' },
+  { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',     rowHeader: 'Risk',           covPrefix: 'Control Operationalisation Coverage', desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.' },
 ];
 
 // One themed Risk Management card + its scoped Policy Operationalisation card.
@@ -600,9 +600,9 @@ function renderRiskPortfolioCard(assessment, theme) {
 // that judges how well risk-assessment claims are backed by control evidence.
 function renderOpCoverageCard(assessment, theme) {
   const rowBy = theme ? theme.rowBy : null;
-  const named = rowBy === 'control' || rowBy === 'risk';
+  const named = !!rowBy && rowBy !== 'capability';
   const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || [], theme ? theme.key : null, rowBy);
-  const ocTitle = 'Policy Operationalisation Coverage' + (theme ? ` — ${theme.name}` : '');
+  const ocTitle = theme ? `${theme.covPrefix} — ${theme.name}` : 'Policy Operationalisation Coverage';
   if (!oc.rows.length) {
     return `
       <div class="card measure-card">

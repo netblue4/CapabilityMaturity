@@ -328,15 +328,17 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy) {
     };
   }
 
-  const capName = id => (CONFIG.capabilities.find(c => c.id === id)?.name) || id;
   let rows;
-  if (rowBy === 'control' || rowBy === 'risk') {
-    const keyOf = rowBy === 'control'
-      ? f => (f.controlName || '').trim() || '(unnamed control)'
-      : f => (f.riskTitle || '').trim() || '(no risk)';
+  if (rowBy === 'control' || rowBy === 'risk' || rowBy === 'document') {
+    const keyOf =
+      rowBy === 'control' ? f => (f.controlName || '').trim() || '(unnamed control)' :
+      rowBy === 'risk'    ? f => (f.riskTitle   || '').trim() || '(no risk)' :
+      /* document */        f => ((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '(unmapped)';
     const groups = {};
     facts.forEach(f => { const k = keyOf(f); (groups[k] = groups[k] || []).push(f); });
     rows = Object.entries(groups).map(([name, gf]) => makeRow(name, gf));
+    // Push the "(unmapped)" catch-all to the bottom so registered rows lead.
+    rows.sort((a, b) => (a.capName === '(unmapped)' ? 1 : 0) - (b.capName === '(unmapped)' ? 1 : 0));
   } else {
     rows = (CONFIG.capabilities || []).map(cap => {
       const cf = facts.filter(f => f.capId === cap.id);

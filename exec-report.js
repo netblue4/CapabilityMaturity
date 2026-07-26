@@ -36,26 +36,89 @@ function generateExecReport() {
   document.getElementById('exec-report-content').innerHTML = `
     <div class="exec-report-top no-print">
       <div>
-        <h2 class="exec-report-title">ICT Executive Risk Oversight Report</h2>
+        <h2 class="exec-report-title">Policy vs Operational Compliance</h2>
         <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
       </div>
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     <div class="exec-report-top print-only" style="display:none">
-      <h2 class="exec-report-title">ICT Executive Risk Oversight Report</h2>
+      <h2 class="exec-report-title">Policy vs Operational Compliance</h2>
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
-    ${execSummaryPanel(prevA, currentA)}
-    <div class="exec-sec-div">ICT Maturity — Continuous Improvement Cycle</div>
+    ${execComplianceSummary(currentA)}
+    <div class="exec-sec-div">Policy Layer — Governance Maturity</div>
     ${dimCards}
-    <div class="exec-sec-div">Risk Management — Portfolio Health</div>
+    <div class="exec-sec-div">Operational Layer — Risk Management — Portfolio Health</div>
     <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA)}</div>
-    <div class="exec-sec-div">Policy Operationalisation Coverage</div>
+    <div class="exec-sec-div">Operational Layer — Policy Operationalisation Coverage</div>
     <div class="exec-rcsa-wrap">${renderOpCoverageCard(currentA)}</div>
-    <div class="exec-sec-div">Current Risk Profile</div>
+    <div class="exec-sec-div">Supporting Detail — RCSA &amp; CSA Metrics</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
   `;
   showView('exec-report');
+}
+
+// ── Policy vs Operational Compliance summary ──────────────────
+// Two-layer split: policies written & approved (policy compliance) vs.
+// policies actually operationalised (operational compliance), with the
+// confidence behind the operational claim.
+function execComplianceSummary(a) {
+  const ks = buildKpiSummary(a.policyRows || [], a.riskPolicyFacts || []);
+  const rp = buildRiskPortfolioSummary(a.riskPolicyFacts || []);
+  const oc = buildOperationalisationCoverage(a.riskPolicyFacts || []);
+  const polRows = a.policyRows || [];
+  const locCount = polRows.filter(r => isLocPolType(r.type)).length;
+  const grpCount = polRows.filter(r => isGrpStdType(r.type)).length;
+
+  const pct  = (n, d) => (d > 0 ? Math.round(100 * n / d) : 0);
+  const govVals = CONFIG.capabilities.map(c => getMeasureScore(a, c.id, 'governance')).filter(s => s > 0);
+  const govAvg  = govVals.length ? (govVals.reduce((x, y) => x + y, 0) / govVals.length) : 0;
+
+  const metric = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
+
+  // Policy layer
+  const grpCovPct = ks.grpStdCoverage ? pct(ks.grpStdCoverage.covered, ks.grpStdCoverage.total) : 0;
+  const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
+  const policyCol = `
+    <div class="pvo-col pvo-policy">
+      <div class="pvo-col-hdr">📜 Policy Layer — Written &amp; Approved</div>
+      ${metric(polRows.length || '—', `policy statements catalogued (${locCount} local · ${grpCount} group)`)}
+      ${metric(grpCovPct + '%', 'group requirements represented in the register')}
+      ${metric(locPct + '%', 'group requirements mapped into a local policy')}
+      ${metric(govAvg > 0 ? govAvg.toFixed(1) + '/5' : '—', 'governance maturity (defined · owned · approved)')}
+      <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
+    </div>`;
+
+  // Operational layer
+  const grpOpPct  = ks.grpStdOperationalisation ? pct(ks.grpStdOperationalisation.operationalised, ks.grpStdOperationalisation.total) : 0;
+  const blindPct  = ks.locPolOperationalisation ? pct(ks.locPolOperationalisation.blindSpots, ks.locPolOperationalisation.total) : 0;
+  const assessedPct = rp ? rp.assessedPct : 0;
+  const ctrlCovPct  = rp && rp.ctrlCoveragePct != null ? rp.ctrlCoveragePct : 0;
+  const underCount  = rp ? rp.underAssuredCount : 0;
+  const ru = oc.rollup || { ok: 0, building: 0, low: 0, none: 0 };
+  const opsCol = `
+    <div class="pvo-col pvo-ops">
+      <div class="pvo-col-hdr">⚙️ Operational Layer — Operationalised</div>
+      ${metric(assessedPct + '%', 'risks assessed (RCSA completion)')}
+      ${metric(grpOpPct + '%', 'group standards backed by an implemented control')}
+      ${metric(blindPct + '%', 'local-policy statements with no implemented control')}
+      ${metric(ctrlCovPct + '%', 'controls assessed behind assessed risks')}
+      <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
+    </div>`;
+
+  const notes = a.notes
+    ? `<div class="exec-notes-block"><div class="exec-notes-lbl">Assessment Notes</div>${a.notes}</div>`
+    : '';
+
+  return `
+    <div class="pvo-summary">
+      <div class="pvo-banner">
+        <span class="pvo-banner-title">Policy compliance ≠ operational compliance</span>
+        <span class="pvo-banner-sub">Local policies are rewritten and approved to group &amp; DORA requirements. Operationalising them — building, owning and assessing the controls — is a separate, earlier-stage effort, reported distinctly below.</span>
+      </div>
+      <div class="pvo-cols">${policyCol}${opsCol}</div>
+      ${notes}
+    </div>`;
 }
 
 // ── Dimension card ────────────────────────────────────────────
@@ -154,75 +217,6 @@ function execBarsCombo(currentA, plannedA, measure, prevA) {
         <span class="exec-bar-tgt" style="color:var(--text-muted);font-size:.65rem;font-weight:normal">TGT</span>
       </div>
       ${rows}
-    </div>`;
-}
-
-// ── Executive Summary Panel ───────────────────────────────────
-function execSummaryPanel(prevA, currentA) {
-  const shortLabel = { governance: 'Governance' };
-
-  // KPI tile per dimension
-  const tiles = CONFIG.measures.map(m => {
-    const vals = c => CONFIG.capabilities.map(cap => getMeasureScore(c, cap.id, m.id)).filter(s => s > 0);
-    const cVals = vals(currentA); const pVals = vals(prevA);
-    const cAvg = cVals.length ? cVals.reduce((a,b) => a+b,0) / cVals.length : 0;
-    const pAvg = pVals.length ? pVals.reduce((a,b) => a+b,0) / pVals.length : 0;
-    const lv   = levelForScore(cAvg);
-    const d    = pAvg > 0 && cAvg > 0 ? cAvg - pAvg : null;
-    const val  = pAvg > 0 && cAvg > 0
-      ? `${pAvg.toFixed(1)} → ${cAvg.toFixed(1)}${d !== null && d !== 0 ? (d > 0 ? ' ▲' : ' ▼') : ''}`
-      : cAvg > 0 ? cAvg.toFixed(1) : '—';
-    const color = lv ? lv.color : 'var(--clr-badge-empty)';
-    return `
-      <div class="exec-kpi-tile">
-        <span class="exec-kpi-icon">${m.icon}</span>
-        <span class="exec-kpi-label">${shortLabel[m.id] || m.name}</span>
-        <span class="exec-kpi-value" style="color:${color}">${val}</span>
-      </div>`;
-  }).join('');
-
-  // Risk Profile tile
-  const riskKeys = Object.keys(CONFIG.riskScoreMatrix || {});
-  function getAbbrev(v) {
-    if (!v) return null;
-    if (v.startsWith('Extreme'))     return 'EXT';
-    if (v.startsWith('Significant')) return 'SIG';
-    if (v.startsWith('Moderate'))    return 'MOD';
-    return 'LOW';
-  }
-  let extC = 0, sigC = 0, othC = 0;
-  CONFIG.capabilities.forEach(cap => {
-    const rm = getRiskManagement(currentA, cap.id);
-    if (rm.risksAssessed > 0 && rm.residualRating) {
-      const a = getAbbrev(rm.residualRating);
-      if (a === 'EXT') extC++;
-      else if (a === 'SIG') sigC++;
-      else othC++;
-    }
-  });
-  const totalAssessed = extC + sigC + othC;
-  const riskVal  = totalAssessed === 0 ? 'Not assessed'
-    : [extC > 0 ? `${extC} Extreme` : '', sigC > 0 ? `${sigC} Significant` : '', othC > 0 ? `${othC} other` : '']
-        .filter(Boolean).join(' · ');
-  const riskColor = extC > 0 ? (CONFIG.levels[0]?.color || 'var(--clr-danger)')
-    : sigC > 0 ? (CONFIG.levels[1]?.color || 'var(--clr-warning)')
-    : totalAssessed > 0 ? 'var(--clr-success)' : 'var(--clr-badge-empty)';
-  const riskTile = `
-    <div class="exec-kpi-tile">
-      <span class="exec-kpi-icon">🛡️</span>
-      <span class="exec-kpi-label">Risk Profile</span>
-      <span class="exec-kpi-value" style="color:${riskColor}">${riskVal}</span>
-    </div>`;
-
-  // Notes block
-  const notesHtml = currentA.notes
-    ? `<div class="exec-notes-block"><div class="exec-notes-lbl">Assessment Notes</div>${currentA.notes}</div>`
-    : '';
-
-  return `
-    <div class="exec-summary-panel">
-      <div class="exec-kpi-row">${tiles}${riskTile}</div>
-      ${notesHtml}
     </div>`;
 }
 

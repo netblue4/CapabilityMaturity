@@ -46,7 +46,8 @@ const METRICS_INFO = {
       ["Total Risks (open/draft/closed)", "Size and state of the register", "Draft backlog = risks known but not yet in the RCSA — the gap between spotting and managing"],
       ["Assessed %", "Active risks with a residual rating", "An unassessed risk is an unmanaged risk; this is your RCSA completion rate"],
       ["Severe (residual ≥ 20)", "Count of high-residual risks", "The board's watch-list — what can still hurt after controls"],
-      ["Risk Reduction (inherent→residual)", "How far controls pull risk down", "The one number proving controls add value; a small gap means controls aren't earning their keep (click the tile to see which)"],
+      ["Risk Reduction (inherent→residual)", "How far controls pull risk down (Pre-DORA card)", "The one number proving controls add value; a small gap means controls aren't earning their keep (click the tile to see which)"],
+      ["Controls Implemented (Local Policy / Group Standard cards)", "% of that theme's controls that are implemented", "Shown in place of Risk Reduction, which can't be attributed to a single control type — the number to drive up as DORA controls come online"],
       ["Control Coverage (assessed risks)", "% of controls assessed behind assessed risks", "Whether a risk rating is evidence-based or just opinion"],
       ["Under-assured", "Assessed risks with < 50% of their controls assessed", "Ratings you couldn't defend to an auditor — where confidence is false (click the tile for the per-risk coverage split)"],
       ["Residual severity mix", "Spread across Extreme / Significant / Moderate / Low", "The shape of your exposure at a glance"],
@@ -129,10 +130,11 @@ function showConfidenceModal() {
 }
 
 // ── Under-assured drill-down — are risk ratings backed by control evidence? ──
-function showUnderAssuredModal(assessmentId) {
+function showUnderAssuredModal(assessmentId, theme) {
   const a = db.assessments.find(x => x.id === assessmentId);
-  const s = a ? buildRiskPortfolioSummary(a.riskPolicyFacts || []) : null;
-  document.getElementById("modal-title").textContent = "Under-assured — are risk ratings backed by control evidence?";
+  const s = a ? buildRiskPortfolioSummary(a.riskPolicyFacts || [], theme || null) : null;
+  const themeName = { locPol: 'Local Policy', grpStd: 'Group Standard', operational: 'Pre-DORA' }[theme];
+  document.getElementById("modal-title").textContent = `Under-assured${themeName ? ' · ' + themeName : ''} — are risk ratings backed by control evidence?`;
   if (!s || !s.assuranceRanking.length) {
     document.getElementById("modal-body").innerHTML = `<p class="modal-desc">No assessed risks to rank yet.</p>`;
     document.getElementById("ratings-modal").style.display = "flex";
@@ -157,10 +159,11 @@ function showUnderAssuredModal(assessmentId) {
 }
 
 // ── Risk Reduction drill-down — which controls aren't earning their keep ──
-function showRiskReductionModal(assessmentId) {
+function showRiskReductionModal(assessmentId, theme) {
   const a = db.assessments.find(x => x.id === assessmentId);
-  const s = a ? buildRiskPortfolioSummary(a.riskPolicyFacts || []) : null;
-  document.getElementById("modal-title").textContent = "Risk Reduction — are controls earning their keep?";
+  const s = a ? buildRiskPortfolioSummary(a.riskPolicyFacts || [], theme || null) : null;
+  const themeName = { locPol: 'Local Policy', grpStd: 'Group Standard', operational: 'Pre-DORA' }[theme];
+  document.getElementById("modal-title").textContent = `Risk Reduction${themeName ? ' · ' + themeName : ''} — are controls earning their keep?`;
   if (!s || !s.ranking.length) {
     document.getElementById("modal-body").innerHTML = `<p class="modal-desc">No assessed risks to rank yet.</p>`;
     document.getElementById("ratings-modal").style.display = "flex";

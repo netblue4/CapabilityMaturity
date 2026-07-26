@@ -2543,3 +2543,7 @@ details[open] .profile-card-chevron {
 .pvo-verdict-ok   { background: rgba(74,140,101,.16);  color: var(--clr-success); }
 .pvo-verdict-warn { background: rgba(176,125,69,.16);  color: var(--clr-warning); }
 @media (max-width: 800px) { .pvo-cols { grid-template-columns: 1fr; } }
+
+/* Themed risk section — a themed portfolio card + its scoped coverage card */
+.theme-block { margin-bottom: 1.1rem; }
+.theme-block .measure-card { margin-bottom: .5rem; }

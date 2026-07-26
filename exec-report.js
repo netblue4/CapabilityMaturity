@@ -48,10 +48,10 @@ function generateExecReport() {
     ${execComplianceSummary(currentA)}
     <div class="exec-sec-div">Policy Layer — Governance Maturity</div>
     ${dimCards}
-    <div class="exec-sec-div">Operational Layer — Risk Management — Portfolio Health</div>
-    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA)}</div>
-    <div class="exec-sec-div">Operational Layer — Policy Operationalisation Coverage</div>
-    <div class="exec-rcsa-wrap">${renderOpCoverageCard(currentA)}</div>
+    ${RISK_THEMES.map(t => `
+    <div class="exec-sec-div">Operational Layer — ${t.name}</div>
+    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA, t)}</div>
+    <div class="exec-rcsa-wrap">${renderOpCoverageCard(currentA, t)}</div>`).join('')}
     <div class="exec-sec-div">Supporting Detail — RCSA &amp; CSA Metrics</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
   `;

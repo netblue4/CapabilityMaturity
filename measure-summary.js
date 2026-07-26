@@ -627,7 +627,10 @@ function renderOpCoverageCard(assessment) {
         </div>
         <div class="opcov-rollup">${rollup}</div>
       </div>
-      <button class="btn-link ratings-link" onclick="showMetricsModal('opCoverage')">ℹ Metrics</button>
+      <div class="card-info-links">
+        <button class="btn-link ratings-link ratings-link-inline" onclick="showMetricsModal('opCoverage')">ℹ Metrics</button>
+        <button class="btn-link ratings-link ratings-link-inline" onclick="showConfidenceModal()">ℹ Confidence</button>
+      </div>
       <div class="rcsa-table-wrap">
         <table class="opcov-table">
           <thead><tr>

@@ -106,6 +106,28 @@ function showMetricsModal(cardKey) {
   document.getElementById("ratings-modal").style.display = "flex";
 }
 
+// ── Confidence ratings explainer (Policy Operationalisation Coverage) ──
+function showConfidenceModal() {
+  const cfg   = (CONFIG && CONFIG.opCoverage) || {};
+  const floor = cfg.ownershipFloorPct != null ? cfg.ownershipFloorPct : 20;
+  const low   = cfg.confidenceLowPct  != null ? cfg.confidenceLowPct  : 40;
+  const ok    = cfg.confidenceOkPct   != null ? cfg.confidenceOkPct   : 75;
+  document.getElementById("modal-title").textContent = "Policy Operationalisation Coverage — Confidence Ratings";
+  const rows = [
+    ['opcov-chip-ok',       '● OK',       `Confidence Index ≥ ${ok}%`,                                        "Control evidence keeps pace with the risk assessment — this capability's risk view can be trusted"],
+    ['opcov-chip-building', '◐ Building', `Confidence Index ${low}–${ok - 1}%`,                               "Some control evidence in place, but the risk view isn't fully backed yet"],
+    ['opcov-chip-low',      '⚠ Low',      `Confidence Index &lt; ${low}%, or fewer than ${floor}% of controls owned`, "Risk ratings have run ahead of the control evidence (or almost nothing is owned) — treat the risk view with caution"],
+    ['opcov-chip-none',     '– None',     'No approved risks assessed',                                       "Nothing asserted yet, so there's nothing to be confident or unsure about"],
+  ];
+  document.getElementById("modal-body").innerHTML = `
+    <p class="modal-desc">Each capability gets a confidence rating based on how well its risk assessments are backed by control evidence. <strong>Confidence Index = Control-Assessed % ÷ Risk-Assessed %</strong> (capped at 100%) — of the risks you've rated, how much of the control base behind them has actually been assessed. The ownership floor is checked first.</p>
+    <table class="metrics-info-table">
+      <thead><tr><th>Rating</th><th>How it's calculated</th><th>What it means</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td><span class="opcov-chip ${r[0]}">${r[1]}</span></td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody>
+    </table>`;
+  document.getElementById("ratings-modal").style.display = "flex";
+}
+
 // ── Under-assured drill-down — are risk ratings backed by control evidence? ──
 function showUnderAssuredModal(assessmentId) {
   const a = db.assessments.find(x => x.id === assessmentId);

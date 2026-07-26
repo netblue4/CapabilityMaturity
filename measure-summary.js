@@ -138,9 +138,9 @@ function renderMeasureSummary(assessment) {
   document.getElementById("scores-card-slot").innerHTML = scoresCard;
   row.innerHTML = measureCards;
   const rmSlot = document.getElementById("riskmgmt-card-row");
-  if (rmSlot) rmSlot.innerHTML = renderRiskPortfolioCard(assessment);
+  if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment);
   const opcovSlot = document.getElementById("opcov-card-row");
-  if (opcovSlot) opcovSlot.innerHTML = renderOpCoverageCard(assessment);
+  if (opcovSlot) opcovSlot.innerHTML = '';
   document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
 }
 
@@ -483,13 +483,43 @@ function renderKpiSection(curr, prevF, currA, prevA) {
          tableBlock('Cross Team Cooperation',    filteredCtc);
 }
 
-// ── Risk Management — Portfolio Health Card ──────────────────
-// Portfolio roll-up of the RCSA: register, assessment, severity, and the
-// control assurance behind the risk ratings.
-function renderRiskPortfolioCard(assessment) {
-  const s = buildRiskPortfolioSummary(assessment.riskPolicyFacts || []);
-  if (!s) return '';
+// ── Risk themes (by control type) ────────────────────────────
+const RISK_THEMES = [
+  { key: 'locPol',      name: 'Local Policy',   dora: true,  desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.' },
+  { key: 'grpStd',      name: 'Group Standard', dora: true,  desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.' },
+  { key: 'operational', name: 'Pre-DORA',       dora: false, desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.' },
+];
 
+// One themed Risk Management card + its scoped Policy Operationalisation card.
+function renderThemedRiskSection(assessment) {
+  return RISK_THEMES.map(t => `
+    <div class="theme-block">
+      ${renderRiskPortfolioCard(assessment, t)}
+      ${renderOpCoverageCard(assessment, t)}
+    </div>`).join('');
+}
+
+// ── Risk Management — Portfolio Health Card ──────────────────
+// theme (optional) = { key, name, dora }: scopes the card to one control type.
+function renderRiskPortfolioCard(assessment, theme) {
+  const tk = theme ? theme.key : null;
+  const s  = buildRiskPortfolioSummary(assessment.riskPolicyFacts || [], tk);
+  const title = theme ? `Risk Management — ${theme.name}` : 'Risk Management — Portfolio Health';
+  const desc  = theme ? theme.desc
+    : 'Operational compliance — are we doing what our local policies, group standards and DORA say we should? The control evidence behind our risk ratings, from the RCSA.';
+
+  if (!s) {
+    return `
+      <div class="card measure-card">
+        <div class="measure-card-header">
+          <span class="measure-icon">🛡️</span>
+          <div><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+        </div>
+        <p class="policy-no-data" style="margin:.5rem 0">No ${theme ? theme.name.toLowerCase() + ' controls' : 'risk data'} yet.</p>
+      </div>`;
+  }
+
+  const tk2 = theme ? theme.key : '';
   const tile = (label, num, sub, cls, onclick) => `
     <div class="rm-tile${onclick ? ' rm-tile-clickable' : ''}"${onclick ? ` onclick="${onclick}" title="Click for the per-risk breakdown"` : ''}>
       <div class="rm-tile-lbl">${label}${onclick ? ' <span class="rm-tile-more">▸</span>' : ''}</div>
@@ -497,15 +527,22 @@ function renderRiskPortfolioCard(assessment) {
       <div class="rm-tile-sub">${sub}</div>
     </div>`;
 
+  // DORA themes swap Risk Reduction (not control-type-attributable) for
+  // implemented rate; Pre-DORA keeps the reduction tile with its drill-down.
+  const fifthTile = (theme && theme.dora)
+    ? tile('Controls Implemented', s.implementedPct + '%', `of ${theme.name.toLowerCase()} controls implemented (${s.ctrlImplemented}/${s.ctrlCount})`, '')
+    : tile('Risk Reduction', s.reductionPct != null ? s.reductionPct + '%' : '—', `controls cut risk from ${s.avgInherent} to ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}', '${tk2}')`);
+
   const tiles = [
     tile('Total Risks',      s.total, `${s.open} open · ${s.draft} draft · ${s.closed} closed`, ''),
     tile('Risks Assessed',   s.assessedPct + '%', `${s.assessed} of ${s.active} active risks rated`, ''),
     tile('Severe',           s.severe, `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed} assessed)`, s.severe > 0 ? 'rm-num-warn' : ''),
-    tile('Risk Reduction',   s.reductionPct != null ? s.reductionPct + '%' : '—', `controls cut risk from ${s.avgInherent} to ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}')`),
     tile('Control Coverage', s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—', `of controls behind assessed risks are checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
-    tile('Under-assured',    s.underAssuredCount, `residual risk ratings lacking control evidence (${s.underAssuredCount}/${s.assessed} assessed)`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}')`),
+    fifthTile,
+    tile('Under-assured',    s.underAssuredCount, `residual risk ratings lacking control evidence (${s.underAssuredCount}/${s.assessed} assessed)`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}', '${tk2}')`),
   ].join('');
 
+  // Severity distribution bar — portfolio view only (dropped on theme cards).
   const sevDefs = [
     { k: 'extreme',     label: 'Extreme',     color: '#b34d4d' },
     { k: 'significant', label: 'Significant', color: '#bc7439' },
@@ -519,20 +556,26 @@ function renderRiskPortfolioCard(assessment) {
     : '<div class="rm-sev-empty">No assessed risks yet</div>';
   const legend = sevDefs.map(d =>
     `<span class="rm-sev-leg"><span class="rm-sev-dot" style="background:${d.color}"></span>${d.label} ${s.severity[d.k]}</span>`).join('');
+  const sevBlock = theme ? '' : `
+      <div class="rm-sev">
+        <div class="rm-sev-hdr">Residual severity of assessed risks</div>
+        <div class="rm-sev-bar">${segs}</div>
+        <div class="rm-sev-legend">${legend}</div>
+      </div>`;
 
   const trunc = t => (t.length > 42 ? t.slice(0, 42) + '…' : t);
   const under = s.underAssuredCount ? `
     <div class="rm-underassured">
       <span class="rm-ua-flag">⚠ ${s.underAssuredCount} assessed ${s.underAssuredCount === 1 ? 'risk' : 'risks'} not backed by control evidence (&lt; ${s.underAssuredFloor}% of controls assessed):</span>
       <span class="rm-ua-list">${s.underAssured.map(trunc).join(' · ')}</span>
-      <span class="rm-ua-more" onclick="showUnderAssuredModal('${assessment.id}')">See all →</span>
+      <span class="rm-ua-more" onclick="showUnderAssuredModal('${assessment.id}', '${tk2}')">See all →</span>
     </div>` : '';
 
   const weak = s.weakMitigationCount ? `
     <div class="rm-underassured">
       <span class="rm-ua-flag">⚠ ${s.weakMitigationCount} ${s.weakMitigationCount === 1 ? 'risk' : 'risks'} where controls aren't earning their keep (&lt; ${s.weakThreshold}% reduction with implemented controls):</span>
       <span class="rm-ua-list">${s.weakMitigation.map(r => `${trunc(r.title)} (${r.reductionPct}%${r.effective ? ', ' + r.effective + ' eff' : ''})`).join(' · ')}</span>
-      <span class="rm-ua-more" onclick="showRiskReductionModal('${assessment.id}')">See all →</span>
+      <span class="rm-ua-more" onclick="showRiskReductionModal('${assessment.id}', '${tk2}')">See all →</span>
     </div>` : '';
 
   return `
@@ -540,17 +583,13 @@ function renderRiskPortfolioCard(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">🛡️</span>
         <div>
-          <h3 class="measure-card-title">Risk Management — Portfolio Health</h3>
-          <p class="measure-card-desc">Operational compliance — are we doing what our local policies, group standards and DORA say we should? The control evidence behind our risk ratings, from the RCSA.</p>
+          <h3 class="measure-card-title">${title}</h3>
+          <p class="measure-card-desc">${desc}</p>
         </div>
       </div>
       <button class="btn-link ratings-link" onclick="showMetricsModal('riskPortfolio')">ℹ Metrics</button>
       <div class="rm-tiles">${tiles}</div>
-      <div class="rm-sev">
-        <div class="rm-sev-hdr">Residual severity of assessed risks</div>
-        <div class="rm-sev-bar">${segs}</div>
-        <div class="rm-sev-legend">${legend}</div>
-      </div>
+      ${sevBlock}
       ${under}
       ${weak}
     </div>`;
@@ -559,19 +598,20 @@ function renderRiskPortfolioCard(assessment) {
 // ── Policy Operationalisation Coverage Card ──────────────────
 // Per-capability funnel: five independent coverage bars + a confidence chip
 // that judges how well risk-assessment claims are backed by control evidence.
-function renderOpCoverageCard(assessment) {
-  const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || []);
+function renderOpCoverageCard(assessment, theme) {
+  const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || [], theme ? theme.key : null);
+  const ocTitle = 'Policy Operationalisation Coverage' + (theme ? ` — ${theme.name}` : '');
   if (!oc.rows.length) {
     return `
       <div class="card measure-card">
         <div class="measure-card-header">
           <span class="measure-icon">🎯</span>
           <div>
-            <h3 class="measure-card-title">Policy Operationalisation Coverage</h3>
+            <h3 class="measure-card-title">${ocTitle}</h3>
             <p class="measure-card-desc">How far each capability's risks and controls have progressed, and how well risk conclusions are backed by control evidence.</p>
           </div>
         </div>
-        <p class="policy-no-data" style="margin:.5rem 0">No risk data imported yet.</p>
+        <p class="policy-no-data" style="margin:.5rem 0">No ${theme ? theme.name.toLowerCase() + ' controls' : 'risk data imported'} yet.</p>
       </div>`;
   }
 
@@ -619,7 +659,7 @@ function renderOpCoverageCard(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">🎯</span>
         <div style="flex:1">
-          <h3 class="measure-card-title">Policy Operationalisation Coverage</h3>
+          <h3 class="measure-card-title">${ocTitle}</h3>
           <p class="measure-card-desc">Each capability's progress across the risk and control lifecycle. Confidence flags where risk conclusions run ahead of the control evidence.</p>
         </div>
         <div class="opcov-rollup">${rollup}</div>

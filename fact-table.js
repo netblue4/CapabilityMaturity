@@ -262,8 +262,9 @@ function buildKpiSummary(polRows, riskPolicyFacts) {
 // title; controls are the individual fact rows). The confidence chip judges
 // how well the risk-assessment *claim* is backed by control *evidence*.
 //
-function buildOperationalisationCoverage(riskPolicyFacts) {
-  const facts = riskPolicyFacts || [];
+function buildOperationalisationCoverage(riskPolicyFacts, theme) {
+  let facts = riskPolicyFacts || [];
+  if (theme) facts = facts.filter(f => f.controlType === theme);
   const cfg   = (CONFIG && CONFIG.opCoverage) || {};
   const floor = cfg.ownershipFloorPct != null ? cfg.ownershipFloorPct : 20;
   const lowCut = cfg.confidenceLowPct  != null ? cfg.confidenceLowPct  : 40;
@@ -346,8 +347,12 @@ function buildOperationalisationCoverage(riskPolicyFacts) {
 // control-assessment coverage on assessed risks, and under-assured risks
 // (assessed ratings not backed by enough control evidence).
 //
-function buildRiskPortfolioSummary(riskPolicyFacts) {
-  const facts = riskPolicyFacts || [];
+// `theme`, when given, scopes the whole summary to one control type
+// ('locPol' | 'grpStd' | 'operational'): risks are those touched by a control
+// of that type, and control metrics count only that type's controls.
+function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
+  let facts = riskPolicyFacts || [];
+  if (theme) facts = facts.filter(f => f.controlType === theme);
   const cfg      = (CONFIG && CONFIG.riskManagement) || {};
   const severeAt = cfg.severeResidualThreshold      != null ? cfg.severeResidualThreshold      : 20;
   const underAt  = cfg.underAssuredCoveragePct      != null ? cfg.underAssuredCoveragePct      : 50;
@@ -417,6 +422,12 @@ function buildRiskPortfolioSummary(riskPolicyFacts) {
   // Weak mitigation: controls exist (>=1 implemented) but risk barely dropped.
   const weakMitigation = ranking.filter(r => r.implemented >= 1 && r.reductionPct < weakAt);
 
+  // Implemented rate across all of this scope's controls (used by the DORA
+  // theme cards in place of Risk Reduction, which isn't control-type-attributable).
+  const ctrlImplemented = facts.filter(ftIsImplemented).length;
+  const ctrlCount       = facts.length;
+  const implementedPct  = ctrlCount > 0 ? Math.round(100 * ctrlImplemented / ctrlCount) : 0;
+
   return {
     total: risks.length, open, draft, closed,
     active: active.length,
@@ -427,6 +438,7 @@ function buildRiskPortfolioSummary(riskPolicyFacts) {
     avgResidual: Math.round(avgRes * 10) / 10,
     reductionPct,
     ctrlCoveragePct, ctrlAssessed: totCtrlAssd, ctrlTotal: totCtrls,
+    ctrlImplemented, ctrlCount, implementedPct,
     underAssured, underAssuredCount: underAssured.length, underAssuredFloor: underAt, assuranceRanking,
     ranking, weakMitigation, weakMitigationCount: weakMitigation.length, weakThreshold: weakAt,
   };

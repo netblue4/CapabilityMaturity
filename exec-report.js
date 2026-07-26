@@ -77,13 +77,17 @@ function execComplianceSummary(a) {
   const metric = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
 
   // Policy layer
-  const grpCovPct = ks.grpStdCoverage ? pct(ks.grpStdCoverage.covered, ks.grpStdCoverage.total) : 0;
+  const locCov    = ks.locPolCoverage || { covered: 0, total: 0 };
+  const grpCov    = ks.grpStdCoverage || { covered: 0, total: 0 };
+  const locCovPct = pct(locCov.covered, locCov.total);
+  const grpCovPct = pct(grpCov.covered, grpCov.total);
   const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
   const policyCol = `
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr">📜 Policy Layer — Written &amp; Approved</div>
       ${metric(polRows.length || '—', `policy statements catalogued (${locCount} local · ${grpCount} group)`)}
-      ${metric(grpCovPct + '%', 'group requirements represented in the register')}
+      ${metric(locCovPct + '%', `local policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
+      ${metric(grpCovPct + '%', `group standards with an associated risk (${grpCov.covered}/${grpCov.total})`)}
       ${metric(locPct + '%', 'group requirements mapped into a local policy')}
       ${metric(govAvg > 0 ? govAvg.toFixed(1) + '/5' : '—', 'governance maturity (defined · owned · approved)')}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>

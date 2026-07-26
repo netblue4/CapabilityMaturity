@@ -83,10 +83,10 @@ function execComplianceSummary(a) {
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr">📜 Policy Layer — Written &amp; Approved</div>
       ${metric(locCount || '—', 'policy statements catalogued')}
-      ${metric(locCovPct + '%', `local policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
+      ${metric(locCovPct + '%', `policy objectives with an associated risk (${locCov.covered}/${locCov.total})`)}
       ${metric(grpCount || '—', 'group standards catalogued')}
-      ${metric(grpCovPct + '%', `group standards with associated risks (${grpCov.covered}/${grpCov.total})`)}
-      ${metric(locPct + '%', 'group requirements mapped into a local policy')}
+      ${metric(grpCovPct + '%', `standard objectives with associated risks (${grpCov.covered}/${grpCov.total})`)}
+      ${metric(locPct + '%', 'group requirements mapped into a policy statements')}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
@@ -101,13 +101,13 @@ function execComplianceSummary(a) {
   const preDora = facts.filter(f => f.controlType === 'operational' && ftIsImplemented(f));
   const preDoraMapped = preDora.filter(f => (f.matchedPolicyRows || []).length > 0).length;
   const preDoraPct    = pct(preDoraMapped, preDora.length);
-  const underCount = rp ? rp.underAssuredCount : 0;
+  const underCount   = rp ? rp.underAssuredCount : 0;
   const ru = oc.rollup || { ok: 0, building: 0, low: 0, none: 0 };
   const opsCol = `
     <div class="pvo-col pvo-ops">
       <div class="pvo-col-hdr">⚙️ Operational Layer — Operationalised</div>
-      ${metric(locBackedPct + '%', `policy statements backed by an implemented control (${locOp.operationalised}/${locOp.total})`)}
-      ${metric(grpBackedPct + '%', `group standards backed by an implemented control (${grpOp.operationalised}/${grpOp.total})`)}
+      ${metric(locBackedPct + '%', `policy statements backed by implemented controls (${locOp.operationalised}/${locOp.total})`)}
+      ${metric(grpBackedPct + '%', `group standards backed by implemented controls (${grpOp.operationalised}/${grpOp.total})`)}
       ${metric(preDora.length || '—', 'pre-DORA controls in place (disruption-risk scope)')}
       ${metric(preDoraPct + '%', `pre-DORA controls mapped to a policy or standard (${preDoraMapped}/${preDora.length})`)}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>

@@ -38,37 +38,37 @@
       "name": "ICT Governance Profile — Policy Compliance",
       "icon": "⚖️",
       "color": "#9b59b6",
-      "description": "Policy compliance — have we written and approved local policies that meet group standards and DORA?",
+      "description": "Policy compliance — do we have an approved policy or standard (local or group) that meets DORA for this capability?",
       "levels": [
         {
           "level": 1,
           "name": "Initial",
-          "label": "No Roles and Responsibilities defined for this capability. Ownership is absent and activities are performed ad-hoc. Nobody is accountable if something goes wrong.",
-          "exit": "Draft the most important Roles and Responsibilities for managing ICT risk."
+          "label": "No approved policy or standard covers this capability against DORA. Gaps are unknown and compliance is ad-hoc.",
+          "exit": "Put a governing document in place — a local or group policy, and/or a group standard — mapped to DORA."
         },
         {
           "level": 2,
           "name": "Drafted",
-          "label": "Roles and Responsibilities have been drafted and a named owner assigned. The document exists but has not been formally approved and is not yet consistently followed in practice.",
-          "exit": "Obtain formal approval of the drafted Roles and Responsibilities from the appropriate authority."
+          "label": "A governing document is in draft or newly adopted for this capability — a local/group policy, a group standard, or a policy supported by a standard — mapped to DORA, with a named owner, but not yet formally approved.",
+          "exit": "Obtain formal approval from the appropriate authority."
         },
         {
           "level": 3,
           "name": "Approved",
-          "label": "Roles and Responsibilities for managing ICT risk are formally approved and the owner is accountable.",
-          "exit": "Review approved Roles and Responsibilities considers inputs from the ICT Risk and Reporting dimensions."
+          "label": "The governing policy and/or standard is formally approved and owned — DORA-compliant on paper, whatever its form (local policy, group policy, group standard, or a policy-plus-standard combination).",
+          "exit": "Put it into a regular review cycle fed by operational (RCSA) findings."
         },
         {
           "level": 4,
           "name": "Measured",
-          "label": "Roles and Responsibilities are reviewed on a regular schedule. Each review considers risk findings and KPI outcomes and uses them to validate or update who is responsible and how.",
-          "exit": "Update Roles and Responsibilities with the results of the Risk finding or KPI gaps."
+          "label": "The policy or standard is reviewed on a schedule, checked against DORA changes and updated with findings from operationalising it (the RCSA).",
+          "exit": "Update it to close gaps against DORA, or gaps surfaced by operational findings."
         },
         {
           "level": 5,
           "name": "Reviewed",
-          "label": "Roles and Responsibilities are continuously updated in response to Risk findings and KPI outcomes. The improvement loop is fully closed, embedded in practice and demonstrably driving better outcomes.",
-          "exit": "No exit. This is the target state. Maintain through continuous review and demonstrate ongoing responsiveness to inputs from the ICT Risk and Reporting dimensions."
+          "label": "The policy or standard is continuously kept current with DORA and operational findings — the compliance loop is closed, embedded and demonstrably maintained.",
+          "exit": "No exit. This is the target state. Maintain through continuous review, responsive to DORA and operational findings."
         }
       ]
     }
@@ -128,7 +128,6 @@
     "confidenceLowPct": 40,
     "confidenceOkPct": 75
   },
-
   "riskManagement": {
     "severeResidualThreshold": 20,
     "underAssuredCoveragePct": 50,

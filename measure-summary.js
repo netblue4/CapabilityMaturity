@@ -121,9 +121,6 @@ function renderMeasureSummary(assessment) {
             <h3 class="measure-card-title">${m.name}</h3>
             <p class="measure-card-desc">${m.description}</p>
           </div>
-          <span class="measure-avg-badge" style="background:${level ? level.color : 'var(--clr-badge-empty)'}">
-            ${badgeInner}
-          </span>
         </div>
         <button class="btn-link ratings-link" onclick="${`showRatingsModal('${m.id}')`}">ℹ Ratings</button>
         <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:.4rem">

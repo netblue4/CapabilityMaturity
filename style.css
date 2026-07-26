@@ -2491,3 +2491,26 @@ details[open] .profile-card-chevron {
 
 @media (max-width: 1100px) { .rm-tiles { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 640px)  { .rm-tiles { grid-template-columns: repeat(2, 1fr); } }
+
+/* Clickable Risk Reduction tile + drill-down affordances */
+.rm-tile-clickable { cursor: pointer; transition: border-color .12s, background .12s; }
+.rm-tile-clickable:hover { border-color: var(--accent); background: var(--clr-fill-muted, rgba(255,255,255,.06)); }
+.rm-tile-more { font-size: .6rem; color: var(--accent); }
+.rm-ua-more { margin-left: .4rem; color: var(--accent); cursor: pointer; font-weight: 600; white-space: nowrap; }
+.rm-ua-more:hover { text-decoration: underline; }
+
+/* Metrics explainer + Risk Reduction modal tables */
+.metrics-info-table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-bottom: .5rem; }
+.metrics-info-table th {
+  text-align: left; font-size: .6rem; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); font-weight: 600; padding: .35rem .5rem; border-bottom: 1px solid var(--border);
+}
+.metrics-info-table td { padding: .4rem .5rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; line-height: 1.4; }
+.metrics-info-table .mi-metric { font-weight: 600; white-space: normal; min-width: 130px; }
+.metrics-info-hdr {
+  font-size: .78rem; font-weight: 600; margin: 1rem 0 .3rem; color: var(--text);
+  border-left: 3px solid var(--accent); padding-left: .5rem;
+}
+.rr-table .rr-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rr-weak { background: rgba(168,84,80,.12); }
+.rr-flag { color: var(--clr-danger); font-size: .68rem; font-weight: 600; white-space: nowrap; }

@@ -131,7 +131,8 @@
 
   "riskManagement": {
     "severeResidualThreshold": 20,
-    "underAssuredCoveragePct": 50
+    "underAssuredCoveragePct": 50,
+    "weakMitigationMaxReductionPct": 25
   },
   "kpis": [
     {

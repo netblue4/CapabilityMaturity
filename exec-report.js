@@ -83,9 +83,9 @@ function execComplianceSummary(a) {
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr">📜 Policy Layer — Written &amp; Approved</div>
       ${metric(locCount || '—', 'policy statements catalogued')}
-      ${metric(locCovPct + '%', `policy objectives with an associated risk (${locCov.covered}/${locCov.total})`)}
+      ${metric(locCovPct + '%', `policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
       ${metric(grpCount || '—', 'group standards catalogued')}
-      ${metric(grpCovPct + '%', `standard objectives with associated risks (${grpCov.covered}/${grpCov.total})`)}
+      ${metric(grpCovPct + '%', `standard statements with associated risks (${grpCov.covered}/${grpCov.total})`)}
       ${metric(locPct + '%', 'group requirements mapped into a policy statements')}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;

@@ -95,15 +95,21 @@ function execComplianceSummary(a) {
   const grpOp = ks.grpStdOperationalisation || { total: 0, operationalised: 0 };
   const locBackedPct = pct(locOp.operationalised, locOp.total);
   const grpBackedPct = pct(grpOp.operationalised, grpOp.total);
-  const ctrlCovPct   = rp && rp.ctrlCoveragePct != null ? rp.ctrlCoveragePct : 0;
-  const underCount   = rp ? rp.underAssuredCount : 0;
+  // Pre-DORA controls = implemented operational-type controls (narrow disruption
+  // scope, no policy/standard prefix). Aim: map them all to a policy or standard.
+  const facts   = a.riskPolicyFacts || [];
+  const preDora = facts.filter(f => f.controlType === 'operational' && ftIsImplemented(f));
+  const preDoraMapped = preDora.filter(f => (f.matchedPolicyRows || []).length > 0).length;
+  const preDoraPct    = pct(preDoraMapped, preDora.length);
+  const underCount = rp ? rp.underAssuredCount : 0;
   const ru = oc.rollup || { ok: 0, building: 0, low: 0, none: 0 };
   const opsCol = `
     <div class="pvo-col pvo-ops">
       <div class="pvo-col-hdr">⚙️ Operational Layer — Operationalised</div>
       ${metric(locBackedPct + '%', `policy statements backed by an implemented control (${locOp.operationalised}/${locOp.total})`)}
       ${metric(grpBackedPct + '%', `group standards backed by an implemented control (${grpOp.operationalised}/${grpOp.total})`)}
-      ${metric(ctrlCovPct + '%', 'controls assessed behind assessed risks')}
+      ${metric(preDora.length || '—', 'pre-DORA controls in place (disruption-risk scope)')}
+      ${metric(preDoraPct + '%', `pre-DORA controls mapped to a policy or standard (${preDoraMapped}/${preDora.length})`)}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
 

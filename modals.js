@@ -48,7 +48,7 @@ const METRICS_INFO = {
       ["Severe (residual ≥ 20)", "Count of high-residual risks", "The board's watch-list — what can still hurt after controls"],
       ["Risk Reduction (inherent→residual)", "How far controls pull risk down", "The one number proving controls add value; a small gap means controls aren't earning their keep (click the tile to see which)"],
       ["Control Coverage (assessed risks)", "% of controls assessed behind assessed risks", "Whether a risk rating is evidence-based or just opinion"],
-      ["Under-assured", "Assessed risks whose rating isn't backed by control evidence", "Ratings you couldn't defend to an auditor — where confidence is false"],
+      ["Under-assured", "Assessed risks with < 50% of their controls assessed", "Ratings you couldn't defend to an auditor — where confidence is false (click the tile for the per-risk coverage split)"],
       ["Residual severity mix", "Spread across Extreme / Significant / Moderate / Low", "The shape of your exposure at a glance"],
     ]}],
   },
@@ -103,6 +103,34 @@ function showMetricsModal(cardKey) {
   ).join("");
   document.getElementById("modal-body").innerHTML =
     `<p class="modal-desc">${info.intro}</p>${body}`;
+  document.getElementById("ratings-modal").style.display = "flex";
+}
+
+// ── Under-assured drill-down — are risk ratings backed by control evidence? ──
+function showUnderAssuredModal(assessmentId) {
+  const a = db.assessments.find(x => x.id === assessmentId);
+  const s = a ? buildRiskPortfolioSummary(a.riskPolicyFacts || []) : null;
+  document.getElementById("modal-title").textContent = "Under-assured — are risk ratings backed by control evidence?";
+  if (!s || !s.assuranceRanking.length) {
+    document.getElementById("modal-body").innerHTML = `<p class="modal-desc">No assessed risks to rank yet.</p>`;
+    document.getElementById("ratings-modal").style.display = "flex";
+    return;
+  }
+  const capName = id => (CONFIG.capabilities.find(c => c.id === id)?.name) || id;
+  const rows = s.assuranceRanking.map(r => `
+    <tr class="${r.underAssured ? 'rr-weak' : ''}">
+      <td class="mi-metric">${r.title}${r.underAssured ? ' <span class="rr-flag">⚠ under-assured</span>' : ''}</td>
+      <td>${shortName(capName(r.capId))}</td>
+      <td class="rr-num">${r.controls}</td>
+      <td class="rr-num">${r.ctrlAssessed}</td>
+      <td class="rr-num">${r.coveragePct}%</td>
+    </tr>`).join("");
+  document.getElementById("modal-body").innerHTML = `
+    <p class="modal-desc">Assessed risks ranked by how much of their control base has actually been assessed (controls with an assessment ÷ total controls). A risk is <strong>under-assured</strong> when this is below ${s.underAssuredFloor}% — the residual rating rests on control evidence that mostly hasn't been checked. This is an evidence gap, distinct from Weak Mitigation (controls checked but not reducing risk).</p>
+    <table class="metrics-info-table rr-table">
+      <thead><tr><th>Risk</th><th>Capability</th><th>Ctrl</th><th>Assessed</th><th>Coverage</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
   document.getElementById("ratings-modal").style.display = "flex";
 }
 

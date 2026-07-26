@@ -506,7 +506,7 @@ function renderRiskPortfolioCard(assessment) {
     tile('Severe',           s.severe, `residual ≥ ${s.severeThreshold}`, s.severe > 0 ? 'rm-num-warn' : ''),
     tile('Risk Reduction',   s.reductionPct != null ? s.reductionPct + '%' : '—', `inherent ${s.avgInherent} → residual ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}')`),
     tile('Control Coverage', s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—', `controls assessed on assessed risks (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
-    tile('Under-assured',    s.underAssuredCount, 'ratings lacking control evidence', s.underAssuredCount > 0 ? 'rm-num-warn' : ''),
+    tile('Under-assured',    s.underAssuredCount, 'ratings lacking control evidence', s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}')`),
   ].join('');
 
   const sevDefs = [
@@ -526,8 +526,9 @@ function renderRiskPortfolioCard(assessment) {
   const trunc = t => (t.length > 42 ? t.slice(0, 42) + '…' : t);
   const under = s.underAssuredCount ? `
     <div class="rm-underassured">
-      <span class="rm-ua-flag">⚠ ${s.underAssuredCount} assessed ${s.underAssuredCount === 1 ? 'risk' : 'risks'} not backed by control evidence (&lt; ${(CONFIG.riskManagement || {}).underAssuredCoveragePct || 50}% of controls assessed):</span>
+      <span class="rm-ua-flag">⚠ ${s.underAssuredCount} assessed ${s.underAssuredCount === 1 ? 'risk' : 'risks'} not backed by control evidence (&lt; ${s.underAssuredFloor}% of controls assessed):</span>
       <span class="rm-ua-list">${s.underAssured.map(trunc).join(' · ')}</span>
+      <span class="rm-ua-more" onclick="showUnderAssuredModal('${assessment.id}')">See all →</span>
     </div>` : '';
 
   const weak = s.weakMitigationCount ? `

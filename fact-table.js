@@ -394,10 +394,14 @@ function buildRiskPortfolioSummary(riskPolicyFacts) {
   const totCtrlAssd = assessed.reduce((s, r) => s + r.ctrlAssd, 0);
   const ctrlCoveragePct = totCtrls > 0 ? Math.round(100 * totCtrlAssd / totCtrls) : null;
 
-  // Under-assured: assessed risk whose control-assessment coverage is below the floor.
-  const underAssured = assessed
-    .filter(r => (r.ctrls > 0 ? (100 * r.ctrlAssd / r.ctrls) : 0) < underAt)
-    .map(r => r.title);
+  // Assurance ranking: per assessed risk, how much of its control base is assessed.
+  const assuranceRanking = assessed
+    .map(r => {
+      const coveragePct = r.ctrls > 0 ? Math.round(100 * r.ctrlAssd / r.ctrls) : 0;
+      return { title: r.title, capId: r.capId, controls: r.ctrls, ctrlAssessed: r.ctrlAssd, coveragePct, underAssured: coveragePct < underAt };
+    })
+    .sort((a, b) => a.coveragePct - b.coveragePct);
+  const underAssured = assuranceRanking.filter(r => r.underAssured).map(r => r.title);
 
   // Per-risk mitigation ranking (assessed risks), worst reduction first.
   const ranking = assessed
@@ -423,7 +427,7 @@ function buildRiskPortfolioSummary(riskPolicyFacts) {
     avgResidual: Math.round(avgRes * 10) / 10,
     reductionPct,
     ctrlCoveragePct, ctrlAssessed: totCtrlAssd, ctrlTotal: totCtrls,
-    underAssured, underAssuredCount: underAssured.length,
+    underAssured, underAssuredCount: underAssured.length, underAssuredFloor: underAt, assuranceRanking,
     ranking, weakMitigation, weakMitigationCount: weakMitigation.length, weakThreshold: weakAt,
   };
 }

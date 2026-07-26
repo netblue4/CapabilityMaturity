@@ -502,11 +502,11 @@ function renderRiskPortfolioCard(assessment) {
 
   const tiles = [
     tile('Total Risks',      s.total, `${s.open} open · ${s.draft} draft · ${s.closed} closed`, ''),
-    tile('Assessed',         s.assessedPct + '%', `${s.assessed} of ${s.active} active`, ''),
-    tile('Severe',           s.severe, `residual ≥ ${s.severeThreshold}`, s.severe > 0 ? 'rm-num-warn' : ''),
-    tile('Risk Reduction',   s.reductionPct != null ? s.reductionPct + '%' : '—', `inherent ${s.avgInherent} → residual ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}')`),
-    tile('Control Coverage', s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—', `controls assessed on assessed risks (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
-    tile('Under-assured',    s.underAssuredCount, 'ratings lacking control evidence', s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}')`),
+    tile('Risks Assessed',   s.assessedPct + '%', `${s.assessed} of ${s.active} active risks rated`, ''),
+    tile('Severe',           s.severe, `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed} assessed)`, s.severe > 0 ? 'rm-num-warn' : ''),
+    tile('Risk Reduction',   s.reductionPct != null ? s.reductionPct + '%' : '—', `controls cut risk from ${s.avgInherent} to ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}')`),
+    tile('Control Coverage', s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—', `of controls behind assessed risks are checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
+    tile('Under-assured',    s.underAssuredCount, `residual risk ratings lacking control evidence (${s.underAssuredCount}/${s.assessed} assessed)`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}')`),
   ].join('');
 
   const sevDefs = [
@@ -544,7 +544,7 @@ function renderRiskPortfolioCard(assessment) {
         <span class="measure-icon">🛡️</span>
         <div>
           <h3 class="measure-card-title">Risk Management — Portfolio Health</h3>
-          <p class="measure-card-desc">Register, exposure and the control assurance behind the risk ratings — from the RCSA.</p>
+          <p class="measure-card-desc">Operational compliance — are we doing what our local policies, group standards and DORA say we should? The control evidence behind our risk ratings, from the RCSA.</p>
         </div>
       </div>
       <button class="btn-link ratings-link" onclick="showMetricsModal('riskPortfolio')">ℹ Metrics</button>

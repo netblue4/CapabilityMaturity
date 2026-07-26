@@ -35,7 +35,7 @@
   "measures": [
     {
       "id": "governance",
-      "name": "ICT Governance Profile - Authority and Accountability",
+      "name": "ICT Governance Profile — Policy Compliance",
       "icon": "⚖️",
       "color": "#9b59b6",
       "description": "Policy compliance — have we written and approved local policies that meet group standards and DORA?",

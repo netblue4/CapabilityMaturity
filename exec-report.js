@@ -86,7 +86,7 @@ function execComplianceSummary(a) {
       ${metric(locCovPct + '%', `policy objectives with an associated risk (${locCov.covered}/${locCov.total})`)}
       ${metric(grpCount || '—', 'group standards catalogued')}
       ${metric(grpCovPct + '%', `standard objectives with associated risks (${grpCov.covered}/${grpCov.total})`)}
-      ${metric(locPct + '%', 'group requirements mapped into a local policy')}
+      ${metric(locPct + '%', 'group requirements mapped into a policy statements')}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 

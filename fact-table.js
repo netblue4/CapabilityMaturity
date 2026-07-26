@@ -349,8 +349,9 @@ function buildOperationalisationCoverage(riskPolicyFacts) {
 function buildRiskPortfolioSummary(riskPolicyFacts) {
   const facts = riskPolicyFacts || [];
   const cfg      = (CONFIG && CONFIG.riskManagement) || {};
-  const severeAt = cfg.severeResidualThreshold != null ? cfg.severeResidualThreshold : 20;
-  const underAt  = cfg.underAssuredCoveragePct  != null ? cfg.underAssuredCoveragePct  : 50;
+  const severeAt = cfg.severeResidualThreshold      != null ? cfg.severeResidualThreshold      : 20;
+  const underAt  = cfg.underAssuredCoveragePct      != null ? cfg.underAssuredCoveragePct      : 50;
+  const weakAt   = cfg.weakMitigationMaxReductionPct != null ? cfg.weakMitigationMaxReductionPct : 25;
 
   const isClosed = s => { s = ftNorm(s); return s.includes('closed') || s.includes('proposed close'); };
 
@@ -360,13 +361,15 @@ function buildRiskPortfolioSummary(riskPolicyFacts) {
     const t = ftNorm(f.riskTitle);
     if (!t) return;
     const key = f.capId + '|' + t;
-    if (!map[key]) map[key] = { capId: f.capId, title: f.riskTitle, status: ftNorm(f.riskStatus), inh: 0, res: 0, ctrls: 0, ctrlAssd: 0 };
+    if (!map[key]) map[key] = { capId: f.capId, title: f.riskTitle, status: ftNorm(f.riskStatus), inh: 0, res: 0, ctrls: 0, ctrlAssd: 0, impl: 0, eff: 0 };
     const r = map[key];
     r.status = ftNorm(f.riskStatus);
     if ((f.inherentScore || 0) > r.inh) r.inh = f.inherentScore || 0;
     if ((f.residualScore || 0) > r.res) r.res = f.residualScore || 0;
     r.ctrls++;
-    if (ftIsAssessed(f)) r.ctrlAssd++;
+    if (ftIsAssessed(f))   r.ctrlAssd++;
+    if (ftIsImplemented(f)) r.impl++;
+    if (ftIsEffective(f))   r.eff++;
   });
   const risks = Object.values(map);
   if (!risks.length) return null;
@@ -396,6 +399,20 @@ function buildRiskPortfolioSummary(riskPolicyFacts) {
     .filter(r => (r.ctrls > 0 ? (100 * r.ctrlAssd / r.ctrls) : 0) < underAt)
     .map(r => r.title);
 
+  // Per-risk mitigation ranking (assessed risks), worst reduction first.
+  const ranking = assessed
+    .filter(r => r.inh > 0)
+    .map(r => ({
+      title: r.title, capId: r.capId,
+      inherent: r.inh, residual: r.res,
+      reductionPct: Math.round(100 * (r.inh - r.res) / r.inh),
+      controls: r.ctrls, implemented: r.impl, effective: r.eff,
+    }))
+    .sort((a, b) => a.reductionPct - b.reductionPct);
+
+  // Weak mitigation: controls exist (>=1 implemented) but risk barely dropped.
+  const weakMitigation = ranking.filter(r => r.implemented >= 1 && r.reductionPct < weakAt);
+
   return {
     total: risks.length, open, draft, closed,
     active: active.length,
@@ -407,6 +424,7 @@ function buildRiskPortfolioSummary(riskPolicyFacts) {
     reductionPct,
     ctrlCoveragePct, ctrlAssessed: totCtrlAssd, ctrlTotal: totCtrls,
     underAssured, underAssuredCount: underAssured.length,
+    ranking, weakMitigation, weakMitigationCount: weakMitigation.length, weakThreshold: weakAt,
   };
 }
 

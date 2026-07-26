@@ -493,9 +493,9 @@ function renderRiskPortfolioCard(assessment) {
   const s = buildRiskPortfolioSummary(assessment.riskPolicyFacts || []);
   if (!s) return '';
 
-  const tile = (label, num, sub, cls) => `
-    <div class="rm-tile">
-      <div class="rm-tile-lbl">${label}</div>
+  const tile = (label, num, sub, cls, onclick) => `
+    <div class="rm-tile${onclick ? ' rm-tile-clickable' : ''}"${onclick ? ` onclick="${onclick}" title="Click for the per-risk breakdown"` : ''}>
+      <div class="rm-tile-lbl">${label}${onclick ? ' <span class="rm-tile-more">▸</span>' : ''}</div>
       <div class="rm-tile-num ${cls || ''}">${num}</div>
       <div class="rm-tile-sub">${sub}</div>
     </div>`;
@@ -504,7 +504,7 @@ function renderRiskPortfolioCard(assessment) {
     tile('Total Risks',      s.total, `${s.open} open · ${s.draft} draft · ${s.closed} closed`, ''),
     tile('Assessed',         s.assessedPct + '%', `${s.assessed} of ${s.active} active`, ''),
     tile('Severe',           s.severe, `residual ≥ ${s.severeThreshold}`, s.severe > 0 ? 'rm-num-warn' : ''),
-    tile('Risk Reduction',   s.reductionPct != null ? s.reductionPct + '%' : '—', `inherent ${s.avgInherent} → residual ${s.avgResidual}`, 'rm-num-good'),
+    tile('Risk Reduction',   s.reductionPct != null ? s.reductionPct + '%' : '—', `inherent ${s.avgInherent} → residual ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}')`),
     tile('Control Coverage', s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—', `controls assessed on assessed risks (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
     tile('Under-assured',    s.underAssuredCount, 'ratings lacking control evidence', s.underAssuredCount > 0 ? 'rm-num-warn' : ''),
   ].join('');
@@ -530,6 +530,13 @@ function renderRiskPortfolioCard(assessment) {
       <span class="rm-ua-list">${s.underAssured.map(trunc).join(' · ')}</span>
     </div>` : '';
 
+  const weak = s.weakMitigationCount ? `
+    <div class="rm-underassured">
+      <span class="rm-ua-flag">⚠ ${s.weakMitigationCount} ${s.weakMitigationCount === 1 ? 'risk' : 'risks'} where controls aren't earning their keep (&lt; ${s.weakThreshold}% reduction with implemented controls):</span>
+      <span class="rm-ua-list">${s.weakMitigation.map(r => `${trunc(r.title)} (${r.reductionPct}%${r.effective ? ', ' + r.effective + ' eff' : ''})`).join(' · ')}</span>
+      <span class="rm-ua-more" onclick="showRiskReductionModal('${assessment.id}')">See all →</span>
+    </div>` : '';
+
   return `
     <div class="card measure-card">
       <div class="measure-card-header">
@@ -539,6 +546,7 @@ function renderRiskPortfolioCard(assessment) {
           <p class="measure-card-desc">Register, exposure and the control assurance behind the risk ratings — from the RCSA.</p>
         </div>
       </div>
+      <button class="btn-link ratings-link" onclick="showMetricsModal('riskPortfolio')">ℹ Metrics</button>
       <div class="rm-tiles">${tiles}</div>
       <div class="rm-sev">
         <div class="rm-sev-hdr">Residual severity of assessed risks</div>
@@ -546,6 +554,7 @@ function renderRiskPortfolioCard(assessment) {
         <div class="rm-sev-legend">${legend}</div>
       </div>
       ${under}
+      ${weak}
     </div>`;
 }
 
@@ -617,6 +626,7 @@ function renderOpCoverageCard(assessment) {
         </div>
         <div class="opcov-rollup">${rollup}</div>
       </div>
+      <button class="btn-link ratings-link" onclick="showMetricsModal('opCoverage')">ℹ Metrics</button>
       <div class="rcsa-table-wrap">
         <table class="opcov-table">
           <thead><tr>
@@ -675,6 +685,7 @@ function renderRiskMgmtSummaryCard(assessment, prev, mode = 'detail') {
             <p class="measure-card-desc">Coverage &amp; governance KPIs derived from Riskonnect and Policy Statement imports.${prev ? ' ▲▼ shows movement vs previous assessment.' : ''}</p>
           </div>
         </div>
+        <button class="btn-link ratings-link" onclick="showMetricsModal('rcsa')">ℹ Metrics</button>
         ${kpiHtml || '<p class="policy-no-data" style="margin:.5rem 0">No KPI metrics recorded yet.</p>'}
       </div>`;
   }
@@ -691,6 +702,7 @@ function renderRiskMgmtSummaryCard(assessment, prev, mode = 'detail') {
           <p class="measure-card-desc">Metrics derived from Riskonnect and Policy Statement imports.${prev ? ' ▲▼ shows movement vs previous assessment.' : ''}</p>
         </div>
       </div>
+      <button class="btn-link ratings-link" onclick="showMetricsModal('rcsa')">ℹ Metrics</button>
       ${noData ? '<p class="policy-no-data" style="margin:.5rem 0">No risk or policy data imported yet.</p>' : ''}
       ${renderFactSummaryTables(curr, prevF)}
     </div>`;

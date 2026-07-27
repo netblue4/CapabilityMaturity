@@ -39,6 +39,29 @@ function closeRatingsModal(e) {
 // ── Metrics explainer modal ──────────────────────────────────
 // One entry per card: what each metric shows and why it matters.
 const METRICS_INFO = {
+  compliance: {
+    title: "Policy vs Operational Compliance · Metrics",
+    intro: "Two layers: policies written & approved (policy compliance) vs. policies actually operationalised (operational compliance) — and how much we can trust the operational picture.",
+    sections: [
+      { heading: "Policy Layer — Written & Approved", rows: [
+        ["Policy statements catalogued", "The number of local-policy statements in the register", "The size of our policy rulebook — every statement is a commitment we've made and must be able to evidence"],
+        ["Policy statements with an associated risk", "% of local-policy statements linked to a risk", "A policy with no risk attached is a rule nobody is watching — we wrote it but never asked 'what happens if we fail it?'"],
+        ["Group standards catalogued", "The number of group-standard statements in the register", "The group-mandated rules we're required to meet"],
+        ["Standard statements with associated risks", "% of group-standard statements linked to a risk", "Every group standard connected to a risk we track — unlike local policy, the group requirements are fully wired in"],
+        ["Group requirements mapped into a policy statement", "% of group requirements localised into our own policy", "Group sets the standard; our job is to translate it into our own local policy. A low number means we're leaning on group's wording rather than adapting it to how we operate"],
+      ]},
+      { heading: "Operational Layer — Operationalised", rows: [
+        ["Policy statements backed by implemented controls", "% of local-policy statements with an implemented control", "A policy with no control behind it is a promise with nothing enforcing it"],
+        ["Group standards backed by implemented controls", "% of group standards with an implemented control", "The same test, for group standards"],
+        ["Pre-DORA controls in place", "Count of implemented operational controls that predate DORA", "Controls we already ran before DORA — real and working, but built for the old, narrow 'systems availability' risk, not DORA's wider scope (security, privacy, third-party). Proof we're not starting from zero"],
+        ["Pre-DORA controls mapped to a policy or standard", "% of pre-DORA controls tied to a policy or standard", "If a control isn't tied to a policy or standard there's no stated reason we're doing it — it may fall outside our remit, duplicate another team's work, or serve no purpose"],
+      ]},
+      { heading: "Confidence & assurance (verdict line)", rows: [
+        ["Confidence — OK / Building / Low / None", "How well each capability's risk ratings are backed by control evidence", "How much we can trust our own risk ratings — 'Low/None' means the rating isn't backed by assessed controls, so we're asserting risk levels we can't yet prove"],
+        ["Under-assured risk ratings", "Assessed risks with fewer than half their controls assessed", "Ratings we couldn't defend to an auditor — the controls behind them haven't been checked"],
+      ]},
+    ],
+  },
   riskPortfolio: {
     title: "Risk Management · Metrics",
     intro: "For this theme's controls: the risks they touch, and how well those risk ratings are backed by control evidence.",

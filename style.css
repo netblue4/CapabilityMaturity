@@ -2524,7 +2524,9 @@ details[open] .profile-card-chevron {
 .pvo-banner {
   background: var(--clr-fill-dark); border: 1px solid var(--border-subtle);
   border-radius: 10px; padding: .8rem 1rem; margin-bottom: .8rem;
+  display: flex; align-items: flex-start; gap: 1rem;
 }
+.pvo-banner-text { flex: 1; }
 .pvo-banner-title { display: block; font-weight: 600; font-size: 1rem; margin-bottom: .2rem; }
 .pvo-banner-sub { display: block; font-size: .82rem; color: var(--text-muted); line-height: 1.5; }
 .pvo-cols { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }

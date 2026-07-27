@@ -82,7 +82,7 @@ function execComplianceSummary(a) {
       ${metric(locCovPct + '%', `policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
       ${metric(grpCount || '—', 'group standards catalogued')}
       ${metric(grpCovPct + '%', `standard statements with associated risks (${grpCov.covered}/${grpCov.total})`)}
-      ${metric(locPct + '%', 'group requirements mapped into a policy statements')}
+      ${metric(locPct + '%', 'group requirements mapped into a policy statement')}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
@@ -116,8 +116,11 @@ function execComplianceSummary(a) {
   return `
     <div class="pvo-summary">
       <div class="pvo-banner">
-        <span class="pvo-banner-title">Policy compliance ≠ operational compliance</span>
-        <span class="pvo-banner-sub">Local policies are rewritten and approved to group &amp; DORA requirements. Operationalising them — building, owning and assessing the controls — is a separate, earlier-stage effort, reported distinctly below.</span>
+        <div class="pvo-banner-text">
+          <span class="pvo-banner-title">Policy compliance ≠ operational compliance</span>
+          <span class="pvo-banner-sub">Local policies are rewritten and approved to group &amp; DORA requirements. Operationalising them — building, owning and assessing the controls — is a separate, earlier-stage effort, reported distinctly below.</span>
+        </div>
+        <button class="btn-link ratings-link ratings-link-inline no-print" style="white-space:nowrap" onclick="showMetricsModal('compliance')">ℹ Metrics</button>
       </div>
       <div class="pvo-cols">${policyCol}${opsCol}</div>
       ${notes}

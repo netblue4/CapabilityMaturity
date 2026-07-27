@@ -29,10 +29,6 @@ function generateExecReport() {
   if (!prevA || !currentA || !plannedA) return;
   closeExecReportModal();
 
-  const dimCards = CONFIG.measures.map(m =>
-    execDimCard(m, prevA, currentA, plannedA)
-  ).join('');
-
   document.getElementById('exec-report-content').innerHTML = `
     <div class="exec-report-top no-print">
       <div>
@@ -46,8 +42,8 @@ function generateExecReport() {
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
     ${execComplianceSummary(currentA)}
-    <div class="exec-sec-div">Policy Layer — Governance Maturity</div>
-    ${dimCards}
+    <div class="exec-sec-div">Policy Layer — Governance (Policy Compliance)</div>
+    <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
     ${RISK_THEMES.map(t => `
     <div class="exec-sec-div">Operational Layer — ${t.name}</div>
     <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA, t)}</div>

@@ -64,11 +64,16 @@
       }
       return null;
     }
+    // "Document" must not capture "Document Type" / "Document Status".
+    let docIdx = hl.findIndex(h => h === 'document');
+    if (docIdx < 0) docIdx = hl.findIndex(h => h.includes('document') && !h.includes('type') && !h.includes('status'));
     return {
       capability: find('capability', 'process', 'domain', 'function'),
       ref:        find('statement ref', 'ref', 'reference'),
-      type:       find('type'),
-      document:   find('document'),
+      type:       find('document type', 'type'),
+      document:   docIdx >= 0 ? headers[docIdx] : null,
+      status:     find('document status', 'status'),
+      header:     find('statement header', 'header'),
     };
   }
 
@@ -188,8 +193,10 @@
       const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
       const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
       const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
+      const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
+      const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
       if (!ref) return;
-      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc });
+      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr });
     });
 
     renderPiReviewTable();
@@ -234,8 +241,10 @@
       const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
       const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
       const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
+      const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
+      const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
       if (!ref) return;
-      policyRows.push({ capId, statementRef: ref, type, document: doc });
+      policyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr });
     });
 
     assessment.policyRows = policyRows;

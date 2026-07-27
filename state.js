@@ -24,8 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
       loadFromLocalStorage();
       setDefaultDate();
       buildCapabilityFields();
-      buildDimensionSelector();
-      buildRadarFilter();
       renderDashboard();
       bindEvents();
       document.getElementById("loading-overlay").style.display = "none";
@@ -51,23 +49,25 @@ function loadFromLocalStorage() {
   } catch (e) { console.warn("Could not load localStorage", e); }
 }
 
-// One-time cleanup: the Risk and Reporting maturity dimensions were removed.
-// Strip their saved scores/targets/notes/time-estimates so no dormant data
-// lingers. Risk *data* (riskManagement, riskRows, factSummary, …) is untouched.
+// One-time cleanup: the maturity-slider model (Governance/Risk/Reporting
+// dimensions, targets, notes, time-estimates, per-capability notes) was
+// removed. Governance is now derived from the policy upload's Document Status.
+// Keep only measureScores[cap].riskManagement (from the Riskonnect import);
+// strip everything else so no dormant data lingers.
 function migrateRemovedMeasures(database) {
-  const REMOVED = ['risk', 'reporting'];
   let changed = false;
   (database?.assessments || []).forEach(a => {
-    ['measureScores', 'measureTargets', 'measureNotes', 'measureTimeEstimates'].forEach(dict => {
-      const byCap = a[dict];
-      if (!byCap) return;
-      Object.keys(byCap).forEach(capId => {
-        const entry = byCap[capId];
+    if (a.measureScores) {
+      Object.keys(a.measureScores).forEach(capId => {
+        const entry = a.measureScores[capId];
         if (!entry || typeof entry !== 'object') return;
-        REMOVED.forEach(mid => {
-          if (mid in entry) { delete entry[mid]; changed = true; }
+        Object.keys(entry).forEach(k => {
+          if (k !== 'riskManagement') { delete entry[k]; changed = true; }
         });
       });
+    }
+    ['measureTargets', 'measureNotes', 'measureTimeEstimates', 'capNotes', 'notes', 'riskProfile', 'weeksToNext'].forEach(k => {
+      if (k in a) { delete a[k]; changed = true; }
     });
   });
   return changed;

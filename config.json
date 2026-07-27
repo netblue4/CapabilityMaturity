@@ -32,47 +32,7 @@
       "description": "Continuous improvement culture. Predictive analytics. Proactive excellence."
     }
   ],
-  "measures": [
-    {
-      "id": "governance",
-      "name": "ICT Governance Profile — Policy Compliance",
-      "icon": "⚖️",
-      "color": "#9b59b6",
-      "description": "Policy compliance — do we have an approved policy or standard (local or group) that meets DORA for this capability?",
-      "levels": [
-        {
-          "level": 1,
-          "name": "Initial",
-          "label": "No approved policy or standard covers this capability against DORA. Gaps are unknown and compliance is ad-hoc.",
-          "exit": "Put a governing document in place — a local or group policy, and/or a group standard — mapped to DORA."
-        },
-        {
-          "level": 2,
-          "name": "Drafted",
-          "label": "A governing document is in draft or newly adopted for this capability — a local/group policy, a group standard, or a policy supported by a standard — mapped to DORA, with a named owner, but not yet formally approved.",
-          "exit": "Obtain formal approval from the appropriate authority."
-        },
-        {
-          "level": 3,
-          "name": "Approved",
-          "label": "The governing policy and/or standard is formally approved and owned — DORA-compliant on paper, whatever its form (local policy, group policy, group standard, or a policy-plus-standard combination).",
-          "exit": "Put it into a regular review cycle fed by operational (RCSA) findings."
-        },
-        {
-          "level": 4,
-          "name": "Measured",
-          "label": "The policy or standard is reviewed on a schedule, checked against DORA changes and updated with findings from operationalising it (the RCSA).",
-          "exit": "Update it to close gaps against DORA, or gaps surfaced by operational findings."
-        },
-        {
-          "level": 5,
-          "name": "Reviewed",
-          "label": "The policy or standard is continuously kept current with DORA and operational findings — the compliance loop is closed, embedded and demonstrably maintained.",
-          "exit": "No exit. This is the target state. Maintain through continuous review, responsive to DORA and operational findings."
-        }
-      ]
-    }
-  ],
+  "measures": [],
   "riskScoreMatrix": {
     "Extreme (28 to 40)": {
       "Exceeds Appetite": {

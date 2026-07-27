@@ -83,6 +83,29 @@ function buildPolicyByCapability(policyRows) {
   return by;
 }
 
+// ── Governance rows — one per (capability × document), approved vs draft ──
+// Derived from the policy upload's Document Status; replaces the old
+// governance maturity slider.
+function buildGovernanceRows(policyRows) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const map = {};
+  (policyRows || []).forEach(pr => {
+    const doc = (pr.document || '').trim() || '(no document)';
+    const key = pr.capId + '||' + doc;
+    if (!map[key]) map[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0 };
+    const r = map[key];
+    r.total++;
+    if (ftNorm(pr.status).includes('approv')) r.approved++;
+    else r.draft++;   // anything not explicitly approved counts as draft/not-approved
+  });
+  const rows = Object.values(map).map(r => ({
+    ...r,
+    status: r.approved === r.total ? 'approved' : r.approved === 0 ? 'draft' : 'partial',
+  }));
+  rows.sort((a, b) => a.capName.localeCompare(b.capName) || a.document.localeCompare(b.document));
+  return rows;
+}
+
 // ── Control type filters ──────────────────────────────────────────
 function ftLocPol(facts)      { return facts.filter(f => f.controlType === 'locPol'); }
 function ftGrpStd(facts)      { return facts.filter(f => f.controlType === 'grpStd'); }

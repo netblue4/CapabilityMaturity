@@ -163,7 +163,6 @@ function updateKpiPct(kpiId) {
 
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
-  const orderedMeasures = CONFIG.measures;
 
   const allCapCheckbox = `
     <label class="dimension-check-label" style="border-color:var(--accent)">
@@ -212,16 +211,7 @@ function buildCapabilityFields() {
         </div>
       </div>
 
-      <div class="measures-grid measures-grid-${orderedMeasures.length}">
-        ${orderedMeasures.map(m => buildMeasureBlock(cap, m)).join("")}
-      </div>
-
       ${buildKpiInputsBlock(cap)}
-
-      <div class="form-row" style="margin-top:1rem">
-        <label>Overall notes for this capability</label>
-        <textarea id="capnote-${cap.id}" rows="2" placeholder="General observations…"></textarea>
-      </div>
     </div>
   `).join("");
 }
@@ -281,14 +271,11 @@ function syncCapabilityAllCheckbox() {
 function updateSaveButtonState() {
   const totalCaps   = document.querySelectorAll(".capability-check").length;
   const checkedCaps = document.querySelectorAll(".capability-check:checked").length;
-  const totalDims   = document.querySelectorAll(".dimension-check").length;
-  const checkedDims = document.querySelectorAll(".dimension-check:checked").length;
-  const allShown = totalCaps > 0 && checkedCaps === totalCaps &&
-                   totalDims > 0 && checkedDims === totalDims;
+  const allShown = totalCaps > 0 && checkedCaps === totalCaps;
   const btn = document.getElementById("btn-save-assessment");
   if (!btn) return;
   btn.disabled = !allShown;
-  btn.title = allShown ? "" : "Select all Capabilities and Dimensions before saving";
+  btn.title = allShown ? "" : "Show all Capabilities before saving";
 }
 
 // ── Risk Rating Button Toggle ─────────────────────────────────
@@ -333,7 +320,6 @@ function openAssessmentForm(id) {
   document.getElementById("assessment-form-title").textContent = id ? "Edit Assessment" : "New Assessment";
   setDefaultDate();
 
-  document.querySelectorAll(".dimension-check").forEach(cb => cb.checked = true);
   document.querySelectorAll(".capability-check").forEach(cb => cb.checked = true);
   const allCapCb = document.getElementById("capability-check-all");
   if (allCapCb) { allCapCb.checked = true; allCapCb.indeterminate = false; }
@@ -343,75 +329,6 @@ function openAssessmentForm(id) {
     if (a) {
       document.getElementById("assessment-label").value = a.label || "";
       document.getElementById("assessment-date").value = a.date || "";
-      document.getElementById("assessment-notes").value = a.notes || "";
-
-      CONFIG.capabilities.forEach(cap => {
-        document.getElementById("capnote-" + cap.id).value =
-          (a.capNotes && a.capNotes[cap.id]) || "";
-
-        CONFIG.measures.forEach(m => {
-          // getMeasureScore handles legacy "ict_risk" key fallback
-          const score  = getMeasureScore(a, cap.id, m.id) || 1;
-          const target = getMeasureTarget(a, cap.id, m.id) || 3;
-          const note   = getMeasureNote(a, cap.id, m.id) || "";
-          setSlider(`score-${cap.id}-${m.id}`, score);
-          setSlider(`target-${cap.id}-${m.id}`, target);
-          const noteEl = document.getElementById(`note-${cap.id}-${m.id}`);
-          if (noteEl) noteEl.value = note;
-          updateMeasureDisplay(cap.id, m.id, score);
-          updateTargetDisplay(cap.id, m.id, target);
-
-          // Time estimate on each maturity measure card
-          const timeEstEl = document.getElementById(`timeest-${cap.id}-${m.id}`);
-          if (timeEstEl) timeEstEl.value = a.measureTimeEstimates?.[cap.id]?.[m.id] || '';
-        });
-
-        // riskManagement fields — prefer new structure, fall back to legacy riskProfile
-        const rmData   = a.measureScores?.[cap.id]?.riskManagement;
-        const legacyRp = a.riskProfile?.[cap.id];
-
-        let rm;
-        if (rmData && typeof rmData === 'object') {
-          rm = rmData;
-        } else if (legacyRp) {
-          console.info(`Legacy riskProfile for ${cap.id} — restoring into risk management fields.`);
-          rm = legacyRp;
-        } else {
-          // Very old format: ict_risk key inside measureScores was an object
-          const legacyRaw = a.measureScores?.[cap.id]?.['ict_risk'];
-          rm = (legacyRaw && typeof legacyRaw === 'object' && !('score' in legacyRaw)) ? legacyRaw : {};
-        }
-
-        setRiskRatingBtns(cap.id, 'residual', rm.residualRating || '');
-        setRiskRatingBtns(cap.id, 'appetite', rm.appetiteRating || '');
-
-        // Control counts — support old controlCounts sub-object shape
-        const cc = rm.controlCounts || {};
-        const draftEl   = document.getElementById(`ctrl-draftrisks-${cap.id}`);
-        const openEl    = document.getElementById(`ctrl-openrisks-${cap.id}`);
-        const notEl     = document.getElementById(`ctrl-not-${cap.id}`);
-        const partialEl = document.getElementById(`ctrl-partial-${cap.id}`);
-        const effEl     = document.getElementById(`ctrl-effective-${cap.id}`);
-        const risksAssessedEl = document.getElementById(`ctrl-risksassessed-${cap.id}`);
-        if (draftEl)          draftEl.value          = rm.risksDraft          ?? 0;
-        if (openEl)           openEl.value           = rm.openRisks           ?? cc.openRisks   ?? 0;
-        if (risksAssessedEl)  risksAssessedEl.value  = rm.risksAssessed       ?? 0;
-        if (notEl)            notEl.value            = rm.controlsNotAssessed ?? cc.notAssessed ?? 0;
-        if (partialEl)        partialEl.value        = rm.controlsPartial     ?? cc.partial     ?? 0;
-        if (effEl)            effEl.value            = rm.controlsEffective   ?? cc.effective   ?? 0;
-
-        // Risk management notes — new location; fall back to legacy riskMgmtNotes field
-        const rmNote = getMeasureNote(a, cap.id, 'riskManagement') || rm.riskMgmtNotes || '';
-        const notesEl = document.getElementById(`note-risk-mgmt-${cap.id}`);
-        if (notesEl) notesEl.value = rmNote;
-      });
-
-      CONFIG.measures.forEach(m => {
-        const hasScore = CONFIG.capabilities.some(cap => getMeasureScore(a, cap.id, m.id) > 0);
-        const cb = document.querySelector(`.dimension-check[value="${m.id}"]`);
-        if (cb) cb.checked = hasScore;
-      });
-
       (CONFIG.kpis || []).forEach(kpi => {
         const val = a.kpiValues?.[kpi.id];
         const nEl = document.getElementById(`kpi-n-${kpi.id}`);
@@ -422,18 +339,6 @@ function openAssessmentForm(id) {
       });
     }
   } else {
-    CONFIG.capabilities.forEach(cap => {
-      CONFIG.measures.forEach(m => {
-        setSlider(`score-${cap.id}-${m.id}`, 1);
-        setSlider(`target-${cap.id}-${m.id}`, 3);
-        updateMeasureDisplay(cap.id, m.id, 1);
-        updateTargetDisplay(cap.id, m.id, 3);
-      });
-      // Risk management card clear (form.reset() clears inputs but not CSS button states)
-      clearRiskRatingBtns(cap.id, 'residual');
-      clearRiskRatingBtns(cap.id, 'appetite');
-      clearRiskCountInputs(cap.id);
-    });
     (CONFIG.kpis || []).forEach(kpi => {
       const el = document.getElementById(`kpi-pct-${kpi.id}`);
       if (el) el.textContent = '—';
@@ -483,41 +388,13 @@ function updateTargetDisplay(capId, measureId, value) {
 function saveAssessment(e) {
   e.preventDefault();
 
-  const selectedMeasures = new Set(
-    [...document.querySelectorAll(".dimension-check:checked")].map(el => el.value)
-  );
-
-  // Fetch prevData before the loop so we can preserve imported risk values
+  // Fetch prevData so we can preserve imported risk/policy values
   const prevData = editingId ? db.assessments.find(a => a.id === editingId) : null;
 
-  const measureScores = {}, measureTargets = {}, measureNotes = {}, measureTimeEstimates = {}, capNotes = {};
+  // Only riskManagement (from the Riskonnect import) is preserved under measureScores.
+  const measureScores = {};
   CONFIG.capabilities.forEach(cap => {
-    measureScores[cap.id] = {};
-    measureTargets[cap.id] = {};
-    measureNotes[cap.id] = {};
-    measureTimeEstimates[cap.id] = {};
-    capNotes[cap.id] = document.getElementById("capnote-" + cap.id).value.trim();
-
-    CONFIG.measures.forEach(m => {
-      if (selectedMeasures.has(m.id)) {
-        measureScores[cap.id][m.id]  = parseInt(document.getElementById(`score-${cap.id}-${m.id}`).value) || 1;
-        measureTargets[cap.id][m.id] = parseInt(document.getElementById(`target-${cap.id}-${m.id}`).value) || 3;
-        measureNotes[cap.id][m.id]   = document.getElementById(`note-${cap.id}-${m.id}`)?.value.trim() || '';
-      } else {
-        measureScores[cap.id][m.id]  = 0;
-        measureTargets[cap.id][m.id] = 0;
-        measureNotes[cap.id][m.id]   = "";
-      }
-    });
-
-    // Time estimates live on each maturity measure card
-    CONFIG.measures.forEach(m => {
-      measureTimeEstimates[cap.id][m.id] = document.getElementById(`timeest-${cap.id}-${m.id}`)?.value.trim() || '';
-    });
-
-    // riskManagement: preserve whatever the Riskonnect import stored (no manual UI)
-    measureScores[cap.id].riskManagement = prevData?.measureScores?.[cap.id]?.riskManagement || {};
-    measureNotes[cap.id].riskManagement  = prevData?.measureNotes?.[cap.id]?.riskManagement  || '';
+    measureScores[cap.id] = { riskManagement: prevData?.measureScores?.[cap.id]?.riskManagement || {} };
   });
 
   const kpiValues = {};
@@ -532,12 +409,7 @@ function saveAssessment(e) {
     id: editingId || Date.now().toString(),
     label: document.getElementById("assessment-label").value.trim(),
     date: document.getElementById("assessment-date").value,
-    notes: document.getElementById("assessment-notes").value.trim(),
     measureScores,
-    measureTargets,
-    measureNotes,
-    measureTimeEstimates,
-    capNotes,
     kpiValues,
   };
   if (prevData) {

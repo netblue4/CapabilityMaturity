@@ -40,17 +40,16 @@ function closeRatingsModal(e) {
 // One entry per card: what each metric shows and why it matters.
 const METRICS_INFO = {
   riskPortfolio: {
-    title: "Risk Management — Portfolio Health · Metrics",
-    intro: "Portfolio-level view of the RCSA: the register, its exposure, and how well the risk ratings are backed by control evidence.",
+    title: "Risk Management · Metrics",
+    intro: "For this theme's controls: the risks they touch, and how well those risk ratings are backed by control evidence.",
     sections: [{ rows: [
       ["Total Risks (open/draft/closed)", "Size and state of the register", "Draft backlog = risks known but not yet in the RCSA — the gap between spotting and managing"],
-      ["Assessed %", "Active risks with a residual rating", "An unassessed risk is an unmanaged risk; this is your RCSA completion rate"],
+      ["Risks Assessed", "Active risks with a residual rating", "An unassessed risk is an unmanaged risk; this is your RCSA completion rate"],
       ["Severe (residual ≥ 20)", "Count of high-residual risks", "The board's watch-list — what can still hurt after controls"],
-      ["Risk Reduction (inherent→residual)", "How far controls pull risk down (Pre-DORA card)", "The one number proving controls add value; a small gap means controls aren't earning their keep (click the tile to see which)"],
-      ["Controls Implemented (Local Policy / Group Standard cards)", "% of that theme's controls that are implemented", "Shown in place of Risk Reduction, which can't be attributed to a single control type — the number to drive up as DORA controls come online"],
-      ["Control Coverage (assessed risks)", "% of controls assessed behind assessed risks", "Whether a risk rating is evidence-based or just opinion"],
+      ["Control Coverage", "% of controls assessed behind assessed risks", "Whether a risk rating is evidence-based or just opinion"],
+      ["Risk Reduction (inherent→residual)", "How far controls pull risk down — Pre-DORA card only", "The one number proving controls add value; a small gap means controls aren't earning their keep (click the tile to see which)"],
+      ["Controls Implemented", "% of the theme's controls implemented — Local Policy / Group Standard cards", "Shown in place of Risk Reduction, which can't be attributed to a single control type — the number to drive up as DORA controls come online"],
       ["Under-assured", "Assessed risks with < 50% of their controls assessed", "Ratings you couldn't defend to an auditor — where confidence is false (click the tile for the per-risk coverage split)"],
-      ["Residual severity mix", "Spread across Extreme / Significant / Moderate / Low", "The shape of your exposure at a glance"],
     ]}],
   },
   opCoverage: {

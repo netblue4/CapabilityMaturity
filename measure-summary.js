@@ -31,14 +31,12 @@ function renderGovernanceCard(assessment) {
   const badge = r => {
     const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
     const [cls, txt] = map[r.status];
-    return `<span class="gov-badge ${cls}">${txt}</span>`;
+    return `<span class="gov-badge ${cls}" title="${r.approved} approved · ${r.draft} draft (of ${r.total})">${txt}</span>`;
   };
   const body = rows.map(r => `<tr>
     <td class="ft-td-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="gov-doc">${r.document}</td>
     <td class="gov-type">${r.type}</td>
-    <td class="gov-num">${r.approved}</td>
-    <td class="gov-num">${r.draft}</td>
     <td class="gov-status">${badge(r)}</td>
   </tr>`).join('');
   return `
@@ -50,8 +48,6 @@ function renderGovernanceCard(assessment) {
             <th class="ft-td-cap">Capability</th>
             <th class="gov-doc">Document</th>
             <th class="gov-type">Type</th>
-            <th class="gov-num">Approved</th>
-            <th class="gov-num">Draft</th>
             <th class="gov-status">Status</th>
           </tr></thead>
           <tbody>${body}</tbody>

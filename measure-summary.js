@@ -6,7 +6,7 @@ function renderMeasureSummary(assessment) {
   const govSlot = document.getElementById("governance-card-row");
   if (govSlot) govSlot.innerHTML = renderGovernanceCard(assessment);
   const rmSlot = document.getElementById("riskmgmt-card-row");
-  if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment);
+  if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
   document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
 }
 
@@ -403,19 +403,30 @@ const RISK_THEMES = [
 ];
 
 // One themed Risk Management card + its scoped Policy Operationalisation card.
-function renderThemedRiskSection(assessment) {
+function renderThemedRiskSection(assessment, prev) {
   return RISK_THEMES.map(t => `
     <div class="theme-block">
-      ${renderRiskPortfolioCard(assessment, t)}
+      ${renderRiskPortfolioCard(assessment, t, prev)}
       ${renderOpCoverageCard(assessment, t)}
     </div>`).join('');
 }
 
+// Quarter-over-quarter arrow — green when the change is in the good direction.
+function qoqArrow(curr, prev, lowerIsBetter) {
+  if (prev == null || curr == null) return '';
+  const d = Math.round((curr - prev) * 10) / 10;
+  if (!d) return '';
+  const good = lowerIsBetter ? d < 0 : d > 0;
+  return ` <span class="qoq ${good ? 'qoq-good' : 'qoq-bad'}" title="was ${prev} last period">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</span>`;
+}
+
 // ── Risk Management — Portfolio Health Card ──────────────────
 // theme (optional) = { key, name, dora }: scopes the card to one control type.
-function renderRiskPortfolioCard(assessment, theme) {
+// prev (optional) = previous assessment, for quarter-over-quarter arrows.
+function renderRiskPortfolioCard(assessment, theme, prev) {
   const tk = theme ? theme.key : null;
   const s  = buildRiskPortfolioSummary(assessment.riskPolicyFacts || [], tk);
+  const sp = prev ? buildRiskPortfolioSummary(prev.riskPolicyFacts || [], tk) : null;
   const title = theme ? `Risk Management — ${theme.name}` : 'Risk Management — Portfolio Health';
   const desc  = theme ? theme.desc
     : 'Operational compliance — are we doing what our local policies, group standards and DORA say we should? The control evidence behind our risk ratings, from the RCSA.';
@@ -442,16 +453,16 @@ function renderRiskPortfolioCard(assessment, theme) {
   // DORA themes swap Risk Reduction (not control-type-attributable) for
   // implemented rate; Pre-DORA keeps the reduction tile with its drill-down.
   const fifthTile = (theme && theme.dora)
-    ? tile('Controls Implemented', s.implementedPct + '%', `of ${theme.name.toLowerCase()} controls implemented (${s.ctrlImplemented}/${s.ctrlCount})`, '')
-    : tile('Risk Reduction', s.reductionPct != null ? s.reductionPct + '%' : '—', `controls cut risk from ${s.avgInherent} to ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}', '${tk2}')`);
+    ? tile('Controls Implemented', s.implementedPct + '%' + qoqArrow(s.implementedPct, sp?.implementedPct, false), `of ${theme.name.toLowerCase()} controls implemented (${s.ctrlImplemented}/${s.ctrlCount})`, '')
+    : tile('Risk Reduction', (s.reductionPct != null ? s.reductionPct + '%' : '—') + qoqArrow(s.reductionPct, sp?.reductionPct, false), `controls cut risk from ${s.avgInherent} to ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}', '${tk2}')`);
 
   const tiles = [
     tile('Total Risks',      s.total, `${s.open} open · ${s.draft} draft · ${s.closed} closed`, ''),
-    tile('Risks Assessed',   s.assessedPct + '%', `${s.assessed} of ${s.active} active risks rated`, ''),
-    tile('Severe',           s.severe, `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed} assessed)`, s.severe > 0 ? 'rm-num-warn' : ''),
-    tile('Control Coverage', s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—', `of controls behind assessed risks are checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
+    tile('Risks Assessed',   s.assessedPct + '%' + qoqArrow(s.assessedPct, sp?.assessedPct, false), `${s.assessed} of ${s.active} active risks rated`, ''),
+    tile('Severe',           s.severe + qoqArrow(s.severe, sp?.severe, true), `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed} assessed)`, s.severe > 0 ? 'rm-num-warn' : ''),
+    tile('Control Coverage', (s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—') + qoqArrow(s.ctrlCoveragePct, sp?.ctrlCoveragePct, false), `of controls behind assessed risks are checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
     fifthTile,
-    tile('Under-assured',    s.underAssuredCount, `residual risk ratings lacking control evidence (${s.underAssuredCount}/${s.assessed} assessed)`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}', '${tk2}')`),
+    tile('Under-assured',    s.underAssuredCount + qoqArrow(s.underAssuredCount, sp?.underAssuredCount, true), `residual risk ratings lacking control evidence (${s.underAssuredCount}/${s.assessed} assessed)`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}', '${tk2}')`),
   ].join('');
 
   // Severity distribution bar — portfolio view only (dropped on theme cards).

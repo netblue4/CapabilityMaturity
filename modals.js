@@ -57,7 +57,7 @@ const METRICS_INFO = {
         ["Pre-DORA controls mapped to a policy or standard", "% of pre-DORA controls tied to a policy or standard", "If a control isn't tied to a policy or standard there's no stated reason we're doing it — it may fall outside our remit, duplicate another team's work, or serve no purpose"],
       ]},
       { heading: "Confidence & assurance (verdict line)", rows: [
-        ["Confidence — OK / Building / Low / None", "How well each capability's risk ratings are backed by control evidence", "How much we can trust our own risk ratings — 'Low/None' means the rating isn't backed by assessed controls, so we're asserting risk levels we can't yet prove"],
+        ["Confidence — OK / Building / Low / None", "How well each capability's risk ratings are backed by control evidence", "How much we can trust our own risk ratings — 'Low/None' means the rating isn't backed by assessed controls, so we're asserting risk levels we can't yet prove. See the <em>Confidence Ratings</em> scale for how each of the four levels is set"],
         ["Under-assured risk ratings", "Assessed risks with fewer than half their controls assessed", "Ratings we couldn't defend to an auditor — the controls behind them haven't been checked"],
       ]},
     ],

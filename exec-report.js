@@ -41,12 +41,12 @@ function generateExecReport() {
       <h2 class="exec-report-title">Policy vs Operational Compliance</h2>
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
-    ${execComplianceSummary(currentA)}
+    ${execComplianceSummary(currentA, prevA)}
     <div class="exec-sec-div">Policy Layer — Governance (Policy Compliance)</div>
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
     ${RISK_THEMES.map(t => `
     <div class="exec-sec-div">Operational Layer — ${t.name}</div>
-    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA, t)}</div>
+    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA, t, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderOpCoverageCard(currentA, t)}</div>`).join('')}
     <div class="exec-sec-div">Supporting Detail — RCSA &amp; CSA Metrics</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
@@ -58,7 +58,7 @@ function generateExecReport() {
 // Two-layer split: policies written & approved (policy compliance) vs.
 // policies actually operationalised (operational compliance), with the
 // confidence behind the operational claim.
-function execComplianceSummary(a) {
+function execComplianceSummary(a, prev) {
   const ks = buildKpiSummary(a.policyRows || [], a.riskPolicyFacts || []);
   const rp = buildRiskPortfolioSummary(a.riskPolicyFacts || []);
   const oc = buildOperationalisationCoverage(a.riskPolicyFacts || []);
@@ -68,6 +68,22 @@ function execComplianceSummary(a) {
 
   const pct  = (n, d) => (d > 0 ? Math.round(100 * n / d) : 0);
   const metric = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
+
+  // Previous-quarter percentages for quarter-over-quarter arrows.
+  const pv = {};
+  if (prev) {
+    const g   = o => o || { covered: 0, total: 0, operationalised: 0, localised: 0 };
+    const pk  = buildKpiSummary(prev.policyRows || [], prev.riskPolicyFacts || []);
+    const pf  = prev.riskPolicyFacts || [];
+    const ppd = pf.filter(f => f.controlType === 'operational' && ftIsImplemented(f));
+    const ppdMapped = ppd.filter(f => (f.matchedPolicyRows || []).length > 0).length;
+    pv.locCov  = g(pk.locPolCoverage).total          ? pct(g(pk.locPolCoverage).covered,          g(pk.locPolCoverage).total)          : null;
+    pv.grpCov  = g(pk.grpStdCoverage).total          ? pct(g(pk.grpStdCoverage).covered,          g(pk.grpStdCoverage).total)          : null;
+    pv.loc     = pk.grpStdLocalisation               ? pct(pk.grpStdLocalisation.localised,       pk.grpStdLocalisation.total)         : null;
+    pv.locBack = g(pk.locPolOperationalisation).total ? pct(g(pk.locPolOperationalisation).operationalised, g(pk.locPolOperationalisation).total) : null;
+    pv.grpBack = g(pk.grpStdOperationalisation).total ? pct(g(pk.grpStdOperationalisation).operationalised, g(pk.grpStdOperationalisation).total) : null;
+    pv.preDora = ppd.length                          ? pct(ppdMapped, ppd.length)                 : null;
+  }
 
   // Policy layer
   const locCov    = ks.locPolCoverage || { covered: 0, total: 0 };
@@ -79,10 +95,10 @@ function execComplianceSummary(a) {
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr">📜 Policy Layer — Written &amp; Approved</div>
       ${metric(locCount || '—', 'policy statements catalogued')}
-      ${metric(locCovPct + '%', `policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
+      ${metric(locCovPct + '%' + qoqArrow(locCovPct, pv.locCov, false), `policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
       ${metric(grpCount || '—', 'group standards catalogued')}
-      ${metric(grpCovPct + '%', `standard statements with associated risks (${grpCov.covered}/${grpCov.total})`)}
-      ${metric(locPct + '%', 'group requirements mapped into a policy statement')}
+      ${metric(grpCovPct + '%' + qoqArrow(grpCovPct, pv.grpCov, false), `standard statements with associated risks (${grpCov.covered}/${grpCov.total})`)}
+      ${metric(locPct + '%' + qoqArrow(locPct, pv.loc, false), 'group requirements mapped into a policy statement')}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
@@ -102,10 +118,10 @@ function execComplianceSummary(a) {
   const opsCol = `
     <div class="pvo-col pvo-ops">
       <div class="pvo-col-hdr">⚙️ Operational Layer — Operationalised</div>
-      ${metric(locBackedPct + '%', `policy statements backed by implemented controls (${locOp.operationalised}/${locOp.total})`)}
-      ${metric(grpBackedPct + '%', `group standards backed by implemented controls (${grpOp.operationalised}/${grpOp.total})`)}
+      ${metric(locBackedPct + '%' + qoqArrow(locBackedPct, pv.locBack, false), `policy statements backed by implemented controls (${locOp.operationalised}/${locOp.total})`)}
+      ${metric(grpBackedPct + '%' + qoqArrow(grpBackedPct, pv.grpBack, false), `group standards backed by implemented controls (${grpOp.operationalised}/${grpOp.total})`)}
       ${metric(preDora.length || '—', 'pre-DORA controls in place (disruption-risk scope)')}
-      ${metric(preDoraPct + '%', `pre-DORA controls mapped to a policy or standard (${preDoraMapped}/${preDora.length})`)}
+      ${metric(preDoraPct + '%' + qoqArrow(preDoraPct, pv.preDora, false), `pre-DORA controls mapped to a policy or standard (${preDoraMapped}/${preDora.length})`)}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
 

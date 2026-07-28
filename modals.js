@@ -112,42 +112,57 @@ const METRICS_INFO = {
   },
 };
 
-function showMetricsModal(cardKey) {
-  const info = METRICS_INFO[cardKey];
-  if (!info) return;
-  document.getElementById("modal-title").textContent = info.title;
+// Build the inner HTML (intro + section tables) for a METRICS_INFO-shaped
+// object. Shared by the popup modal and the inline exec-report appendix so
+// both render identical content. `headers` lets the confidence table relabel
+// its columns; r[0] is kept raw so embedded chip HTML renders.
+function metricsInfoBody(info, headers) {
+  const h = headers || ["Metric", "What it shows", "Why it matters"];
   const table = rows => `
     <table class="metrics-info-table">
-      <thead><tr><th>Metric</th><th>What it shows</th><th>Why it matters</th></tr></thead>
+      <thead><tr><th>${h[0]}</th><th>${h[1]}</th><th>${h[2]}</th></tr></thead>
       <tbody>${rows.map(r => `<tr><td class="mi-metric">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}</tbody>
     </table>`;
   const body = info.sections.map(s =>
     `${s.heading ? `<h4 class="metrics-info-hdr">${s.heading}</h4>` : ""}${table(s.rows)}`
   ).join("");
-  document.getElementById("modal-body").innerHTML =
-    `<p class="modal-desc">${info.intro}</p>${body}`;
+  return `<p class="modal-desc">${info.intro}</p>${body}`;
+}
+
+function showMetricsModal(cardKey) {
+  const info = METRICS_INFO[cardKey];
+  if (!info) return;
+  document.getElementById("modal-title").textContent = info.title;
+  document.getElementById("modal-body").innerHTML = metricsInfoBody(info);
   document.getElementById("ratings-modal").style.display = "flex";
 }
 
 // ── Confidence ratings explainer (Policy Operationalisation Coverage) ──
-function showConfidenceModal() {
+// Returns a METRICS_INFO-shaped object computed from CONFIG.opCoverage so the
+// popup and the inline appendix share one source of truth.
+function confidenceInfo() {
   const cfg   = (CONFIG && CONFIG.opCoverage) || {};
   const floor = cfg.ownershipFloorPct != null ? cfg.ownershipFloorPct : 20;
   const low   = cfg.confidenceLowPct  != null ? cfg.confidenceLowPct  : 40;
   const ok    = cfg.confidenceOkPct   != null ? cfg.confidenceOkPct   : 75;
-  document.getElementById("modal-title").textContent = "Policy Operationalisation Coverage — Confidence Ratings";
-  const rows = [
-    ['opcov-chip-ok',       '● OK',       `Confidence Index ≥ ${ok}%`,                                        "Control evidence keeps pace with the risk assessment — this capability's risk view can be trusted"],
-    ['opcov-chip-building', '◐ Building', `Confidence Index ${low}–${ok - 1}%`,                               "Some control evidence in place, but the risk view isn't fully backed yet"],
-    ['opcov-chip-low',      '⚠ Low',      `Confidence Index &lt; ${low}%, or fewer than ${floor}% of controls owned`, "Risk ratings have run ahead of the control evidence (or almost nothing is owned) — treat the risk view with caution"],
-    ['opcov-chip-none',     '– None',     'No approved risks assessed',                                       "Nothing asserted yet, so there's nothing to be confident or unsure about"],
-  ];
-  document.getElementById("modal-body").innerHTML = `
-    <p class="modal-desc">Each capability gets a confidence rating based on how well its risk assessments are backed by control evidence. <strong>Confidence Index = Control-Assessed % ÷ Risk-Assessed %</strong> (capped at 100%) — of the risks you've rated, how much of the control base behind them has actually been assessed. The ownership floor is checked first.</p>
-    <table class="metrics-info-table">
-      <thead><tr><th>Rating</th><th>How it's calculated</th><th>What it means</th></tr></thead>
-      <tbody>${rows.map(r => `<tr><td><span class="opcov-chip ${r[0]}">${r[1]}</span></td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody>
-    </table>`;
+  const chip = (cls, label) => `<span class="opcov-chip ${cls}">${label}</span>`;
+  return {
+    title: "Policy Operationalisation Coverage — Confidence Ratings",
+    intro: "Each capability gets a confidence rating based on how well its risk assessments are backed by control evidence. <strong>Confidence Index = Control-Assessed % ÷ Risk-Assessed %</strong> (capped at 100%) — of the risks you've rated, how much of the control base behind them has actually been assessed. The ownership floor is checked first.",
+    sections: [{ rows: [
+      [chip('opcov-chip-ok',       '● OK'),       `Confidence Index ≥ ${ok}%`,                                                "Control evidence keeps pace with the risk assessment — this capability's risk view can be trusted"],
+      [chip('opcov-chip-building', '◐ Building'), `Confidence Index ${low}–${ok - 1}%`,                                       "Some control evidence in place, but the risk view isn't fully backed yet"],
+      [chip('opcov-chip-low',      '⚠ Low'),      `Confidence Index &lt; ${low}%, or fewer than ${floor}% of controls owned`, "Risk ratings have run ahead of the control evidence (or almost nothing is owned) — treat the risk view with caution"],
+      [chip('opcov-chip-none',     '– None'),     'No approved risks assessed',                                               "Nothing asserted yet, so there's nothing to be confident or unsure about"],
+    ]}],
+  };
+}
+
+function showConfidenceModal() {
+  const info = confidenceInfo();
+  document.getElementById("modal-title").textContent = info.title;
+  document.getElementById("modal-body").innerHTML =
+    metricsInfoBody(info, ["Rating", "How it's calculated", "What it means"]);
   document.getElementById("ratings-modal").style.display = "flex";
 }
 

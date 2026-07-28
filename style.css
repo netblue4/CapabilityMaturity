@@ -2512,6 +2512,12 @@ details[open] .profile-card-chevron {
   font-size: .78rem; font-weight: 600; margin: 1rem 0 .3rem; color: var(--text);
   border-left: 3px solid var(--accent); padding-left: .5rem;
 }
+/* Inline metric-definition cards (exec-report appendix) — natural-size
+   tables that render identically to the popups, for the PowerPoint appendix. */
+.metrics-def-card { margin-bottom: .8rem; }
+.metrics-def-card .modal-desc { font-size: .82rem; color: var(--text-muted); line-height: 1.5; margin: .3rem 0 .7rem; }
+.metrics-def-card .metrics-info-hdr:first-of-type { margin-top: .4rem; }
+
 .rr-table .rr-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rr-weak { background: rgba(168,84,80,.12); }
 .rr-flag { color: var(--clr-danger); font-size: .68rem; font-weight: 600; white-space: nowrap; }

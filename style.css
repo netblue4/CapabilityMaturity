@@ -386,8 +386,9 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 }
 .modal-box {
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); width: 100%; max-width: 520px;
-  max-height: 85vh; overflow-y: auto; padding: 1.5rem;
+  border-radius: var(--radius); width: 520px; max-width: 92vw; min-width: 320px;
+  max-height: 85vh; overflow: auto; padding: 1.5rem;
+  resize: horizontal;   /* drag the bottom-right corner wider to fit PowerPoint */
 }
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;

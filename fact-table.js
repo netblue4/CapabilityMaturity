@@ -387,12 +387,23 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRo
     rows = Object.entries(groups).map(([name, gf]) => {
       const row = makeRow(name, gf);
       if (theme) {
-        const titles = rowBy === 'risk'
-          ? [ftNorm(name)]
-          : Array.from(new Set(gf.map(f => ftNorm(f.riskTitle)).filter(Boolean)));
-        const others = new Set();
-        titles.forEach(t => (riskTypeIndex[t] || []).forEach(ct => { if (ct !== theme) others.add(ct); }));
-        row.alsoIn = Array.from(others);
+        const otherThemes = t => Array.from(riskTypeIndex[t] || []).filter(ct => ct !== theme);
+        if (rowBy === 'risk') {
+          // Risk-grained row: the row itself is the risk, so tag it directly.
+          row.alsoIn = otherThemes(ftNorm(name));
+        } else {
+          // Document-/control-grained row: list each distinct risk under it,
+          // each carrying its own cross-theme tag so "also in" points at the
+          // specific risk (a document may hold 4 risks, only 2 shared).
+          const seen = new Set();
+          row.risks = [];
+          gf.forEach(f => {
+            const norm = ftNorm(f.riskTitle);
+            if (!norm || seen.has(norm)) return;
+            seen.add(norm);
+            row.risks.push({ title: (f.riskTitle || '').trim(), alsoIn: otherThemes(norm) });
+          });
+        }
       }
       return row;
     });

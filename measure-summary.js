@@ -574,13 +574,25 @@ function renderOpCoverageCard(assessment, theme) {
     ok:       { cls: 'opcov-chip-ok',       txt: '● OK' },
   };
 
+  // Name cell: document rows list each risk beneath the document, with a
+  // per-risk cross-theme tag; risk rows tag themselves; capability rows plain.
+  const nameCell = r => {
+    if (rowBy === 'document') {
+      const risks = (r.risks || []).map(rk =>
+        `<span class="opcov-risk">${rk.title}${opcovAlsoIn(rk.alsoIn)}</span>`).join('');
+      return `<span class="opcov-doc">${r.capName}</span>${risks}`;
+    }
+    if (named) return `${r.capName}${opcovAlsoIn(r.alsoIn)}`;
+    return shortName(r.capName);
+  };
+
   const bodyRows = oc.rows.map(r => {
     const c = chipMap[r.chip] || chipMap.none;
     const title = r.index != null
       ? `Confidence ${r.index}% = control-assessed ÷ risk-assessed`
       : 'No approved risks assessed yet';
     return `<tr>
-      <td class="opcov-cap" title="${r.capName}">${named ? r.capName : shortName(r.capName)}${opcovAlsoIn(r.alsoIn)}</td>
+      <td class="opcov-cap" title="${r.capName}">${nameCell(r)}</td>
       <td>${yesNo(r.approved)}</td>
       <td>${yesNo(r.assessed)}</td>
       <td>${bar(r.owned)}</td>

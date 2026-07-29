@@ -2568,6 +2568,15 @@ details[open] .profile-card-chevron {
   border-radius: 8px; padding: .06rem .4rem; white-space: nowrap;
 }
 
+/* Risk titles listed under a policy/standard document row */
+.opcov-doc { display: block; }
+.opcov-risk {
+  display: block; margin-top: .3rem; padding-left: .55rem;
+  font-size: .58rem; color: var(--text-muted); line-height: 1.4;
+  border-left: 2px solid var(--border-subtle);
+}
+.opcov-risk .opcov-xtheme { margin-top: 0; margin-left: .35rem; vertical-align: middle; }
+
 /* Binary Yes/No cells in the coverage table (Risks Approved / Assessed) */
 .opcov-yn { display: inline-block; font-size: .7rem; font-weight: 600; padding: .12rem .55rem; border-radius: 10px; }
 .opcov-yn-yes { background: rgba(74,140,101,.22);  color: var(--clr-success); }

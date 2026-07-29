@@ -286,8 +286,11 @@ function buildKpiSummary(polRows, riskPolicyFacts) {
 // how well the risk-assessment *claim* is backed by control *evidence*.
 //
 // rowBy: 'capability' (default) | 'control' (one row per control/statement name)
-//        | 'risk' (one row per risk title).
-function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy) {
+//        | 'risk' (one row per risk title) | 'document' (one row per policy /
+//        standard). For 'document', pass policyRows so EVERY registered policy /
+//        standard of the theme's type is listed — untouched ones appear as empty
+//        rows, surfacing coverage gaps.
+function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRows) {
   let facts = riskPolicyFacts || [];
   if (theme) facts = facts.filter(f => f.controlType === theme);
   const cfg   = (CONFIG && CONFIG.opCoverage) || {};
@@ -358,10 +361,24 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy) {
       rowBy === 'risk'    ? f => (f.riskTitle   || '').trim() || '(no risk)' :
       /* document */        f => ((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '(unmapped)';
     const groups = {};
+    // Seed every registered policy / standard of this theme's type, so untouched
+    // documents still list as (empty) rows rather than silently dropping out.
+    if (rowBy === 'document') {
+      const typeCheck = theme === 'locPol' ? isLocPolType : theme === 'grpStd' ? isGrpStdType : null;
+      if (typeCheck) (policyRows || []).forEach(pr => {
+        if (typeCheck(pr.type)) {
+          const doc = (pr.document || '').trim();
+          if (doc) groups[doc] = groups[doc] || [];
+        }
+      });
+    }
     facts.forEach(f => { const k = keyOf(f); (groups[k] = groups[k] || []).push(f); });
     rows = Object.entries(groups).map(([name, gf]) => makeRow(name, gf));
-    // Push the "(unmapped)" catch-all to the bottom so registered rows lead.
-    rows.sort((a, b) => (a.capName === '(unmapped)' ? 1 : 0) - (b.capName === '(unmapped)' ? 1 : 0));
+    // Order: touched rows (some risk/control data) first, untouched documents
+    // next, and the "(unmapped)" catch-all always last.
+    const rank = r => r.capName === '(unmapped)' ? 2
+      : (r.assessed.d === 0 && r.owned.d === 0 ? 1 : 0);
+    rows.sort((a, b) => rank(a) - rank(b));
   } else {
     rows = (CONFIG.capabilities || []).map(cap => {
       const cf = facts.filter(f => f.capId === cap.id);

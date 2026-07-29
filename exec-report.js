@@ -159,7 +159,7 @@ function execComplianceSummary(a, prev) {
       <div class="pvo-banner">
         <div class="pvo-banner-text">
           <span class="pvo-banner-title">Policy compliance ≠ operational compliance</span>
-          <span class="pvo-banner-sub">Local policies are rewritten and approved to group &amp; DORA requirements. Operationalising them — building, owning and assessing the controls — is a separate, earlier-stage effort, reported distinctly below.</span>
+          <span class="pvo-banner-sub"><strong>Policy Layer — Written &amp; Approved:</strong> Policies are aligned with DORA and group-standard requirements. <strong>Operational Layer — Operationalised:</strong> Are policy statements associated with controls, and are they owned and implemented?</span>
         </div>
         <button class="btn-link ratings-link ratings-link-inline no-print" style="white-space:nowrap" onclick="showMetricsModal('compliance')">ℹ Metrics</button>
       </div>

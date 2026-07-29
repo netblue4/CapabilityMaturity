@@ -521,6 +521,18 @@ function renderRiskPortfolioCard(assessment, theme, prev) {
 // ── Policy Operationalisation Coverage Card ──────────────────
 // Per-capability funnel: five independent coverage bars + a confidence chip
 // that judges how well risk-assessment claims are backed by control evidence.
+const OPCOV_THEME_NAME = { locPol: 'Local Policy', grpStd: 'Group Standard', operational: 'Pre-DORA' };
+// Tag naming the other themed report(s) a row's risk also appears in, so a
+// cross-theme overlap (e.g. a GrpStd risk keeping a pre-DORA control) reads as
+// intentional rather than as duplication.
+function opcovAlsoIn(keys) {
+  if (!keys || !keys.length) return '';
+  const order = { locPol: 0, grpStd: 1, operational: 2 };
+  const names = keys.slice().sort((a, b) => (order[a] ?? 9) - (order[b] ?? 9))
+    .map(k => OPCOV_THEME_NAME[k] || k);
+  return `<span class="opcov-xtheme" title="This risk is also mitigated by ${names.join(' & ')} controls — shown in that report with those controls">↔ also in ${names.join(', ')}</span>`;
+}
+
 function renderOpCoverageCard(assessment, theme) {
   const rowBy = theme ? theme.rowBy : null;
   const named = !!rowBy && rowBy !== 'capability';
@@ -562,13 +574,25 @@ function renderOpCoverageCard(assessment, theme) {
     ok:       { cls: 'opcov-chip-ok',       txt: '● OK' },
   };
 
+  // Name cell: document rows list each risk beneath the document, with a
+  // per-risk cross-theme tag; risk rows tag themselves; capability rows plain.
+  const nameCell = r => {
+    if (rowBy === 'document') {
+      const risks = (r.risks || []).map(rk =>
+        `<span class="opcov-risk">${rk.title}${opcovAlsoIn(rk.alsoIn)}</span>`).join('');
+      return `<span class="opcov-doc">${r.capName}</span>${risks}`;
+    }
+    if (named) return `${r.capName}${opcovAlsoIn(r.alsoIn)}`;
+    return shortName(r.capName);
+  };
+
   const bodyRows = oc.rows.map(r => {
     const c = chipMap[r.chip] || chipMap.none;
     const title = r.index != null
       ? `Confidence ${r.index}% = control-assessed ÷ risk-assessed`
       : 'No approved risks assessed yet';
     return `<tr>
-      <td class="opcov-cap" title="${r.capName}">${named ? r.capName : shortName(r.capName)}</td>
+      <td class="opcov-cap" title="${r.capName}">${nameCell(r)}</td>
       <td>${yesNo(r.approved)}</td>
       <td>${yesNo(r.assessed)}</td>
       <td>${bar(r.owned)}</td>

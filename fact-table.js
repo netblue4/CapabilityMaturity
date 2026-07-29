@@ -373,7 +373,40 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRo
       });
     }
     facts.forEach(f => { const k = keyOf(f); (groups[k] = groups[k] || []).push(f); });
-    rows = Object.entries(groups).map(([name, gf]) => makeRow(name, gf));
+    // Cross-theme index: which control types touch each risk, across ALL themes.
+    // A risk mitigated by more than one control type legitimately appears in
+    // more than one themed card (e.g. a GrpStd risk that retains a pre-DORA
+    // control). alsoIn names the other theme(s) so the overlap reads as
+    // intentional — each card still shows only its own theme's controls.
+    const riskTypeIndex = {};
+    if (theme) (riskPolicyFacts || []).forEach(f => {
+      const t = ftNorm(f.riskTitle);
+      if (!t) return;
+      (riskTypeIndex[t] = riskTypeIndex[t] || new Set()).add(f.controlType);
+    });
+    rows = Object.entries(groups).map(([name, gf]) => {
+      const row = makeRow(name, gf);
+      if (theme) {
+        const otherThemes = t => Array.from(riskTypeIndex[t] || []).filter(ct => ct !== theme);
+        if (rowBy === 'risk') {
+          // Risk-grained row: the row itself is the risk, so tag it directly.
+          row.alsoIn = otherThemes(ftNorm(name));
+        } else {
+          // Document-/control-grained row: list each distinct risk under it,
+          // each carrying its own cross-theme tag so "also in" points at the
+          // specific risk (a document may hold 4 risks, only 2 shared).
+          const seen = new Set();
+          row.risks = [];
+          gf.forEach(f => {
+            const norm = ftNorm(f.riskTitle);
+            if (!norm || seen.has(norm)) return;
+            seen.add(norm);
+            row.risks.push({ title: (f.riskTitle || '').trim(), alsoIn: otherThemes(norm) });
+          });
+        }
+      }
+      return row;
+    });
     // Order: touched rows (some risk/control data) first, untouched documents
     // next, and the "(unmapped)" catch-all always last.
     const rank = r => r.capName === '(unmapped)' ? 2

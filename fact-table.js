@@ -373,7 +373,29 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRo
       });
     }
     facts.forEach(f => { const k = keyOf(f); (groups[k] = groups[k] || []).push(f); });
-    rows = Object.entries(groups).map(([name, gf]) => makeRow(name, gf));
+    // Cross-theme index: which control types touch each risk, across ALL themes.
+    // A risk mitigated by more than one control type legitimately appears in
+    // more than one themed card (e.g. a GrpStd risk that retains a pre-DORA
+    // control). alsoIn names the other theme(s) so the overlap reads as
+    // intentional — each card still shows only its own theme's controls.
+    const riskTypeIndex = {};
+    if (theme) (riskPolicyFacts || []).forEach(f => {
+      const t = ftNorm(f.riskTitle);
+      if (!t) return;
+      (riskTypeIndex[t] = riskTypeIndex[t] || new Set()).add(f.controlType);
+    });
+    rows = Object.entries(groups).map(([name, gf]) => {
+      const row = makeRow(name, gf);
+      if (theme) {
+        const titles = rowBy === 'risk'
+          ? [ftNorm(name)]
+          : Array.from(new Set(gf.map(f => ftNorm(f.riskTitle)).filter(Boolean)));
+        const others = new Set();
+        titles.forEach(t => (riskTypeIndex[t] || []).forEach(ct => { if (ct !== theme) others.add(ct); }));
+        row.alsoIn = Array.from(others);
+      }
+      return row;
+    });
     // Order: touched rows (some risk/control data) first, untouched documents
     // next, and the "(unmapped)" catch-all always last.
     const rank = r => r.capName === '(unmapped)' ? 2

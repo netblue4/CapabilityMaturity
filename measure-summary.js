@@ -521,6 +521,18 @@ function renderRiskPortfolioCard(assessment, theme, prev) {
 // ── Policy Operationalisation Coverage Card ──────────────────
 // Per-capability funnel: five independent coverage bars + a confidence chip
 // that judges how well risk-assessment claims are backed by control evidence.
+const OPCOV_THEME_NAME = { locPol: 'Local Policy', grpStd: 'Group Standard', operational: 'Pre-DORA' };
+// Tag naming the other themed report(s) a row's risk also appears in, so a
+// cross-theme overlap (e.g. a GrpStd risk keeping a pre-DORA control) reads as
+// intentional rather than as duplication.
+function opcovAlsoIn(keys) {
+  if (!keys || !keys.length) return '';
+  const order = { locPol: 0, grpStd: 1, operational: 2 };
+  const names = keys.slice().sort((a, b) => (order[a] ?? 9) - (order[b] ?? 9))
+    .map(k => OPCOV_THEME_NAME[k] || k);
+  return `<span class="opcov-xtheme" title="This risk is also mitigated by ${names.join(' & ')} controls — shown in that report with those controls">↔ also in ${names.join(', ')}</span>`;
+}
+
 function renderOpCoverageCard(assessment, theme) {
   const rowBy = theme ? theme.rowBy : null;
   const named = !!rowBy && rowBy !== 'capability';
@@ -568,7 +580,7 @@ function renderOpCoverageCard(assessment, theme) {
       ? `Confidence ${r.index}% = control-assessed ÷ risk-assessed`
       : 'No approved risks assessed yet';
     return `<tr>
-      <td class="opcov-cap" title="${r.capName}">${named ? r.capName : shortName(r.capName)}</td>
+      <td class="opcov-cap" title="${r.capName}">${named ? r.capName : shortName(r.capName)}${opcovAlsoIn(r.alsoIn)}</td>
       <td>${yesNo(r.approved)}</td>
       <td>${yesNo(r.assessed)}</td>
       <td>${bar(r.owned)}</td>

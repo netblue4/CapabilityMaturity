@@ -397,9 +397,9 @@ function renderKpiSection(curr, prevF, currA, prevA) {
 
 // ── Risk themes (by control type) ────────────────────────────
 const RISK_THEMES = [
-  { key: 'locPol',      name: 'Local Policy',   dora: true,  rowBy: 'document', rowHeader: 'Local policy',   covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.' },
-  { key: 'grpStd',      name: 'Group Standard', dora: true,  rowBy: 'document', rowHeader: 'Group standard', covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.' },
-  { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',     rowHeader: 'Risk',           covPrefix: 'Control Operationalisation Coverage', desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.' },
+  { key: 'locPol',      name: 'Local Policy',   dora: true,  rowBy: 'document', rowHeader: 'Local policy',   covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.', covDesc: "Operational compliance is measured by the percentage of each local policy's controls that are owned, implemented and assessed." },
+  { key: 'grpStd',      name: 'Group Standard', dora: true,  rowBy: 'document', rowHeader: 'Group standard', covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.', covDesc: "Operational compliance is measured by the percentage of each group standard's controls that are owned, implemented and assessed." },
+  { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',     rowHeader: 'Risk',           covPrefix: 'Control Operationalisation Coverage', desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.', covDesc: "Operational compliance is measured by the percentage of each risk's controls that are owned, implemented and assessed." },
 ];
 
 // One themed Risk Management card + its scoped Policy Operationalisation card.
@@ -524,7 +524,7 @@ function renderRiskPortfolioCard(assessment, theme, prev) {
 function renderOpCoverageCard(assessment, theme) {
   const rowBy = theme ? theme.rowBy : null;
   const named = !!rowBy && rowBy !== 'capability';
-  const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || [], theme ? theme.key : null, rowBy);
+  const oc = buildOperationalisationCoverage(assessment.riskPolicyFacts || [], theme ? theme.key : null, rowBy, assessment.policyRows || []);
   const ocTitle = theme ? `${theme.covPrefix} — ${theme.name}` : 'Policy Operationalisation Coverage';
   if (!oc.rows.length) {
     return `
@@ -533,7 +533,7 @@ function renderOpCoverageCard(assessment, theme) {
           <span class="measure-icon">🎯</span>
           <div>
             <h3 class="measure-card-title">${ocTitle}</h3>
-            <p class="measure-card-desc">How far each capability's risks and controls have progressed, and how well risk conclusions are backed by control evidence.</p>
+            <p class="measure-card-desc">${theme && theme.covDesc ? theme.covDesc : "Operational compliance is measured by the percentage of controls that are owned, implemented and assessed."}</p>
           </div>
         </div>
         <p class="policy-no-data" style="margin:.5rem 0">No ${theme ? theme.name.toLowerCase() + ' controls' : 'risk data imported'} yet.</p>
@@ -592,7 +592,7 @@ function renderOpCoverageCard(assessment, theme) {
         <span class="measure-icon">🎯</span>
         <div style="flex:1">
           <h3 class="measure-card-title">${ocTitle}</h3>
-          <p class="measure-card-desc">Each capability's progress across the risk and control lifecycle. Confidence flags where risk conclusions run ahead of the control evidence.</p>
+          <p class="measure-card-desc">${theme && theme.covDesc ? theme.covDesc : "Operational compliance is measured by the percentage of controls that are owned, implemented and assessed."}</p>
         </div>
         <div class="opcov-rollup">${rollup}</div>
       </div>

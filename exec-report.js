@@ -84,6 +84,7 @@ function renderExecCallouts(assessment) {
 // the print/screenshot captures whatever order is currently applied.
 let _mergedRows = [];
 let _mergedSort = { col: null, dir: 1 };
+let _mergedMeta = {};
 
 const MRT_CHIP = { none: ['opcov-chip-none', '– None'], low: ['opcov-chip-low', '⚠ Low'], building: ['opcov-chip-building', '◐ Building'], ok: ['opcov-chip-ok', '● OK'] };
 const MRT_BAND = { extreme: ['sev-extreme', 'Extreme'], significant: ['sev-significant', 'Significant'], moderate: ['sev-moderate', 'Moderate'], low: ['sev-low', 'Low'] };
@@ -94,6 +95,17 @@ function mrtHead() {
   const sTh = (k, label) => `<th class="mrt-sort" onclick="sortMergedTable('${k}')">${label}${arrow(k)}</th>`;
   return `<tr>
     ${sTh('capability', 'Capability')}${sTh('theme', 'Theme')}${sTh('document', 'Document')}${sTh('risk', 'Risk')}
+    <th>Residual Risk</th>
+    <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
+    <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
+    <th class="opcov-chip-cell">Confidence</th>
+  </tr>`;
+}
+
+// Static header (no sort handlers / arrows) for the standalone print/PDF export.
+function mrtHeadPrint() {
+  return `<tr>
+    <th>Capability</th><th>Theme</th><th>Document</th><th>Risk</th>
     <th>Residual Risk</th>
     <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
     <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
@@ -129,6 +141,7 @@ function mrtBody(rows) {
 function renderMergedRiskTable(assessment) {
   _mergedRows = buildMergedRiskRows(assessment.riskPolicyFacts || [], assessment.policyRows || []);
   _mergedSort = { col: null, dir: 1 };
+  _mergedMeta = { label: assessment.label, date: formatDate(assessment.date) };
   const ns = _mergedRows.filter(r => r.notStarted);
   const nsNote = ns.length
     ? `<p class="mrt-note">${ns.length} registered ${ns.length === 1 ? 'document has' : 'documents have'} no operationalised controls yet — shown as <span class="mrt-nostart">not started</span>.</p>`
@@ -141,6 +154,7 @@ function renderMergedRiskTable(assessment) {
           <h3 class="measure-card-title">Operationalisation Detail — All Risks</h3>
           <p class="measure-card-desc">Every risk × theme in one view: residual rating, control implementation and assessment, and the confidence behind each. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b> or <b>Risk</b> to sort.</p>
         </div>
+        <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printMergedRiskTable()">🖨 Export detail table (PDF)</button>
       </div>
       <div class="rcsa-table-wrap">
         <table class="opcov-table merged-risk-table">
@@ -164,6 +178,76 @@ function sortMergedTable(col) {
   const th = document.getElementById('merged-risk-thead');
   if (tb) tb.innerHTML = mrtBody(sorted);
   if (th) th.innerHTML = mrtHead();
+}
+
+// ── Standalone detail-table export (Print → PDF) ──────────────
+// Opens the merged table alone in a clean landscape, light-theme print view —
+// header repeats on every page, rows never split across a page break, colour
+// chips preserved. Respects the current on-screen sort (reads the live tbody),
+// so the user sorts however they like, exports, and pastes each PDF page into
+// its own appendix slide. Every risk is listed in full (nothing collapsed).
+function printMergedRiskTable() {
+  const tb = document.getElementById('merged-risk-tbody');
+  if (!tb) return;
+  const rowsHtml = tb.innerHTML;                        // current sort order
+  const cssHref  = new URL('style.css', location.href).href;
+  const meta     = _mergedMeta || {};
+  const nsCount  = _mergedRows.filter(r => r.notStarted).length;
+  const nsNote   = nsCount
+    ? `<p class="mrt-note">${nsCount} registered ${nsCount === 1 ? 'document has' : 'documents have'} no operationalised controls yet — shown as <span class="mrt-nostart">not started</span>.</p>`
+    : '';
+  const subtitle = [meta.label, meta.date].filter(Boolean).join(' · ');
+  const doc = `<!doctype html>
+<html data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Operationalisation Detail${meta.label ? ' — ' + meta.label : ''}</title>
+<link rel="stylesheet" href="${cssHref}">
+<style>
+  html, body { background:#fff; margin:0; }
+  .mrt-print-page { padding: 10px 14px; }
+  .mrt-print-head { margin: 0 0 8px; }
+  .mrt-print-head h1 { font-size: 15px; margin: 0 0 2px; }
+  .mrt-print-head p  { font-size: 11px; color:#555; margin: 0; }
+  table.merged-risk-table { width:100%; border-collapse:collapse; }
+  .mrt-print-hint { font-size:11px; color:#888; margin:8px 0 0; }
+  @media print {
+    @page { size: 33.87cm 19.05cm; margin: 0.7cm; }   /* PowerPoint widescreen 13.33in x 7.5in */
+    html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* neutralise the app stylesheet's own print-hide rules in this window */
+    body *, html { visibility: visible !important; }
+    .mrt-print-hint { display: none !important; }
+    table.merged-risk-table thead { display: table-header-group; } /* repeat header on every page */
+    table.merged-risk-table tr { break-inside: avoid; page-break-inside: avoid; } /* never split a row */
+  }
+</style>
+</head>
+<body>
+  <div class="mrt-print-page">
+    <div class="mrt-print-head">
+      <h1>Operationalisation Detail — All Risks</h1>
+      ${subtitle ? `<p>${subtitle}</p>` : ''}
+    </div>
+    <table class="opcov-table merged-risk-table">
+      <thead>${mrtHeadPrint()}</thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    ${nsNote}
+    ${renderOpCoverageLegend()}
+    <p class="mrt-print-hint">Print / Save as PDF opens automatically. Landscape widescreen — one PDF page per appendix slide.</p>
+  </div>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.print(); }, 200);
+    });
+  <\/script>
+</body>
+</html>`;
+  const w = window.open('', '_blank');
+  if (!w) { alert('Please allow pop-ups for this site to export the detail table.'); return; }
+  w.document.open();
+  w.document.write(doc);
+  w.document.close();
 }
 
 // ── Appendix — Metric Definitions ─────────────────────────────

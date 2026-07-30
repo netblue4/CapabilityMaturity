@@ -46,14 +46,104 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
     ${RISK_THEMES.map(t => `
     <div class="exec-sec-div">Operational Layer — ${t.name}</div>
-    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA, t, prevA)}</div>
-    <div class="exec-rcsa-wrap">${renderOpCoverageCard(currentA, t)}</div>`).join('')}
+    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA, t, prevA)}</div>`).join('')}
     <div class="exec-sec-div">Supporting Detail — RCSA &amp; CSA Metrics</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
+    <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
+    <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>
     <div class="exec-sec-div">Appendix — Metric Definitions</div>
     ${renderMetricsAppendix()}
   `;
   showView('exec-report');
+}
+
+// ── Appendix — Operationalisation Detail (merged single table) ──
+// The three themed coverage tables collapsed into one sortable table: one row
+// per risk × theme × document, plus "not started" rows for registered
+// policies/standards with no controls yet. Sorting is a live-screen aid —
+// the print/screenshot captures whatever order is currently applied.
+let _mergedRows = [];
+let _mergedSort = { col: null, dir: 1 };
+
+const MRT_CHIP = { none: ['opcov-chip-none', '– None'], low: ['opcov-chip-low', '⚠ Low'], building: ['opcov-chip-building', '◐ Building'], ok: ['opcov-chip-ok', '● OK'] };
+const MRT_BAND = { extreme: ['sev-extreme', 'Extreme'], significant: ['sev-significant', 'Significant'], moderate: ['sev-moderate', 'Moderate'], low: ['sev-low', 'Low'] };
+const MRT_FIELD = { capability: r => r.capName, theme: r => r.themeName, document: r => r.document || '', risk: r => r.riskTitle || '' };
+
+function mrtHead() {
+  const arrow = c => _mergedSort.col === c ? `<span class="mrt-arrow">${_mergedSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const sTh = (k, label) => `<th class="mrt-sort" onclick="sortMergedTable('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>
+    ${sTh('capability', 'Capability')}${sTh('theme', 'Theme')}${sTh('document', 'Document')}${sTh('risk', 'Risk')}
+    <th>Residual Risk</th>
+    <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
+    <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
+    <th class="opcov-chip-cell">Confidence</th>
+  </tr>`;
+}
+
+function mrtBody(rows) {
+  const pct = (n, d) => d > 0 ? Math.round(n / d * 100) : 0;
+  const cell = o => o.d > 0
+    ? `<span class="opcov-val"><b>${pct(o.n, o.d)}%</b><span class="opcov-frac">${o.n}/${o.d}</span></span>`
+    : `<span class="mrt-dash">—</span>`;
+  const residual = r => {
+    if (!r.assessed) return `<span class="mrt-status">${r.open ? 'Open · not assessed' : r.draft ? 'Draft' : '—'}</span>`;
+    const b = MRT_BAND[r.residualBand];
+    return b ? `<span class="sev-chip ${b[0]}">${b[1]}</span>` : `<span class="sev-chip sev-low">${r.residual}</span>`;
+  };
+  return rows.map(r => {
+    const c = MRT_CHIP[r.chip] || MRT_CHIP.none;
+    return `<tr class="${r.notStarted ? 'mrt-ns' : ''}">
+      <td class="mrt-cap">${r.capName}</td>
+      <td class="mrt-theme">${r.themeName}</td>
+      <td class="mrt-doc">${r.document || '<span class="mrt-dash">—</span>'}</td>
+      <td class="mrt-risk">${r.notStarted ? '<span class="mrt-nostart">not started</span>' : r.riskTitle}</td>
+      <td>${residual(r)}</td>
+      <td>${cell(r.implemented)}</td>
+      <td>${cell(r.ctrlAssessed)}</td>
+      <td class="opcov-chip-cell"><span class="opcov-chip ${c[0]}">${c[1]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMergedRiskTable(assessment) {
+  _mergedRows = buildMergedRiskRows(assessment.riskPolicyFacts || [], assessment.policyRows || []);
+  _mergedSort = { col: null, dir: 1 };
+  const ns = _mergedRows.filter(r => r.notStarted);
+  const nsNote = ns.length
+    ? `<p class="mrt-note">${ns.length} registered ${ns.length === 1 ? 'document has' : 'documents have'} no operationalised controls yet — shown as <span class="mrt-nostart">not started</span>.</p>`
+    : '';
+  return `
+    <div class="card measure-card merged-risk-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">📋</span>
+        <div style="flex:1">
+          <h3 class="measure-card-title">Operationalisation Detail — All Risks</h3>
+          <p class="measure-card-desc">Every risk × theme in one view: residual rating, control implementation and assessment, and the confidence behind each. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b> or <b>Risk</b> to sort.</p>
+        </div>
+      </div>
+      <div class="rcsa-table-wrap">
+        <table class="opcov-table merged-risk-table">
+          <thead id="merged-risk-thead">${mrtHead()}</thead>
+          <tbody id="merged-risk-tbody">${mrtBody(_mergedRows)}</tbody>
+        </table>
+      </div>
+      ${nsNote}
+      ${renderOpCoverageLegend()}
+    </div>`;
+}
+
+function sortMergedTable(col) {
+  if (_mergedSort.col === col) _mergedSort.dir *= -1;
+  else _mergedSort = { col, dir: 1 };
+  const f = MRT_FIELD[col];
+  const dir = _mergedSort.dir;
+  const sorted = _mergedRows.slice().sort((a, b) =>
+    (a.notStarted ? 1 : 0) - (b.notStarted ? 1 : 0) || f(a).localeCompare(f(b)) * dir);
+  const tb = document.getElementById('merged-risk-tbody');
+  const th = document.getElementById('merged-risk-thead');
+  if (tb) tb.innerHTML = mrtBody(sorted);
+  if (th) th.innerHTML = mrtHead();
 }
 
 // ── Appendix — Metric Definitions ─────────────────────────────

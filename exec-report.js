@@ -44,9 +44,9 @@ function generateExecReport() {
     ${execComplianceSummary(currentA, prevA)}
     <div class="exec-sec-div">Policy Layer — Governance (Policy Compliance)</div>
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
-    ${RISK_THEMES.map(t => `
-    <div class="exec-sec-div">Operational Layer — ${t.name}</div>
-    <div class="exec-rcsa-wrap">${renderRiskPortfolioCard(currentA, t, prevA)}</div>`).join('')}
+    <div class="exec-sec-div">Operational Layer — Operational Compliance</div>
+    <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
+    ${renderExecCallouts(currentA)}
     <div class="exec-sec-div">Supporting Detail — RCSA &amp; CSA Metrics</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
@@ -55,6 +55,26 @@ function generateExecReport() {
     ${renderMetricsAppendix()}
   `;
   showView('exec-report');
+}
+
+// ── Exec "so what" callouts (below the three score cards) ──────
+// The headline findings an exec reads first, summarised once for all themes
+// (the per-card callouts are dropped to avoid saying it twice).
+function renderExecCallouts(assessment) {
+  const s  = buildRiskPortfolioSummary(assessment.riskPolicyFacts || [], null);
+  if (!s) return '';
+  const ns = buildMergedRiskRows(assessment.riskPolicyFacts || [], assessment.policyRows || [])
+    .filter(r => r.notStarted).length;
+  const co = [];
+  if (s.underAssuredCount) co.push(['danger', '⚠',
+    `<b>${s.underAssuredCount} risk ${s.underAssuredCount === 1 ? 'rating is' : 'ratings are'} under-assured</b> — assessed, but the controls behind them mostly haven't been checked, so the ratings can't yet be defended to an auditor.`]);
+  if (s.draft) co.push(['warn', '📝',
+    `<b>${s.draft} ${s.draft === 1 ? 'risk is' : 'risks are'} still in draft</b> — logged but not yet formally in the RCSA. These are risk blind spots: identified but not treated.`]);
+  if (ns) co.push(['info', '📄',
+    `<b>${ns} approved ${ns === 1 ? 'policy/standard has' : 'policies &amp; standards have'} no controls in place yet</b> — operationalisation hasn't started for them, and we cannot prove compliance to these policies with implemented controls.`]);
+  if (!co.length) return '';
+  return `<div class="exec-callouts">${co.map(([k, i, t]) =>
+    `<div class="exec-callout exec-callout-${k}"><span class="eci">${i}</span><span>${t}</span></div>`).join('')}</div>`;
 }
 
 // ── Appendix — Operationalisation Detail (merged single table) ──

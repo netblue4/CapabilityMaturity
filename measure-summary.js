@@ -423,7 +423,24 @@ function qoqArrow(curr, prev, lowerIsBetter) {
 // ── Risk Management — Portfolio Health Card ──────────────────
 // theme (optional) = { key, name, dora }: scopes the card to one control type.
 // prev (optional) = previous assessment, for quarter-over-quarter arrows.
-function renderRiskPortfolioCard(assessment, theme, prev) {
+// Radial gauge for the card's headline "% of controls implemented" — the
+// single number an exec can point at as "our operational compliance here".
+function rmGauge(pct) {
+  const p = Math.max(0, Math.min(100, pct || 0));
+  const r = 25, c = 2 * Math.PI * r, off = c * (1 - p / 100);
+  return `<div class="rm-gauge">
+    <svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
+      <circle cx="31" cy="31" r="${r}" fill="none" stroke="var(--clr-fill-dark)" stroke-width="7"/>
+      <circle cx="31" cy="31" r="${r}" fill="none" stroke="var(--theme-acc,var(--accent))" stroke-width="7"
+        stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"
+        transform="rotate(-90 31 31)"/>
+      <text x="31" y="36" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">${p}%</text>
+    </svg>
+    <span class="rm-gauge-cap">Implemented</span>
+  </div>`;
+}
+
+function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
   const tk = theme ? theme.key : null;
   const s  = buildRiskPortfolioSummary(assessment.riskPolicyFacts || [], tk);
   const sp = prev ? buildRiskPortfolioSummary(prev.riskPolicyFacts || [], tk) : null;
@@ -449,6 +466,32 @@ function renderRiskPortfolioCard(assessment, theme, prev) {
       <div class="rm-tile-num ${cls || ''}">${num}</div>
       <div class="rm-tile-sub">${sub}</div>
     </div>`;
+
+  // Exec-report slim card: theme accent + Implemented gauge (the hero metric)
+  // + four board-relevant tiles. In-card callouts are dropped here because the
+  // exec report summarises them once below all three cards.
+  if (opts.exec && theme) {
+    const drill = `showUnderAssuredModal('${assessment.id}', '${theme.key}')`;
+    const slimTiles = [
+      tile('Risks Assessed',   s.assessedPct + '%' + qoqArrow(s.assessedPct, sp?.assessedPct, false), `${s.assessed} of ${s.active} active rated`, ''),
+      tile('Severe',           s.severe + qoqArrow(s.severe, sp?.severe, true), `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed})`, s.severe > 0 ? 'rm-num-warn' : ''),
+      tile('Control Coverage', (s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—') + qoqArrow(s.ctrlCoveragePct, sp?.ctrlCoveragePct, false), `${s.ctrlAssessed}/${s.ctrlTotal} controls checked`, ''),
+      tile('Under-assured',    s.underAssuredCount + qoqArrow(s.underAssuredCount, sp?.underAssuredCount, true), `ratings lacking evidence (${s.underAssuredCount}/${s.assessed})`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', drill),
+    ].join('');
+    return `
+      <div class="card measure-card rm-card rm-theme-${theme.key}">
+        <div class="measure-card-header">
+          <span class="measure-icon">🛡️</span>
+          <div style="flex:1">
+            <h3 class="measure-card-title">${title}</h3>
+            <p class="measure-card-desc">${desc}</p>
+          </div>
+          ${rmGauge(s.implementedPct)}
+        </div>
+        <button class="btn-link ratings-link" onclick="showMetricsModal('riskPortfolio')">ℹ Metrics</button>
+        <div class="rm-tiles rm-tiles-slim">${slimTiles}</div>
+      </div>`;
+  }
 
   // DORA themes swap Risk Reduction (not control-type-attributable) for
   // implemented rate; Pre-DORA keeps the reduction tile with its drill-down.

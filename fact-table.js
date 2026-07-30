@@ -425,6 +425,108 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRo
   return { rows, rollup };
 }
 
+// ── Merged operationalisation-detail rows (one flat table for the exec) ──
+//
+// One row per (theme × capability × risk × document): the three themed
+// coverage tables collapsed into a single dataset. Control counts are scoped
+// to the row's theme+document, residual/status are risk-level. Registered
+// local-policy / group-standard documents with no controls yet are added as
+// "not started" rows so the coverage gap stays visible. Default order groups
+// by capability (touched risks first, not-started last); the exec re-sorts
+// Capability / Theme / Document / Risk on screen.
+function buildMergedRiskRows(riskPolicyFacts, policyRows) {
+  const allFacts = riskPolicyFacts || [];
+  const cfg    = (CONFIG && CONFIG.opCoverage) || {};
+  const floor  = cfg.ownershipFloorPct != null ? cfg.ownershipFloorPct : 20;
+  const lowCut = cfg.confidenceLowPct  != null ? cfg.confidenceLowPct  : 40;
+  const okCut  = cfg.confidenceOkPct   != null ? cfg.confidenceOkPct   : 75;
+  const severeAt = ((CONFIG && CONFIG.riskManagement) || {}).severeResidualThreshold;
+  const sev = severeAt != null ? severeAt : 20;
+
+  const THEME_NAMES = { locPol: 'Local Policy', grpStd: 'Group Standard', operational: 'Pre-DORA' };
+  const capName = id => (CONFIG.capabilities.find(c => c.id === id)?.name) || id;
+  const isClosed = f => { const s = ftNorm(f.riskStatus); return s.includes('closed') || s.includes('proposed close'); };
+  const isOpen  = f => ftNorm(f.riskStatus).includes('open');
+  const isDraft = f => ftNorm(f.riskStatus).includes('draft');
+  const pct = (n, d) => d > 0 ? Math.round(n / d * 100) : 0;
+  const band = r => r >= 28 ? 'extreme' : r >= sev ? 'significant' : r >= 12 ? 'moderate' : r >= 4 ? 'low' : 'none';
+
+  // Group facts by theme × capability × risk × document.
+  const groups = {};
+  allFacts.forEach(f => {
+    const norm = ftNorm(f.riskTitle);
+    if (!norm || isClosed(f)) return;
+    const theme = f.controlType;
+    const doc = theme === 'operational' ? '' :
+      (((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '(unmapped)');
+    const key = theme + '|' + f.capId + '|' + norm + '|' + doc;
+    (groups[key] = groups[key] || { theme, capId: f.capId, riskTitle: f.riskTitle, doc, facts: [] }).facts.push(f);
+  });
+
+  const rows = Object.values(groups).map(g => {
+    const total = g.facts.length;
+    const owned = g.facts.filter(ftIsOwned).length;
+    const impl  = g.facts.filter(ftIsImplemented).length;
+    const assd  = g.facts.filter(ftIsAssessed).length;
+    const res   = g.facts.reduce((m, f) => Math.max(m, f.residualScore || 0), 0);
+    const assessed = res > 0;
+    const open  = g.facts.some(isOpen);
+    const draft = g.facts.some(isDraft) && !open;
+    let chip;
+    if (!assessed) chip = 'none';
+    else {
+      const ctrlAssdPct = pct(assd, total);
+      if (pct(owned, total) < floor) chip = 'low';
+      else if (ctrlAssdPct < lowCut) chip = 'low';
+      else if (ctrlAssdPct < okCut)  chip = 'building';
+      else chip = 'ok';
+    }
+    return {
+      capId: g.capId, capName: capName(g.capId),
+      themeKey: g.theme, themeName: THEME_NAMES[g.theme] || g.theme,
+      document: g.theme === 'operational' ? '' : g.doc,
+      riskTitle: g.riskTitle,
+      residual: res, residualBand: assessed ? band(res) : null,
+      assessed, open, draft,
+      implemented: { n: impl, d: total }, ctrlAssessed: { n: assd, d: total },
+      chip, notStarted: false,
+    };
+  });
+
+  // "Not started" — registered local-policy / group-standard documents with
+  // no controls mapped to them yet, per (capability, document).
+  const themeOfType = pr => isLocPolType(pr.type) ? 'locPol' : isGrpStdType(pr.type) ? 'grpStd' : null;
+  const touched = new Set(rows.map(r => r.themeKey + '|' + r.capId + '|' + r.document));
+  const seenNS  = new Set();
+  (policyRows || []).forEach(pr => {
+    const theme = themeOfType(pr);
+    if (!theme) return;
+    const doc = (pr.document || '').trim();
+    if (!doc) return;
+    const key = theme + '|' + pr.capId + '|' + doc;
+    if (touched.has(key) || seenNS.has(key)) return;
+    seenNS.add(key);
+    rows.push({
+      capId: pr.capId, capName: capName(pr.capId),
+      themeKey: theme, themeName: THEME_NAMES[theme],
+      document: doc, riskTitle: '',
+      residual: 0, residualBand: null, assessed: false, open: false, draft: false,
+      implemented: { n: 0, d: 0 }, ctrlAssessed: { n: 0, d: 0 },
+      chip: 'none', notStarted: true,
+    });
+  });
+
+  // Default order: by capability, touched first, then theme order, then risk.
+  const themeOrder = { locPol: 0, grpStd: 1, operational: 2 };
+  rows.sort((a, b) =>
+    a.capName.localeCompare(b.capName) ||
+    (a.notStarted ? 1 : 0) - (b.notStarted ? 1 : 0) ||
+    (themeOrder[a.themeKey] - themeOrder[b.themeKey]) ||
+    a.riskTitle.localeCompare(b.riskTitle)
+  );
+  return rows;
+}
+
 // ── Risk Portfolio summary — register, exposure & control assurance ──
 //
 // Portfolio-level roll-up of the RCSA: risk counts by status, assessment

@@ -286,7 +286,13 @@ function execComplianceSummary(a, prev) {
   const grpCount = polRows.filter(r => isGrpStdType(r.type)).length;
 
   const pct  = (n, d) => (d > 0 ? Math.round(100 * n / d) : 0);
-  const metric = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
+  // Count metric (e.g. "77 policy statements"): big neutral number, no bar.
+  const metricNum = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
+  // Percentage metric: accent-coloured number + a meter bar filled to the value.
+  const metricPct = (p, lbl, arrow = '') => {
+    const w = Math.max(0, Math.min(100, p));
+    return `<div class="pvo-metric"><span class="pvo-val pvo-val-pct">${p}%${arrow}</span><span class="pvo-lbl">${lbl}</span><span class="pvo-meter"><i style="width:${w}%"></i></span></div>`;
+  };
 
   // Previous-quarter percentages for quarter-over-quarter arrows.
   const pv = {};
@@ -312,12 +318,12 @@ function execComplianceSummary(a, prev) {
   const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
   const policyCol = `
     <div class="pvo-col pvo-policy">
-      <div class="pvo-col-hdr">📜 Policy Layer — Written &amp; Approved</div>
-      ${metric(locCount || '—', 'policy statements catalogued')}
-      ${metric(locCovPct + '%' + qoqArrow(locCovPct, pv.locCov, false), `policy statements with an associated risk (${locCov.covered}/${locCov.total})`)}
-      ${metric(grpCount || '—', 'group standards catalogued')}
-      ${metric(grpCovPct + '%' + qoqArrow(grpCovPct, pv.grpCov, false), `standard statements with associated risks (${grpCov.covered}/${grpCov.total})`)}
-      ${metric(locPct + '%' + qoqArrow(locPct, pv.loc, false), 'group requirements mapped into a policy statement')}
+      <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">Policy Layer — Written &amp; Approved</span></div>
+      ${metricNum(locCount || '—', 'policy statements catalogued')}
+      ${metricPct(locCovPct, `policy statements with an associated risk (${locCov.covered}/${locCov.total})`, qoqArrow(locCovPct, pv.locCov, false))}
+      ${metricNum(grpCount || '—', 'group standards catalogued')}
+      ${metricPct(grpCovPct, `standard statements with associated risks (${grpCov.covered}/${grpCov.total})`, qoqArrow(grpCovPct, pv.grpCov, false))}
+      ${metricPct(locPct, 'group requirements mapped into a policy statement', qoqArrow(locPct, pv.loc, false))}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
@@ -336,11 +342,11 @@ function execComplianceSummary(a, prev) {
   const ru = oc.rollup || { ok: 0, building: 0, low: 0, none: 0 };
   const opsCol = `
     <div class="pvo-col pvo-ops">
-      <div class="pvo-col-hdr">⚙️ Operational Layer — Operationalised</div>
-      ${metric(locBackedPct + '%' + qoqArrow(locBackedPct, pv.locBack, false), `policy statements backed by implemented controls (${locOp.operationalised}/${locOp.total})`)}
-      ${metric(grpBackedPct + '%' + qoqArrow(grpBackedPct, pv.grpBack, false), `group standards backed by implemented controls (${grpOp.operationalised}/${grpOp.total})`)}
-      ${metric(preDora.length || '—', 'pre-DORA controls in place (disruption-risk scope)')}
-      ${metric(preDoraPct + '%' + qoqArrow(preDoraPct, pv.preDora, false), `pre-DORA controls mapped to a policy or standard (${preDoraMapped}/${preDora.length})`)}
+      <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Layer — Operationalised</span></div>
+      ${metricPct(locBackedPct, `policy statements backed by implemented controls (${locOp.operationalised}/${locOp.total})`, qoqArrow(locBackedPct, pv.locBack, false))}
+      ${metricPct(grpBackedPct, `group standards backed by implemented controls (${grpOp.operationalised}/${grpOp.total})`, qoqArrow(grpBackedPct, pv.grpBack, false))}
+      ${metricNum(preDora.length || '—', 'pre-DORA controls in place (disruption-risk scope)')}
+      ${metricPct(preDoraPct, `pre-DORA controls mapped to a policy or standard (${preDoraMapped}/${preDora.length})`, qoqArrow(preDoraPct, pv.preDora, false))}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
 

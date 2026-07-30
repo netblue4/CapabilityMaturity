@@ -74,6 +74,7 @@
       document:   docIdx >= 0 ? headers[docIdx] : null,
       status:     find('document status', 'status'),
       header:     find('statement header', 'header'),
+      owner:      find('owner', 'accountable', 'responsible'),
     };
   }
 
@@ -195,8 +196,9 @@
       const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
       const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
       const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
+      const own  = _piCols.owner    ? (row[_piCols.owner]    || '').trim() : '';
       if (!ref) return;
-      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr });
+      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, owner: own });
     });
 
     renderPiReviewTable();
@@ -243,8 +245,9 @@
       const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
       const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
       const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
+      const own  = _piCols.owner    ? (row[_piCols.owner]    || '').trim() : '';
       if (!ref) return;
-      policyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr });
+      policyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, owner: own });
     });
 
     assessment.policyRows = policyRows;

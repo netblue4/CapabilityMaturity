@@ -47,6 +47,8 @@ function generateExecReport() {
     <div class="exec-sec-div">Operational Layer — Operational Compliance</div>
     <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
     ${renderExecCallouts(currentA)}
+    <div class="exec-sec-div">Operational Layer — Ownership of the Gap</div>
+    <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA)}</div>
     <div class="exec-sec-div">Supporting Detail — RCSA &amp; CSA Metrics</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
@@ -77,6 +79,44 @@ function renderExecCallouts(assessment) {
     `<div class="exec-callout exec-callout-${k}"><span class="eci">${i}</span><span>${t}</span></div>`).join('')}</div>`;
 }
 
+// ── Ownership of the unimplemented gap ────────────────────────────
+// A ranked bar list: of the controls not yet implemented, which accountable
+// team (policy owner) owns them. Bar length = that team's share of the whole
+// gap; the sub-line shows their footprint (gap / owned) and progress.
+function renderOwnerGapCard(assessment) {
+  const g = buildOwnerGapRollup(assessment.riskPolicyFacts || []);
+  if (!g.totalControls) return '';
+  if (!g.gapCount) {
+    return `
+      <div class="card measure-card owg-card">
+        <div class="measure-card-header">
+          <span class="measure-icon">🧭</span>
+          <div style="flex:1">
+            <h3 class="measure-card-title">Ownership of the Unimplemented Gap</h3>
+            <p class="measure-card-desc">All ${g.totalControls} in-scope controls are implemented — no ownership gap to assign.</p>
+          </div>
+        </div>
+      </div>`;
+  }
+  const list = g.rows.map(r => `
+      <div class="owg-row">
+        <span class="owg-name" title="${r.owner}">${r.owner}</span>
+        <span class="owg-bar"><i style="width:${Math.max(2, r.shareOfGap)}%"></i></span>
+        <span class="owg-fig"><b>${r.shareOfGap}%</b><span class="owg-sub">${r.gap} of ${r.ownedTotal} · ${r.implRate}% done</span></span>
+      </div>`).join('');
+  return `
+    <div class="card measure-card owg-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">🧭</span>
+        <div style="flex:1">
+          <h3 class="measure-card-title">Ownership of the Unimplemented Gap</h3>
+          <p class="measure-card-desc"><b>${g.gapCount}</b> of ${g.totalControls} controls are not yet implemented (<b>${g.gapPct}%</b>). Each bar is that team's share of the whole gap; the sub-line shows their own not-implemented / owned count and how much of their book is done. <b>Accountable owner</b> comes from the policy statement, not the control operator.</p>
+        </div>
+      </div>
+      <div class="owg-list">${list}</div>
+    </div>`;
+}
+
 // ── Appendix — Operationalisation Detail (merged single table) ──
 // The three themed coverage tables collapsed into one sortable table: one row
 // per risk × theme × document, plus "not started" rows for registered
@@ -88,13 +128,13 @@ let _mergedMeta = {};
 
 const MRT_CHIP = { none: ['opcov-chip-none', '– None'], low: ['opcov-chip-low', '⚠ Low'], building: ['opcov-chip-building', '◐ Building'], ok: ['opcov-chip-ok', '● OK'] };
 const MRT_BAND = { extreme: ['sev-extreme', 'Extreme'], significant: ['sev-significant', 'Significant'], moderate: ['sev-moderate', 'Moderate'], low: ['sev-low', 'Low'] };
-const MRT_FIELD = { capability: r => r.capName, theme: r => r.themeName, document: r => r.document || '', risk: r => r.riskTitle || '' };
+const MRT_FIELD = { capability: r => r.capName, theme: r => r.themeName, document: r => r.document || '', risk: r => r.riskTitle || '', owner: r => r.owner || '' };
 
 function mrtHead() {
   const arrow = c => _mergedSort.col === c ? `<span class="mrt-arrow">${_mergedSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const sTh = (k, label) => `<th class="mrt-sort" onclick="sortMergedTable('${k}')">${label}${arrow(k)}</th>`;
   return `<tr>
-    ${sTh('capability', 'Capability')}${sTh('theme', 'Theme')}${sTh('document', 'Document')}${sTh('risk', 'Risk')}
+    ${sTh('capability', 'Capability')}${sTh('theme', 'Theme')}${sTh('document', 'Document')}${sTh('risk', 'Risk')}${sTh('owner', 'Accountable Owner')}
     <th>Residual Risk</th>
     <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
     <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
@@ -105,7 +145,7 @@ function mrtHead() {
 // Static header (no sort handlers / arrows) for the standalone print/PDF export.
 function mrtHeadPrint() {
   return `<tr>
-    <th>Capability</th><th>Theme</th><th>Document</th><th>Risk</th>
+    <th>Capability</th><th>Theme</th><th>Document</th><th>Risk</th><th>Accountable Owner</th>
     <th>Residual Risk</th>
     <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
     <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
@@ -130,6 +170,7 @@ function mrtBody(rows) {
       <td class="mrt-theme">${r.themeName}</td>
       <td class="mrt-doc">${r.document || '<span class="mrt-dash">—</span>'}</td>
       <td class="mrt-risk">${r.notStarted ? '<span class="mrt-nostart">not started</span>' : r.riskTitle}</td>
+      <td class="mrt-owner">${r.owner || '<span class="mrt-dash">—</span>'}</td>
       <td>${residual(r)}</td>
       <td>${cell(r.implemented)}</td>
       <td>${cell(r.ctrlAssessed)}</td>

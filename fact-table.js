@@ -65,8 +65,50 @@ function buildRiskPolicyFacts(riskRows, policyRows) {
       seen.add(k);
       return true;
     });
-    return { ...rr, matchedPolicyRows: uniqueMatched };
+    // Accountable owner is derived from the matched policy statement(s), not the
+    // Riskonnect control owner — the policy OWNER is the team we hold accountable
+    // for operationalising the control. controlOwner (who runs it) is kept as-is.
+    // When a control matches several statements, the most common owner wins.
+    const ownerCounts = {};
+    uniqueMatched.forEach(pr => {
+      const o = (pr.owner || '').trim();
+      if (o) ownerCounts[o] = (ownerCounts[o] || 0) + 1;
+    });
+    let policyOwner = '', best = 0;
+    Object.entries(ownerCounts).forEach(([o, n]) => { if (n > best) { best = n; policyOwner = o; } });
+    return { ...rr, matchedPolicyRows: uniqueMatched, policyOwner };
   });
+}
+
+// ── Ownership of the unimplemented gap ────────────────────────────
+// Of the controls not yet implemented, which accountable team (policy OWNER)
+// owns them. Grouped by the raw owner string — no role→department mapping.
+// Controls with no matched policy statement fall into "Unassigned".
+function buildOwnerGapRollup(riskPolicyFacts) {
+  const facts = (riskPolicyFacts || []).filter(f => !ftNorm(f.riskStatus).includes('closed'));
+  const totalControls = facts.length;
+  const gap = facts.filter(f => !ftIsImplemented(f));
+  const owners = {};
+  facts.forEach(f => {
+    const key = (f.policyOwner || '').trim() || 'Unassigned';
+    const o = owners[key] || (owners[key] = { owner: key, ownedTotal: 0, ownedImpl: 0, gap: 0 });
+    o.ownedTotal++;
+    if (ftIsImplemented(f)) o.ownedImpl++; else o.gap++;
+  });
+  const rows = Object.values(owners)
+    .filter(o => o.gap > 0)
+    .map(o => ({
+      ...o,
+      shareOfGap: gap.length ? Math.round(100 * o.gap / gap.length) : 0,
+      implRate:   o.ownedTotal ? Math.round(100 * o.ownedImpl / o.ownedTotal) : 0,
+    }))
+    .sort((a, b) => b.gap - a.gap || a.owner.localeCompare(b.owner));
+  return {
+    totalControls,
+    gapCount: gap.length,
+    gapPct: totalControls ? Math.round(100 * gap.length / totalControls) : 0,
+    rows,
+  };
 }
 
 // ── Build byCapability summary from flat policyRows ───────────────
@@ -445,6 +487,13 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
 
   const THEME_NAMES = { locPol: 'Local Policy', grpStd: 'Group Standard', operational: 'Pre-DORA' };
   const capName = id => (CONFIG.capabilities.find(c => c.id === id)?.name) || id;
+  const ownerOf = facts => {
+    const c = {};
+    facts.forEach(f => { const o = (f.policyOwner || '').trim(); if (o) c[o] = (c[o] || 0) + 1; });
+    let best = '', n = 0;
+    Object.entries(c).forEach(([k, v]) => { if (v > n) { n = v; best = k; } });
+    return best;
+  };
   const isClosed = f => { const s = ftNorm(f.riskStatus); return s.includes('closed') || s.includes('proposed close'); };
   const isOpen  = f => ftNorm(f.riskStatus).includes('open');
   const isDraft = f => ftNorm(f.riskStatus).includes('draft');
@@ -486,6 +535,7 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
       themeKey: g.theme, themeName: THEME_NAMES[g.theme] || g.theme,
       document: g.theme === 'operational' ? '' : g.doc,
       riskTitle: g.riskTitle,
+      owner: ownerOf(g.facts),
       residual: res, residualBand: assessed ? band(res) : null,
       assessed, open, draft,
       implemented: { n: impl, d: total }, ctrlAssessed: { n: assd, d: total },
@@ -509,7 +559,7 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
     rows.push({
       capId: pr.capId, capName: capName(pr.capId),
       themeKey: theme, themeName: THEME_NAMES[theme],
-      document: doc, riskTitle: '',
+      document: doc, riskTitle: '', owner: (pr.owner || '').trim(),
       residual: 0, residualBand: null, assessed: false, open: false, draft: false,
       implemented: { n: 0, d: 0 }, ctrlAssessed: { n: 0, d: 0 },
       chip: 'none', notStarted: true,

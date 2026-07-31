@@ -525,15 +525,6 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
     const assessed = res > 0;
     const open  = g.facts.some(isOpen);
     const draft = g.facts.some(isDraft) && !open;
-    let chip;
-    if (!assessed) chip = 'none';
-    else {
-      const ctrlAssdPct = pct(assd, total);
-      if (pct(owned, total) < floor) chip = 'low';
-      else if (ctrlAssdPct < lowCut) chip = 'low';
-      else if (ctrlAssdPct < okCut)  chip = 'building';
-      else chip = 'ok';
-    }
     return {
       capId: g.capId, capName: capName(g.capId),
       themeKey: g.theme, themeName: THEME_NAMES[g.theme] || g.theme,
@@ -542,8 +533,8 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
       owner: ownerOf(g.facts),
       residual: res, residualBand: assessed ? band(res) : null,
       assessed, open, draft,
-      implemented: { n: impl, d: total }, ctrlAssessed: { n: assd, d: total },
-      chip, notStarted: false,
+      owned: { n: owned, d: total }, implemented: { n: impl, d: total },
+      notStarted: false,
     };
   });
 
@@ -565,8 +556,8 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
       themeKey: theme, themeName: THEME_NAMES[theme],
       document: doc, riskTitle: '', owner: (pr.owner || '').trim(),
       residual: 0, residualBand: null, assessed: false, open: false, draft: false,
-      implemented: { n: 0, d: 0 }, ctrlAssessed: { n: 0, d: 0 },
-      chip: 'none', notStarted: true,
+      owned: { n: 0, d: 0 }, implemented: { n: 0, d: 0 },
+      notStarted: true,
     });
   });
 

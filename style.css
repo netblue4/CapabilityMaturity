@@ -2657,6 +2657,7 @@ details[open] .profile-card-chevron {
 .opcov-risk .opcov-xtheme { margin-top: 0; margin-left: .35rem; vertical-align: middle; }
 
 /* ── Exec score-card slide: theme accents, gauge, slim tiles, callouts ── */
+.exec-vspace { height: 1.5rem; }
 .exec-sc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; align-items: start; margin-bottom: .5rem; }
 @media (max-width: 1000px) { .exec-sc-grid { grid-template-columns: 1fr; } }
 

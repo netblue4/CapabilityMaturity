@@ -43,16 +43,15 @@ function generateExecReport() {
     </div>
     ${execComplianceSummary(currentA, prevA)}
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
+    <div class="exec-vspace"></div>
     <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
+    <div class="exec-vspace"></div>
     <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
-    ${renderExecCallouts(currentA)}
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
     <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>
     <div class="exec-sec-div">Appendix — Outstanding Controls by Owner</div>
     <div class="exec-rcsa-wrap">${renderControlsByOwner(currentA)}</div>
-    <div class="exec-sec-div">Appendix — Metric Definitions</div>
-    ${renderMetricsAppendix()}
   `;
   showView('exec-report');
 }
@@ -138,7 +137,6 @@ let _mergedRows = [];
 let _mergedSort = { col: null, dir: 1 };
 let _mergedMeta = {};
 
-const MRT_CHIP = { none: ['opcov-chip-none', '– None'], low: ['opcov-chip-low', '⚠ Low'], building: ['opcov-chip-building', '◐ Building'], ok: ['opcov-chip-ok', '● OK'] };
 const MRT_BAND = { extreme: ['sev-extreme', 'Extreme'], significant: ['sev-significant', 'Significant'], moderate: ['sev-moderate', 'Moderate'], low: ['sev-low', 'Low'] };
 const MRT_FIELD = { capability: r => r.capName, theme: r => r.themeName, document: r => r.document || '', risk: r => r.riskTitle || '', owner: r => r.owner || '' };
 
@@ -148,9 +146,8 @@ function mrtHead() {
   return `<tr>
     ${sTh('capability', 'Capability')}${sTh('theme', 'Theme')}${sTh('document', 'Document')}${sTh('risk', 'Risk')}${sTh('owner', 'Accountable Owner')}
     <th>Residual Risk</th>
+    <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>
     <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
-    <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
-    <th class="opcov-chip-cell">Confidence</th>
   </tr>`;
 }
 
@@ -159,9 +156,8 @@ function mrtHeadPrint() {
   return `<tr>
     <th>Capability</th><th>Theme</th><th>Document</th><th>Risk</th><th>Accountable Owner</th>
     <th>Residual Risk</th>
+    <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>
     <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
-    <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
-    <th class="opcov-chip-cell">Confidence</th>
   </tr>`;
 }
 
@@ -176,7 +172,6 @@ function mrtBody(rows) {
     return b ? `<span class="sev-chip ${b[0]}">${b[1]}</span>` : `<span class="sev-chip sev-low">${r.residual}</span>`;
   };
   return rows.map(r => {
-    const c = MRT_CHIP[r.chip] || MRT_CHIP.none;
     return `<tr class="${r.notStarted ? 'mrt-ns' : ''}">
       <td class="mrt-cap">${r.capName}</td>
       <td class="mrt-theme">${r.themeName}</td>
@@ -184,9 +179,8 @@ function mrtBody(rows) {
       <td class="mrt-risk">${r.notStarted ? '<span class="mrt-nostart">not started</span>' : r.riskTitle}</td>
       <td class="mrt-owner">${r.owner || '<span class="mrt-dash">—</span>'}</td>
       <td>${residual(r)}</td>
+      <td>${cell(r.owned)}</td>
       <td>${cell(r.implemented)}</td>
-      <td>${cell(r.ctrlAssessed)}</td>
-      <td class="opcov-chip-cell"><span class="opcov-chip ${c[0]}">${c[1]}</span></td>
     </tr>`;
   }).join('');
 }
@@ -205,7 +199,7 @@ function renderMergedRiskTable(assessment) {
         <span class="measure-icon">📋</span>
         <div style="flex:1">
           <h3 class="measure-card-title">Operationalisation Detail — All Risks</h3>
-          <p class="measure-card-desc">Every risk × theme in one view: residual rating, control implementation and assessment, and the confidence behind each. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b> or <b>Risk</b> to sort.</p>
+          <p class="measure-card-desc">Every risk × theme in one view: residual rating, and how many of its controls are owned and implemented. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b>, <b>Risk</b> or <b>Accountable Owner</b> to sort.</p>
         </div>
         <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printMergedRiskTable()">🖨 Export detail table (PDF)</button>
       </div>
@@ -216,7 +210,6 @@ function renderMergedRiskTable(assessment) {
         </table>
       </div>
       ${nsNote}
-      ${renderOpCoverageLegend()}
     </div>`;
 }
 
@@ -303,8 +296,7 @@ function printMergedRiskTable() {
       <thead>${mrtHeadPrint()}</thead>
       <tbody>${tb.innerHTML}</tbody>
     </table>
-    ${nsNote}
-    ${renderOpCoverageLegend()}`;
+    ${nsNote}`;
   execPrintWindow('Operationalisation Detail — All Risks', [meta.label, meta.date].filter(Boolean).join(' · '), body);
 }
 

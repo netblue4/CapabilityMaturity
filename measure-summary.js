@@ -389,10 +389,8 @@ function renderKpiSection(curr, prevF, currA, prevA) {
     </tr>`);
   });
 
-  const filteredPol = polRows.filter(Boolean);
   const filteredCtc = ctcRows.filter(Boolean);
-  return tableBlock('Policy Operationalisation', filteredPol) +
-         tableBlock('Cross Team Cooperation',    filteredCtc);
+  return tableBlock('Cross Team Cooperation', filteredCtc);
 }
 
 // ── Risk themes (by control type) ────────────────────────────

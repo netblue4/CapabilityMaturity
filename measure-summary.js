@@ -399,7 +399,7 @@ function renderKpiSection(curr, prevF, currA, prevA) {
 const RISK_THEMES = [
   { key: 'locPol',      name: 'Local Policy',   dora: true,  rowBy: 'document', rowHeader: 'Local policy',   covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA local-policy controls — the risks they touch and the control evidence behind them.', covDesc: "Operational compliance is measured by the percentage of each local policy's controls that are owned, implemented and assessed." },
   { key: 'grpStd',      name: 'Group Standard', dora: true,  rowBy: 'document', rowHeader: 'Group standard', covPrefix: 'Policy Operationalisation Coverage',  desc: 'DORA group-standard controls — the risks they touch and the control evidence behind them.', covDesc: "Operational compliance is measured by the percentage of each group standard's controls that are owned, implemented and assessed." },
-  { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',     rowHeader: 'Risk',           covPrefix: 'Control Operationalisation Coverage', desc: 'Pre-DORA operational controls (narrow disruption-risk scope) — our established control base.', covDesc: "Operational compliance is measured by the percentage of each risk's controls that are owned, implemented and assessed." },
+  { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',     rowHeader: 'Risk',           covPrefix: 'Control Operationalisation Coverage', desc: 'Pre-DORA operational controls — narrow disruption-risk scope &amp; operational controls.', covDesc: "Operational compliance is measured by the percentage of each risk's controls that are owned, implemented and assessed." },
 ];
 
 // One themed Risk Management card + its scoped Policy Operationalisation card.
@@ -440,6 +440,33 @@ function rmGauge(pct) {
   </div>`;
 }
 
+// Control-assurance funnel for the exec theme cards: Owned → Implemented →
+// Tested → Effective, each as a share of this theme's controls. Bars only ever
+// shrink down the funnel, so the drop-off ("owned but not proven") is visible.
+function rmFunnel(s, sp) {
+  const stages = [
+    ['Owned',       s.ctrlOwnedPct,     sp && sp.ctrlOwnedPct,     s.ctrlOwned,       'unassigned'],
+    ['Implemented', s.implementedPct,   sp && sp.implementedPct,   s.ctrlImplemented, 'not in place'],
+    ['Tested',      s.ctrlTestedPct,    sp && sp.ctrlTestedPct,    s.ctrlTested,      'untested'],
+    ['Effective',   s.ctrlEffectivePct, sp && sp.ctrlEffectivePct, s.ctrlEffective,   'unproven'],
+  ];
+  const rows = stages.map(([label, p, prev, n, gap]) => {
+    const comp = 100 - p;
+    return `
+      <div class="rmf-stage">
+        <div class="rmf-row">
+          <span class="rmf-lbl">${label}</span>
+          <span class="rmf-bar"><i style="width:${Math.max(0, Math.min(100, p))}%"></i></span>
+          <span class="rmf-val">${p}%${qoqArrow(p, prev, false)}</span>
+        </div>
+        <div class="rmf-gap">${n}/${s.ctrlCount}${comp ? ` · ${comp}% ${gap}` : ''}</div>
+      </div>`;
+  }).join('');
+  return `<div class="rmf">
+    <div class="rmf-title">Control assurance <span class="rmf-note">of ${s.ctrlCount} controls</span></div>
+    ${rows}</div>`;
+}
+
 function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
   const tk = theme ? theme.key : null;
   const s  = buildRiskPortfolioSummary(assessment.riskPolicyFacts || [], tk);
@@ -467,16 +494,16 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
       <div class="rm-tile-sub">${sub}</div>
     </div>`;
 
-  // Exec-report slim card: theme accent + Implemented gauge (the hero metric)
-  // + four board-relevant tiles. In-card callouts are dropped here because the
-  // exec report summarises them once below all three cards.
+  // Exec-report slim card: two risk tiles (Risks Assessed, Severe) plus a
+  // control-assurance funnel (Owned → Implemented → Tested → Effective).
+  // In-card callouts are dropped here — the exec report summarises them once
+  // below all three cards.
   if (opts.exec && theme) {
-    const drill = `showUnderAssuredModal('${assessment.id}', '${theme.key}')`;
+    const raComp = 100 - s.assessedPct;
+    const raSub  = raComp ? `${raComp}% spotted but not yet managed (${s.assessed}/${s.active})` : `all active risks rated (${s.assessed}/${s.active})`;
     const slimTiles = [
-      tile('Risks Assessed',   s.assessedPct + '%' + qoqArrow(s.assessedPct, sp?.assessedPct, false), `${s.assessed} of ${s.active} active rated`, ''),
-      tile('Severe',           s.severe + qoqArrow(s.severe, sp?.severe, true), `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed})`, s.severe > 0 ? 'rm-num-warn' : ''),
-      tile('Control Coverage', (s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—') + qoqArrow(s.ctrlCoveragePct, sp?.ctrlCoveragePct, false), `How much of the control evidence behind our risk ratings has actually been checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
-      tile('Under-assured',    s.underAssuredCount + qoqArrow(s.underAssuredCount, sp?.underAssuredCount, true), `Risk ratings we couldn't defend to an auditor yet — rated, but the controls weren't checked (${s.underAssuredCount}/${s.assessed})`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', drill),
+      tile('Risks Assessed', s.assessedPct + '%' + qoqArrow(s.assessedPct, sp?.assessedPct, false), raSub, ''),
+      tile('Severe',         s.severe + qoqArrow(s.severe, sp?.severe, true), `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed})`, s.severe > 0 ? 'rm-num-warn' : ''),
     ].join('');
     return `
       <div class="card measure-card rm-card rm-theme-${theme.key}">
@@ -486,10 +513,10 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
             <h3 class="measure-card-title">${title}</h3>
             <p class="measure-card-desc">${desc}</p>
           </div>
-          ${rmGauge(s.implementedPct)}
         </div>
         <button class="btn-link ratings-link" onclick="showMetricsModal('riskPortfolio')">ℹ Metrics</button>
         <div class="rm-tiles rm-tiles-slim">${slimTiles}</div>
+        ${rmFunnel(s, sp)}
       </div>`;
   }
 

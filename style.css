@@ -2675,6 +2675,22 @@ details[open] .profile-card-chevron {
 .rm-gauge-cap { display: block; font-size: .55rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin-top: 2px; }
 .rm-tiles.rm-tiles-slim { grid-template-columns: repeat(2, 1fr); }
 
+/* Control-assurance funnel on the exec theme cards */
+.rmf { margin-top: .2rem; }
+.rmf-title {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); margin-bottom: .45rem;
+}
+.rmf-note { font-weight: 400; text-transform: none; letter-spacing: 0; font-size: .58rem; }
+.rmf-stage { margin-bottom: .4rem; }
+.rmf-row { display: grid; grid-template-columns: 74px 1fr 58px; align-items: center; gap: .45rem; }
+.rmf-lbl { font-size: .72rem; font-weight: 600; }
+.rmf-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+.rmf-bar > i { display: block; height: 100%; border-radius: 4px; background: var(--theme-acc, var(--accent)); }
+.rmf-val { font-size: .72rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rmf-gap { font-size: .56rem; color: var(--text-muted); text-align: right; margin-top: 1px; }
+
 .exec-callouts { display: flex; flex-direction: column; gap: .5rem; margin: .3rem 0 .5rem; }
 .exec-callout { display: flex; gap: .6rem; align-items: flex-start; border-radius: 8px; padding: .6rem .85rem; font-size: .86rem; line-height: 1.45; border: 1px solid; }
 .exec-callout .eci { font-size: 1rem; line-height: 1.2; }

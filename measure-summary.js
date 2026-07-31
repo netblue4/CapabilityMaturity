@@ -389,10 +389,8 @@ function renderKpiSection(curr, prevF, currA, prevA) {
     </tr>`);
   });
 
-  const filteredPol = polRows.filter(Boolean);
   const filteredCtc = ctcRows.filter(Boolean);
-  return tableBlock('Policy Operationalisation', filteredPol) +
-         tableBlock('Cross Team Cooperation',    filteredCtc);
+  return tableBlock('Cross Team Cooperation', filteredCtc);
 }
 
 // ── Risk themes (by control type) ────────────────────────────
@@ -514,7 +512,6 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
             <p class="measure-card-desc">${desc}</p>
           </div>
         </div>
-        <button class="btn-link ratings-link" onclick="showMetricsModal('riskPortfolio')">ℹ Metrics</button>
         <div class="rm-tiles rm-tiles-slim">${slimTiles}</div>
         ${rmFunnel(s, sp)}
       </div>`;

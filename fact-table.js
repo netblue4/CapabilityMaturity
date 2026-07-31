@@ -666,8 +666,12 @@ function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
   // Implemented rate across all of this scope's controls (used by the DORA
   // theme cards in place of Risk Reduction, which isn't control-type-attributable).
   const ctrlImplemented = facts.filter(ftIsImplemented).length;
+  const ctrlOwned       = facts.filter(ftIsOwned).length;
+  const ctrlTested      = facts.filter(ftIsAssessed).length;
+  const ctrlEffective   = facts.filter(ftIsEffective).length;
   const ctrlCount       = facts.length;
-  const implementedPct  = ctrlCount > 0 ? Math.round(100 * ctrlImplemented / ctrlCount) : 0;
+  const p100 = n => ctrlCount > 0 ? Math.round(100 * n / ctrlCount) : 0;
+  const implementedPct  = p100(ctrlImplemented);
 
   return {
     total: risks.length, open, draft, closed,
@@ -680,6 +684,9 @@ function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
     reductionPct,
     ctrlCoveragePct, ctrlAssessed: totCtrlAssd, ctrlTotal: totCtrls,
     ctrlImplemented, ctrlCount, implementedPct,
+    ctrlOwned, ctrlOwnedPct: p100(ctrlOwned),
+    ctrlTested, ctrlTestedPct: p100(ctrlTested),
+    ctrlEffective, ctrlEffectivePct: p100(ctrlEffective),
     underAssured, underAssuredCount: underAssured.length, underAssuredFloor: underAt, assuranceRanking,
     ranking, weakMitigation, weakMitigationCount: weakMitigation.length, weakThreshold: weakAt,
   };

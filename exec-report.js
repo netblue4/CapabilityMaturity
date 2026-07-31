@@ -53,6 +53,8 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
     <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>
+    <div class="exec-sec-div">Appendix — Outstanding Controls by Owner</div>
+    <div class="exec-rcsa-wrap">${renderControlsByOwner(currentA)}</div>
     <div class="exec-sec-div">Appendix — Metric Definitions</div>
     ${renderMetricsAppendix()}
   `;
@@ -221,28 +223,18 @@ function sortMergedTable(col) {
   if (th) th.innerHTML = mrtHead();
 }
 
-// ── Standalone detail-table export (Print → PDF) ──────────────
-// Opens the merged table alone in a clean landscape, light-theme print view —
-// header repeats on every page, rows never split across a page break, colour
-// chips preserved. Respects the current on-screen sort (reads the live tbody),
-// so the user sorts however they like, exports, and pastes each PDF page into
-// its own appendix slide. Every risk is listed in full (nothing collapsed).
-function printMergedRiskTable() {
-  const tb = document.getElementById('merged-risk-tbody');
-  if (!tb) return;
-  const rowsHtml = tb.innerHTML;                        // current sort order
-  const cssHref  = new URL('style.css', location.href).href;
-  const meta     = _mergedMeta || {};
-  const nsCount  = _mergedRows.filter(r => r.notStarted).length;
-  const nsNote   = nsCount
-    ? `<p class="mrt-note">${nsCount} registered ${nsCount === 1 ? 'document has' : 'documents have'} no operationalised controls yet — shown as <span class="mrt-nostart">not started</span>.</p>`
-    : '';
-  const subtitle = [meta.label, meta.date].filter(Boolean).join(' · ');
+// ── Standalone appendix export (Print → PDF) ──────────────────
+// Opens an appendix block alone in a clean landscape, light-theme print view —
+// table headers repeat on every page, rows never split across a page break,
+// colour chips preserved. Shared by the detail table and the controls-by-owner
+// list so both paste cleanly into slides.
+function execPrintWindow(title, subtitle, bodyHtml) {
+  const cssHref = new URL('style.css', location.href).href;
   const doc = `<!doctype html>
 <html data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>Operationalisation Detail${meta.label ? ' — ' + meta.label : ''}</title>
+<title>${title}</title>
 <link rel="stylesheet" href="${cssHref}">
 <style>
   html, body { background:#fff; margin:0; }
@@ -250,7 +242,7 @@ function printMergedRiskTable() {
   .mrt-print-head { margin: 0 0 8px; }
   .mrt-print-head h1 { font-size: 15px; margin: 0 0 2px; }
   .mrt-print-head p  { font-size: 11px; color:#555; margin: 0; }
-  table.merged-risk-table { width:100%; border-collapse:collapse; }
+  .mrt-print-page table { width:100%; border-collapse:collapse; }
   .mrt-print-hint { font-size:11px; color:#888; margin:8px 0 0; }
   @media print {
     @page { size: 33.87cm 19.05cm; margin: 0.7cm; }   /* PowerPoint widescreen 13.33in x 7.5in */
@@ -258,23 +250,19 @@ function printMergedRiskTable() {
     /* neutralise the app stylesheet's own print-hide rules in this window */
     body *, html { visibility: visible !important; }
     .mrt-print-hint { display: none !important; }
-    table.merged-risk-table thead { display: table-header-group; } /* repeat header on every page */
-    table.merged-risk-table tr { break-inside: avoid; page-break-inside: avoid; } /* never split a row */
+    .mrt-print-page thead { display: table-header-group; } /* repeat header on every page */
+    .mrt-print-page tr { break-inside: avoid; page-break-inside: avoid; } /* never split a row */
+    .cbo-head { break-after: avoid; }                      /* keep owner heading with its rows */
   }
 </style>
 </head>
 <body>
   <div class="mrt-print-page">
     <div class="mrt-print-head">
-      <h1>Operationalisation Detail — All Risks</h1>
+      <h1>${title}</h1>
       ${subtitle ? `<p>${subtitle}</p>` : ''}
     </div>
-    <table class="opcov-table merged-risk-table">
-      <thead>${mrtHeadPrint()}</thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>
-    ${nsNote}
-    ${renderOpCoverageLegend()}
+    ${bodyHtml}
     <p class="mrt-print-hint">Print / Save as PDF opens automatically. Landscape widescreen — one PDF page per appendix slide.</p>
   </div>
   <script>
@@ -285,10 +273,100 @@ function printMergedRiskTable() {
 </body>
 </html>`;
   const w = window.open('', '_blank');
-  if (!w) { alert('Please allow pop-ups for this site to export the detail table.'); return; }
+  if (!w) { alert('Please allow pop-ups for this site to export.'); return; }
   w.document.open();
   w.document.write(doc);
   w.document.close();
+}
+
+// Detail table export — reads the live tbody so it respects the current sort.
+function printMergedRiskTable() {
+  const tb = document.getElementById('merged-risk-tbody');
+  if (!tb) return;
+  const meta    = _mergedMeta || {};
+  const nsCount = _mergedRows.filter(r => r.notStarted).length;
+  const nsNote  = nsCount
+    ? `<p class="mrt-note">${nsCount} registered ${nsCount === 1 ? 'document has' : 'documents have'} no operationalised controls yet — shown as <span class="mrt-nostart">not started</span>.</p>`
+    : '';
+  const body = `
+    <table class="opcov-table merged-risk-table">
+      <thead>${mrtHeadPrint()}</thead>
+      <tbody>${tb.innerHTML}</tbody>
+    </table>
+    ${nsNote}
+    ${renderOpCoverageLegend()}`;
+  execPrintWindow('Operationalisation Detail — All Risks', [meta.label, meta.date].filter(Boolean).join(' · '), body);
+}
+
+// ── Appendix — Outstanding Controls by Accountable Owner ──────────
+// Every not-yet-implemented control grouped under the team accountable for it
+// (from the policy statement's OWNER). "Unassigned" = controls with no policy
+// link. Sorted biggest backlog first, Unassigned last.
+let _cboAssessment = null;
+
+function buildControlsByOwnerGroups(assessment) {
+  const facts = (assessment.riskPolicyFacts || [])
+    .filter(f => !ftNorm(f.riskStatus).includes('closed') && !ftIsImplemented(f));
+  const capName = id => (CONFIG.capabilities.find(c => c.id === id)?.name) || id;
+  const ownerOf = f => {
+    if ((f.policyOwner || '').trim()) return f.policyOwner.trim();
+    const c = {};
+    (f.matchedPolicyRows || []).forEach(p => { const o = (p.owner || '').trim(); if (o) c[o] = (c[o] || 0) + 1; });
+    let b = '', n = 0; for (const k in c) if (c[k] > n) { n = c[k]; b = k; }
+    return b;
+  };
+  const groups = {};
+  facts.forEach(f => {
+    const owner = ownerOf(f) || 'Unassigned';
+    (groups[owner] = groups[owner] || []).push({
+      cap: capName(f.capId),
+      doc: ((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '—',
+      control: f.controlName || '(unnamed control)',
+    });
+  });
+  return Object.entries(groups)
+    .map(([owner, items]) => ({ owner, items: items.sort((a, b) => a.cap.localeCompare(b.cap) || a.control.localeCompare(b.control)) }))
+    .sort((a, b) =>
+      (a.owner === 'Unassigned' ? 1 : 0) - (b.owner === 'Unassigned' ? 1 : 0) ||
+      b.items.length - a.items.length ||
+      a.owner.localeCompare(b.owner));
+}
+
+function controlsByOwnerBody(assessment) {
+  const groups = buildControlsByOwnerGroups(assessment);
+  if (!groups.length) return '<p class="mrt-note">Every in-scope control is implemented — nothing outstanding.</p>';
+  return groups.map(g => `
+    <div class="cbo-group">
+      <div class="cbo-head"><span class="cbo-owner">${g.owner}</span><span class="cbo-count">${g.items.length} not implemented</span></div>
+      <table class="opcov-table cbo-table">
+        <thead><tr><th>Capability</th><th>Document</th><th>Control</th></tr></thead>
+        <tbody>${g.items.map(it =>
+          `<tr><td class="cbo-cap">${it.cap}</td><td class="cbo-doc">${it.doc}</td><td class="cbo-ctrl">${it.control}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>`).join('');
+}
+
+function renderControlsByOwner(assessment) {
+  _cboAssessment = assessment;
+  return `
+    <div class="card measure-card cbo-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">🗂️</span>
+        <div style="flex:1">
+          <h3 class="measure-card-title">Outstanding Controls by Accountable Owner</h3>
+          <p class="measure-card-desc">Every not-yet-implemented control, grouped under the team accountable for it (from the policy statement owner). <b>Unassigned</b> = controls with no policy-statement link.</p>
+        </div>
+        <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printControlsByOwner()">🖨 Export (PDF)</button>
+      </div>
+      ${controlsByOwnerBody(assessment)}
+    </div>`;
+}
+
+function printControlsByOwner() {
+  const a = _cboAssessment;
+  if (!a) return;
+  const sub = [a.label, formatDate(a.date)].filter(Boolean).join(' · ');
+  execPrintWindow('Outstanding Controls by Accountable Owner', sub, controlsByOwnerBody(a));
 }
 
 // ── Appendix — Metric Definitions ─────────────────────────────
@@ -360,11 +438,11 @@ function execComplianceSummary(a, prev) {
   const policyCol = `
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">Policy Layer — Written &amp; Approved</span></div>
-      ${metricNum(locCount || '—', 'policy statements catalogued')}
-      ${metricPct(locCovPct, `policy statements with an associated risk (${locCov.covered}/${locCov.total})`, qoqArrow(locCovPct, pv.locCov, false))}
-      ${metricNum(grpCount || '—', 'group standards catalogued')}
-      ${metricPct(grpCovPct, `standard statements with associated risks (${grpCov.covered}/${grpCov.total})`, qoqArrow(grpCovPct, pv.grpCov, false))}
-      ${metricPct(locPct, 'group requirements mapped into a policy statement', qoqArrow(locPct, pv.loc, false))}
+      ${metricNum(locCount || '—', 'Policy statements we\'ve formally written and catalogued')}
+      ${metricPct(locCovPct, `Policy statement commitments we've made that must be evidenced (${locCov.covered}/${locCov.total})`, qoqArrow(locCovPct, pv.locCov, false))}
+      ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued')}
+      ${metricPct(grpCovPct, `Group standard requirements now tracked as risks (${grpCov.covered}/${grpCov.total})`, qoqArrow(grpCovPct, pv.grpCov, false))}
+      ${metricPct(locPct, `Group requirements we've turned into a local policy commitment${ks.grpStdLocalisation ? ` (${ks.grpStdLocalisation.localised}/${ks.grpStdLocalisation.total})` : ''}`, qoqArrow(locPct, pv.loc, false))}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
@@ -384,10 +462,10 @@ function execComplianceSummary(a, prev) {
   const opsCol = `
     <div class="pvo-col pvo-ops">
       <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Layer — Operationalised</span></div>
-      ${metricPct(locBackedPct, `policy statements backed by implemented controls (${locOp.operationalised}/${locOp.total})`, qoqArrow(locBackedPct, pv.locBack, false))}
-      ${metricPct(grpBackedPct, `group standards backed by implemented controls (${grpOp.operationalised}/${grpOp.total})`, qoqArrow(grpBackedPct, pv.grpBack, false))}
-      ${metricNum(preDora.length || '—', 'pre-DORA controls in place (disruption-risk scope)')}
-      ${metricPct(preDoraPct, `pre-DORA controls mapped to a policy or standard (${preDoraMapped}/${preDora.length})`, qoqArrow(preDoraPct, pv.preDora, false))}
+      ${metricPct(locBackedPct, `Policy commitments we can actually prove with a working control (${locOp.operationalised}/${locOp.total})`, qoqArrow(locBackedPct, pv.locBack, false))}
+      ${metricPct(grpBackedPct, `Group standards we can actually prove with a working control (${grpOp.operationalised}/${grpOp.total})`, qoqArrow(grpBackedPct, pv.grpBack, false))}
+      ${metricNum(preDora.length || '—', 'Existing controls already running (older disruption-risk scope)')}
+      ${metricPct(preDoraPct, `Existing controls tied to a policy or standard, so we know why we run them (${preDoraMapped}/${preDora.length})`, qoqArrow(preDoraPct, pv.preDora, false))}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
 

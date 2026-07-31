@@ -385,21 +385,12 @@ function printControlsByOwner() {
 // across all three risk themes, so they're printed once here — a clean
 // appendix slide the user copies straight into PowerPoint.
 function renderMetricsAppendix() {
-  const defCard = info => `
-    <div class="card measure-card metrics-def-card">
-      <h3 class="measure-card-title">${info.title.replace(/ · Metrics$/, '')}</h3>
-      ${metricsInfoBody(info)}
-    </div>`;
   const conf = confidenceInfo();
-  return [
-    defCard(METRICS_INFO.compliance),
-    defCard(METRICS_INFO.riskPortfolio),
-    defCard(METRICS_INFO.opCoverage),
-    `<div class="card measure-card metrics-def-card">
+  return `
+    <div class="card measure-card metrics-def-card">
       <h3 class="measure-card-title">${conf.title}</h3>
       ${metricsInfoBody(conf, ["Rating", "How it's calculated", "What it means"])}
-    </div>`,
-  ].join('');
+    </div>`;
 }
 
 // ── Policy vs Operational Compliance summary ──────────────────

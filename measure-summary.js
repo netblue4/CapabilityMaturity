@@ -514,7 +514,6 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
             <p class="measure-card-desc">${desc}</p>
           </div>
         </div>
-        <button class="btn-link ratings-link" onclick="showMetricsModal('riskPortfolio')">ℹ Metrics</button>
         <div class="rm-tiles rm-tiles-slim">${slimTiles}</div>
         ${rmFunnel(s, sp)}
       </div>`;

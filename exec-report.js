@@ -32,24 +32,20 @@ function generateExecReport() {
   document.getElementById('exec-report-content').innerHTML = `
     <div class="exec-report-top no-print">
       <div>
-        <h2 class="exec-report-title">Policy vs Operational Compliance</h2>
+        <h2 class="exec-report-title">ROC Report</h2>
         <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
       </div>
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     <div class="exec-report-top print-only" style="display:none">
-      <h2 class="exec-report-title">Policy vs Operational Compliance</h2>
+      <h2 class="exec-report-title">ROC Report</h2>
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
     ${execComplianceSummary(currentA, prevA)}
-    <div class="exec-sec-div">Policy Layer — Governance (Policy Compliance)</div>
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
-    <div class="exec-sec-div">Operational Layer — Operational Compliance</div>
+    <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
     <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
     ${renderExecCallouts(currentA)}
-    <div class="exec-sec-div">Operational Layer — Ownership of the Gap</div>
-    <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
-    <div class="exec-sec-div">Supporting Detail — RCSA &amp; CSA Metrics</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
     <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>
@@ -99,7 +95,7 @@ function renderOwnerGapCard(assessment, prev) {
       <div class="measure-card-header">
         <span class="measure-icon">🧭</span>
         <div style="flex:1">
-          <h3 class="measure-card-title">Ownership of the Unimplemented Gap</h3>
+          <h3 class="measure-card-title">ICT Governance — Roles &amp; Responsibilities</h3>
           <p class="measure-card-desc"><b>${g.gapCount}</b> of ${g.totalControls} controls are not yet implemented (<b>${g.gapPct}%</b>). Each bar is that team's share of the whole gap; the sub-line shows their not-implemented / owned count and how much of their book is done${pg ? ', with movement since last quarter (▼ outstanding = good, ▲ done = good)' : ''}. <b>Accountable owner</b> comes from the policy statement, not the control operator.</p>
         </div>
       </div>
@@ -455,12 +451,11 @@ function execComplianceSummary(a, prev) {
   const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
   const policyCol = `
     <div class="pvo-col pvo-policy">
-      <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">Governance &amp; Risk Framework</span></div>
+      <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">ICT Governance &amp; Risk Control Framework</span></div>
       ${metricNum(locCount || '—', 'Policy statements we\'ve formally written and catalogued')}
       ${metricPct(locCovPct, `of our policy statements are tracked as risks (${locCov.covered}/${locCov.total})`, compl(locCovPct) ? `${compl(locCovPct)}% are blind spots we don't yet monitor` : '', qoqArrow(locCovPct, pv.locCov, false))}
       ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued')}
       ${metricPct(grpCovPct, `of our group standard requirements are tracked as risks (${grpCov.covered}/${grpCov.total})`, compl(grpCovPct) ? `${compl(grpCovPct)}% remain unmonitored` : '', qoqArrow(grpCovPct, pv.grpCov, false))}
-      <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
   // Operational layer — controls behind the policies & standards
@@ -483,7 +478,6 @@ function execComplianceSummary(a, prev) {
       ${metricPct(grpBackedPct, `of our group standards are linked to an implemented control (${grpOp.operationalised}/${grpOp.total})`, compl(grpBackedPct) ? `${compl(grpBackedPct)}% we can't prove we comply with` : '', qoqArrow(grpBackedPct, pv.grpBack, false))}
       ${metricNum(preDora.length || '—', 'Existing pre-DORA controls already running (older disruption-risk scope)')}
       ${metricPct(preDoraPct, `of existing pre-DORA controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, compl(preDoraPct) ? `${compl(preDoraPct)}% have no stated reason we run them` : '', qoqArrow(preDoraPct, pv.preDora, false))}
-      <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
 
   const notes = a.notes

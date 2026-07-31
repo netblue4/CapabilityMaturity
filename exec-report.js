@@ -455,7 +455,7 @@ function execComplianceSummary(a, prev) {
   const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
   const policyCol = `
     <div class="pvo-col pvo-policy">
-      <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">Policy Layer — Written &amp; Approved</span></div>
+      <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">Governance &amp; Risk Framework</span></div>
       ${metricNum(locCount || '—', 'Policy statements we\'ve formally written and catalogued')}
       ${metricPct(locCovPct, `of our policy statements are tracked as risks (${locCov.covered}/${locCov.total})`, compl(locCovPct) ? `${compl(locCovPct)}% are blind spots we don't yet monitor` : '', qoqArrow(locCovPct, pv.locCov, false))}
       ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued')}
@@ -478,11 +478,11 @@ function execComplianceSummary(a, prev) {
   const ru = oc.rollup || { ok: 0, building: 0, low: 0, none: 0 };
   const opsCol = `
     <div class="pvo-col pvo-ops">
-      <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Layer — Operationalised</span></div>
-      ${metricPct(locBackedPct, `of our policy commitments can be proven with a working control (${locOp.operationalised}/${locOp.total})`, compl(locBackedPct) ? `${compl(locBackedPct)}% can't be evidenced to an auditor yet` : '', qoqArrow(locBackedPct, pv.locBack, false))}
-      ${metricPct(grpBackedPct, `of our group standards can be proven with a working control (${grpOp.operationalised}/${grpOp.total})`, compl(grpBackedPct) ? `${compl(grpBackedPct)}% aren't yet evidenced` : '', qoqArrow(grpBackedPct, pv.grpBack, false))}
-      ${metricNum(preDora.length || '—', 'Existing controls already running (older disruption-risk scope)')}
-      ${metricPct(preDoraPct, `of those existing controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, compl(preDoraPct) ? `${compl(preDoraPct)}% have no stated reason we run them` : '', qoqArrow(preDoraPct, pv.preDora, false))}
+      <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Compliance</span></div>
+      ${metricPct(locBackedPct, `of our policy statements are linked to an implemented control (${locOp.operationalised}/${locOp.total})`, compl(locBackedPct) ? `${compl(locBackedPct)}% we can't prove we comply with` : '', qoqArrow(locBackedPct, pv.locBack, false))}
+      ${metricPct(grpBackedPct, `of our group standards are linked to an implemented control (${grpOp.operationalised}/${grpOp.total})`, compl(grpBackedPct) ? `${compl(grpBackedPct)}% we can't prove we comply with` : '', qoqArrow(grpBackedPct, pv.grpBack, false))}
+      ${metricNum(preDora.length || '—', 'Existing pre-DORA controls already running (older disruption-risk scope)')}
+      ${metricPct(preDoraPct, `of existing pre-DORA controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, compl(preDoraPct) ? `${compl(preDoraPct)}% have no stated reason we run them` : '', qoqArrow(preDoraPct, pv.preDora, false))}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
 
@@ -492,13 +492,6 @@ function execComplianceSummary(a, prev) {
 
   return `
     <div class="pvo-summary">
-      <div class="pvo-banner">
-        <div class="pvo-banner-text">
-          <span class="pvo-banner-title">Policy compliance ≠ operational compliance</span>
-          <span class="pvo-banner-sub"><strong>Policy Layer — Written &amp; Approved:</strong> Policies are aligned with DORA and group-standard requirements. <strong>Operational Layer — Operationalised:</strong> Are policy statements associated with controls, and are they owned and implemented?</span>
-        </div>
-        <button class="btn-link ratings-link ratings-link-inline no-print" style="white-space:nowrap" onclick="showMetricsModal('compliance')">ℹ Metrics</button>
-      </div>
       <div class="pvo-cols">${policyCol}${opsCol}</div>
       ${notes}
     </div>`;

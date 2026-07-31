@@ -95,19 +95,23 @@ function buildOwnerGapRollup(riskPolicyFacts) {
     o.ownedTotal++;
     if (ftIsImplemented(f)) o.ownedImpl++; else o.gap++;
   });
-  const rows = Object.values(owners)
-    .filter(o => o.gap > 0)
-    .map(o => ({
+  const byOwner = {};
+  Object.values(owners).forEach(o => {
+    byOwner[o.owner] = {
       ...o,
       shareOfGap: gap.length ? Math.round(100 * o.gap / gap.length) : 0,
-      implRate:   o.ownedTotal ? Math.round(100 * o.ownedImpl / o.ownedTotal) : 0,
-    }))
+      implRate:   o.ownedTotal ? Math.round(100 * o.ownedImpl / o.ownedTotal) : null,
+    };
+  });
+  const rows = Object.values(byOwner)
+    .filter(o => o.gap > 0)
     .sort((a, b) => b.gap - a.gap || a.owner.localeCompare(b.owner));
   return {
     totalControls,
     gapCount: gap.length,
     gapPct: totalControls ? Math.round(100 * gap.length / totalControls) : 0,
     rows,
+    byOwner,
   };
 }
 

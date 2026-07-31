@@ -2605,6 +2605,9 @@ details[open] .profile-card-chevron {
 .owg-fig { text-align: right; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .owg-fig b { font-size: 1rem; }
 .owg-sub { display: block; font-size: .68rem; color: var(--text-muted); }
+.owg-row-cleared .owg-name { color: var(--text-muted); font-weight: 600; }
+.owg-row-cleared .owg-bar { opacity: .35; }
+.owg-cleared { font-size: .66rem; font-weight: 700; color: var(--clr-success); white-space: nowrap; }
 @media (max-width: 640px) {
   .owg-row { grid-template-columns: 120px 1fr 92px; gap: .5rem; }
 }

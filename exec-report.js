@@ -421,11 +421,15 @@ function execComplianceSummary(a, prev) {
   const pct  = (n, d) => (d > 0 ? Math.round(100 * n / d) : 0);
   // Count metric (e.g. "77 policy statements"): big neutral number, no bar.
   const metricNum = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
-  // Percentage metric: accent-coloured number + a meter bar filled to the value.
-  const metricPct = (p, lbl, arrow = '') => {
+  // Percentage metric, read as a sentence: [value%] [explanation]. [impact%] [impact].
+  // The impact clause carries its own percentage (so it never reads "the other 0%")
+  // and is dropped entirely when that percentage is 0.
+  const metricPct = (p, explanation, impact = '', arrow = '') => {
     const w = Math.max(0, Math.min(100, p));
+    const lbl = `${explanation}${impact ? `. <span class="pvo-impact">${impact}</span>` : ''}`;
     return `<div class="pvo-metric"><span class="pvo-val pvo-val-pct">${p}%${arrow}</span><span class="pvo-lbl">${lbl}</span><span class="pvo-meter"><i style="width:${w}%"></i></span></div>`;
   };
+  const compl = p => 100 - p;   // impact percentage = the complement of the value
 
   // Previous-quarter percentages for quarter-over-quarter arrows.
   const pv = {};
@@ -453,10 +457,9 @@ function execComplianceSummary(a, prev) {
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">Policy Layer — Written &amp; Approved</span></div>
       ${metricNum(locCount || '—', 'Policy statements we\'ve formally written and catalogued')}
-      ${metricPct(locCovPct, `of our policy statements are commitments tied to a risk we must evidence (${locCov.covered}/${locCov.total})`, qoqArrow(locCovPct, pv.locCov, false))}
+      ${metricPct(locCovPct, `of our policy statements are tracked as risks (${locCov.covered}/${locCov.total})`, compl(locCovPct) ? `${compl(locCovPct)}% are blind spots we don't yet monitor` : '', qoqArrow(locCovPct, pv.locCov, false))}
       ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued')}
-      ${metricPct(grpCovPct, `of our group standard requirements are now tracked as risks (${grpCov.covered}/${grpCov.total})`, qoqArrow(grpCovPct, pv.grpCov, false))}
-      ${metricPct(locPct, `of group requirements have been turned into a local policy commitment${ks.grpStdLocalisation ? ` (${ks.grpStdLocalisation.localised}/${ks.grpStdLocalisation.total})` : ''}`, qoqArrow(locPct, pv.loc, false))}
+      ${metricPct(grpCovPct, `of our group standard requirements are tracked as risks (${grpCov.covered}/${grpCov.total})`, compl(grpCovPct) ? `${compl(grpCovPct)}% remain unmonitored` : '', qoqArrow(grpCovPct, pv.grpCov, false))}
       <div class="pvo-verdict pvo-verdict-ok">Policies rewritten &amp; approved — group→local mapping still light</div>
     </div>`;
 
@@ -476,10 +479,10 @@ function execComplianceSummary(a, prev) {
   const opsCol = `
     <div class="pvo-col pvo-ops">
       <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Layer — Operationalised</span></div>
-      ${metricPct(locBackedPct, `of our policy commitments can be proven with a working control (${locOp.operationalised}/${locOp.total})`, qoqArrow(locBackedPct, pv.locBack, false))}
-      ${metricPct(grpBackedPct, `of our group standards can be proven with a working control (${grpOp.operationalised}/${grpOp.total})`, qoqArrow(grpBackedPct, pv.grpBack, false))}
+      ${metricPct(locBackedPct, `of our policy commitments can be proven with a working control (${locOp.operationalised}/${locOp.total})`, compl(locBackedPct) ? `${compl(locBackedPct)}% can't be evidenced to an auditor yet` : '', qoqArrow(locBackedPct, pv.locBack, false))}
+      ${metricPct(grpBackedPct, `of our group standards can be proven with a working control (${grpOp.operationalised}/${grpOp.total})`, compl(grpBackedPct) ? `${compl(grpBackedPct)}% aren't yet evidenced` : '', qoqArrow(grpBackedPct, pv.grpBack, false))}
       ${metricNum(preDora.length || '—', 'Existing controls already running (older disruption-risk scope)')}
-      ${metricPct(preDoraPct, `of those existing controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, qoqArrow(preDoraPct, pv.preDora, false))}
+      ${metricPct(preDoraPct, `of those existing controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, compl(preDoraPct) ? `${compl(preDoraPct)}% have no stated reason we run them` : '', qoqArrow(preDoraPct, pv.preDora, false))}
       <div class="pvo-verdict pvo-verdict-warn">Operationalisation early — ${underCount} risk rating${underCount === 1 ? '' : 's'} under-assured; confidence ${ru.ok} OK · ${ru.building} Building · ${ru.low} Low · ${ru.none} None</div>
     </div>`;
 

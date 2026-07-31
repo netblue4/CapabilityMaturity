@@ -475,8 +475,8 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
     const slimTiles = [
       tile('Risks Assessed',   s.assessedPct + '%' + qoqArrow(s.assessedPct, sp?.assessedPct, false), `${s.assessed} of ${s.active} active rated`, ''),
       tile('Severe',           s.severe + qoqArrow(s.severe, sp?.severe, true), `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed})`, s.severe > 0 ? 'rm-num-warn' : ''),
-      tile('Control Coverage', (s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—') + qoqArrow(s.ctrlCoveragePct, sp?.ctrlCoveragePct, false), `${s.ctrlAssessed}/${s.ctrlTotal} controls checked`, ''),
-      tile('Under-assured',    s.underAssuredCount + qoqArrow(s.underAssuredCount, sp?.underAssuredCount, true), `ratings lacking evidence (${s.underAssuredCount}/${s.assessed})`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', drill),
+      tile('Control Coverage', (s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—') + qoqArrow(s.ctrlCoveragePct, sp?.ctrlCoveragePct, false), `How much of the control evidence behind our risk ratings has actually been checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
+      tile('Under-assured',    s.underAssuredCount + qoqArrow(s.underAssuredCount, sp?.underAssuredCount, true), `Risk ratings we couldn't defend to an auditor yet — rated, but the controls weren't checked (${s.underAssuredCount}/${s.assessed})`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', drill),
     ].join('');
     return `
       <div class="card measure-card rm-card rm-theme-${theme.key}">
@@ -497,15 +497,15 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
   // implemented rate; Pre-DORA keeps the reduction tile with its drill-down.
   const fifthTile = (theme && theme.dora)
     ? tile('Controls Implemented', s.implementedPct + '%' + qoqArrow(s.implementedPct, sp?.implementedPct, false), `of ${theme.name.toLowerCase()} controls implemented (${s.ctrlImplemented}/${s.ctrlCount})`, '')
-    : tile('Risk Reduction', (s.reductionPct != null ? s.reductionPct + '%' : '—') + qoqArrow(s.reductionPct, sp?.reductionPct, false), `controls cut risk from ${s.avgInherent} to ${s.avgResidual}`, 'rm-num-good', `showRiskReductionModal('${assessment.id}', '${tk2}')`);
+    : tile('Risk Reduction', (s.reductionPct != null ? s.reductionPct + '%' : '—') + qoqArrow(s.reductionPct, sp?.reductionPct, false), `How far our controls cut risk, from inherent down to residual (${s.avgInherent} → ${s.avgResidual})`, 'rm-num-good', `showRiskReductionModal('${assessment.id}', '${tk2}')`);
 
   const tiles = [
     tile('Total Risks',      s.total, `${s.open} open · ${s.draft} draft · ${s.closed} closed`, ''),
     tile('Risks Assessed',   s.assessedPct + '%' + qoqArrow(s.assessedPct, sp?.assessedPct, false), `${s.assessed} of ${s.active} active risks rated`, ''),
     tile('Severe',           s.severe + qoqArrow(s.severe, sp?.severe, true), `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed} assessed)`, s.severe > 0 ? 'rm-num-warn' : ''),
-    tile('Control Coverage', (s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—') + qoqArrow(s.ctrlCoveragePct, sp?.ctrlCoveragePct, false), `of controls behind assessed risks are checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
+    tile('Control Coverage', (s.ctrlCoveragePct != null ? s.ctrlCoveragePct + '%' : '—') + qoqArrow(s.ctrlCoveragePct, sp?.ctrlCoveragePct, false), `How much of the control evidence behind our risk ratings has actually been checked (${s.ctrlAssessed}/${s.ctrlTotal})`, ''),
     fifthTile,
-    tile('Under-assured',    s.underAssuredCount + qoqArrow(s.underAssuredCount, sp?.underAssuredCount, true), `residual risk ratings lacking control evidence (${s.underAssuredCount}/${s.assessed} assessed)`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}', '${tk2}')`),
+    tile('Under-assured',    s.underAssuredCount + qoqArrow(s.underAssuredCount, sp?.underAssuredCount, true), `Risk ratings we couldn't defend to an auditor yet — rated, but the controls weren't checked (${s.underAssuredCount}/${s.assessed})`, s.underAssuredCount > 0 ? 'rm-num-warn' : '', `showUnderAssuredModal('${assessment.id}', '${tk2}')`),
   ].join('');
 
   // Severity distribution bar — portfolio view only (dropped on theme cards).

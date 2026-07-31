@@ -2609,6 +2609,25 @@ details[open] .profile-card-chevron {
   .owg-row { grid-template-columns: 120px 1fr 92px; gap: .5rem; }
 }
 
+/* ── Appendix — Outstanding Controls by Owner ─────────────────── */
+.cbo-group { margin-top: 1rem; }
+.cbo-group:first-of-type { margin-top: .3rem; }
+.cbo-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
+  padding: .25rem 0 .35rem; margin-bottom: .35rem;
+  border-bottom: 2px solid var(--clr-warning);
+}
+.cbo-owner { font-weight: 700; font-size: .92rem; }
+.cbo-count { font-size: .72rem; color: var(--text-muted); white-space: nowrap; }
+.cbo-table th {
+  text-align: left; font-size: .68rem; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--text-muted); font-weight: 600; padding: .2rem .5rem;
+}
+.cbo-table td { padding: .28rem .5rem; font-size: .8rem; vertical-align: top; border-top: 1px solid var(--border-subtle); }
+.cbo-cap  { white-space: nowrap; color: var(--text-muted); }
+.cbo-doc  { color: var(--text-muted); }
+.cbo-ctrl { font-weight: 500; }
+
 /* Themed risk section — a themed portfolio card + its scoped coverage card */
 .theme-block { margin-bottom: 1.1rem; }
 .theme-block .measure-card { margin-bottom: .5rem; }

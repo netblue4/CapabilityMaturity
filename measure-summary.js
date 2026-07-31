@@ -10,11 +10,11 @@ function renderMeasureSummary(assessment) {
   document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
 }
 
-// ── ICT Governance Profile — Policy Compliance card ──────────
+// ── ICT Governance — Policy Approvals card ──────────
 // Approved vs Draft per policy/standard document, from the policy upload.
 function renderGovernanceCard(assessment) {
   const rows  = buildGovernanceRows(assessment.policyRows || []);
-  const title = 'ICT Governance Profile — Policy Compliance';
+  const title = 'ICT Governance — Policy Approvals';
   const desc  = 'Are our policies and group standards approved? One row per document, from the policy upload.';
   const rollup = rows.length
     ? `<span class="gov-rollup">${rows.filter(r => r.status === 'approved').length}/${rows.length} documents fully approved</span>`
@@ -444,7 +444,7 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
   const tk = theme ? theme.key : null;
   const s  = buildRiskPortfolioSummary(assessment.riskPolicyFacts || [], tk);
   const sp = prev ? buildRiskPortfolioSummary(prev.riskPolicyFacts || [], tk) : null;
-  const title = theme ? `Risk Management — ${theme.name}` : 'Risk Management — Portfolio Health';
+  const title = theme ? `IT Risk Control Framework — ${theme.name}` : 'Risk Management — Portfolio Health';
   const desc  = theme ? theme.desc
     : 'Operational compliance — are we doing what our local policies, group standards and DORA say we should? The control evidence behind our risk ratings, from the RCSA.';
 

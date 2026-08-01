@@ -2701,15 +2701,15 @@ details[open] .profile-card-chevron {
 [data-theme="light"] .exec-callout-info { background: rgba(29,95,160,.10); border-left-color: #1d5fa0; }
 
 /* Merged operationalisation-detail table (exec appendix) */
-.merged-risk-table td { vertical-align: top; }
-.merged-risk-table .mrt-cap   { font-weight: 500; white-space: normal; max-width: 130px; }
-.merged-risk-table .mrt-theme { white-space: nowrap; color: var(--text-muted); }
-.merged-risk-table .mrt-doc   { white-space: normal; max-width: 190px; color: var(--text-muted); font-size: .74rem; }
-.merged-risk-table .mrt-risk  { white-space: normal; max-width: 240px; }
+.merged-risk-table td { vertical-align: top; color: var(--text); font-size: .8rem; }
+.merged-risk-table .mrt-cap   { font-weight: 500; white-space: normal; max-width: 150px; }
+.merged-risk-table .mrt-theme { white-space: nowrap; }
+.merged-risk-table .mrt-doc   { white-space: normal; max-width: 200px; }
+.merged-risk-table .mrt-risk  { white-space: normal; max-width: 260px; }
 .mrt-sort { cursor: pointer; user-select: none; }
 .mrt-sort:hover { color: var(--text); }
 .mrt-arrow { margin-left: .2rem; font-size: .6rem; }
-.mrt-dash, .mrt-status { color: var(--text-muted); font-size: .72rem; }
+.mrt-dash { color: var(--text-muted); }
 .mrt-ns td { opacity: .72; }
 .mrt-nostart {
   display: inline-block; font-size: .62rem; font-weight: 600; color: var(--text-muted);

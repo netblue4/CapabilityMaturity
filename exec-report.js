@@ -168,7 +168,7 @@ function mrtBody(rows) {
   const residual = r => {
     if (!r.assessed) return r.open ? 'Open · not assessed' : r.draft ? 'Draft' : '<span class="mrt-dash">—</span>';
     const b = MRT_BAND[r.residualBand];
-    return b ? b[1] : String(r.residual);
+    return b ? `<span class="sev-chip ${b[0]}">${b[1]}</span>` : `<span class="sev-chip sev-low">${r.residual}</span>`;
   };
   return rows.map(r => {
     return `<tr class="${r.notStarted ? 'mrt-ns' : ''}">

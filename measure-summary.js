@@ -404,7 +404,6 @@ const RISK_THEMES = [
 function renderThemedRiskSection(assessment, prev) {
   return RISK_THEMES.map(t => `
     <div class="theme-block">
-      ${renderRiskPortfolioCard(assessment, t, prev)}
       ${renderOpCoverageCard(assessment, t)}
     </div>`).join('');
 }

@@ -49,6 +49,7 @@ function generateExecReport() {
     <div class="exec-vspace"></div>
     <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
     <div class="exec-vspace"></div>
+    <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
     <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>

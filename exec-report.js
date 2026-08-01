@@ -138,26 +138,28 @@ let _mergedSort = { col: null, dir: 1 };
 let _mergedMeta = {};
 
 const MRT_BAND = { extreme: ['sev-extreme', 'Extreme'], significant: ['sev-significant', 'Significant'], moderate: ['sev-moderate', 'Moderate'], low: ['sev-low', 'Low'] };
-const MRT_FIELD = { capability: r => r.capName, theme: r => r.themeName, document: r => r.document || '', risk: r => r.riskTitle || '', owner: r => r.owner || '' };
+const MRT_FIELD = { capability: r => r.capName, theme: r => r.themeName, document: r => r.document || '', risk: r => r.riskTitle || '' };
 
 function mrtHead() {
   const arrow = c => _mergedSort.col === c ? `<span class="mrt-arrow">${_mergedSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const sTh = (k, label) => `<th class="mrt-sort" onclick="sortMergedTable('${k}')">${label}${arrow(k)}</th>`;
   return `<tr>
-    ${sTh('capability', 'Capability')}${sTh('theme', 'Theme')}${sTh('document', 'Document')}${sTh('risk', 'Risk')}${sTh('owner', 'Accountable Owner')}
+    ${sTh('capability', 'Capability')}${sTh('theme', 'Theme')}${sTh('document', 'Document')}${sTh('risk', 'Risk')}
     <th>Residual Risk</th>
     <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>
     <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
+    <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
   </tr>`;
 }
 
 // Static header (no sort handlers / arrows) for the standalone print/PDF export.
 function mrtHeadPrint() {
   return `<tr>
-    <th>Capability</th><th>Theme</th><th>Document</th><th>Risk</th><th>Accountable Owner</th>
+    <th>Capability</th><th>Theme</th><th>Document</th><th>Risk</th>
     <th>Residual Risk</th>
     <th>Ctrl Owned<span class="opcov-th-sub">owned / controls</span></th>
     <th>Ctrl Impl<span class="opcov-th-sub">impl / controls</span></th>
+    <th>Ctrl Assessed<span class="opcov-th-sub">assessed / controls</span></th>
   </tr>`;
 }
 
@@ -177,10 +179,10 @@ function mrtBody(rows) {
       <td class="mrt-theme">${r.themeName}</td>
       <td class="mrt-doc">${r.document || '<span class="mrt-dash">—</span>'}</td>
       <td class="mrt-risk">${r.notStarted ? '<span class="mrt-nostart">not started</span>' : r.riskTitle}</td>
-      <td class="mrt-owner">${r.owner || '<span class="mrt-dash">—</span>'}</td>
       <td>${residual(r)}</td>
       <td>${cell(r.owned)}</td>
       <td>${cell(r.implemented)}</td>
+      <td>${cell(r.ctrlAssessed)}</td>
     </tr>`;
   }).join('');
 }
@@ -199,7 +201,7 @@ function renderMergedRiskTable(assessment) {
         <span class="measure-icon">📋</span>
         <div style="flex:1">
           <h3 class="measure-card-title">Operationalisation Detail — All Risks</h3>
-          <p class="measure-card-desc">Every risk × theme in one view: residual rating, and how many of its controls are owned and implemented. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b>, <b>Risk</b> or <b>Accountable Owner</b> to sort.</p>
+          <p class="measure-card-desc">Every risk × theme in one view: residual rating, and how many of its controls are owned, implemented and assessed. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b> or <b>Risk</b> to sort.</p>
         </div>
         <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printMergedRiskTable()">🖨 Export detail table (PDF)</button>
       </div>

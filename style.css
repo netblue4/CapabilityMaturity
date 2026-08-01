@@ -2623,12 +2623,18 @@ details[open] .profile-card-chevron {
 }
 .cbo-owner { font-weight: 700; font-size: .92rem; }
 .cbo-count { font-size: .72rem; color: var(--text-muted); white-space: nowrap; }
+/* Fixed layout + shared column widths so every owner group lines up */
+.cbo-table { table-layout: fixed; }
+.cbo-table th, .cbo-table td { overflow-wrap: anywhere; }
+.cbo-table th:nth-child(1), .cbo-table td:nth-child(1) { width: 26%; }
+.cbo-table th:nth-child(2), .cbo-table td:nth-child(2) { width: 32%; }
+.cbo-table th:nth-child(3), .cbo-table td:nth-child(3) { width: 42%; }
 .cbo-table th {
   text-align: left; font-size: .68rem; text-transform: uppercase; letter-spacing: .03em;
   color: var(--text-muted); font-weight: 600; padding: .2rem .5rem;
 }
 .cbo-table td { padding: .28rem .5rem; font-size: .8rem; vertical-align: top; border-top: 1px solid var(--border-subtle); }
-.cbo-cap  { white-space: nowrap; color: var(--text-muted); }
+.cbo-cap  { color: var(--text-muted); }
 .cbo-doc  { color: var(--text-muted); }
 .cbo-ctrl { font-weight: 500; }
 

@@ -164,21 +164,18 @@ function mrtHeadPrint() {
 }
 
 function mrtBody(rows) {
-  const pct = (n, d) => d > 0 ? Math.round(n / d * 100) : 0;
-  const cell = o => o.d > 0
-    ? `<span class="opcov-val"><b>${pct(o.n, o.d)}%</b><span class="opcov-frac">${o.n}/${o.d}</span></span>`
-    : `<span class="mrt-dash">—</span>`;
+  const cell = o => o.d > 0 ? `${o.n}/${o.d}` : '<span class="mrt-dash">—</span>';
   const residual = r => {
-    if (!r.assessed) return `<span class="mrt-status">${r.open ? 'Open · not assessed' : r.draft ? 'Draft' : '—'}</span>`;
+    if (!r.assessed) return r.open ? 'Open · not assessed' : r.draft ? 'Draft' : '<span class="mrt-dash">—</span>';
     const b = MRT_BAND[r.residualBand];
-    return b ? `<span class="sev-chip ${b[0]}">${b[1]}</span>` : `<span class="sev-chip sev-low">${r.residual}</span>`;
+    return b ? b[1] : String(r.residual);
   };
   return rows.map(r => {
     return `<tr class="${r.notStarted ? 'mrt-ns' : ''}">
       <td class="mrt-cap">${r.capName}</td>
       <td class="mrt-theme">${r.themeName}</td>
       <td class="mrt-doc">${r.document || '<span class="mrt-dash">—</span>'}</td>
-      <td class="mrt-risk">${r.notStarted ? '<span class="mrt-nostart">not started</span>' : r.riskTitle}</td>
+      <td class="mrt-risk">${r.notStarted ? 'not started' : r.riskTitle}</td>
       <td>${residual(r)}</td>
       <td>${cell(r.owned)}</td>
       <td>${cell(r.implemented)}</td>

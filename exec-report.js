@@ -42,6 +42,9 @@ function generateExecReport() {
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
     ${execComplianceSummary(currentA, prevA)}
+    <div class="exec-vspace"></div>
+    <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
+    <div class="exec-vspace"></div>
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
     <div class="exec-vspace"></div>
     <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
@@ -126,6 +129,47 @@ function renderOwnerGapCard(assessment, prev) {
   };
 
   return hdr(`<div class="owg-list">${g.rows.map(row).join('')}${cleared.map(row).join('')}</div>`);
+}
+
+// ── The DORA Transition — two hero gauges (old vs new) ────────────
+// Left: share of open risks now under DORA. Right: share of implemented
+// controls now under DORA. DORA = locPol/grpStd prefix (theme-card rule).
+function doraRing(pct) {
+  const has = pct != null;
+  const p = has ? Math.max(0, Math.min(100, pct)) : 0;
+  const r = 52, c = 2 * Math.PI * r, off = c * (1 - p / 100);
+  return `<svg class="dora-ring" width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+    <circle cx="66" cy="66" r="${r}" fill="none" stroke="var(--clr-fill-dark)" stroke-width="13"/>
+    <circle cx="66" cy="66" r="${r}" fill="none" stroke="var(--accent)" stroke-width="13" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 66 66)"/>
+    <text x="66" y="62" text-anchor="middle" font-size="30" font-weight="700" fill="var(--text)">${has ? p + '%' : '—'}</text>
+    <text x="66" y="84" text-anchor="middle" font-size="10.5" letter-spacing=".05em" fill="var(--text-muted)">DORA</text>
+  </svg>`;
+}
+
+function renderDoraTransition(assessment, prev) {
+  const t = buildDoraTransition(assessment.riskPolicyFacts || [], prev ? (prev.riskPolicyFacts || []) : null);
+  if (!(t.ctrlDora + t.ctrlPre) && !(t.riskDora + t.riskPre)) return '';
+  const gauge = (pct, dora, pre, prevPct, title) => `
+    <div class="dora-gauge">
+      ${doraRing(pct)}
+      <div class="dora-gauge-title">${title}${(prevPct != null && pct != null) ? qoqArrow(pct, prevPct, false) : ''}</div>
+      <div class="dora-gauge-sub"><b>${dora}</b> DORA · ${pre} pre-DORA</div>
+    </div>`;
+  return `
+    <div class="card measure-card dora-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">🔄</span>
+        <div style="flex:1">
+          <h3 class="measure-card-title">The DORA Transition</h3>
+          <p class="measure-card-desc">Out with the old, in with the new: how much of our open risk and implemented-control base has moved to the DORA framework (local policy &amp; group standards), replacing the pre-DORA operational base. ${prev ? 'The arrow shows the shift since last quarter.' : 'A shift indicator appears once there is a prior quarter to compare.'}</p>
+        </div>
+      </div>
+      <div class="dora-grid">
+        ${gauge(t.riskPct, t.riskDora, t.riskPre, t.prev ? t.prev.riskPct : null, 'Open risks under DORA')}
+        ${gauge(t.ctrlPct, t.ctrlDora, t.ctrlPre, t.prev ? t.prev.ctrlPct : null, 'Implemented controls under DORA')}
+      </div>
+    </div>`;
 }
 
 // ── Appendix — Operationalisation Detail (merged single table) ──

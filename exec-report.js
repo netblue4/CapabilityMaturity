@@ -1,19 +1,15 @@
 // ── Executive Report ──────────────────────────────────────────
 
 function showExecReportModal() {
-  if (db.assessments.length < 2) {
-    alert('You need at least 2 assessments to generate a report.');
+  if (!db.assessments.length) {
+    alert('You need at least one assessment to generate a report.');
     return;
   }
   const opts = db.assessments.map(a =>
     `<option value="${a.id}">${a.label} · ${formatDate(a.date)}</option>`
   ).join('');
-  ['exec-prev-sel', 'exec-curr-sel'].forEach(id => {
-    document.getElementById(id).innerHTML = opts;
-  });
-  const n = db.assessments.length;
-  document.getElementById('exec-prev-sel').value = db.assessments[Math.max(0, n - 2)].id;
-  document.getElementById('exec-curr-sel').value = db.assessments[n - 1].id;
+  document.getElementById('exec-curr-sel').innerHTML = opts;
+  document.getElementById('exec-curr-sel').value = db.assessments[db.assessments.length - 1].id;
   document.getElementById('exec-report-modal').style.display = 'flex';
 }
 
@@ -22,9 +18,13 @@ function closeExecReportModal() {
 }
 
 function generateExecReport() {
-  const prevA    = db.assessments.find(a => a.id === document.getElementById('exec-prev-sel').value);
   const currentA = db.assessments.find(a => a.id === document.getElementById('exec-curr-sel').value);
-  if (!prevA || !currentA) return;
+  if (!currentA) return;
+  // Previous is auto-derived: the assessment chronologically before the
+  // reporting one (drives the quarter-over-quarter arrows). Null on the first.
+  const sorted = db.assessments.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+  const idx = sorted.findIndex(a => a.id === currentA.id);
+  const prevA = idx > 0 ? sorted[idx - 1] : null;
   closeExecReportModal();
 
   document.getElementById('exec-report-content').innerHTML = `

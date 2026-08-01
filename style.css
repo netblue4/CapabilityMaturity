@@ -2639,8 +2639,8 @@ details[open] .profile-card-chevron {
 .cbo-ctrl { font-weight: 500; }
 
 /* Themed risk section — a themed portfolio card + its scoped coverage card */
-.theme-block { margin-bottom: 1.1rem; }
-.theme-block .measure-card { margin-bottom: .5rem; }
+.theme-block { margin-bottom: 1.25rem; }
+.theme-block .measure-card { margin-bottom: 0; }
 
 /* Named opcov rows (policy statement / group standard / risk instead of capability) */
 .opcov-table-named .opcov-cap { max-width: 320px; white-space: normal; line-height: 1.3; }

@@ -43,11 +43,11 @@ function generateExecReport() {
     </div>
     ${execComplianceSummary(currentA, prevA)}
     <div class="exec-vspace"></div>
-    <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
-    <div class="exec-vspace"></div>
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
     <div class="exec-vspace"></div>
     <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
+    <div class="exec-vspace"></div>
+    <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
     <div class="exec-vspace"></div>
     <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
@@ -162,7 +162,7 @@ function renderDoraTransition(assessment, prev) {
         <span class="measure-icon">🔄</span>
         <div style="flex:1">
           <h3 class="measure-card-title">The DORA Transition</h3>
-          <p class="measure-card-desc">Out with the old, in with the new: how much of our open risk and implemented-control base has moved to the DORA framework (local policy &amp; group standards), replacing the pre-DORA operational base. ${prev ? 'The arrow shows the shift since last quarter.' : 'A shift indicator appears once there is a prior quarter to compare.'}</p>
+          <p class="measure-card-desc">How much of our open risk and implemented-control base has moved to the DORA framework (local policy &amp; group standards), replacing the pre-DORA operational base. ${prev ? 'The arrow shows the shift since last quarter.' : 'A shift indicator appears once there is a prior quarter to compare.'}</p>
         </div>
       </div>
       <div class="dora-grid">

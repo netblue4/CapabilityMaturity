@@ -533,7 +533,7 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
       owner: ownerOf(g.facts),
       residual: res, residualBand: assessed ? band(res) : null,
       assessed, open, draft,
-      owned: { n: owned, d: total }, implemented: { n: impl, d: total },
+      owned: { n: owned, d: total }, implemented: { n: impl, d: total }, ctrlAssessed: { n: assd, d: total },
       notStarted: false,
     };
   });
@@ -556,7 +556,7 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
       themeKey: theme, themeName: THEME_NAMES[theme],
       document: doc, riskTitle: '', owner: (pr.owner || '').trim(),
       residual: 0, residualBand: null, assessed: false, open: false, draft: false,
-      owned: { n: 0, d: 0 }, implemented: { n: 0, d: 0 },
+      owned: { n: 0, d: 0 }, implemented: { n: 0, d: 0 }, ctrlAssessed: { n: 0, d: 0 },
       notStarted: true,
     });
   });

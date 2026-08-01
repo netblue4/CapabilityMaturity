@@ -2658,6 +2658,15 @@ details[open] .profile-card-chevron {
 
 /* ── Exec score-card slide: theme accents, gauge, slim tiles, callouts ── */
 .exec-vspace { height: 1.5rem; }
+
+/* The DORA Transition — two hero gauges */
+.dora-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .4rem; }
+.dora-gauge { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .35rem; padding: .4rem 0; }
+.dora-ring { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.dora-gauge-title { font-size: .9rem; font-weight: 600; }
+.dora-gauge-sub { font-size: .8rem; color: var(--text-muted); }
+.dora-gauge-sub b { color: var(--text); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .dora-grid { grid-template-columns: 1fr; } }
 .exec-sc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; align-items: start; margin-bottom: .5rem; }
 @media (max-width: 1000px) { .exec-sc-grid { grid-template-columns: 1fr; } }
 

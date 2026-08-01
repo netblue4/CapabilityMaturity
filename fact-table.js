@@ -480,6 +480,40 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRo
 // "not started" rows so the coverage gap stays visible. Default order groups
 // by capability (touched risks first, not-started last); the exec re-sorts
 // Capability / Theme / Document / Risk on screen.
+// ── DORA transition — old (pre-DORA) vs new (DORA) ────────────────
+// DORA = controls with a locPol/grpStd prefix (same rule as the theme cards);
+// pre-DORA = operational. Control gauge = share of *implemented* controls that
+// are DORA. Risk gauge = share of *open* risks that have >=1 DORA control.
+// A prevFacts argument yields the previous quarter's percentages for the
+// adoption delta.
+function buildDoraTransition(facts, prevFacts) {
+  const isDora = f => f.controlType === 'locPol' || f.controlType === 'grpStd';
+  const calc = fx => {
+    const impl = (fx || []).filter(ftIsImplemented);
+    const ctrlDora = impl.filter(isDora).length;
+    const ctrlPre  = impl.length - ctrlDora;
+    const ctrlPct  = impl.length ? Math.round(100 * ctrlDora / impl.length) : null;
+
+    const byRisk = {};
+    (fx || []).forEach(f => {
+      const key = ftNorm(f.riskTitle);
+      if (!key) return;
+      const r = byRisk[key] || (byRisk[key] = { open: false, dora: false });
+      if (ftNorm(f.riskStatus).includes('open')) r.open = true;
+      if (isDora(f)) r.dora = true;
+    });
+    const openRisks = Object.values(byRisk).filter(r => r.open);
+    const riskDora = openRisks.filter(r => r.dora).length;
+    const riskPre  = openRisks.length - riskDora;
+    const riskPct  = openRisks.length ? Math.round(100 * riskDora / openRisks.length) : null;
+
+    return { ctrlDora, ctrlPre, ctrlPct, riskDora, riskPre, riskPct };
+  };
+  const cur  = calc(facts);
+  const prev = prevFacts ? calc(prevFacts) : null;
+  return { ...cur, prev: prev ? { ctrlPct: prev.ctrlPct, riskPct: prev.riskPct } : null };
+}
+
 function buildMergedRiskRows(riskPolicyFacts, policyRows) {
   const allFacts = riskPolicyFacts || [];
   const cfg    = (CONFIG && CONFIG.opCoverage) || {};

@@ -2663,6 +2663,28 @@ details[open] .profile-card-chevron {
 /* ── Exec score-card slide: theme accents, gauge, slim tiles, callouts ── */
 .exec-vspace { height: 1.5rem; }
 
+/* Operationalisation story — top stepper + per-step banners */
+.exec-stepper {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: .5rem .6rem; margin: .1rem 0 1.1rem;
+}
+.exec-stepper-item { display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; font-weight: 600; }
+.exec-stepper-arrow { color: var(--text-muted); opacity: .6; }
+.exec-step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); color: #fff; font-size: .72rem; font-weight: 700;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.exec-step {
+  display: flex; align-items: flex-start; gap: .75rem;
+  margin: 1.6rem 0 .8rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);
+}
+.exec-step > .exec-step-num { width: 28px; height: 28px; font-size: .9rem; }
+.exec-step-txt { display: flex; flex-direction: column; gap: .1rem; }
+.exec-step-name { font-size: 1rem; font-weight: 700; }
+.exec-step-q { font-size: .82rem; color: var(--text-muted); line-height: 1.4; }
+
 /* The DORA Transition — two hero gauges */
 .dora-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .4rem; }
 .dora-gauge { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .35rem; padding: .4rem 0; }

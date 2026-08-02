@@ -265,7 +265,6 @@ function renderMergedRiskTable(assessment) {
           <h3 class="measure-card-title">Operationalisation Detail — All Risks</h3>
           <p class="measure-card-desc">Every risk × theme in one view: residual rating, and how many of its controls are owned, implemented and assessed. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b> or <b>Risk</b> to sort.</p>
         </div>
-        <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printMergedRiskTable()">🖨 Export detail table (PDF)</button>
       </div>
       <div class="rcsa-table-wrap">
         <table class="opcov-table merged-risk-table">
@@ -422,7 +421,6 @@ function renderControlsByOwner(assessment) {
           <h3 class="measure-card-title">Outstanding Controls by Accountable Owner</h3>
           <p class="measure-card-desc">Every not-yet-implemented control, grouped under the team accountable for it (from the policy statement owner). <b>Unassigned</b> = controls with no policy-statement link.</p>
         </div>
-        <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printControlsByOwner()">🖨 Export (PDF)</button>
       </div>
       ${controlsByOwnerBody(assessment)}
     </div>`;

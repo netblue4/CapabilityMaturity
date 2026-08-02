@@ -2685,6 +2685,15 @@ details[open] .profile-card-chevron {
 .exec-step-name { font-size: 1rem; font-weight: 700; }
 .exec-step-q { font-size: .82rem; color: var(--text-muted); line-height: 1.4; }
 
+/* Light-theme polish (dark theme is unchanged): cleaner card surfaces and
+   bar tracks that are visible instead of near-white. */
+[data-theme="light"] .pvo-col,
+[data-theme="light"] .pvo-banner { background: var(--bg2); }
+[data-theme="light"] .rm-tile    { background: #fff; }
+[data-theme="light"] .pvo-meter,
+[data-theme="light"] .owg-bar,
+[data-theme="light"] .rmf-bar    { background: #ccd4de; }
+
 /* The DORA Transition — two hero gauges */
 .dora-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .4rem; }
 .dora-gauge { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .35rem; padding: .4rem 0; }

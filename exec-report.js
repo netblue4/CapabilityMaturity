@@ -265,7 +265,6 @@ function renderMergedRiskTable(assessment) {
           <h3 class="measure-card-title">Operationalisation Detail — All Risks</h3>
           <p class="measure-card-desc">Every risk × theme in one view: residual rating, and how many of its controls are owned, implemented and assessed. Click <b>Capability</b>, <b>Theme</b>, <b>Document</b> or <b>Risk</b> to sort.</p>
         </div>
-        <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printMergedRiskTable()">🖨 Export detail table (PDF)</button>
       </div>
       <div class="rcsa-table-wrap">
         <table class="opcov-table merged-risk-table">
@@ -422,7 +421,6 @@ function renderControlsByOwner(assessment) {
           <h3 class="measure-card-title">Outstanding Controls by Accountable Owner</h3>
           <p class="measure-card-desc">Every not-yet-implemented control, grouped under the team accountable for it (from the policy statement owner). <b>Unassigned</b> = controls with no policy-statement link.</p>
         </div>
-        <button class="btn btn-outline no-print" style="align-self:flex-start;white-space:nowrap" onclick="printControlsByOwner()">🖨 Export (PDF)</button>
       </div>
       ${controlsByOwnerBody(assessment)}
     </div>`;
@@ -488,8 +486,6 @@ function execComplianceSummary(a, prev) {
     pv.locBack = g(pk.locPolOperationalisation).total ? pct(g(pk.locPolOperationalisation).operationalised, g(pk.locPolOperationalisation).total) : null;
     pv.grpBack = g(pk.grpStdOperationalisation).total ? pct(g(pk.grpStdOperationalisation).operationalised, g(pk.grpStdOperationalisation).total) : null;
     pv.preDora = ppd.length                          ? pct(ppdMapped, ppd.length)                 : null;
-    const ppLoc = (prev.policyRows || []).filter(r => isLocPolType(r.type));
-    pv.locAppr  = ppLoc.length ? pct(ppLoc.filter(r => (r.status || '').toLowerCase().includes('approv')).length, ppLoc.length) : null;
   }
 
   // Policy layer
@@ -498,15 +494,11 @@ function execComplianceSummary(a, prev) {
   const locCovPct = pct(locCov.covered, locCov.total);
   const grpCovPct = pct(grpCov.covered, grpCov.total);
   const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
-  const locPolRows = polRows.filter(r => isLocPolType(r.type));
-  const locApproved = locPolRows.filter(r => (r.status || '').toLowerCase().includes('approv')).length;
-  const locApprPct  = pct(locApproved, locPolRows.length);
   const policyCol = `
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">ICT Governance / Risk &amp; Control Framework</span></div>
       ${metricNum(locCount || '—', 'Policy statements we\'ve formally written and catalogued')}
       ${metricPct(locCovPct, `of our policy statements are tracked as risks (${locCov.covered}/${locCov.total})`, compl(locCovPct) ? `${compl(locCovPct)}% are blind spots we don't yet monitor` : '', qoqArrow(locCovPct, pv.locCov, false))}
-      ${metricPct(locApprPct, `of our policy statements have been approved (${locApproved}/${locPolRows.length})`, compl(locApprPct) ? `${compl(locApprPct)}% are not yet aligned with DORA and Group` : '', qoqArrow(locApprPct, pv.locAppr, false))}
       ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued')}
       ${metricPct(grpCovPct, `of our group standard requirements are tracked as risks (${grpCov.covered}/${grpCov.total})`, compl(grpCovPct) ? `${compl(grpCovPct)}% remain unmonitored` : '', qoqArrow(grpCovPct, pv.grpCov, false))}
     </div>`;

@@ -1155,90 +1155,31 @@ details[open] .profile-card-chevron {
   font-size: 0.75rem;
 }
 
-/* ── Print / Export for PowerPoint ──────────────────────── */
+/* ── Print / Save the executive report to PDF ─────────────── */
 @media print {
-  @page {
-    size: 33.87cm 19.05cm;   /* PowerPoint widescreen: 13.33" × 7.5" */
-    margin: 0.7cm;
-  }
+  @page { size: A4 landscape; margin: 1cm; }
 
-  /* Hide everything except the profile cards section */
-  body * { visibility: hidden; }
-  #print-profile-cards,
-  #print-profile-cards * { visibility: visible; }
-  #print-profile-cards {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-  }
-
-  /* Hide the export button itself when printing */
   .no-print { display: none !important; }
+  .site-header, .site-footer, #exec-report-modal { display: none !important; }
+  #view-dashboard, #view-assessment, #view-detail, #view-riskonnect-import { display: none !important; }
+  #view-exec-report { display: block !important; padding: 0; }
 
-  /* Force details content visible even if collapsed */
-  #print-profile-cards details > *:not(summary) {
-    display: block !important;
-  }
-
-  /* One card per page */
-  .profile-cards-container {
-    display: block !important;
-    gap: 0 !important;
-    margin: 0 !important;
-  }
-  .profile-card {
-    break-before: page;
-    page-break-before: always;
-    break-inside: avoid;
-    padding: 0.55rem 0.75rem !important;
-    background: white !important;
-    border: 1px solid #bbb !important;
-    border-radius: 4px !important;
-    box-shadow: none !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .profile-card:first-child {
-    break-before: auto;
-    page-break-before: auto;
+  /* Keep card backgrounds, chips, meter bars and gauges in the PDF */
+  #view-exec-report, #view-exec-report * {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
 
-  /* Table sizing for print */
-  .profile-table { font-size: 0.74rem !important; }
-  .profile-table th {
-    font-size: 0.59rem !important;
-    padding: 0.22rem 0.4rem !important;
-  }
-  .profile-table td { padding: 0.2rem 0.4rem !important; }
-  .profile-table tfoot td {
-    font-size: 0.64rem !important;
-    padding-top: 0.28rem !important;
-  }
-  .controls-summary {
-    gap: 0 !important;
-    line-height: 1.25 !important;
-    font-size: 0.66rem !important;
-  }
-  .lvl-badge {
-    font-size: 0.63rem !important;
-    padding: 0.07rem 0.32rem !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+  /* Don't slice cards, steps or rows across a page break */
+  #view-exec-report .card,
+  #view-exec-report .pvo-col,
+  #view-exec-report .exec-step,
+  #view-exec-report .dora-gauge,
+  #view-exec-report .rmf-stage,
+  #view-exec-report .owg-row { break-inside: avoid; }
 
-  /* Hide Est. Time (col 6) and Notes (col 7) from maturity cards only */
-  .maturity-table th:nth-child(6),
-  .maturity-table td:nth-child(6),
-  .maturity-table th:nth-child(7),
-  .maturity-table td:nth-child(7) {
-    display: none !important;
-  }
-  /* Let Exit Condition column (col 5) expand freely */
-  .maturity-table td:nth-child(5) {
-    max-width: none !important;
-    width: auto !important;
-  }
+  /* Repeat table headers on each page; keep table rows whole */
+  #view-exec-report thead { display: table-header-group; }
+  #view-exec-report tr { break-inside: avoid; }
 }
 
 /* ── Compact Export Mode (screenshot-to-PowerPoint) ─────── */
@@ -2684,6 +2625,15 @@ details[open] .profile-card-chevron {
 .exec-step-txt { display: flex; flex-direction: column; gap: .1rem; }
 .exec-step-name { font-size: 1rem; font-weight: 700; }
 .exec-step-q { font-size: .82rem; color: var(--text-muted); line-height: 1.4; }
+
+/* Light-theme polish (dark theme is unchanged): cleaner card surfaces and
+   bar tracks that are visible instead of near-white. */
+[data-theme="light"] .pvo-col,
+[data-theme="light"] .pvo-banner { background: var(--bg2); }
+[data-theme="light"] .rm-tile    { background: #fff; }
+[data-theme="light"] .pvo-meter,
+[data-theme="light"] .owg-bar,
+[data-theme="light"] .rmf-bar    { background: #ccd4de; }
 
 /* The DORA Transition — two hero gauges */
 .dora-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .4rem; }

@@ -15,7 +15,13 @@ function renderMeasureSummary(assessment) {
 function renderGovernanceCard(assessment) {
   const rows  = buildGovernanceRows(assessment.policyRows || []);
   const title = 'ICT Governance — Policy Approvals';
-  const desc  = 'Are our policies and group standards approved? One row per document, from the policy upload.';
+  let desc = 'Are our policies and group standards approved? One row per document, from the policy upload.';
+  if (rows.length) {
+    const totalStmts = rows.reduce((a, r) => a + r.total, 0);
+    const apprStmts  = rows.reduce((a, r) => a + r.approved, 0);
+    const pct = totalStmts ? Math.round(100 * apprStmts / totalStmts) : 0;
+    desc = `${apprStmts} of ${totalStmts} policy statements approved (${pct}%) across ${rows.length} documents.`;
+  }
   const rollup = rows.length
     ? `<span class="gov-rollup">${rows.filter(r => r.status === 'approved').length}/${rows.length} documents fully approved</span>`
     : '';
@@ -468,7 +474,7 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
   const tk = theme ? theme.key : null;
   const s  = buildRiskPortfolioSummary(assessment.riskPolicyFacts || [], tk);
   const sp = prev ? buildRiskPortfolioSummary(prev.riskPolicyFacts || [], tk) : null;
-  const title = theme ? `IT Risk Control Framework — ${theme.name}` : 'Risk Management — Portfolio Health';
+  const title = theme ? `IT Risk &amp; Control Framework — ${theme.name}` : 'Risk Management — Portfolio Health';
   const desc  = theme ? theme.desc
     : 'Operational compliance — are we doing what our local policies, group standards and DORA say we should? The control evidence behind our risk ratings, from the RCSA.';
 
@@ -498,6 +504,7 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
   if (opts.exec && theme) {
     const raComp = 100 - s.assessedPct;
     const raSub  = raComp ? `${raComp}% spotted but not yet managed (${s.assessed}/${s.active})` : `all active risks rated (${s.assessed}/${s.active})`;
+    const dynDesc = `${s.active} risk${s.active === 1 ? '' : 's'} — ${s.assessedPct}% assessed, ${s.severe} severe. ${s.ctrlCount} control${s.ctrlCount === 1 ? '' : 's'} — ${s.implementedPct}% implemented, ${s.ctrlEffectivePct}% effective.`;
     const slimTiles = [
       tile('Risks Assessed', s.assessedPct + '%' + qoqArrow(s.assessedPct, sp?.assessedPct, false), raSub, ''),
       tile('Severe',         s.severe + qoqArrow(s.severe, sp?.severe, true), `residual ≥ ${s.severeThreshold} (${s.severe}/${s.assessed})`, s.severe > 0 ? 'rm-num-warn' : ''),
@@ -508,7 +515,7 @@ function renderRiskPortfolioCard(assessment, theme, prev, opts = {}) {
           <span class="measure-icon">🛡️</span>
           <div style="flex:1">
             <h3 class="measure-card-title">${title}</h3>
-            <p class="measure-card-desc">${desc}</p>
+            <p class="measure-card-desc">${dynDesc}</p>
           </div>
         </div>
         <div class="rm-tiles rm-tiles-slim">${slimTiles}</div>

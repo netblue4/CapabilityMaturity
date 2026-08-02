@@ -21,6 +21,34 @@ function closeExecReportModal() {
   document.getElementById('exec-report-modal').style.display = 'none';
 }
 
+// ── The operationalisation story — four sequential steps ──────────
+// Each step signposts a card (or set of cards) with the exec question it
+// answers. Same wording as the story summary, shown as a top stepper + banners.
+const EXEC_STORY = [
+  { name: 'Govern',                     q: 'Have we formally identified and approved what we must do to manage IT risk?' },
+  { name: 'Identify risk',              q: "What goes wrong if we don't follow our policies — and what controls treat it?" },
+  { name: 'Assign &amp; implement',     q: 'Who brings each policy to life — who owns and implements the controls?' },
+  { name: 'DORA &amp; Group alignment', q: 'How fast are we replacing the old pre-DORA base with fit-for-purpose DORA controls?' },
+];
+
+function execStepper() {
+  return `<div class="exec-stepper">${EXEC_STORY.map((s, i) =>
+    `<span class="exec-stepper-item"><span class="exec-step-num">${i + 1}</span>${s.name}</span>` +
+    (i < EXEC_STORY.length - 1 ? '<span class="exec-stepper-arrow">→</span>' : '')
+  ).join('')}</div>`;
+}
+
+function execStep(n) {
+  const s = EXEC_STORY[n - 1];
+  return `<div class="exec-step">
+    <span class="exec-step-num">${n}</span>
+    <div class="exec-step-txt">
+      <span class="exec-step-name">Step ${n} · ${s.name}</span>
+      <span class="exec-step-q">${s.q}</span>
+    </div>
+  </div>`;
+}
+
 function generateExecReport() {
   const prevA    = db.assessments.find(a => a.id === document.getElementById('exec-prev-sel').value);
   const currentA = db.assessments.find(a => a.id === document.getElementById('exec-curr-sel').value);
@@ -39,15 +67,18 @@ function generateExecReport() {
       <h2 class="exec-report-title">ROC Report</h2>
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
+    ${execStepper()}
+    <div class="exec-sec-div">Executive Summary</div>
     ${execComplianceSummary(currentA, prevA)}
-    <div class="exec-vspace"></div>
+    ${execStep(1)}
     <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
-    <div class="exec-vspace"></div>
-    <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
-    <div class="exec-vspace"></div>
-    <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
-    <div class="exec-vspace"></div>
+    ${execStep(2)}
     <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
+    ${execStep(3)}
+    <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
+    ${execStep(4)}
+    <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
+    <div class="exec-sec-div">Supporting Detail</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
     <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>

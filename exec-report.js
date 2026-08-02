@@ -25,10 +25,10 @@ function closeExecReportModal() {
 // Each step signposts a card (or set of cards) with the exec question it
 // answers. Same wording as the story summary, shown as a top stepper + banners.
 const EXEC_STORY = [
-  { name: 'ICT Governance - Define &amp; Approve',              q: 'Have we formally identified and approved what we must do to manage IT risk?' },
-  { name: 'IT Risk &amp; Control Framework - Identify &amp; treat', q: "What goes wrong if we don't follow our policies — and what controls treat it?" },
-  { name: 'Operational Compliance - Assign &amp; implement',    q: 'Who brings each policy to life — who owns and implements the controls?' },
-  { name: 'DORA &amp; Group fit-for-purpose',                   q: 'How fast are we replacing the old pre-DORA base with fit-for-purpose DORA controls?' },
+  { name: 'ICT Governance',              q: 'Have we formally identified and approved what we must do to manage IT risk?' },
+  { name: 'IT Risk &amp; Control Framework', q: "What goes wrong if we don't follow our policies — and what controls treat it?" },
+  { name: 'Operational Compliance',      q: 'Who brings each policy to life — who owns and implements the controls?' },
+  { name: 'DORA &amp; Group fit-for-purpose', q: 'How fast are we replacing the old pre-DORA base with fit-for-purpose DORA controls?' },
 ];
 
 function execStepper() {
@@ -144,7 +144,7 @@ function renderOwnerGapCard(assessment, prev) {
       <div class="measure-card-header">
         <span class="measure-icon">🧭</span>
         <div style="flex:1">
-          <h3 class="measure-card-title">Operational Compliance — Control Ownership &amp; Implementation</h3>
+          <h3 class="measure-card-title">Own &amp; Implement Controls</h3>
           <p class="measure-card-desc"><b>${totalImpl}</b> of ${g.totalControls} controls implemented (<b>${donePct}%</b>) across ${teams.length} accountable teams. Each bar's length is that team's workload — the controls they own — and the green fill is what they've implemented${pg ? ', with the ▲ showing progress since last quarter' : ''}. Closing the gap is a business-wide effort. <b>Accountable owner</b> comes from the policy statement, not the control operator.</p>
         </div>
       </div>

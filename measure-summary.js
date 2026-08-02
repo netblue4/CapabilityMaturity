@@ -14,7 +14,7 @@ function renderMeasureSummary(assessment) {
 // Approved vs Draft per policy/standard document, from the policy upload.
 function renderGovernanceCard(assessment) {
   const rows  = buildGovernanceRows(assessment.policyRows || []);
-  const title = 'ICT Governance — Policy Approvals';
+  const title = 'Align, Define &amp; Approve Policies';
   let desc = 'Are our policies and group standards approved? One row per document, from the policy upload.';
   if (rows.length) {
     const totalStmts = rows.reduce((a, r) => a + r.total, 0);

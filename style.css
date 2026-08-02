@@ -2591,26 +2591,24 @@ details[open] .profile-card-chevron {
 .pvo-verdict-warn { background: rgba(176,125,69,.16);  color: var(--clr-warning); }
 @media (max-width: 800px) { .pvo-cols { grid-template-columns: 1fr; } }
 
-/* ── Ownership of the unimplemented gap (ranked bar list) ─────── */
+/* ── Ownership — workload (bar length) + implementation progress (green fill) ── */
 .owg-list { display: flex; flex-direction: column; gap: .5rem; margin-top: .3rem; }
-.owg-row { display: grid; grid-template-columns: 190px 1fr 108px; align-items: center; gap: .75rem; }
+.owg-row { display: grid; grid-template-columns: 190px 1fr 130px; align-items: center; gap: .75rem; }
 .owg-name {
   font-size: .82rem; font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.owg-bar { height: 14px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+.owg-track { display: block; width: 100%; }
+.owg-bar { display: block; height: 14px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
 .owg-bar > i {
-  display: block; height: 100%; border-radius: 4px; background: var(--clr-warning);
+  display: block; height: 100%; border-radius: 4px; background: var(--clr-success);
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
 .owg-fig { text-align: right; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .owg-fig b { font-size: 1rem; }
-.owg-sub { display: block; font-size: .68rem; color: var(--text-muted); }
-.owg-row-cleared .owg-name { color: var(--text-muted); font-weight: 600; }
-.owg-row-cleared .owg-bar { opacity: .35; }
-.owg-cleared { font-size: .66rem; font-weight: 700; color: var(--clr-success); white-space: nowrap; }
+.owg-sub { display: block; font-size: .68rem; color: var(--text-muted); white-space: nowrap; }
 @media (max-width: 640px) {
-  .owg-row { grid-template-columns: 120px 1fr 92px; gap: .5rem; }
+  .owg-row { grid-template-columns: 120px 1fr 110px; gap: .5rem; }
 }
 
 /* ── Appendix — Outstanding Controls by Owner ─────────────────── */

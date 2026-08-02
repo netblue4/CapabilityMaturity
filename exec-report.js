@@ -77,56 +77,48 @@ function renderExecCallouts(assessment) {
     `<div class="exec-callout exec-callout-${k}"><span class="eci">${i}</span><span>${t}</span></div>`).join('')}</div>`;
 }
 
-// ── Ownership of the unimplemented gap ────────────────────────────
-// A ranked bar list: of the controls not yet implemented, which accountable
-// team (policy owner) owns them. Bar length = that team's share of the whole
-// gap; the sub-line shows their footprint (gap / owned) and progress. When a
-// previous assessment is supplied, each row carries quarter-over-quarter arrows
-// for the outstanding count (▼ = fewer = good) and % done (▲ = more = good),
-// recomputed live from the previous quarter's stored facts. Teams that cleared
-// their whole backlog since last quarter stay visible as a win.
+// ── Ownership — workload & implementation progress ────────────────
+// One bar per accountable team (policy owner). Bar LENGTH = that team's
+// workload (controls they own, scaled to the heaviest-loaded team), so the
+// split is visible — IT typically carries the most. The GREEN fill = what
+// they've implemented, so it reads as a progress bar toward done. With a
+// previous assessment each row shows a ▲ for progress since last quarter
+// (up = good). Sorted by workload, heaviest first.
 function renderOwnerGapCard(assessment, prev) {
   const g  = buildOwnerGapRollup(assessment.riskPolicyFacts || []);
   const pg = prev ? buildOwnerGapRollup(prev.riskPolicyFacts || []) : null;
   if (!g.totalControls) return '';
 
-  const hdr = body => `
+  const teams = Object.values(g.byOwner)
+    .filter(o => o.ownedTotal > 0)
+    .sort((a, b) => b.ownedTotal - a.ownedTotal || a.owner.localeCompare(b.owner));
+  const maxOwned  = teams.reduce((m, o) => Math.max(m, o.ownedTotal), 0) || 1;
+  const totalImpl = g.totalControls - g.gapCount;
+  const donePct   = g.totalControls ? Math.round(100 * totalImpl / g.totalControls) : 0;
+
+  const row = o => {
+    const p     = pg && pg.byOwner[o.owner];
+    const arrow = (p && o.implRate != null && p.implRate != null) ? qoqArrow(o.implRate, p.implRate, false) : '';
+    const wl    = Math.max(3, Math.round(100 * o.ownedTotal / maxOwned));
+    return `
+      <div class="owg-row">
+        <span class="owg-name" title="${o.owner}">${o.owner}</span>
+        <span class="owg-track"><span class="owg-bar" style="width:${wl}%"><i style="width:${o.implRate || 0}%"></i></span></span>
+        <span class="owg-fig"><b>${o.implRate}%</b><span class="owg-sub">${o.ownedImpl}/${o.ownedTotal} done${arrow}</span></span>
+      </div>`;
+  };
+
+  return `
     <div class="card measure-card owg-card">
       <div class="measure-card-header">
         <span class="measure-icon">🧭</span>
         <div style="flex:1">
           <h3 class="measure-card-title">ICT Governance — Roles &amp; Responsibilities</h3>
-          <p class="measure-card-desc"><b>${g.gapCount}</b> of ${g.totalControls} controls are not yet implemented (<b>${g.gapPct}%</b>). Each bar is that team's share of the whole gap; the sub-line shows their not-implemented / owned count and how much of their book is done${pg ? ', with movement since last quarter (▼ outstanding = good, ▲ done = good)' : ''}. <b>Accountable owner</b> comes from the policy statement, not the control operator.</p>
+          <p class="measure-card-desc"><b>${totalImpl}</b> of ${g.totalControls} controls implemented (<b>${donePct}%</b>) across ${teams.length} accountable teams. Each bar's length is that team's workload — the controls they own — and the green fill is what they've implemented${pg ? ', with the ▲ showing progress since last quarter' : ''}. Closing the gap is a business-wide effort. <b>Accountable owner</b> comes from the policy statement, not the control operator.</p>
         </div>
       </div>
-      ${body}
+      <div class="owg-list">${teams.map(row).join('')}</div>
     </div>`;
-
-  // Teams that had a backlog last quarter but have none now — kept as a win.
-  const cleared = pg
-    ? Object.values(pg.byOwner)
-        .filter(p => p.gap > 0 && !(g.byOwner[p.owner] && g.byOwner[p.owner].gap > 0))
-        .map(p => ({ ...(g.byOwner[p.owner] || { owner: p.owner, gap: 0, ownedTotal: 0, implRate: null, shareOfGap: 0 }), _cleared: true }))
-        .sort((a, b) => a.owner.localeCompare(b.owner))
-    : [];
-
-  if (!g.gapCount && !cleared.length) return hdr('');
-
-  const row = r => {
-    const p = pg && pg.byOwner[r.owner];
-    const cntArrow  = p ? qoqArrow(r.gap, p.gap, true) : '';
-    const doneArrow = (p && r.implRate != null && p.implRate != null) ? qoqArrow(r.implRate, p.implRate, false) : '';
-    const done = r.implRate != null ? `${r.implRate}% done${doneArrow}` : '—';
-    const tag  = r._cleared ? ' <span class="owg-cleared">✓ cleared</span>' : '';
-    return `
-      <div class="owg-row${r._cleared ? ' owg-row-cleared' : ''}">
-        <span class="owg-name" title="${r.owner}">${r.owner}${tag}</span>
-        <span class="owg-bar"><i style="width:${Math.max(r._cleared ? 0 : 2, r.shareOfGap)}%"></i></span>
-        <span class="owg-fig"><b>${r.shareOfGap}%</b><span class="owg-sub">${r.gap}${cntArrow} of ${r.ownedTotal} · ${done}</span></span>
-      </div>`;
-  };
-
-  return hdr(`<div class="owg-list">${g.rows.map(row).join('')}${cleared.map(row).join('')}</div>`);
 }
 
 // ── The DORA Transition — two hero gauges (old vs new) ────────────

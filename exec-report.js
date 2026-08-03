@@ -82,7 +82,7 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
     <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
     <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>
-    <div class="exec-sec-div">Appendix — Outstanding Controls by Owner</div>
+    <div class="exec-sec-div">Appendix — Controls by Owner</div>
     <div class="exec-rcsa-wrap">${renderControlsByOwner(currentA)}</div>
   `;
   showView('exec-report');
@@ -363,15 +363,24 @@ function printMergedRiskTable() {
   execPrintWindow('Operationalisation Detail — All Risks', [meta.label, meta.date].filter(Boolean).join(' · '), body);
 }
 
-// ── Appendix — Outstanding Controls by Accountable Owner ──────────
-// Every not-yet-implemented control grouped under the team accountable for it
-// (from the policy statement's OWNER). "Unassigned" = controls with no policy
-// link. Sorted biggest backlog first, Unassigned last.
-let _cboAssessment = null;
+// ── Appendix — Controls by Accountable Owner (sortable) ──────────
+// Every control (implemented and not), its accountable owner (from the policy
+// statement OWNER) and implementation status. Click a header to sort.
+// "Unassigned" = controls with no policy-statement link.
+let _cboRows = [];
+let _cboSort = { col: 'owner', dir: 1 };
 
-function buildControlsByOwnerGroups(assessment) {
+const CBO_FIELD = {
+  owner:       r => r.owner,
+  capability:  r => r.cap,
+  document:    r => r.doc,
+  control:     r => r.control,
+  implemented: r => (r.impl ? 1 : 0),
+};
+
+function buildControlsByOwnerRows(assessment) {
   const facts = (assessment.riskPolicyFacts || [])
-    .filter(f => !ftNorm(f.riskStatus).includes('closed') && !ftIsImplemented(f));
+    .filter(f => !ftNorm(f.riskStatus).includes('closed'));
   const capName = id => (CONFIG.capabilities.find(c => c.id === id)?.name) || id;
   const ownerOf = f => {
     if ((f.policyOwner || '').trim()) return f.policyOwner.trim();
@@ -380,57 +389,84 @@ function buildControlsByOwnerGroups(assessment) {
     let b = '', n = 0; for (const k in c) if (c[k] > n) { n = c[k]; b = k; }
     return b;
   };
-  const groups = {};
-  facts.forEach(f => {
-    const owner = ownerOf(f) || 'Unassigned';
-    (groups[owner] = groups[owner] || []).push({
-      cap: capName(f.capId),
-      doc: ((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '—',
-      control: f.controlName || '(unnamed control)',
-    });
-  });
-  return Object.entries(groups)
-    .map(([owner, items]) => ({ owner, items: items.sort((a, b) => a.cap.localeCompare(b.cap) || a.control.localeCompare(b.control)) }))
-    .sort((a, b) =>
-      (a.owner === 'Unassigned' ? 1 : 0) - (b.owner === 'Unassigned' ? 1 : 0) ||
-      b.items.length - a.items.length ||
-      a.owner.localeCompare(b.owner));
+  return facts.map(f => ({
+    owner: ownerOf(f) || 'Unassigned',
+    cap: capName(f.capId),
+    doc: ((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '—',
+    control: f.controlName || '(unnamed control)',
+    impl: ftIsImplemented(f),
+  }));
 }
 
-function controlsByOwnerBody(assessment) {
-  const groups = buildControlsByOwnerGroups(assessment);
-  if (!groups.length) return '<p class="mrt-note">Every in-scope control is implemented — nothing outstanding.</p>';
-  return groups.map(g => `
-    <div class="cbo-group">
-      <div class="cbo-head"><span class="cbo-owner">${g.owner}</span><span class="cbo-count">${g.items.length} not implemented</span></div>
-      <table class="opcov-table cbo-table">
-        <thead><tr><th>Capability</th><th>Document</th><th>Control</th></tr></thead>
-        <tbody>${g.items.map(it =>
-          `<tr><td class="cbo-cap">${it.cap}</td><td class="cbo-doc">${it.doc}</td><td class="cbo-ctrl">${it.control}</td></tr>`).join('')}</tbody>
-      </table>
-    </div>`).join('');
+function cboHead() {
+  const arrow = c => _cboSort.col === c ? `<span class="mrt-arrow">${_cboSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label) => `<th class="mrt-sort" onclick="sortControlsByOwner('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>${th('owner', 'Accountable Owner')}${th('capability', 'Capability')}${th('document', 'Document')}${th('control', 'Control')}${th('implemented', 'Implemented')}</tr>`;
+}
+
+function cboBody(rows) {
+  return rows.map(r => `<tr>
+    <td class="cbo-owner">${r.owner}</td>
+    <td class="cbo-cap">${r.cap}</td>
+    <td class="cbo-doc">${r.doc}</td>
+    <td class="cbo-ctrl">${r.control}</td>
+    <td class="cbo-impl-cell">${r.impl
+      ? '<span class="cbo-impl cbo-impl-yes">Yes</span>'
+      : '<span class="cbo-impl cbo-impl-no">No</span>'}</td>
+  </tr>`).join('');
+}
+
+function sortControlsByOwner(col) {
+  if (_cboSort.col === col) _cboSort.dir *= -1;
+  else _cboSort = { col, dir: 1 };
+  const f = CBO_FIELD[col];
+  const dir = _cboSort.dir;
+  const sorted = _cboRows.slice().sort((a, b) => {
+    const av = f(a), bv = f(b);
+    return (typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv))) * dir
+      || a.owner.localeCompare(b.owner) || a.control.localeCompare(b.control);
+  });
+  const tb = document.getElementById('cbo-tbody');
+  const th = document.getElementById('cbo-thead');
+  if (tb) tb.innerHTML = cboBody(sorted);
+  if (th) th.innerHTML = cboHead();
 }
 
 function renderControlsByOwner(assessment) {
-  _cboAssessment = assessment;
+  _cboRows = buildControlsByOwnerRows(assessment);
+  _cboSort = { col: 'owner', dir: 1 };
+  const total = _cboRows.length;
+  if (!total) {
+    return `
+      <div class="card measure-card cbo-card">
+        <div class="measure-card-header">
+          <span class="measure-icon">🗂️</span>
+          <div style="flex:1">
+            <h3 class="measure-card-title">Controls by Accountable Owner</h3>
+            <p class="measure-card-desc">No controls have been imported yet.</p>
+          </div>
+        </div>
+      </div>`;
+  }
+  const implemented = _cboRows.filter(r => r.impl).length;
+  const pct = Math.round(100 * implemented / total);
+  const sorted = _cboRows.slice().sort((a, b) => a.owner.localeCompare(b.owner) || a.cap.localeCompare(b.cap) || a.control.localeCompare(b.control));
   return `
     <div class="card measure-card cbo-card">
       <div class="measure-card-header">
         <span class="measure-icon">🗂️</span>
         <div style="flex:1">
-          <h3 class="measure-card-title">Outstanding Controls by Accountable Owner</h3>
-          <p class="measure-card-desc">Every not-yet-implemented control, grouped under the team accountable for it (from the policy statement owner). <b>Unassigned</b> = controls with no policy-statement link.</p>
+          <h3 class="measure-card-title">Controls by Accountable Owner</h3>
+          <p class="measure-card-desc"><b>${implemented}</b> of ${total} controls implemented (<b>${pct}%</b>), with the team accountable for each (from the policy statement owner). <b>Unassigned</b> = controls with no policy-statement link. Click a column header to sort.</p>
         </div>
       </div>
-      ${controlsByOwnerBody(assessment)}
+      <div class="rcsa-table-wrap">
+        <table class="opcov-table cbo-table">
+          <thead id="cbo-thead">${cboHead()}</thead>
+          <tbody id="cbo-tbody">${cboBody(sorted)}</tbody>
+        </table>
+      </div>
     </div>`;
-}
-
-function printControlsByOwner() {
-  const a = _cboAssessment;
-  if (!a) return;
-  const sub = [a.label, formatDate(a.date)].filter(Boolean).join(' · ');
-  execPrintWindow('Outstanding Controls by Accountable Owner', sub, controlsByOwnerBody(a));
 }
 
 // ── Appendix — Metric Definitions ─────────────────────────────

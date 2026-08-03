@@ -2552,30 +2552,30 @@ details[open] .profile-card-chevron {
   .owg-row { grid-template-columns: 120px 1fr 110px; gap: .5rem; }
 }
 
-/* ── Appendix — Outstanding Controls by Owner ─────────────────── */
-.cbo-group { margin-top: 1rem; }
-.cbo-group:first-of-type { margin-top: .3rem; }
-.cbo-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: .6rem;
-  padding: .25rem 0 .35rem; margin-bottom: .35rem;
-  border-bottom: 2px solid var(--clr-warning);
-}
-.cbo-owner { font-weight: 700; font-size: .92rem; }
-.cbo-count { font-size: .72rem; color: var(--text-muted); white-space: nowrap; }
-/* Fixed layout + shared column widths so every owner group lines up */
-.cbo-table { table-layout: fixed; }
+/* ── Appendix — Controls by Owner (single sortable table) ─────── */
+.cbo-table { table-layout: fixed; width: 100%; }
 .cbo-table th, .cbo-table td { overflow-wrap: anywhere; }
-.cbo-table th:nth-child(1), .cbo-table td:nth-child(1) { width: 26%; }
-.cbo-table th:nth-child(2), .cbo-table td:nth-child(2) { width: 32%; }
-.cbo-table th:nth-child(3), .cbo-table td:nth-child(3) { width: 42%; }
+.cbo-table th:nth-child(1), .cbo-table td:nth-child(1) { width: 18%; }
+.cbo-table th:nth-child(2), .cbo-table td:nth-child(2) { width: 20%; }
+.cbo-table th:nth-child(3), .cbo-table td:nth-child(3) { width: 24%; }
+.cbo-table th:nth-child(4), .cbo-table td:nth-child(4) { width: 26%; }
+.cbo-table th:nth-child(5), .cbo-table td:nth-child(5) { width: 12%; white-space: nowrap; overflow-wrap: normal; }
 .cbo-table th {
   text-align: left; font-size: .68rem; text-transform: uppercase; letter-spacing: .03em;
   color: var(--text-muted); font-weight: 600; padding: .2rem .5rem;
 }
 .cbo-table td { padding: .28rem .5rem; font-size: .8rem; vertical-align: top; border-top: 1px solid var(--border-subtle); }
+.cbo-owner { font-weight: 500; }
 .cbo-cap  { color: var(--text-muted); }
 .cbo-doc  { color: var(--text-muted); }
 .cbo-ctrl { font-weight: 500; }
+.cbo-impl-cell { white-space: nowrap; }
+.cbo-impl {
+  display: inline-block; font-size: .68rem; font-weight: 700; padding: .08rem .5rem; border-radius: 10px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.cbo-impl-yes { background: rgba(74,140,101,.20); color: var(--clr-success); }
+.cbo-impl-no  { background: rgba(168,84,80,.20); color: var(--clr-danger); }
 
 /* Themed risk section — a themed portfolio card + its scoped coverage card */
 .theme-block { margin-bottom: 1.25rem; }

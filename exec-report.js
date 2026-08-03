@@ -497,7 +497,7 @@ function execComplianceSummary(a, prev) {
 
   const pct  = (n, d) => (d > 0 ? Math.round(100 * n / d) : 0);
   // Count metric (e.g. "77 policy statements"): big neutral number, no bar.
-  const metricNum = (val, lbl) => `<div class="pvo-metric"><span class="pvo-val">${val}</span><span class="pvo-lbl">${lbl}</span></div>`;
+  const metricNum = (val, lbl, arrow = '') => `<div class="pvo-metric"><span class="pvo-val">${val}${arrow}</span><span class="pvo-lbl">${lbl}</span></div>`;
   // Percentage metric, read as a sentence: [value%] [explanation]. [impact%] [impact].
   // The impact clause carries its own percentage (so it never reads "the other 0%")
   // and is dropped entirely when that percentage is 0.
@@ -522,6 +522,10 @@ function execComplianceSummary(a, prev) {
     pv.locBack = g(pk.locPolOperationalisation).total ? pct(g(pk.locPolOperationalisation).operationalised, g(pk.locPolOperationalisation).total) : null;
     pv.grpBack = g(pk.grpStdOperationalisation).total ? pct(g(pk.grpStdOperationalisation).operationalised, g(pk.grpStdOperationalisation).total) : null;
     pv.preDora = ppd.length                          ? pct(ppdMapped, ppd.length)                 : null;
+    pv.preDoraCount = ppd.length;
+    const ppRows = prev.policyRows || [];
+    pv.locCount = ppRows.filter(r => isLocPolType(r.type)).length;
+    pv.grpCount = ppRows.filter(r => isGrpStdType(r.type)).length;
   }
 
   // Policy layer
@@ -533,9 +537,9 @@ function execComplianceSummary(a, prev) {
   const policyCol = `
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">ICT Governance / Risk &amp; Control Framework</span></div>
-      ${metricNum(locCount || '—', 'Policy statements we\'ve formally written and catalogued')}
+      ${metricNum(locCount || '—', 'Policy statements we\'ve formally written and catalogued', qoqArrow(locCount, pv.locCount, false))}
       ${metricPct(locCovPct, `of our policy statements are tracked as risks (${locCov.covered}/${locCov.total})`, compl(locCovPct) ? `${compl(locCovPct)}% are blind spots we don't yet monitor` : '', qoqArrow(locCovPct, pv.locCov, false))}
-      ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued')}
+      ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued', qoqArrow(grpCount, pv.grpCount, false))}
       ${metricPct(grpCovPct, `of our group standard requirements are tracked as risks (${grpCov.covered}/${grpCov.total})`, compl(grpCovPct) ? `${compl(grpCovPct)}% remain unmonitored` : '', qoqArrow(grpCovPct, pv.grpCov, false))}
     </div>`;
 
@@ -558,7 +562,7 @@ function execComplianceSummary(a, prev) {
       <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Compliance</span></div>
       ${metricPct(locBackedPct, `of our policy statements are linked to an implemented control (${locOp.operationalised}/${locOp.total})`, compl(locBackedPct) ? `${compl(locBackedPct)}% we can't prove we comply with` : '', qoqArrow(locBackedPct, pv.locBack, false))}
       ${metricPct(grpBackedPct, `of our group standards are linked to an implemented control (${grpOp.operationalised}/${grpOp.total})`, compl(grpBackedPct) ? `${compl(grpBackedPct)}% we can't prove we comply with` : '', qoqArrow(grpBackedPct, pv.grpBack, false))}
-      ${metricNum(preDora.length || '—', 'Implemented pre-DORA controls already running (older disruption-risk scope)')}
+      ${metricNum(preDora.length || '—', 'Implemented pre-DORA controls already running (older disruption-risk scope)', qoqArrow(preDora.length, pv.preDoraCount, true))}
       ${metricPct(preDoraPct, `of implemented pre-DORA controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, compl(preDoraPct) ? `${compl(preDoraPct)}% have no stated reason we run them` : '', qoqArrow(preDoraPct, pv.preDora, false))}
     </div>`;
 

@@ -522,6 +522,7 @@ function execComplianceSummary(a, prev) {
     pv.locBack = g(pk.locPolOperationalisation).total ? pct(g(pk.locPolOperationalisation).operationalised, g(pk.locPolOperationalisation).total) : null;
     pv.grpBack = g(pk.grpStdOperationalisation).total ? pct(g(pk.grpStdOperationalisation).operationalised, g(pk.grpStdOperationalisation).total) : null;
     pv.preDora = ppd.length                          ? pct(ppdMapped, ppd.length)                 : null;
+    pv.preDoraCount = ppd.length;
     const ppRows = prev.policyRows || [];
     pv.locCount = ppRows.filter(r => isLocPolType(r.type)).length;
     pv.grpCount = ppRows.filter(r => isGrpStdType(r.type)).length;
@@ -561,7 +562,7 @@ function execComplianceSummary(a, prev) {
       <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Compliance</span></div>
       ${metricPct(locBackedPct, `of our policy statements are linked to an implemented control (${locOp.operationalised}/${locOp.total})`, compl(locBackedPct) ? `${compl(locBackedPct)}% we can't prove we comply with` : '', qoqArrow(locBackedPct, pv.locBack, false))}
       ${metricPct(grpBackedPct, `of our group standards are linked to an implemented control (${grpOp.operationalised}/${grpOp.total})`, compl(grpBackedPct) ? `${compl(grpBackedPct)}% we can't prove we comply with` : '', qoqArrow(grpBackedPct, pv.grpBack, false))}
-      ${metricNum(preDora.length || '—', 'Implemented pre-DORA controls already running (older disruption-risk scope)')}
+      ${metricNum(preDora.length || '—', 'Implemented pre-DORA controls already running (older disruption-risk scope)', qoqArrow(preDora.length, pv.preDoraCount, true))}
       ${metricPct(preDoraPct, `of implemented pre-DORA controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, compl(preDoraPct) ? `${compl(preDoraPct)}% have no stated reason we run them` : '', qoqArrow(preDoraPct, pv.preDora, false))}
     </div>`;
 

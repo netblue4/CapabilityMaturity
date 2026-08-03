@@ -688,13 +688,15 @@ function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
   // Weak mitigation: controls exist (>=1 implemented) but risk barely dropped.
   const weakMitigation = ranking.filter(r => r.implemented >= 1 && r.reductionPct < weakAt);
 
-  // Implemented rate across all of this scope's controls (used by the DORA
-  // theme cards in place of Risk Reduction, which isn't control-type-attributable).
-  const ctrlImplemented = facts.filter(ftIsImplemented).length;
-  const ctrlOwned       = facts.filter(ftIsOwned).length;
-  const ctrlTested      = facts.filter(ftIsAssessed).length;
-  const ctrlEffective   = facts.filter(ftIsEffective).length;
-  const ctrlCount       = facts.length;
+  // Control counts exclude controls on closed risks, matching the Own & Implement
+  // card, the Operationalisation Detail table and the DORA gauges — so every
+  // card's control totals reconcile.
+  const ctrlFacts       = facts.filter(f => !ftNorm(f.riskStatus).includes('closed'));
+  const ctrlImplemented = ctrlFacts.filter(ftIsImplemented).length;
+  const ctrlOwned       = ctrlFacts.filter(ftIsOwned).length;
+  const ctrlTested      = ctrlFacts.filter(ftIsAssessed).length;
+  const ctrlEffective   = ctrlFacts.filter(ftIsEffective).length;
+  const ctrlCount       = ctrlFacts.length;
   const p100 = n => ctrlCount > 0 ? Math.round(100 * n / ctrlCount) : 0;
   const implementedPct  = p100(ctrlImplemented);
 

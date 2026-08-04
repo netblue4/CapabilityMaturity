@@ -45,9 +45,7 @@ function renderGovernanceCard(assessment) {
     <td class="gov-type">${r.type}</td>
     <td class="gov-status">${badge(r)}</td>
     <td class="gov-stmts" title="${r.total} policy statement(s) / group standard(s) in this document">${r.total}</td>
-    <td class="gov-risk">${r.riskTracked > 0
-      ? `<span class="cbo-impl cbo-impl-yes" title="${r.riskTracked} of ${r.total} tracked as risk(s)">Yes</span>`
-      : '<span class="cbo-impl cbo-impl-no" title="No associated risks tracked">No</span>'}</td>
+    <td class="gov-risk" title="${r.riskTracked} of ${r.total} statement(s) tracked as risk(s)">${r.riskTracked}</td>
   </tr>`).join('');
   return `
     <div class="card measure-card">
@@ -59,8 +57,8 @@ function renderGovernanceCard(assessment) {
             <th class="gov-doc">Document</th>
             <th class="gov-type">Type</th>
             <th class="gov-status">Status</th>
-            <th class="gov-stmts" title="Number of policy statements / group standards in this document"># Statements</th>
-            <th class="gov-risk" title="Are there risks associated with this policy or standard?">Risk tracked</th>
+            <th class="gov-stmts" title="Number of policy statements / group standards in this document">Statements</th>
+            <th class="gov-risk" title="How many of the statements are tracked as risks — compare against the total to spot untracked statements">Risk tracked</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

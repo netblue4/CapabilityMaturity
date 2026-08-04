@@ -13,7 +13,7 @@ function renderMeasureSummary(assessment) {
 // ── ICT Governance — Policy Approvals card ──────────
 // Approved vs Draft per policy/standard document, from the policy upload.
 function renderGovernanceCard(assessment) {
-  const rows  = buildGovernanceRows(assessment.policyRows || []);
+  const rows  = buildGovernanceRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = 'Align, Define &amp; Approve Policies';
   let desc = 'Are our policies and group standards approved? One row per document, from the policy upload.';
   if (rows.length) {
@@ -44,6 +44,10 @@ function renderGovernanceCard(assessment) {
     <td class="gov-doc">${r.document}</td>
     <td class="gov-type">${r.type}</td>
     <td class="gov-status">${badge(r)}</td>
+    <td class="gov-stmts" title="${r.total} policy statement(s) / group standard(s) in this document">${r.total}</td>
+    <td class="gov-risk">${r.riskTracked > 0
+      ? `<span class="cbo-impl cbo-impl-yes" title="${r.riskTracked} of ${r.total} tracked as risk(s)">Yes</span>`
+      : '<span class="cbo-impl cbo-impl-no" title="No associated risks tracked">No</span>'}</td>
   </tr>`).join('');
   return `
     <div class="card measure-card">
@@ -55,6 +59,8 @@ function renderGovernanceCard(assessment) {
             <th class="gov-doc">Document</th>
             <th class="gov-type">Type</th>
             <th class="gov-status">Status</th>
+            <th class="gov-stmts" title="Number of policy statements / group standards in this document"># Statements</th>
+            <th class="gov-risk" title="Are there risks associated with this policy or standard?">Risk tracked</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

@@ -85,7 +85,7 @@ function buildRiskPolicyFacts(riskRows, policyRows) {
 // owns them. Grouped by the raw owner string — no role→department mapping.
 // Controls with no matched policy statement fall into "Unassigned".
 function buildOwnerGapRollup(riskPolicyFacts) {
-  const facts = (riskPolicyFacts || []).filter(f => !ftNorm(f.riskStatus).includes('closed'));
+  const facts = (riskPolicyFacts || []).filter(f => !ftIsClosedControl(f));
   const totalControls = facts.length;
   const gap = facts.filter(f => !ftIsImplemented(f));
   const owners = {};
@@ -134,12 +134,16 @@ function buildPolicyByCapability(policyRows) {
 // governance maturity slider.
 function buildGovernanceRows(policyRows, facts) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
-  // Statement refs that a control (risk) touches — same rule as "tracked as risks".
+  // Statement refs that an active (non-closed) control touches — same rule as
+  // "tracked as risks"; closed controls are ignored.
   const refAny = new Set();
-  (facts || []).forEach(f => (f.matchedPolicyRows || []).forEach(mp => {
-    const k = ftNorm(mp.statementRef);
-    if (k) refAny.add(k);
-  }));
+  (facts || []).forEach(f => {
+    if (ftIsClosedControl(f)) return;
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const k = ftNorm(mp.statementRef);
+      if (k) refAny.add(k);
+    });
+  });
   const map = {};
   (policyRows || []).forEach(pr => {
     const doc = (pr.document || '').trim() || '(no document)';
@@ -175,8 +179,39 @@ function ftUniqueRisks(facts) {
   });
 }
 
+// ── Status canonicalisation ───────────────────────────────────────
+// Risk status — read the "Status*" column of the risk file. Display values:
+//   Draft → Draft ; Open → Open ; Proposed Closed / Closed → Closed
+function ftRiskStatus(f) {
+  const s = ftNorm(typeof f === 'string' ? f : (f && f.riskStatus));
+  if (s.includes('draft')) return 'draft';
+  if (s.includes('close')) return 'closed';   // "closed" or "proposed closed"
+  if (s.includes('open'))  return 'open';
+  return s;
+}
+const FT_RISK_STATUS_LABEL = { draft: 'Draft', open: 'Open', closed: 'Closed' };
+function ftRiskStatusLabel(f) { return FT_RISK_STATUS_LABEL[ftRiskStatus(f)] || ''; }
+
+// Control status — read the SEPARATE "Control Status*" column (never risk
+// status). Display values:
+//   Open → Implemented ; closed / Inactive / Proposed Close → Closed ;
+//   empty / "-" → Not implemented
+function ftControlStatus(f) {
+  const s = ftNorm(typeof f === 'string' ? f : (f && f.controlStatus));
+  if (s === '' || s === '-')                    return 'not-implemented';
+  if (s === 'open')                             return 'implemented';
+  if (s.includes('close') || s.includes('inactive')) return 'closed';
+  return 'not-implemented';
+}
+const FT_CTRL_STATUS_LABEL = { implemented: 'Implemented', closed: 'Closed', 'not-implemented': 'Not implemented' };
+function ftControlStatusLabel(f) { return FT_CTRL_STATUS_LABEL[ftControlStatus(f)] || ''; }
+
+// A closed control (Control Status* = closed / Inactive / Proposed Close) is
+// excluded from every card and metric.
+function ftIsClosedControl(f) { return ftControlStatus(f) === 'closed'; }
+
 // ── Control assessment predicates ─────────────────────────────────
-function ftIsImplemented(f) { return ftNorm(f.controlStatus) === 'implemented'; }
+function ftIsImplemented(f) { return ftControlStatus(f) === 'implemented'; }
 function ftIsAssessed(f)    { return !!(f.lastAssessDate && f.lastAssessDate.trim()); }
 function ftIsOwned(f)       { return !!(f.controlOwner && f.controlOwner.trim()); }
 function ftIsEffective(f) {
@@ -236,7 +271,7 @@ function ftPolicyRowsForCap(assessment, capId) {
 
 // ── Build auto-computed KPI summary ──────────────────────────────
 function buildKpiSummary(polRows, riskPolicyFacts) {
-  const facts      = riskPolicyFacts || [];
+  const facts      = (riskPolicyFacts || []).filter(f => !ftIsClosedControl(f));
   polRows          = polRows || [];
   const locPolRows = polRows.filter(r => isLocPolType(r.type));
   const grpStdRows = polRows.filter(r => isGrpStdType(r.type));
@@ -344,7 +379,8 @@ function buildKpiSummary(polRows, riskPolicyFacts) {
 //        standard of the theme's type is listed — untouched ones appear as empty
 //        rows, surfacing coverage gaps.
 function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRows) {
-  let facts = riskPolicyFacts || [];
+  const liveFacts = (riskPolicyFacts || []).filter(f => !ftIsClosedControl(f));
+  let facts = liveFacts;
   if (theme) facts = facts.filter(f => f.controlType === theme);
   const cfg   = (CONFIG && CONFIG.opCoverage) || {};
   const floor = cfg.ownershipFloorPct != null ? cfg.ownershipFloorPct : 20;
@@ -432,7 +468,7 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRo
     // control). alsoIn names the other theme(s) so the overlap reads as
     // intentional — each card still shows only its own theme's controls.
     const riskTypeIndex = {};
-    if (theme) (riskPolicyFacts || []).forEach(f => {
+    if (theme) liveFacts.forEach(f => {
       const t = ftNorm(f.riskTitle);
       if (!t) return;
       (riskTypeIndex[t] = riskTypeIndex[t] || new Set()).add(f.controlType);
@@ -496,17 +532,18 @@ function buildOperationalisationCoverage(riskPolicyFacts, theme, rowBy, policyRo
 function buildDoraTransition(facts, prevFacts) {
   const isDora = f => f.controlType === 'locPol' || f.controlType === 'grpStd';
   const calc = fx => {
-    const impl = (fx || []).filter(ftIsImplemented);
+    const live = (fx || []).filter(f => !ftIsClosedControl(f));
+    const impl = live.filter(ftIsImplemented);
     const ctrlDora = impl.filter(isDora).length;
     const ctrlPre  = impl.length - ctrlDora;
     const ctrlPct  = impl.length ? Math.round(100 * ctrlDora / impl.length) : null;
 
     const byRisk = {};
-    (fx || []).forEach(f => {
+    live.forEach(f => {
       const key = ftNorm(f.riskTitle);
       if (!key) return;
       const r = byRisk[key] || (byRisk[key] = { open: false, dora: false });
-      if (ftNorm(f.riskStatus).includes('open')) r.open = true;
+      if (ftRiskStatus(f) === 'open') r.open = true;
       if (isDora(f)) r.dora = true;
     });
     const openRisks = Object.values(byRisk).filter(r => r.open);
@@ -549,7 +586,7 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
   const groups = {};
   allFacts.forEach(f => {
     const norm = ftNorm(f.riskTitle);
-    if (!norm || isClosed(f)) return;
+    if (!norm || isClosed(f) || ftIsClosedControl(f)) return;
     const theme = f.controlType;
     const doc = theme === 'operational' ? '' :
       (((f.matchedPolicyRows && f.matchedPolicyRows[0] && f.matchedPolicyRows[0].document) || '').trim() || '(unmapped)');
@@ -644,6 +681,8 @@ function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
     r.status = ftNorm(f.riskStatus);
     if ((f.inherentScore || 0) > r.inh) r.inh = f.inherentScore || 0;
     if ((f.residualScore || 0) > r.res) r.res = f.residualScore || 0;
+    // Closed controls are ignored in every control tally.
+    if (ftIsClosedControl(f)) return;
     r.ctrls++;
     if (ftIsAssessed(f))   r.ctrlAssd++;
     if (ftIsImplemented(f)) r.impl++;
@@ -695,10 +734,10 @@ function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
   // Weak mitigation: controls exist (>=1 implemented) but risk barely dropped.
   const weakMitigation = ranking.filter(r => r.implemented >= 1 && r.reductionPct < weakAt);
 
-  // Control counts exclude controls on closed risks, matching the Own & Implement
-  // card, the Operationalisation Detail table and the DORA gauges — so every
-  // card's control totals reconcile.
-  const ctrlFacts       = facts.filter(f => !ftNorm(f.riskStatus).includes('closed'));
+  // Control counts exclude closed controls (Control Status* = closed / Inactive /
+  // Proposed Close), matching the Own & Implement card, the Operationalisation
+  // Detail table and the DORA gauges — so every card's control totals reconcile.
+  const ctrlFacts       = facts.filter(f => !ftIsClosedControl(f));
   const ctrlImplemented = ctrlFacts.filter(ftIsImplemented).length;
   const ctrlOwned       = ctrlFacts.filter(ftIsOwned).length;
   const ctrlTested      = ctrlFacts.filter(ftIsAssessed).length;
@@ -732,7 +771,7 @@ function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
 // so quarter-over-quarter trend arrows can be computed.
 //
 function buildFactSummary(riskPolicyFacts, policyRows) {
-  const facts   = riskPolicyFacts || [];
+  const facts   = (riskPolicyFacts || []).filter(f => !ftIsClosedControl(f));
   const polRows = policyRows      || [];
   const hasPolicyData = polRows.length > 0;
 

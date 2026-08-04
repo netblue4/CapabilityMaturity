@@ -380,7 +380,7 @@ const CBO_FIELD = {
 
 function buildControlsByOwnerRows(assessment) {
   const facts = (assessment.riskPolicyFacts || [])
-    .filter(f => !ftNorm(f.riskStatus).includes('closed'));
+    .filter(f => !ftIsClosedControl(f));
   const capName = id => (CONFIG.capabilities.find(c => c.id === id)?.name) || id;
   const ownerOf = f => {
     if ((f.policyOwner || '').trim()) return f.policyOwner.trim();
@@ -514,7 +514,7 @@ function execComplianceSummary(a, prev) {
     const g   = o => o || { covered: 0, total: 0, operationalised: 0, localised: 0 };
     const pk  = buildKpiSummary(prev.policyRows || [], prev.riskPolicyFacts || []);
     const pf  = prev.riskPolicyFacts || [];
-    const ppd = pf.filter(f => f.controlType === 'operational' && ftIsImplemented(f) && !ftNorm(f.riskStatus).includes('closed'));
+    const ppd = pf.filter(f => f.controlType === 'operational' && ftIsImplemented(f) && !ftIsClosedControl(f));
     const ppdMapped = ppd.filter(f => (f.matchedPolicyRows || []).length > 0).length;
     pv.locCov  = g(pk.locPolCoverage).total          ? pct(g(pk.locPolCoverage).covered,          g(pk.locPolCoverage).total)          : null;
     pv.grpCov  = g(pk.grpStdCoverage).total          ? pct(g(pk.grpStdCoverage).covered,          g(pk.grpStdCoverage).total)          : null;
@@ -549,10 +549,10 @@ function execComplianceSummary(a, prev) {
   const locBackedPct = pct(locOp.operationalised, locOp.total);
   const grpBackedPct = pct(grpOp.operationalised, grpOp.total);
   // Pre-DORA controls = implemented operational-type controls (narrow disruption
-  // scope, no policy/standard prefix), excluding those on closed risks. Aim: map
-  // them all to a policy or standard.
+  // scope, no policy/standard prefix), excluding closed controls. Aim: map them
+  // all to a policy or standard.
   const facts   = a.riskPolicyFacts || [];
-  const preDora = facts.filter(f => f.controlType === 'operational' && ftIsImplemented(f) && !ftNorm(f.riskStatus).includes('closed'));
+  const preDora = facts.filter(f => f.controlType === 'operational' && ftIsImplemented(f) && !ftIsClosedControl(f));
   const preDoraMapped = preDora.filter(f => (f.matchedPolicyRows || []).length > 0).length;
   const preDoraPct    = pct(preDoraMapped, preDora.length);
   const underCount   = rp ? rp.underAssuredCount : 0;

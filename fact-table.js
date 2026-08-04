@@ -132,17 +132,24 @@ function buildPolicyByCapability(policyRows) {
 // ── Governance rows — one per (capability × document), approved vs draft ──
 // Derived from the policy upload's Document Status; replaces the old
 // governance maturity slider.
-function buildGovernanceRows(policyRows) {
+function buildGovernanceRows(policyRows, facts) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  // Statement refs that a control (risk) touches — same rule as "tracked as risks".
+  const refAny = new Set();
+  (facts || []).forEach(f => (f.matchedPolicyRows || []).forEach(mp => {
+    const k = ftNorm(mp.statementRef);
+    if (k) refAny.add(k);
+  }));
   const map = {};
   (policyRows || []).forEach(pr => {
     const doc = (pr.document || '').trim() || '(no document)';
     const key = pr.capId + '||' + doc;
-    if (!map[key]) map[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0 };
+    if (!map[key]) map[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0 };
     const r = map[key];
     r.total++;
     if (ftNorm(pr.status).includes('approv')) r.approved++;
     else r.draft++;   // anything not explicitly approved counts as draft/not-approved
+    if (refAny.has(ftNorm(pr.statementRef))) r.riskTracked++;
   });
   const rows = Object.values(map).map(r => ({
     ...r,

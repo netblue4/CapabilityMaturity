@@ -2719,6 +2719,8 @@ details[open] .profile-card-chevron {
 .gov-type { color: var(--text-muted); font-size: .72rem; white-space: nowrap; }
 .gov-num  { text-align: center; width: 72px; font-variant-numeric: tabular-nums; }
 .gov-status { width: 96px; text-align: center; }
+.gov-stmts { width: 88px; text-align: center; font-variant-numeric: tabular-nums; }
+.gov-risk  { width: 92px; text-align: center; }
 .gov-rollup { font-size: .72rem; color: var(--text-muted); white-space: nowrap; }
 .gov-badge { display: inline-block; font-size: .68rem; font-weight: 600; padding: .12rem .55rem; border-radius: 10px; }
 .gov-approved { background: rgba(74,140,101,.22);  color: var(--clr-success); }

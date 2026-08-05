@@ -40,13 +40,26 @@ function extractStatementRefs(rawName) {
 // Description) ────────────────────────────────────────────────────
 // The Riskonnect control title is capped at 80 chars, which is too short for
 // controls that reference many statements. The overflow list lives in the
-// long-text Control: Description field, as one or more parenthesised,
-// slash-separated groups: "(ITIM SR2 / LP-22 PS01 / … / LP-22 PS20)".
-// Only parenthesised groups are read, so surrounding prose is ignored safely.
+// long-text Control: Description field. Two shapes are supported:
+//   Parenthesised : "… (ITIM SR2 / LP-22 PS01 / … / LP-22 PS20)"
+//   Labelled list : "Control linked to the following … statements: ITIM SR2 /
+//                    LP-22 PS01 / … / LP-22 PS20"
+// For the labelled form the list is read from after the last colon, and only
+// reference-code tokens (no lowercase letters) are kept, so the surrounding
+// sentence is ignored. Refs may be separated by "/", ",", ";" or newlines.
 function extractStatementRefsFromText(text) {
   if (!text) return [];
-  const groups = [...String(text).matchAll(/\(([^)]+)\)/g)].map(m => m[1]);
-  return ftDedupeRefs(groups.flatMap(g => g.split('/').map(r => r.trim()).filter(Boolean)));
+  const s = String(text);
+  const groups = [...s.matchAll(/\(([^)]+)\)/g)].map(m => m[1]);
+  if (groups.length) return ftDedupeRefs(groups.flatMap(g => g.split('/').map(r => r.trim()).filter(Boolean)));
+  const colonIdx = s.lastIndexOf(':');
+  const list = colonIdx >= 0 ? s.slice(colonIdx + 1) : s;
+  const isRef = t => t && !/[a-z]/.test(t) && /[A-Z]/.test(t) && /\d/.test(t);
+  return ftDedupeRefs(
+    list.split(/[/,;\n]+/)
+        .map(r => r.trim().replace(/[.]+$/, ''))   // drop a trailing full stop, keep internal dots (DCLH SR3.1)
+        .filter(isRef)
+  );
 }
 
 // Merge ref lists, de-duplicating case-insensitively while preserving the

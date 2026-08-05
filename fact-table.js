@@ -20,12 +20,14 @@ function ftNorm(s) { return (s || '').toLowerCase().trim(); }
 
 // ── Statement-reference pattern ───────────────────────────────────
 // A reference is a document / standard code followed by a statement /
-// requirement code, e.g. "LP-22 PS01", "ITIM SR2", "ITAM SR1", "DCLH SR3.1".
+// requirement code, e.g. "LP-22 PS01", "ITIM SR2", "ITAM SR1", "DCLH SR3.1",
+// "TPSRA SR5a". The statement code may end in digits, a sub-ref (".1") and/or a
+// letter suffix ("a"/"b") — so "SR5", "SR5a", "SR11" and "SR3.1" all match.
 // Matching on this pattern (rather than splitting on "/" or reading
 // parentheses) lets us pull refs out of free text — control titles or the
 // long-text Control: Description field — while ignoring surrounding prose and
 // incidental parentheses like "(incl. privileged access rights)".
-const FT_REF_RE = /\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)?\s+[A-Z]{1,4}\d+(?:\.\d+)?\b/g;
+const FT_REF_RE = /\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)?\s+[A-Z]{1,4}\d+(?:\.\d+)?[a-z]?\b/g;
 
 // Extract refs from a control title. Descriptive titles with no reference
 // codes (e.g. "ITGC Incident management - Control") yield none.

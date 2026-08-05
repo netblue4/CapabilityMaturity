@@ -18,48 +18,29 @@ function isGrpStdType(t) {
 // ── Normalise string for case-insensitive matching ────────────────
 function ftNorm(s) { return (s || '').toLowerCase().trim(); }
 
-// ── Extract statement refs from a control name ────────────────────
-// Handles two formats:
-//   Parentheses suffix : "LocPol Control Name (REF1 / REF2)"
-//   Slash-separated   : "GrpStd LP-20 PS05 / ITAM SR1"
-// A control may carry more than one parenthesised group; all are collected.
+// ── Statement-reference pattern ───────────────────────────────────
+// A reference is a document / standard code followed by a statement /
+// requirement code, e.g. "LP-22 PS01", "ITIM SR2", "ITAM SR1", "DCLH SR3.1".
+// Matching on this pattern (rather than splitting on "/" or reading
+// parentheses) lets us pull refs out of free text — control titles or the
+// long-text Control: Description field — while ignoring surrounding prose and
+// incidental parentheses like "(incl. privileged access rights)".
+const FT_REF_RE = /\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)?\s+[A-Z]{1,4}\d+(?:\.\d+)?\b/g;
+
+// Extract refs from a control title. Descriptive titles with no reference
+// codes (e.g. "ITGC Incident management - Control") yield none.
 function extractStatementRefs(rawName) {
   if (!rawName) return [];
-  const stripped = rawName.replace(/^(GrpStd|LocPol)\s*/i, '').trim();
-  if (!stripped) return [];
-  const groups = [...stripped.matchAll(/\(([^)]+)\)/g)].map(m => m[1]);
-  if (groups.length) return ftDedupeRefs(groups.flatMap(g => g.split('/').map(r => r.trim()).filter(Boolean)));
-  // Truncated title: an unterminated "(" means Riskonnect cut off the ref list
-  // at 80 chars. Salvage whatever refs survived after the last "(".
-  const openIdx = stripped.lastIndexOf('(');
-  if (openIdx >= 0) return ftDedupeRefs(stripped.slice(openIdx + 1).split('/').map(r => r.trim()).filter(Boolean));
-  return ftDedupeRefs(stripped.split('/').map(r => r.trim()).filter(Boolean));
+  return ftDedupeRefs((String(rawName).match(FT_REF_RE) || []).map(r => r.replace(/\s+/g, ' ').trim()));
 }
 
-// ── Extract statement refs from a free-text field (e.g. Control:
-// Description) ────────────────────────────────────────────────────
-// The Riskonnect control title is capped at 80 chars, which is too short for
-// controls that reference many statements. The overflow list lives in the
-// long-text Control: Description field. Two shapes are supported:
-//   Parenthesised : "… (ITIM SR2 / LP-22 PS01 / … / LP-22 PS20)"
-//   Labelled list : "Control linked to the following … statements: ITIM SR2 /
-//                    LP-22 PS01 / … / LP-22 PS20"
-// For the labelled form the list is read from after the last colon, and only
-// reference-code tokens (no lowercase letters) are kept, so the surrounding
-// sentence is ignored. Refs may be separated by "/", ",", ";" or newlines.
+// Extract refs from a free-text field (e.g. Control: Description). The
+// Riskonnect control title is capped at 80 chars, too short for controls that
+// reference many statements, so the overflow list lives here. Any shape works
+// — parenthesised, a labelled list ("… statements: ITIM SR2 / LP-22 PS01 …"),
+// commas, or one per line — because refs are found by pattern, not delimiter.
 function extractStatementRefsFromText(text) {
-  if (!text) return [];
-  const s = String(text);
-  const groups = [...s.matchAll(/\(([^)]+)\)/g)].map(m => m[1]);
-  if (groups.length) return ftDedupeRefs(groups.flatMap(g => g.split('/').map(r => r.trim()).filter(Boolean)));
-  const colonIdx = s.lastIndexOf(':');
-  const list = colonIdx >= 0 ? s.slice(colonIdx + 1) : s;
-  const isRef = t => t && !/[a-z]/.test(t) && /[A-Z]/.test(t) && /\d/.test(t);
-  return ftDedupeRefs(
-    list.split(/[/,;\n]+/)
-        .map(r => r.trim().replace(/[.]+$/, ''))   // drop a trailing full stop, keep internal dots (DCLH SR3.1)
-        .filter(isRef)
-  );
+  return extractStatementRefs(text);
 }
 
 // Merge ref lists, de-duplicating case-insensitively while preserving the

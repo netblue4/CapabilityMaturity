@@ -71,6 +71,7 @@
       controlStatus:  find('control: status', 'control status'),
       lastAssessDate: find('last control assessment', 'last assessment', 'assessment date'),
       controlName:    find('control: name', 'control name', 'control: title', 'control title'),
+      controlDesc:    find('control: description', 'control description', 'controls description'),
     };
   }
 
@@ -139,6 +140,7 @@
   function buildFactRows(rows, cols, capId) {
     return rows.map(row => {
       const rawName = cols.controlName ? (row[cols.controlName] || '').trim() : '';
+      const rawDesc = cols.controlDesc ? (row[cols.controlDesc] || '').trim() : '';
       let controlType = 'operational';
       if (rawName.startsWith('LocPol')) controlType = 'locPol';
       else if (rawName.startsWith('GrpStd')) controlType = 'grpStd';
@@ -168,7 +170,9 @@
         lastAssessDate: cols.lastAssessDate ? (row[cols.lastAssessDate] || '').trim() : '',
         inherentScore:  inherentNum,
         residualScore:  residualNum,
-        statementRefs:  extractStatementRefs(rawName),
+        // Refs from the 80-char-capped title plus any overflow list held in the
+        // long-text Control: Description field, merged and de-duplicated.
+        statementRefs:  ftDedupeRefs(extractStatementRefs(rawName), extractStatementRefsFromText(rawDesc)),
         matchedPolicyRows: [],
       };
     });

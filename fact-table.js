@@ -22,13 +22,45 @@ function ftNorm(s) { return (s || '').toLowerCase().trim(); }
 // Handles two formats:
 //   Parentheses suffix : "LocPol Control Name (REF1 / REF2)"
 //   Slash-separated   : "GrpStd LP-20 PS05 / ITAM SR1"
+// A control may carry more than one parenthesised group; all are collected.
 function extractStatementRefs(rawName) {
   if (!rawName) return [];
   const stripped = rawName.replace(/^(GrpStd|LocPol)\s*/i, '').trim();
   if (!stripped) return [];
-  const parenMatch = stripped.match(/\(([^)]+)\)\s*$/);
-  if (parenMatch) return parenMatch[1].split('/').map(r => r.trim()).filter(Boolean);
-  return stripped.split('/').map(r => r.trim()).filter(Boolean);
+  const groups = [...stripped.matchAll(/\(([^)]+)\)/g)].map(m => m[1]);
+  if (groups.length) return ftDedupeRefs(groups.flatMap(g => g.split('/').map(r => r.trim()).filter(Boolean)));
+  // Truncated title: an unterminated "(" means Riskonnect cut off the ref list
+  // at 80 chars. Salvage whatever refs survived after the last "(".
+  const openIdx = stripped.lastIndexOf('(');
+  if (openIdx >= 0) return ftDedupeRefs(stripped.slice(openIdx + 1).split('/').map(r => r.trim()).filter(Boolean));
+  return ftDedupeRefs(stripped.split('/').map(r => r.trim()).filter(Boolean));
+}
+
+// ── Extract statement refs from a free-text field (e.g. Control:
+// Description) ────────────────────────────────────────────────────
+// The Riskonnect control title is capped at 80 chars, which is too short for
+// controls that reference many statements. The overflow list lives in the
+// long-text Control: Description field, as one or more parenthesised,
+// slash-separated groups: "(ITIM SR2 / LP-22 PS01 / … / LP-22 PS20)".
+// Only parenthesised groups are read, so surrounding prose is ignored safely.
+function extractStatementRefsFromText(text) {
+  if (!text) return [];
+  const groups = [...String(text).matchAll(/\(([^)]+)\)/g)].map(m => m[1]);
+  return ftDedupeRefs(groups.flatMap(g => g.split('/').map(r => r.trim()).filter(Boolean)));
+}
+
+// Merge ref lists, de-duplicating case-insensitively while preserving the
+// first-seen original casing.
+function ftDedupeRefs(...lists) {
+  const seen = new Set();
+  const out = [];
+  lists.flat().forEach(ref => {
+    const k = ftNorm(ref);
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push(ref);
+  });
+  return out;
 }
 
 // ── Join riskRows + policyRows → enriched fact rows ───────────────

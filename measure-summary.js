@@ -10,8 +10,15 @@ function renderMeasureSummary(assessment) {
   document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
 }
 
-// ── ICT Governance — Policy Approvals card ──────────
-// Approved vs Draft per policy/standard document, from the policy upload.
+// ── ICT Governance — Policy Approvals + risk profile card ──────────
+// Approval status per policy/standard document plus, inline, the risks that
+// sit behind each document (residual, control assurance, confidence).
+function toggleGovElevated(el) {
+  window._govElevated = el.checked;
+  const card = document.getElementById('gov-profile-card');
+  if (card) card.classList.toggle('gov-elevated', el.checked);
+}
+
 function renderGovernanceCard(assessment) {
   const rows  = buildGovernanceRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = 'Align, Define &amp; Approve Policies';
@@ -22,43 +29,86 @@ function renderGovernanceCard(assessment) {
     const pct = totalStmts ? Math.round(100 * apprStmts / totalStmts) : 0;
     desc = `${apprStmts} of ${totalStmts} policy statements approved (${pct}%) across ${rows.length} documents.`;
   }
-  const rollup = rows.length
-    ? `<span class="gov-rollup">${rows.filter(r => r.status === 'approved').length}/${rows.length} documents fully approved</span>`
+  const elevOn = window._govElevated !== false;   // default ON
+  const toggle = rows.length
+    ? `<label class="rp-toggle"><input type="checkbox" ${elevOn ? 'checked' : ''} onchange="toggleGovElevated(this)"> Elevated risks only</label>`
     : '';
   const header = `
     <div class="measure-card-header">
       <span class="measure-icon">⚖️</span>
       <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
-      ${rollup}
+      ${toggle}
     </div>`;
   if (!rows.length) {
     return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
   }
-  const badge = r => {
+
+  const statusBadge = r => {
     const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
     const [cls, txt] = map[r.status];
     return `<span class="gov-badge ${cls}" title="${r.approved} approved · ${r.draft} draft (of ${r.total})">${txt}</span>`;
   };
-  const body = rows.map(r => `<tr>
-    <td class="ft-td-cap" title="${r.capName}">${shortName(r.capName)}</td>
-    <td class="gov-doc">${r.document}</td>
-    <td class="gov-type">${r.type}</td>
-    <td class="gov-status">${badge(r)}</td>
-    <td class="gov-stmts" title="${r.total} policy statement(s) / group standard(s) in this document">${r.total}</td>
-    <td class="gov-risk" title="${r.riskTracked} of ${r.total} statement(s) tracked as risk(s)">${r.riskTracked}</td>
+  const resCell = k => {
+    if (k.band === 'na') return '<span class="rp-res rp-res-na">Not assessed</span>';
+    const cls = { extreme: 'rp-res-extreme', significant: 'rp-res-significant', moderate: 'rp-res-moderate', low: 'rp-res-low', none: 'rp-res-low' }[k.band];
+    const lbl = { extreme: 'Extreme', significant: 'Significant', moderate: 'Moderate', low: 'Low', none: 'Low' }[k.band];
+    return `<span class="rp-res ${cls}">${lbl} &middot; ${k.residual}</span>`;
+  };
+  const frac = (n, d, eff) => {
+    const w = d > 0 ? Math.round(100 * n / d) : 0;
+    const num = n === 0 ? `<span class="rp-zero">0</span>` : `${n}`;
+    return `<div class="rp-frac"><span class="rp-frac-num">${num}<span class="rp-den">/${d}</span></span><span class="rp-bar${eff ? ' rp-bar-eff' : ''}"><i style="width:${w}%"></i></span></div>`;
+  };
+  const confCell = k => {
+    if (k.conf === 'na') return '<span class="rp-conf rp-conf-na">n/a</span>';
+    const cls = { low: 'rp-conf-low', med: 'rp-conf-med', high: 'rp-conf-high' }[k.conf];
+    const lbl = { low: 'Low', med: 'Medium', high: 'High' }[k.conf];
+    return `<span class="rp-conf ${cls}">${lbl} &middot; ${k.testedPct}%</span>`;
+  };
+  const riskPanel = r => {
+    if (!r.risks.length) return '<div class="rp-empty">No risks mapped &mdash; coverage gap.</div>';
+    const body = r.risks.map(k => {
+      const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
+      const owner = (k.owner || '').trim();
+      return `<tr class="${cls}">
+        <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
+        <td class="rp-num">${resCell(k)}</td>
+        <td class="rp-num">${frac(k.implemented, k.active)}</td>
+        <td class="rp-num">${frac(k.tested, k.active)}</td>
+        <td class="rp-num">${frac(k.effective, k.active, true)}</td>
+        <td class="rp-num">${confCell(k)}</td>
+      </tr>`;
+    }).join('');
+    const allClear = r.risks.some(k => k.isAct || k.elevated)
+      ? ''
+      : `<tr class="rp-allclear"><td colspan="6">No elevated risks &mdash; all well-controlled.</td></tr>`;
+    return `<div class="rp-panel"><table class="rp-table">
+      <thead><tr><th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th></tr></thead>
+      <tbody>${body}${allClear}</tbody></table></div>`;
+  };
+  const trackCell = r => {
+    const w = r.total > 0 ? Math.round(100 * r.riskTracked / r.total) : 0;
+    return `<div class="rp-track"><span class="rp-track-num">${r.riskTracked}<span class="rp-den"> / ${r.total}</span></span><span class="rp-track-bar"><i style="width:${w}%"></i></span></div>`;
+  };
+
+  const body = rows.map(r => `<tr class="gp-row">
+    <td class="gp-cap" title="${r.capName}">${shortName(r.capName)}</td>
+    <td class="gp-doc"><div class="gp-doc-name">${r.document}</div><div class="gp-doc-sub">${r.type} &middot; ${statusBadge(r)}</div></td>
+    <td class="gp-track" title="${r.riskTracked} of ${r.total} statement(s) tracked as risk(s)">${trackCell(r)}</td>
+    <td class="gp-risks">${riskPanel(r)}</td>
   </tr>`).join('');
+
   return `
-    <div class="card measure-card">
+    <div class="card measure-card gov-profile${elevOn ? ' gov-elevated' : ''}" id="gov-profile-card">
       ${header}
       <div class="rcsa-table-wrap">
-        <table class="rcsa-metrics-table gov-table">
+        <table class="gp-table">
+          <colgroup><col class="gp-c-cap"><col class="gp-c-doc"><col class="gp-c-track"><col class="gp-c-risks"></colgroup>
           <thead><tr>
-            <th class="ft-td-cap">Capability</th>
-            <th class="gov-doc">Document</th>
-            <th class="gov-type">Type</th>
-            <th class="gov-status">Status</th>
-            <th class="gov-stmts" title="Number of policy statements / group standards in this document">Statements</th>
-            <th class="gov-risk" title="How many of the statements are tracked as risks — compare against the total to spot untracked statements">Risk tracked</th>
+            <th>Capability</th>
+            <th>Document</th>
+            <th class="gp-track-h" title="Statements tracked as a risk / total statements in the document">Risk-tracked statements</th>
+            <th>Risks behind this document</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

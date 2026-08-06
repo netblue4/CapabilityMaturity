@@ -162,21 +162,75 @@ function buildPolicyByCapability(policyRows) {
 // governance maturity slider.
 function buildGovernanceRows(policyRows, facts) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
-  // Statement refs that an active (non-closed) control touches — same rule as
-  // "tracked as risks"; closed controls are ignored.
+  const active = (facts || []).filter(f => !ftIsClosedControl(f));   // non-closed controls only
+
+  // Statement refs that an active control touches — the "tracked as risks" rule.
   const refAny = new Set();
-  (facts || []).forEach(f => {
-    if (ftIsClosedControl(f)) return;
-    (f.matchedPolicyRows || []).forEach(mp => {
-      const k = ftNorm(mp.statementRef);
-      if (k) refAny.add(k);
+  active.forEach(f => (f.matchedPolicyRows || []).forEach(mp => {
+    const k = ftNorm(mp.statementRef); if (k) refAny.add(k);
+  }));
+
+  // ── Per-risk aggregate (across all active controls of the risk) ──
+  // Closed risks are excluded; residual is the risk's max residual; the three
+  // fractions are counted over the risk's active (non-closed) controls, and
+  // confidence is a band of the tested %. A risk associates to a document when
+  // one of its active controls maps to a statement in that document.
+  const cfg = (CONFIG && CONFIG.riskManagement) || {};
+  const severeAt = cfg.severeResidualThreshold != null ? cfg.severeResidualThreshold : 20;
+  const band = res => res >= 28 ? 'extreme' : res >= severeAt ? 'significant' : res >= 12 ? 'moderate' : res > 0 ? 'low' : 'none';
+  const docKeyOf = mp => mp.capId + '||' + ((mp.document || '').trim() || '(no document)');
+
+  const riskMap = {};
+  active.forEach(f => {
+    if (ftRiskStatus(f) === 'closed') return;
+    const t = ftNorm(f.riskTitle);
+    if (!t) return;
+    const key = f.capId + '|' + t;
+    const r = riskMap[key] || (riskMap[key] = {
+      title: f.riskTitle, owner: '', residual: 0,
+      active: 0, implemented: 0, tested: 0, effective: 0, docKeys: new Set(),
     });
+    r.active++;
+    if (ftIsImplemented(f)) r.implemented++;
+    if (ftIsAssessed(f))    r.tested++;
+    if (ftIsEffective(f))   r.effective++;
+    if ((f.residualScore || 0) > r.residual) r.residual = f.residualScore || 0;
+    if (!r.owner && (f.riskOwner || '').trim()) r.owner = f.riskOwner.trim();
+    (f.matchedPolicyRows || []).forEach(mp => r.docKeys.add(docKeyOf(mp)));
   });
+
+  const confRank = { low: 0, med: 1, high: 2, na: 3 };
+  const finalizeRisk = r => {
+    const b = r.residual > 0 ? band(r.residual) : 'na';
+    const testedPct = r.active > 0 ? Math.round(100 * r.tested / r.active) : 0;
+    const conf = r.active === 0 ? 'na' : testedPct <= 33 ? 'low' : testedPct <= 66 ? 'med' : 'high';
+    const gap = r.implemented === 0 || r.tested === 0 || r.effective === 0;
+    const isAct = (b === 'extreme' || b === 'significant') && conf === 'low';
+    const elevated = b === 'extreme' || b === 'significant' || b === 'na' || conf === 'low' || conf === 'med' || gap;
+    return { title: r.title, owner: r.owner, residual: r.residual, active: r.active,
+      implemented: r.implemented, tested: r.tested, effective: r.effective,
+      band: b, testedPct, conf, gap, isAct, elevated };
+  };
+  const sevRank = { extreme: 5, significant: 4, na: 3, moderate: 2, low: 1, none: 0 };
+  const sortRisks = arr => arr.sort((a, b) =>
+    (sevRank[b.band] - sevRank[a.band]) ||
+    (b.residual - a.residual) ||
+    (confRank[a.conf] - confRank[b.conf]) ||
+    a.title.localeCompare(b.title));
+
+  // risk key → finalized risk + its doc keys
+  const risksByDoc = {};
+  Object.values(riskMap).forEach(raw => {
+    const fin = finalizeRisk(raw);
+    raw.docKeys.forEach(dk => { (risksByDoc[dk] = risksByDoc[dk] || []).push(fin); });
+  });
+
+  // ── Document rows (approval status + statement counts) ──
   const map = {};
   (policyRows || []).forEach(pr => {
     const doc = (pr.document || '').trim() || '(no document)';
     const key = pr.capId + '||' + doc;
-    if (!map[key]) map[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0 };
+    if (!map[key]) map[key] = { key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0 };
     const r = map[key];
     r.total++;
     if (ftNorm(pr.status).includes('approv')) r.approved++;
@@ -186,6 +240,7 @@ function buildGovernanceRows(policyRows, facts) {
   const rows = Object.values(map).map(r => ({
     ...r,
     status: r.approved === r.total ? 'approved' : r.approved === 0 ? 'draft' : 'partial',
+    risks: sortRisks(risksByDoc[r.key] || []),
   }));
   rows.sort((a, b) => a.capName.localeCompare(b.capName) || a.document.localeCompare(b.document));
   return rows;

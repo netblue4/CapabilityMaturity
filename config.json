@@ -85,8 +85,8 @@
   },
   "opCoverage": {
     "ownershipFloorPct": 20,
-    "confidenceLowPct": 40,
-    "confidenceOkPct": 75
+    "confidenceLowPct": 33,
+    "confidenceOkPct": 66
   },
   "riskManagement": {
     "severeResidualThreshold": 20,

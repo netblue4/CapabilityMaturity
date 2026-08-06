@@ -66,11 +66,23 @@
       }
       return null;
     }
+    // Like find, but never returns a header that another field already claimed.
+    function findExcept(except, ...terms) {
+      for (const t of terms) {
+        const idx = hl.findIndex((h, i) => h.includes(t) && headers[i] !== except);
+        if (idx >= 0) return headers[idx];
+      }
+      return null;
+    }
+    // Dedicated risk-owner column (e.g. "Risk: Owner Name"). Detected first so the
+    // generic control-owner match below doesn't accidentally grab it.
+    const riskOwner = find('risk: owner name', 'risk owner name', 'risk: owner', 'risk owner');
     return {
       capability:     find('business process', 'process', 'capability', 'function', 'domain'),
       riskTitle:      find('risk title', 'risk name', 'title'),
       status:         find('status'),
-      owner:          find('owner'),
+      owner:          findExcept(riskOwner, 'control: owner', 'control owner', 'owner'),
+      riskOwner:      riskOwner,
       designAss:      find('design assess', 'design effectiveness', 'design rating', 'design'),
       opAss:          find('operation assess', 'operational assess', 'operation effectiveness', 'operation rating', 'operation'),
       inherent:       find('inherent score', 'inherent risk score', 'inherent rating score', 'inherent'),
@@ -171,6 +183,7 @@
         controlName:    rawName,
         controlType,
         controlOwner:   cols.owner          ? (row[cols.owner]          || '').trim() : '',
+        riskOwner:      cols.riskOwner      ? (row[cols.riskOwner]      || '').trim() : '',
         controlStatus:  cols.controlStatus  ? (row[cols.controlStatus]  || '').toLowerCase().trim() : '',
         designAssess:   toGAG(dRaw),
         opAssess:       toGAG(oRaw),

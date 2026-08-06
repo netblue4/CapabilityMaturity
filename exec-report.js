@@ -523,6 +523,7 @@ function execComplianceSummary(a, prev) {
     pv.grpBack = g(pk.grpStdOperationalisation).total ? pct(g(pk.grpStdOperationalisation).operationalised, g(pk.grpStdOperationalisation).total) : null;
     pv.preDora = ppd.length                          ? pct(ppdMapped, ppd.length)                 : null;
     pv.preDoraCount = ppd.length;
+    pv.preDoraUnlinked = ppd.length - ppdMapped;
     const ppRows = prev.policyRows || [];
     pv.locCount = ppRows.filter(r => isLocPolType(r.type)).length;
     pv.grpCount = ppRows.filter(r => isGrpStdType(r.type)).length;
@@ -534,6 +535,15 @@ function execComplianceSummary(a, prev) {
   const locCovPct = pct(locCov.covered, locCov.total);
   const grpCovPct = pct(grpCov.covered, grpCov.total);
   const locPct    = ks.grpStdLocalisation ? pct(ks.grpStdLocalisation.localised, ks.grpStdLocalisation.total) : 0;
+  // Pre-DORA controls = implemented operational-type controls (narrow disruption
+  // scope, no policy/standard prefix), excluding closed controls. The headline is
+  // the gap — how many are NOT yet linked to a policy or standard; reducing it is
+  // progress. Computed here so the governance column can show the count.
+  const facts   = a.riskPolicyFacts || [];
+  const preDora = facts.filter(f => f.controlType === 'operational' && ftIsImplemented(f) && !ftIsClosedControl(f));
+  const preDoraMapped = preDora.filter(f => (f.matchedPolicyRows || []).length > 0).length;
+  const preDoraUnlinked = preDora.length - preDoraMapped;   // the gap: legacy controls with no policy/standard home
+  const preDoraPct    = pct(preDoraMapped, preDora.length);
   const policyCol = `
     <div class="pvo-col pvo-policy">
       <div class="pvo-col-hdr"><span class="pvo-col-ico">📜</span><span class="pvo-col-name">ICT Governance / Risk &amp; Control Framework</span></div>
@@ -541,6 +551,7 @@ function execComplianceSummary(a, prev) {
       ${metricPct(locCovPct, `of our policy statements are tracked as risks (${locCov.covered}/${locCov.total})`, compl(locCovPct) ? `${compl(locCovPct)}% are blind spots we don't yet monitor` : '', qoqArrow(locCovPct, pv.locCov, false))}
       ${metricNum(grpCount || '—', 'Group standards we\'re required to meet, catalogued', qoqArrow(grpCount, pv.grpCount, false))}
       ${metricPct(grpCovPct, `of our group standard requirements are tracked as risks (${grpCov.covered}/${grpCov.total})`, compl(grpCovPct) ? `${compl(grpCovPct)}% remain unmonitored` : '', qoqArrow(grpCovPct, pv.grpCov, false))}
+      ${metricNum(preDora.length === 0 ? '—' : preDoraUnlinked, 'Implemented pre-DORA controls (older disruption-risk scope) not linked to a policy or standard', qoqArrow(preDoraUnlinked, pv.preDoraUnlinked, true))}
     </div>`;
 
   // Operational layer — controls behind the policies & standards
@@ -548,13 +559,6 @@ function execComplianceSummary(a, prev) {
   const grpOp = ks.grpStdOperationalisation || { total: 0, operationalised: 0 };
   const locBackedPct = pct(locOp.operationalised, locOp.total);
   const grpBackedPct = pct(grpOp.operationalised, grpOp.total);
-  // Pre-DORA controls = implemented operational-type controls (narrow disruption
-  // scope, no policy/standard prefix), excluding closed controls. Aim: map them
-  // all to a policy or standard.
-  const facts   = a.riskPolicyFacts || [];
-  const preDora = facts.filter(f => f.controlType === 'operational' && ftIsImplemented(f) && !ftIsClosedControl(f));
-  const preDoraMapped = preDora.filter(f => (f.matchedPolicyRows || []).length > 0).length;
-  const preDoraPct    = pct(preDoraMapped, preDora.length);
   const underCount   = rp ? rp.underAssuredCount : 0;
   const ru = oc.rollup || { ok: 0, building: 0, low: 0, none: 0 };
   const opsCol = `
@@ -562,7 +566,6 @@ function execComplianceSummary(a, prev) {
       <div class="pvo-col-hdr"><span class="pvo-col-ico">⚙️</span><span class="pvo-col-name">Operational Compliance</span></div>
       ${metricPct(locBackedPct, `of our policy statements are linked to an implemented control (${locOp.operationalised}/${locOp.total})`, compl(locBackedPct) ? `${compl(locBackedPct)}% we can't prove we comply with` : '', qoqArrow(locBackedPct, pv.locBack, false))}
       ${metricPct(grpBackedPct, `of our group standards are linked to an implemented control (${grpOp.operationalised}/${grpOp.total})`, compl(grpBackedPct) ? `${compl(grpBackedPct)}% we can't prove we comply with` : '', qoqArrow(grpBackedPct, pv.grpBack, false))}
-      ${metricNum(preDora.length || '—', 'Implemented pre-DORA controls already running (older disruption-risk scope)', qoqArrow(preDora.length, pv.preDoraCount, true))}
       ${metricPct(preDoraPct, `of implemented pre-DORA controls are tied to a policy or standard (${preDoraMapped}/${preDora.length})`, compl(preDoraPct) ? `${compl(preDoraPct)}% have no stated reason we run them` : '', qoqArrow(preDoraPct, pv.preDora, false))}
     </div>`;
 

@@ -255,6 +255,67 @@ function buildGovernanceRows(policyRows, facts) {
   return rows;
 }
 
+// ── Risk-treatment operationalisation funnel ──────────────────────
+// One unit = one risk-treatment measure (a policy-upload row). Each is placed
+// in exactly one state, so the states sum to the total:
+//   built     — evidenced by a live NEW control (LocPol/GrpStd, implemented)
+//   reused    — evidenced only by a mapped pre-DORA (operational) control
+//   drafted   — has a control, but only draft (not yet live)
+//   uncovered — no control cites it
+// "built" wins when a measure is evidenced by both a new and a pre-DORA control.
+// Story 2 (control axis): orphans = pre-DORA controls we run that map to no
+// measure — reconciles with the "pre-DORA not linked" exec metric.
+function buildRtmFunnel(policyRows, facts) {
+  const polRows = policyRows || [];
+  const live = (facts || []).filter(f => !ftIsClosedControl(f));
+
+  const rtm = {};        // capId||statementRef → evidence flags
+  const srcCount = {};   // document-type label → count of measures
+  polRows.forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    if (key in rtm) return;
+    rtm[key] = { built: false, reused: false, drafted: false };
+    const label = isLocPolType(pr.type) ? 'Local Policy'
+      : isGrpStdType(pr.type) ? 'Group Standards'
+      : ((pr.type || '').trim() || 'Other');
+    srcCount[label] = (srcCount[label] || 0) + 1;
+  });
+
+  live.forEach(f => {
+    const impl = ftIsImplemented(f);
+    const isDora = f.controlType === 'locPol' || f.controlType === 'grpStd';
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const r = rtm[mp.capId + '||' + ftNorm(mp.statementRef)];
+      if (!r) return;
+      if (impl) { if (isDora) r.built = true; else r.reused = true; }
+      else r.drafted = true;
+    });
+  });
+
+  let built = 0, reused = 0, drafted = 0, uncovered = 0;
+  Object.values(rtm).forEach(r => {
+    if (r.built) built++;
+    else if (r.reused) reused++;
+    else if (r.drafted) drafted++;
+    else uncovered++;
+  });
+  const total = built + reused + drafted + uncovered;
+
+  const orphans = live.filter(f =>
+    f.controlType === 'operational' && ftIsImplemented(f) && !(f.matchedPolicyRows || []).length).length;
+
+  const order = { 'Local Policy': 0, 'Group Standards': 1 };
+  const sources = Object.entries(srcCount).map(([name, count]) => ({ name, count }))
+    .sort((a, b) => ((order[a.name] ?? 9) - (order[b.name] ?? 9)) || a.name.localeCompare(b.name));
+
+  const pct = n => total ? Math.round(100 * n / total) : 0;
+  return {
+    sources, total, built, reused, drafted, uncovered, orphans,
+    evidenced: built + reused, haveControl: built + reused + drafted,
+    evidencedPct: pct(built + reused), haveControlPct: pct(built + reused + drafted),
+  };
+}
+
 // ── Control type filters ──────────────────────────────────────────
 function ftLocPol(facts)      { return facts.filter(f => f.controlType === 'locPol'); }
 function ftGrpStd(facts)      { return facts.filter(f => f.controlType === 'grpStd'); }

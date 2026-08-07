@@ -69,6 +69,7 @@ function generateExecReport() {
     </div>
     ${execStepper()}
     ${execStep(1)}
+    <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA)}</div>
     ${execComplianceSummary(currentA, prevA)}
     ${execStep(2)}
     <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
@@ -84,6 +85,56 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderControlsByOwner(currentA)}</div>
   `;
   showView('exec-report');
+}
+
+// ── Risk-Treatment Operationalisation funnel card (top of Step 1) ──
+function renderRtmFunnel(assessment) {
+  const f = buildRtmFunnel(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const header = `
+    <div class="measure-card-header">
+      <span class="measure-icon">🎯</span>
+      <div style="flex:1">
+        <h3 class="measure-card-title">Risk-Treatment Operationalisation</h3>
+        <p class="measure-card-desc">How many of the risk-treatment measures we're required to meet are backed by a live, evidenced control.</p>
+      </div>
+    </div>`;
+  if (!f.total) {
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
+  }
+  const w = n => (100 * n / f.total).toFixed(1);
+  const sources = f.sources.map(s =>
+    `<div class="rtmf-src"><div class="rtmf-src-name">${escHtml(s.name)}</div><div class="rtmf-src-val">${s.count}</div><span class="rtmf-src-arrow">↓</span></div>`).join('');
+  const seg = (cls, n, lbl) => n > 0
+    ? `<div class="rtmf-seg ${cls}" style="width:${w(n)}%">${n}${lbl ? `<small>${lbl}</small>` : ''}</div>` : '';
+  return `
+    <div class="card measure-card">
+      ${header}
+      <div class="rtmf-sources">${sources}</div>
+      <div class="rtmf-box">
+        <div class="rtmf-box-hdr"><b>${f.total}</b> <span>Risk-Treatment Measures</span></div>
+        <div class="rtmf-bar">
+          ${seg('rtmf-build rtmf-split', f.built, 'built')}
+          ${seg('rtmf-reuse', f.reused, 'reused')}
+          ${seg('rtmf-draft', f.drafted, '')}
+          ${seg('rtmf-unc', f.uncovered, '')}
+        </div>
+      </div>
+      <div class="rtmf-ms">
+        <div class="rtmf-m"><span class="rtmf-m-v">${f.haveControl}<small> &middot; ${f.haveControlPct}%</small></span><span class="rtmf-m-k">Have a control (draft or live)</span></div>
+        <div class="rtmf-m rtmf-hero"><span class="rtmf-m-v">${f.evidenced}<small> &middot; ${f.evidencedPct}%</small></span><span class="rtmf-m-k">Evidenced by a live control</span></div>
+      </div>
+      <div class="rtmf-legend">
+        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-build"></i> Built new (promoted to live)</span>
+        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-reuse"></i> Reused pre-DORA (mapped)</span>
+        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-draft"></i> Drafted &mdash; not yet live</span>
+        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-unc"></i> Uncovered &mdash; no control yet</span>
+      </div>
+      <div class="rtmf-orphan">
+        <span class="rtmf-orphan-v">${f.orphans}</span>
+        <span class="rtmf-orphan-txt"><b>Controls without a home</b> &mdash; pre-DORA controls we run that map to no risk-treatment measure. No stated reason we do them (may belong to another team, or be dead weight).</span>
+        <span class="rtmf-orphan-tag">control axis, not measure axis</span>
+      </div>
+    </div>`;
 }
 
 // ── Exec "so what" callouts (below the three score cards) ──────

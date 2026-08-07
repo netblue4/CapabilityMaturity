@@ -68,10 +68,8 @@ function generateExecReport() {
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
     ${execStepper()}
-    <div class="exec-sec-div">Executive Summary</div>
-    ${execComplianceSummary(currentA, prevA)}
     ${execStep(1)}
-    <div class="exec-rcsa-wrap">${renderGovernanceCard(currentA)}</div>
+    ${execComplianceSummary(currentA, prevA)}
     ${execStep(2)}
     <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
     ${execStep(3)}

@@ -10,34 +10,77 @@ function renderMeasureSummary(assessment) {
   document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
 }
 
-// ── ICT Governance — Policy Approvals + risk profile card ──────────
-// Approval status per policy/standard document plus, inline, the risks that
-// sit behind each document (residual, control assurance, confidence).
-function toggleGovElevated(el) {
-  window._govElevated = el.checked;
-  const card = document.getElementById('gov-profile-card');
-  if (card) card.classList.toggle('gov-elevated', el.checked);
+// ── Risk-profile table (shared by the governance + Pre-DORA cards) ──
+// "Elevated risks only" is a shared, persisted toggle across every risk-profile
+// card on the screen.
+function toggleRpElevated(el) {
+  window._rpElevated = el.checked;
+  document.querySelectorAll('.rp-card').forEach(c => c.classList.toggle('rp-elevated', el.checked));
+  document.querySelectorAll('.rp-elev-toggle').forEach(cb => { cb.checked = el.checked; });
+}
+function rpElevToggle() {
+  const on = window._rpElevated !== false;   // default ON
+  return `<label class="rp-toggle"><input type="checkbox" class="rp-elev-toggle" ${on ? 'checked' : ''} onchange="toggleRpElevated(this)"> Elevated risks only</label>`;
+}
+function rpResCell(k) {
+  if (k.band === 'na') return '<span class="rp-res rp-res-na">Not assessed</span>';
+  const cls = { extreme: 'rp-res-extreme', significant: 'rp-res-significant', moderate: 'rp-res-moderate', low: 'rp-res-low', none: 'rp-res-low' }[k.band];
+  const lbl = { extreme: 'Extreme', significant: 'Significant', moderate: 'Moderate', low: 'Low', none: 'Low' }[k.band];
+  return `<span class="rp-res ${cls}">${lbl} &middot; ${k.residual}</span>`;
+}
+function rpFrac(n, d, eff) {
+  const w = d > 0 ? Math.round(100 * n / d) : 0;
+  const num = n === 0 ? `<span class="rp-zero">0</span>` : `${n}`;
+  return `<div class="rp-frac"><span class="rp-frac-num">${num}<span class="rp-den">/${d}</span></span><span class="rp-bar${eff ? ' rp-bar-eff' : ''}"><i style="width:${w}%"></i></span></div>`;
+}
+function rpConfCell(k) {
+  if (k.conf === 'na') return '<span class="rp-conf rp-conf-na">n/a</span>';
+  const cls = { low: 'rp-conf-low', med: 'rp-conf-med', high: 'rp-conf-high' }[k.conf];
+  const lbl = { low: 'Low', med: 'Medium', high: 'High' }[k.conf];
+  return `<span class="rp-conf ${cls}">${lbl} &middot; ${k.testedPct}%</span>`;
+}
+// risks: finalized per-risk profile (buildRiskProfile). wrap: box the table in a
+// bordered panel (for embedding in a cell); false renders the bare table.
+function renderRiskProfileTable(risks, wrap) {
+  if (!risks || !risks.length) return '<div class="rp-empty">No risks mapped &mdash; coverage gap.</div>';
+  const body = risks.map(k => {
+    const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
+    const owner = (k.owner || '').trim();
+    return `<tr class="${cls}">
+      <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
+      <td class="rp-num">${rpResCell(k)}</td>
+      <td class="rp-num">${rpFrac(k.implemented, k.active)}</td>
+      <td class="rp-num">${rpFrac(k.tested, k.active)}</td>
+      <td class="rp-num">${rpFrac(k.effective, k.active, true)}</td>
+      <td class="rp-num">${rpConfCell(k)}</td>
+    </tr>`;
+  }).join('');
+  const allClear = risks.some(k => k.isAct || k.elevated)
+    ? ''
+    : `<tr class="rp-allclear"><td colspan="6">No elevated risks &mdash; all well-controlled.</td></tr>`;
+  const table = `<table class="rp-table">
+      <thead><tr><th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th></tr></thead>
+      <tbody>${body}${allClear}</tbody></table>`;
+  return wrap ? `<div class="rp-panel">${table}</div>` : table;
 }
 
+// ── Control Operationalisation Coverage — per document, with the risk profile ──
 function renderGovernanceCard(assessment) {
   const rows  = buildGovernanceRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  const title = 'Align, Define &amp; Approve Policies';
-  let desc = 'Are our policies and group standards approved? One row per document, from the policy upload.';
+  const title = 'Control Operationalisation Coverage';
+  let desc = 'Are our policies and group standards approved, and what risk sits behind each? One row per document.';
   if (rows.length) {
     const totalStmts = rows.reduce((a, r) => a + r.total, 0);
     const apprStmts  = rows.reduce((a, r) => a + r.approved, 0);
     const pct = totalStmts ? Math.round(100 * apprStmts / totalStmts) : 0;
     desc = `${apprStmts} of ${totalStmts} policy statements approved (${pct}%) across ${rows.length} documents.`;
   }
-  const elevOn = window._govElevated !== false;   // default ON
-  const toggle = rows.length
-    ? `<label class="rp-toggle"><input type="checkbox" ${elevOn ? 'checked' : ''} onchange="toggleGovElevated(this)"> Elevated risks only</label>`
-    : '';
+  const elevOn = window._rpElevated !== false;   // default ON
   const header = `
     <div class="measure-card-header">
       <span class="measure-icon">⚖️</span>
       <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
-      ${toggle}
+      ${rows.length ? rpElevToggle() : ''}
     </div>`;
   if (!rows.length) {
     return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
@@ -48,44 +91,6 @@ function renderGovernanceCard(assessment) {
     const [cls, txt] = map[r.status];
     return `<span class="gov-badge ${cls}" title="${r.approved} approved · ${r.draft} draft (of ${r.total})">${txt}</span>`;
   };
-  const resCell = k => {
-    if (k.band === 'na') return '<span class="rp-res rp-res-na">Not assessed</span>';
-    const cls = { extreme: 'rp-res-extreme', significant: 'rp-res-significant', moderate: 'rp-res-moderate', low: 'rp-res-low', none: 'rp-res-low' }[k.band];
-    const lbl = { extreme: 'Extreme', significant: 'Significant', moderate: 'Moderate', low: 'Low', none: 'Low' }[k.band];
-    return `<span class="rp-res ${cls}">${lbl} &middot; ${k.residual}</span>`;
-  };
-  const frac = (n, d, eff) => {
-    const w = d > 0 ? Math.round(100 * n / d) : 0;
-    const num = n === 0 ? `<span class="rp-zero">0</span>` : `${n}`;
-    return `<div class="rp-frac"><span class="rp-frac-num">${num}<span class="rp-den">/${d}</span></span><span class="rp-bar${eff ? ' rp-bar-eff' : ''}"><i style="width:${w}%"></i></span></div>`;
-  };
-  const confCell = k => {
-    if (k.conf === 'na') return '<span class="rp-conf rp-conf-na">n/a</span>';
-    const cls = { low: 'rp-conf-low', med: 'rp-conf-med', high: 'rp-conf-high' }[k.conf];
-    const lbl = { low: 'Low', med: 'Medium', high: 'High' }[k.conf];
-    return `<span class="rp-conf ${cls}">${lbl} &middot; ${k.testedPct}%</span>`;
-  };
-  const riskPanel = r => {
-    if (!r.risks.length) return '<div class="rp-empty">No risks mapped &mdash; coverage gap.</div>';
-    const body = r.risks.map(k => {
-      const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
-      const owner = (k.owner || '').trim();
-      return `<tr class="${cls}">
-        <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
-        <td class="rp-num">${resCell(k)}</td>
-        <td class="rp-num">${frac(k.implemented, k.active)}</td>
-        <td class="rp-num">${frac(k.tested, k.active)}</td>
-        <td class="rp-num">${frac(k.effective, k.active, true)}</td>
-        <td class="rp-num">${confCell(k)}</td>
-      </tr>`;
-    }).join('');
-    const allClear = r.risks.some(k => k.isAct || k.elevated)
-      ? ''
-      : `<tr class="rp-allclear"><td colspan="6">No elevated risks &mdash; all well-controlled.</td></tr>`;
-    return `<div class="rp-panel"><table class="rp-table">
-      <thead><tr><th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th></tr></thead>
-      <tbody>${body}${allClear}</tbody></table></div>`;
-  };
   const trackCell = r => {
     const w = r.total > 0 ? Math.round(100 * r.riskTracked / r.total) : 0;
     return `<div class="rp-track"><span class="rp-track-num">${r.riskTracked}<span class="rp-den"> / ${r.total}</span></span><span class="rp-track-bar"><i style="width:${w}%"></i></span></div>`;
@@ -95,11 +100,11 @@ function renderGovernanceCard(assessment) {
     <td class="gp-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="gp-doc"><div class="gp-doc-name">${r.document}</div><div class="gp-doc-sub">${r.type} &middot; ${statusBadge(r)}</div></td>
     <td class="gp-track" title="${r.riskTracked} of ${r.total} statement(s) tracked as risk(s)">${trackCell(r)}</td>
-    <td class="gp-risks">${riskPanel(r)}</td>
+    <td class="gp-risks">${renderRiskProfileTable(r.risks, true)}</td>
   </tr>`).join('');
 
   return `
-    <div class="card measure-card gov-profile${elevOn ? ' gov-elevated' : ''}" id="gov-profile-card">
+    <div class="card measure-card gov-profile rp-card${elevOn ? ' rp-elevated' : ''}" id="gov-profile-card">
       ${header}
       <div class="rcsa-table-wrap">
         <table class="gp-table">
@@ -113,6 +118,31 @@ function renderGovernanceCard(assessment) {
           <tbody>${body}</tbody>
         </table>
       </div>
+    </div>`;
+}
+
+// ── Control Operationalisation Coverage — Pre-DORA ─────────────────
+// Pre-DORA (operational) controls have no policy/standard home, so they are
+// listed by risk with the same risk-profile columns as the governance card.
+function renderPreDoraCard(assessment) {
+  const facts = (assessment.riskPolicyFacts || []).filter(f => f.controlType === 'operational');
+  const risks = buildRiskProfile(facts);
+  const title = 'Control Operationalisation Coverage &mdash; Pre-DORA';
+  const desc  = 'Pre-DORA operational controls (narrow disruption-risk scope) &mdash; the risks they mitigate and the control assurance behind them.';
+  const elevOn = window._rpElevated !== false;
+  const header = `
+    <div class="measure-card-header">
+      <span class="measure-icon">🎯</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+      ${risks.length ? rpElevToggle() : ''}
+    </div>`;
+  if (!risks.length) {
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No pre-DORA controls yet.</p></div>`;
+  }
+  return `
+    <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
+      ${header}
+      <div class="rcsa-table-wrap">${renderRiskProfileTable(risks, false)}</div>
     </div>`;
 }
 
@@ -460,12 +490,10 @@ const RISK_THEMES = [
   { key: 'operational', name: 'Pre-DORA',       dora: false, rowBy: 'risk',     rowHeader: 'Risk',           covPrefix: 'Control Operationalisation Coverage', desc: 'Pre-DORA operational controls — narrow disruption-risk scope &amp; operational controls.', covDesc: "Operational compliance is measured by the percentage of each risk's controls that are owned, implemented and assessed." },
 ];
 
-// One themed Risk Management card + its scoped Policy Operationalisation card.
+// Main (working) screen: only the Pre-DORA control-operationalisation card.
+// The Local Policy / Group Standard operationalisation cards were removed.
 function renderThemedRiskSection(assessment, prev) {
-  return RISK_THEMES.map(t => `
-    <div class="theme-block">
-      ${renderOpCoverageCard(assessment, t)}
-    </div>`).join('');
+  return `<div class="theme-block">${renderPreDoraCard(assessment)}</div>`;
 }
 
 // Quarter-over-quarter arrow — green when the change is in the good direction.

@@ -2782,8 +2782,8 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 
 .rp-allclear { display: none; }
 .rp-allclear td { color: var(--text-muted); font-family: var(--font-mono); font-size: .72rem; text-align: center; padding: .5rem; }
-.gov-elevated .rp-allclear { display: table-row; }
-.gov-elevated .rp-row:not(.rp-act):not(.rp-elev) { display: none; }
+.rp-elevated .rp-allclear { display: table-row; }
+.rp-elevated .rp-row:not(.rp-act):not(.rp-elev) { display: none; }
 
 /* Quarter-over-quarter trend arrows */
 .qoq { font-size: .72rem; font-weight: 600; white-space: nowrap; vertical-align: middle; }

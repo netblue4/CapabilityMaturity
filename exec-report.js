@@ -181,7 +181,7 @@ function renderRtmFunnel(assessment) {
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Analysis &mdash; operationalising</span><span class="rtmf-lsub">where each measure sits in the process</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">which risk-treatment measures should be backed by controls</span></div>
         <div class="rtmf-units">
           ${rtmfUnit(opedDonut, opedLegend)}
           <div class="rtmf-unit-sep"></div>
@@ -192,7 +192,7 @@ function renderRtmFunnel(assessment) {
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer rtmf-framework">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">4</span><span class="rtmf-lname">ICT Risk &amp; Control Framework</span><span class="rtmf-axis-tag">control axis, not measure axis</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">4</span><span class="rtmf-lname">ICT Risk &amp; Control Framework</span><span class="rtmf-axis-tag">implemented control backing risk-treatment measures</span></div>
         <div class="rtmf-units">${rtmfUnit(ctrlDonut, ctrlLegend)}</div>
         <div class="rtmf-cap">${f.ctrlTotal} implemented controls we run</div>
       </div>

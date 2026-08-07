@@ -304,6 +304,14 @@ function buildRtmFunnel(policyRows, facts) {
   const orphans = live.filter(f =>
     f.controlType === 'operational' && ftIsImplemented(f) && !(f.matchedPolicyRows || []).length).length;
 
+  // Layer 4 — control axis: of the implemented controls we run, how many map to
+  // a measure vs have no home (unmapped). Counted the same way as every other
+  // control count in the app (one per fact row).
+  const impl = live.filter(ftIsImplemented);
+  const ctrlTotal = impl.length;
+  const ctrlMapped = impl.filter(f => (f.matchedPolicyRows || []).length > 0).length;
+  const ctrlUnmapped = ctrlTotal - ctrlMapped;
+
   const order = { 'Local Policy': 0, 'Group Standards': 1 };
   const sources = Object.entries(srcCount).map(([name, count]) => ({ name, count }))
     .sort((a, b) => ((order[a.name] ?? 9) - (order[b.name] ?? 9)) || a.name.localeCompare(b.name));
@@ -311,8 +319,10 @@ function buildRtmFunnel(policyRows, facts) {
   const pct = n => total ? Math.round(100 * n / total) : 0;
   return {
     sources, total, built, reused, drafted, uncovered, orphans,
-    evidenced: built + reused, haveControl: built + reused + drafted,
+    evidenced: built + reused, inProcess: drafted + uncovered,
+    haveControl: built + reused + drafted,
     evidencedPct: pct(built + reused), haveControlPct: pct(built + reused + drafted),
+    ctrlTotal, ctrlMapped, ctrlUnmapped,
   };
 }
 

@@ -87,7 +87,37 @@ function generateExecReport() {
   showView('exec-report');
 }
 
-// ── Risk-Treatment Operationalisation funnel card (top of Step 1) ──
+// ── Risk-Treatment Operationalisation — 4-layer card (top of Step 1) ──
+// Colours for document-type slices (extends as new source types appear).
+const RTMF_TYPE_COLORS = [
+  'var(--accent)', 'var(--accent2)',
+  'color-mix(in srgb, var(--accent) 55%, var(--clr-success))',
+  'color-mix(in srgb, var(--accent) 55%, var(--clr-warning))',
+];
+// Donut SVG built at render time (innerHTML-injected script wouldn't run).
+function rtmfDonut(segs, big, small) {
+  const total = segs.reduce((a, s) => a + s.value, 0) || 1;
+  const R = 40, C = 2 * Math.PI * R, SW = 15;
+  let acc = 0;
+  const arcs = segs.map(s => {
+    const len = s.value / total * C;
+    const c = `<circle cx="50" cy="50" r="${R}" fill="none" stroke-width="${SW}" style="stroke:${s.color}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 50 50)"></circle>`;
+    acc += len; return c;
+  }).join('');
+  return `<svg viewBox="0 0 100 100" class="rtmf-donut" aria-hidden="true">
+    <circle cx="50" cy="50" r="${R}" fill="none" stroke-width="${SW}" style="stroke:var(--track)"></circle>
+    ${arcs}
+    <text x="50" y="48" text-anchor="middle" class="rtmf-donut-big">${big}</text>
+    <text x="50" y="62" text-anchor="middle" class="rtmf-donut-small">${small}</text>
+  </svg>`;
+}
+function rtmfLegend(items) {
+  return `<div class="rtmf-legend">${items.map(it =>
+    `<div class="rtmf-lg"><i style="background:${it.color}"></i><b>${it.value}</b> <span>${escHtml(it.label)} (${it.pct}%)</span></div>`).join('')}</div>`;
+}
+function rtmfUnit(donut, legend) {
+  return `<div class="rtmf-unit">${donut}<div>${legend}</div></div>`;
+}
 function renderRtmFunnel(assessment) {
   const f = buildRtmFunnel(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const header = `
@@ -95,44 +125,76 @@ function renderRtmFunnel(assessment) {
       <span class="measure-icon">🎯</span>
       <div style="flex:1">
         <h3 class="measure-card-title">Risk-Treatment Operationalisation</h3>
-        <p class="measure-card-desc">How many of the risk-treatment measures we're required to meet are backed by a live, evidenced control.</p>
+        <p class="measure-card-desc">From the obligations we're required to meet, through operationalising them, to the controls we run.</p>
       </div>
     </div>`;
   if (!f.total) {
     return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
   }
-  const w = n => (100 * n / f.total).toFixed(1);
-  const sources = f.sources.map(s =>
-    `<div class="rtmf-src"><div class="rtmf-src-name">${escHtml(s.name)}</div><div class="rtmf-src-val">${s.count}</div><span class="rtmf-src-arrow">↓</span></div>`).join('');
-  const seg = (cls, n, lbl) => n > 0
-    ? `<div class="rtmf-seg ${cls}" style="width:${w(n)}%">${n}${lbl ? `<small>${lbl}</small>` : ''}</div>` : '';
+  const pOf = (n, d) => d ? Math.round(100 * n / d) : 0;
+  const cBuild = 'var(--clr-success)';
+  const cReuse = 'color-mix(in srgb, var(--clr-success) 48%, var(--accent))';
+  const cDraft = 'var(--clr-warning)';
+  const cUnc   = 'color-mix(in srgb, var(--clr-danger) 55%, var(--bg3))';
+
+  // Layer 1 — sources
+  const srcBlocks = f.sources.map(s =>
+    `<div class="rtmf-src"><div class="rtmf-src-name">${escHtml(s.name)}</div><div class="rtmf-src-val">${s.count}</div></div>`).join('');
+
+  // Layer 2 — RTM composition by document type
+  const typeSegs = f.sources.map((s, i) => ({ value: s.count, color: RTMF_TYPE_COLORS[i % RTMF_TYPE_COLORS.length] }));
+  const typeLegend = f.sources.map((s, i) => ({ value: s.count, label: s.name, pct: pOf(s.count, f.total), color: RTMF_TYPE_COLORS[i % RTMF_TYPE_COLORS.length] }));
+
+  // Layer 3 — analysis
+  const opedDonut = rtmfDonut([{ value: f.built, color: cBuild }, { value: f.reused, color: cReuse }], f.evidenced, 'live');
+  const opedLegend = rtmfLegend([
+    { value: f.built,  label: 'Built new',        pct: pOf(f.built, f.evidenced),  color: cBuild },
+    { value: f.reused, label: 'Reused pre-DORA',  pct: pOf(f.reused, f.evidenced), color: cReuse },
+  ]);
+  const inprocDonut = rtmfDonut([{ value: f.drafted, color: cDraft }, { value: f.uncovered, color: cUnc }], f.inProcess, 'in process');
+  const inprocLegend = rtmfLegend([
+    { value: f.drafted,   label: 'Drafted',   pct: pOf(f.drafted, f.inProcess),   color: cDraft },
+    { value: f.uncovered, label: 'Uncovered', pct: pOf(f.uncovered, f.inProcess), color: cUnc },
+  ]);
+
+  // Layer 4 — control framework (control axis)
+  const ctrlDonut = rtmfDonut([{ value: f.ctrlMapped, color: 'var(--clr-success)' }, { value: f.ctrlUnmapped, color: 'var(--clr-danger)' }], f.ctrlTotal, 'controls');
+  const ctrlLegend = rtmfLegend([
+    { value: f.ctrlMapped,   label: 'Mapped to a measure', pct: pOf(f.ctrlMapped, f.ctrlTotal),   color: 'var(--clr-success)' },
+    { value: f.ctrlUnmapped, label: 'No home (unmapped)', pct: pOf(f.ctrlUnmapped, f.ctrlTotal), color: 'var(--clr-danger)' },
+  ]);
+
   return `
     <div class="card measure-card">
       ${header}
-      <div class="rtmf-sources">${sources}</div>
-      <div class="rtmf-box">
-        <div class="rtmf-box-hdr"><b>${f.total}</b> <span>Risk-Treatment Measures</span></div>
-        <div class="rtmf-bar">
-          ${seg('rtmf-build rtmf-split', f.built, 'built')}
-          ${seg('rtmf-reuse', f.reused, 'reused')}
-          ${seg('rtmf-draft', f.drafted, '')}
-          ${seg('rtmf-unc', f.uncovered, '')}
+
+      <div class="rtmf-layer">
+        <div class="rtmf-eyebrow"><span class="rtmf-num">1</span><span class="rtmf-lname">Sources</span><span class="rtmf-lsub">document types in the policy upload</span></div>
+        <div class="rtmf-sources">${srcBlocks}</div>
+      </div>
+      <div class="rtmf-arrow">↓</div>
+
+      <div class="rtmf-layer rtmf-rtm">
+        <div class="rtmf-eyebrow"><span class="rtmf-num">2</span><span class="rtmf-lname">Risk-Treatment Measures</span><span class="rtmf-lsub">our sources <i>are</i> our obligations</span></div>
+        <div class="rtmf-units">${rtmfUnit(rtmfDonut(typeSegs, f.total, 'measures'), rtmfLegend(typeLegend))}</div>
+      </div>
+      <div class="rtmf-arrow">↓</div>
+
+      <div class="rtmf-layer">
+        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Analysis &mdash; operationalising</span><span class="rtmf-lsub">where each measure sits in the process</span></div>
+        <div class="rtmf-units">
+          ${rtmfUnit(opedDonut, opedLegend)}
+          <div class="rtmf-unit-sep"></div>
+          ${rtmfUnit(inprocDonut, inprocLegend)}
         </div>
+        <div class="rtmf-cap">operationalised ${f.evidenced} &nbsp;+&nbsp; still in process ${f.inProcess} &nbsp;=&nbsp; ${f.total} measures</div>
       </div>
-      <div class="rtmf-ms">
-        <div class="rtmf-m"><span class="rtmf-m-v">${f.haveControl}<small> &middot; ${f.haveControlPct}%</small></span><span class="rtmf-m-k">Have a control (draft or live)</span></div>
-        <div class="rtmf-m rtmf-hero"><span class="rtmf-m-v">${f.evidenced}<small> &middot; ${f.evidencedPct}%</small></span><span class="rtmf-m-k">Evidenced by a live control</span></div>
-      </div>
-      <div class="rtmf-legend">
-        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-build"></i> Built new (promoted to live)</span>
-        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-reuse"></i> Reused pre-DORA (mapped)</span>
-        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-draft"></i> Drafted &mdash; not yet live</span>
-        <span class="rtmf-key"><i class="rtmf-dot rtmf-d-unc"></i> Uncovered &mdash; no control yet</span>
-      </div>
-      <div class="rtmf-orphan">
-        <span class="rtmf-orphan-v">${f.orphans}</span>
-        <span class="rtmf-orphan-txt"><b>Controls without a home</b> &mdash; pre-DORA controls we run that map to no risk-treatment measure. No stated reason we do them (may belong to another team, or be dead weight).</span>
-        <span class="rtmf-orphan-tag">control axis, not measure axis</span>
+      <div class="rtmf-arrow">↓</div>
+
+      <div class="rtmf-layer rtmf-framework">
+        <div class="rtmf-eyebrow"><span class="rtmf-num">4</span><span class="rtmf-lname">ICT Risk &amp; Control Framework</span><span class="rtmf-axis-tag">control axis, not measure axis</span></div>
+        <div class="rtmf-units">${rtmfUnit(ctrlDonut, ctrlLegend)}</div>
+        <div class="rtmf-cap">${f.ctrlTotal} implemented controls we run</div>
       </div>
     </div>`;
 }

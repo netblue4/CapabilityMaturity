@@ -823,9 +823,23 @@ function buildMergedRiskRows(riskPolicyFacts, policyRows) {
 // `theme`, when given, scopes the whole summary to one control type
 // ('locPol' | 'grpStd' | 'operational'): risks are those touched by a control
 // of that type, and control metrics count only that type's controls.
+// Theme scoping for the IT Risk & Control Framework cards. Local-policy and
+// group-standard cards scope by what a control EVIDENCES (its matched policy
+// statements), so a pre-DORA control mapped to a group standard counts toward
+// the group-standard card — consistent with the operationalisation funnel. A
+// control mapped to more than one type appears in each. Pre-DORA scopes by
+// control type (operational).
+function ftThemeMatch(f, theme) {
+  if (!theme) return true;
+  if (theme === 'operational') return f.controlType === 'operational';
+  const check = theme === 'locPol' ? isLocPolType : theme === 'grpStd' ? isGrpStdType : null;
+  if (!check) return f.controlType === theme;
+  return (f.matchedPolicyRows || []).some(mp => check(mp.type));
+}
+
 function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
   let facts = riskPolicyFacts || [];
-  if (theme) facts = facts.filter(f => f.controlType === theme);
+  if (theme) facts = facts.filter(f => ftThemeMatch(f, theme));
   const cfg      = (CONFIG && CONFIG.riskManagement) || {};
   const severeAt = cfg.severeResidualThreshold      != null ? cfg.severeResidualThreshold      : 20;
   const underAt  = cfg.underAssuredCoveragePct      != null ? cfg.underAssuredCoveragePct      : 50;

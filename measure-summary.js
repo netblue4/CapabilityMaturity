@@ -146,6 +146,45 @@ function renderPreDoraCard(assessment) {
     </div>`;
 }
 
+// ── IT Risk & Control Framework card (per policy type) ─────────────
+// The assurance + residual-risk layer: same risk-profile table as the other
+// cards, scoped by what a control evidences, plus a measure-axis rollup.
+function renderFrameworkCard(assessment, theme) {
+  const fc = buildFrameworkCard(assessment.policyRows || [], assessment.riskPolicyFacts || [], theme.key);
+  const title = `IT Risk &amp; Control Framework &mdash; ${theme.name}`;
+  const desc  = theme.desc;
+  const elevOn = window._rpElevated !== false;
+
+  const pills = [];
+  if (fc.measTotal != null) {
+    pills.push(`<span class="fwk-pill fwk-pill-accent" title="risk-treatment measures of this type evidenced by a live control">${fc.measOped} / ${fc.measTotal} operationalised</span>`);
+  } else {
+    pills.push(`<span class="fwk-pill fwk-pill-count">${fc.risks.length} risk${fc.risks.length === 1 ? '' : 's'}</span>`);
+  }
+  if (fc.severe)      pills.push(`<span class="fwk-pill fwk-pill-danger">${fc.severe} severe residual</span>`);
+  if (fc.notAssessed) pills.push(`<span class="fwk-pill fwk-pill-ghost">${fc.notAssessed} not assessed</span>`);
+  if (fc.weakestConf) {
+    const cls = fc.weakestConf === 'Low' ? 'fwk-pill-danger' : fc.weakestConf === 'Medium' ? 'fwk-pill-warn' : 'fwk-pill-ok';
+    pills.push(`<span class="fwk-pill ${cls}">weakest confidence ${fc.weakestConf}</span>`);
+  }
+
+  const header = `
+    <div class="measure-card-header">
+      <span class="measure-icon">🛡️</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+      ${fc.risks.length ? rpElevToggle() : ''}
+    </div>`;
+  if (!fc.risks.length) {
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No controls evidencing ${theme.name.toLowerCase()} yet.</p></div>`;
+  }
+  return `
+    <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
+      ${header}
+      <div class="fwk-rollup">${pills.join('')}</div>
+      <div class="rcsa-table-wrap">${renderRiskProfileTable(fc.risks, true)}</div>
+    </div>`;
+}
+
 // ── Shared 4-table body (used by the card AND import review screens) ──
 function renderFactSummaryTables(curr, prevF) {
   curr  = curr  || {};

@@ -70,7 +70,7 @@ function generateExecReport() {
     ${execStep(1)}
     <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA)}</div>
     ${execStep(2)}
-    <div class="exec-sc-grid">${RISK_THEMES.map(t => renderRiskPortfolioCard(currentA, t, prevA, { exec: true })).join('')}</div>
+    <div class="exec-sc-grid">${RISK_THEMES.map(t => renderFrameworkCard(currentA, t)).join('')}</div>
     ${execStep(3)}
     <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
     ${execStep(4)}

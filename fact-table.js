@@ -837,6 +837,37 @@ function ftThemeMatch(f, theme) {
   return (f.matchedPolicyRows || []).some(mp => check(mp.type));
 }
 
+// IT Risk & Control Framework card (per policy type): the scoped risk profile
+// plus a measure-axis rollup. For local-policy / group-standard, "operationalised"
+// = RTMs of that type evidenced by a live (implemented, non-closed) control —
+// matching the funnel. Pre-DORA has no measure axis, so it rolls up by risk count.
+function buildFrameworkCard(policyRows, facts, themeKey) {
+  const risks = buildRiskProfile((facts || []).filter(f => ftThemeMatch(f, themeKey)));
+  const severe = risks.filter(r => r.band === 'extreme' || r.band === 'significant').length;
+  const notAssessed = risks.filter(r => r.band === 'na').length;
+  const weakestConf = risks.some(r => r.conf === 'low') ? 'Low'
+    : risks.some(r => r.conf === 'med') ? 'Medium'
+    : risks.some(r => r.conf === 'high') ? 'High' : null;
+
+  let measTotal = null, measOped = null;
+  if (themeKey === 'locPol' || themeKey === 'grpStd') {
+    const check = themeKey === 'locPol' ? isLocPolType : isGrpStdType;
+    const typeRtms = new Set();
+    (policyRows || []).forEach(pr => { if (check(pr.type)) typeRtms.add(pr.capId + '||' + ftNorm(pr.statementRef)); });
+    measTotal = typeRtms.size;
+    const oped = new Set();
+    (facts || []).forEach(f => {
+      if (ftIsClosedControl(f) || !ftIsImplemented(f)) return;
+      (f.matchedPolicyRows || []).forEach(mp => {
+        const k = mp.capId + '||' + ftNorm(mp.statementRef);
+        if (typeRtms.has(k)) oped.add(k);
+      });
+    });
+    measOped = oped.size;
+  }
+  return { risks, severe, notAssessed, weakestConf, measTotal, measOped };
+}
+
 function buildRiskPortfolioSummary(riskPolicyFacts, theme) {
   let facts = riskPolicyFacts || [];
   if (theme) facts = facts.filter(f => ftThemeMatch(f, theme));

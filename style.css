@@ -2817,6 +2817,16 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .rtmf-lg span { color: var(--text-muted); }
 .rtmf-cap { font-size: .66rem; color: var(--text-muted); text-align: center; margin-top: .5rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
 
+/* ── IT Risk & Control Framework card rollup pills ───────────── */
+.fwk-rollup { display: flex; gap: .4rem; flex-wrap: wrap; margin: 0 0 .9rem; }
+.fwk-pill { font-family: var(--font-mono); font-size: .68rem; font-weight: 600; padding: .16rem .55rem; border-radius: 20px; white-space: nowrap; border: 1px solid transparent; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.fwk-pill-count  { background: var(--track); color: var(--text); }
+.fwk-pill-accent { background: color-mix(in srgb, var(--accent) 18%, transparent);      color: var(--accent); }
+.fwk-pill-danger { background: color-mix(in srgb, var(--clr-danger) 16%, transparent);  color: var(--clr-danger); }
+.fwk-pill-warn   { background: color-mix(in srgb, var(--clr-warning) 18%, transparent); color: var(--clr-warning); }
+.fwk-pill-ok     { background: color-mix(in srgb, var(--clr-success) 18%, transparent); color: var(--clr-success); }
+.fwk-pill-ghost  { background: transparent; color: var(--text-muted); border-color: var(--border); }
+
 /* Quarter-over-quarter trend arrows */
 .qoq { font-size: .72rem; font-weight: 600; white-space: nowrap; vertical-align: middle; }
 .qoq-good { color: var(--clr-success); }

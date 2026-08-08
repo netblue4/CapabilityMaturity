@@ -5,6 +5,8 @@ function renderMeasureSummary(assessment) {
 
   const srcSlot = document.getElementById("sources-card-row");
   if (srcSlot) srcSlot.innerHTML = renderSourcesCard(assessment);
+  const planSlot = document.getElementById("planning-card-row");
+  if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
   const govSlot = document.getElementById("governance-card-row");
   if (govSlot) govSlot.innerHTML = renderGovernanceCard(assessment);
   const rmSlot = document.getElementById("riskmgmt-card-row");
@@ -108,6 +110,59 @@ function renderSourcesCard(assessment) {
             <th>Document</th>
             <th class="src-rtm" title="Number of risk-treatment measures (policy statements / group standards) in this document"># RTM's</th>
             <th class="src-status">Document status</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Planning — RTM → Controls (flat, Excel-filterable) ────────────
+function copyPlanningTable(btn) {
+  const table = btn.closest('.card').querySelector('.plan-table');
+  if (!table) return;
+  const tsv = [...table.querySelectorAll('tr')].map(tr =>
+    [...tr.querySelectorAll('th,td')].map(c => (c.innerText || '').trim().replace(/\s+/g, ' ')).join('\t')
+  ).join('\n');
+  navigator.clipboard.writeText(tsv).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  }).catch(() => { btn.textContent = 'Copy failed'; });
+}
+
+function renderPlanningCard(assessment) {
+  const rows = buildPlanningRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const title = '3 &middot; Planning &mdash; Risk-Treatment Measures to Controls';
+  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping, ready to copy into Excel and filter by RTM or control.';
+  const tools = rows.length ? `<button class="btn-link plan-copy" onclick="copyPlanningTable(this)">⧉ Copy for Excel</button>` : '';
+  const header = `
+    <div class="measure-card-header">
+      <span class="measure-icon">🧭</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+      ${tools}
+    </div>`;
+  if (!rows.length) {
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
+  }
+  const typeCell = t => t ? `<span class="plan-type">${t}</span>` : '';
+  const statusCell = s => s ? `<span class="plan-status ${s === 'Implemented' ? 'plan-st-impl' : 'plan-st-draft'}">${s}</span>` : '';
+  const body = rows.map(r => `<tr${r.controlName ? '' : ' class="plan-gap"'}>
+    <td class="plan-cap" title="${r.capName}">${shortName(r.capName)}</td>
+    <td class="plan-doc">${escHtml(r.document)}</td>
+    <td class="plan-ref">${escHtml(r.ref)}</td>
+    <td class="plan-hdr">${escHtml(r.header)}</td>
+    <td class="plan-ctrl">${r.controlName ? escHtml(r.controlName) : '<span class="plan-none">— no control mapped —</span>'}</td>
+    <td class="plan-type-c">${typeCell(r.controlType)}</td>
+    <td class="plan-status-c">${statusCell(r.controlStatus)}</td>
+  </tr>`).join('');
+  return `
+    <div class="card measure-card">
+      ${header}
+      <div class="rcsa-table-wrap">
+        <table class="plan-table">
+          <thead><tr>
+            <th>Capability</th><th>Document</th><th>Statement Ref</th><th>Statement Header</th>
+            <th>Control Name</th><th>Control Type</th><th>Control Status</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

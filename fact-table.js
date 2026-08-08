@@ -255,6 +255,54 @@ function buildGovernanceRows(policyRows, facts) {
   return rows;
 }
 
+// ── Planning table — RTM → controls, flattened for export ─────────
+// One row per (policy statement × control that maps to it), repeating the
+// statement columns so it filters cleanly in Excel. Statements with no control
+// still appear (one row, blank control) so gaps are visible. Closed controls
+// are excluded; a control on several risks lists once per statement.
+function buildPlanningRows(policyRows, facts) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const typeLabel = t => t === 'locPol' ? 'Local Policy' : t === 'grpStd' ? 'Group Standard' : 'Pre-DORA';
+  const byStmt = {};
+  (facts || []).forEach(f => {
+    if (ftIsClosedControl(f)) return;
+    const name = (f.controlName || '').trim();
+    if (!name) return;
+    const entry = { name, type: typeLabel(f.controlType), status: ftIsImplemented(f) ? 'Implemented' : 'Draft' };
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const key = mp.capId + '||' + ftNorm(mp.statementRef);
+      (byStmt[key] = byStmt[key] || []).push(entry);
+    });
+  });
+  const rows = [];
+  (policyRows || []).forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    const base = {
+      capName: capName(pr.capId),
+      document: (pr.document || '').trim() || '(no document)',
+      ref: pr.statementRef || '',
+      header: pr.statementHeader || '',
+    };
+    const seen = new Set();
+    const ctrls = (byStmt[key] || []).filter(c => {
+      const k = ftNorm(c.name);
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+    if (!ctrls.length) {
+      rows.push({ ...base, controlName: '', controlType: '', controlStatus: '' });
+    } else {
+      ctrls.forEach(c => rows.push({ ...base, controlName: c.name, controlType: c.type, controlStatus: c.status }));
+    }
+  });
+  rows.sort((a, b) =>
+    a.capName.localeCompare(b.capName) ||
+    a.document.localeCompare(b.document) ||
+    a.ref.localeCompare(b.ref) ||
+    a.controlName.localeCompare(b.controlName));
+  return rows;
+}
+
 // ── Risk-treatment operationalisation funnel ──────────────────────
 // One unit = one risk-treatment measure (a policy-upload row). Each is placed
 // in exactly one state, so the states sum to the total:

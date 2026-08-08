@@ -2729,6 +2729,19 @@ details[open] .profile-card-chevron {
 .gov-draft    { background: rgba(176,125,69,.20);  color: var(--clr-warning); }
 .gov-partial  { background: rgba(139,148,158,.18); color: var(--text-muted); }
 
+/* ── Sources card — policy-import summary ────────────────────── */
+.src-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
+.src-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
+.src-table th.src-rtm, .src-table th.src-status { text-align: center; }
+col.src-c-cap { width: 22%; } col.src-c-doc { width: 48%; } col.src-c-rtm { width: 14%; } col.src-c-status { width: 16%; }
+.src-table tbody td { padding: .6rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.src-table tbody tr:last-child td { border-bottom: none; }
+.src-cap { color: var(--text); font-weight: 500; }
+.src-doc-name { font-weight: 600; }
+.src-doc-sub { font-size: .72rem; color: var(--text-muted); margin-top: .18rem; }
+.src-rtm { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.src-status { text-align: center; }
+
 /* ── Governance risk-profile card (compact metadata + inline risk panel) ── */
 .gp-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; min-width: 720px; }
 .gp-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }

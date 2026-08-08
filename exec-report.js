@@ -67,7 +67,6 @@ function generateExecReport() {
       <h2 class="exec-report-title">ROC Report</h2>
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
-    ${execStepper()}
     ${execStep(1)}
     <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA)}</div>
     ${execStep(2)}
@@ -152,15 +151,15 @@ function renderRtmFunnel(assessment) {
   ]);
   const inprocDonut = rtmfDonut([{ value: f.drafted, color: cDraft }, { value: f.uncovered, color: cUnc }], f.inProcess, 'in process');
   const inprocLegend = rtmfLegend([
-    { value: f.drafted,   label: 'Drafted',   pct: pOf(f.drafted, f.inProcess),   color: cDraft },
+    { value: f.drafted,   label: "Key RTM's Drafted as controls", pct: pOf(f.drafted, f.inProcess), color: cDraft },
     { value: f.uncovered, label: 'Uncovered', pct: pOf(f.uncovered, f.inProcess), color: cUnc },
   ]);
 
   // Layer 4 — control framework (control axis)
   const ctrlDonut = rtmfDonut([{ value: f.ctrlMapped, color: 'var(--clr-success)' }, { value: f.ctrlUnmapped, color: 'var(--clr-danger)' }], f.ctrlTotal, 'controls');
   const ctrlLegend = rtmfLegend([
-    { value: f.ctrlMapped,   label: 'Mapped to a measure', pct: pOf(f.ctrlMapped, f.ctrlTotal),   color: 'var(--clr-success)' },
-    { value: f.ctrlUnmapped, label: 'No home (unmapped)', pct: pOf(f.ctrlUnmapped, f.ctrlTotal), color: 'var(--clr-danger)' },
+    { value: f.ctrlMapped,   label: 'Mapped to a RTM', pct: pOf(f.ctrlMapped, f.ctrlTotal),   color: 'var(--clr-success)' },
+    { value: f.ctrlUnmapped, label: 'Not mapped to RTM - No reason for running', pct: pOf(f.ctrlUnmapped, f.ctrlTotal), color: 'var(--clr-danger)' },
   ]);
 
   return `
@@ -174,24 +173,24 @@ function renderRtmFunnel(assessment) {
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer rtmf-rtm">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">2</span><span class="rtmf-lname">Risk-Treatment Measures</span><span class="rtmf-lsub">our sources <i>are</i> our obligations</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">2</span><span class="rtmf-lname">Risk-Treatment Measures (RTM)</span><span class="rtmf-lsub">our sources detail the RTM's we use to treat IT risk</span></div>
         <div class="rtmf-units">${rtmfUnit(rtmfDonut(typeSegs, f.total, 'measures'), rtmfLegend(typeLegend))}</div>
       </div>
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">which risk-treatment measures should be backed by controls</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">which RTM's should be operationalised with controls</span></div>
         <div class="rtmf-units">
           ${rtmfUnit(opedDonut, opedLegend)}
           <div class="rtmf-unit-sep"></div>
           ${rtmfUnit(inprocDonut, inprocLegend)}
         </div>
-        <div class="rtmf-cap">operationalised ${f.evidenced} &nbsp;+&nbsp; still in process ${f.inProcess} &nbsp;=&nbsp; ${f.total} measures</div>
+        <div class="rtmf-cap">RTM's operationalised ${f.evidenced} &nbsp;+&nbsp; still in process ${f.inProcess} &nbsp;=&nbsp; ${f.total} measures</div>
       </div>
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer rtmf-framework">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">4</span><span class="rtmf-lname">ICT Risk &amp; Control Framework</span><span class="rtmf-axis-tag">implemented control backing risk-treatment measures</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">4</span><span class="rtmf-lname">ICT Risk &amp; Control Framework</span><span class="rtmf-axis-tag">implemented control operationalising RTM's</span></div>
         <div class="rtmf-units">${rtmfUnit(ctrlDonut, ctrlLegend)}</div>
         <div class="rtmf-cap">${f.ctrlTotal} implemented controls we run</div>
       </div>

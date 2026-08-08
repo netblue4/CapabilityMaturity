@@ -3,6 +3,8 @@ function renderMeasureSummary(assessment) {
   const currentIndex = db.assessments.findIndex(a => a.id === assessment.id);
   const prev = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
 
+  const srcSlot = document.getElementById("sources-card-row");
+  if (srcSlot) srcSlot.innerHTML = renderSourcesCard(assessment);
   const govSlot = document.getElementById("governance-card-row");
   if (govSlot) govSlot.innerHTML = renderGovernanceCard(assessment);
   const rmSlot = document.getElementById("riskmgmt-card-row");
@@ -62,6 +64,55 @@ function renderRiskProfileTable(risks, wrap) {
       <thead><tr><th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th></tr></thead>
       <tbody>${body}${allClear}</tbody></table>`;
   return wrap ? `<div class="rp-panel">${table}</div>` : table;
+}
+
+// ── Sources — policy-import summary (main working screen) ──────────
+// One row per capability × document from the policy upload: how many
+// risk-treatment measures (statements) it holds and its approval status.
+function renderSourcesCard(assessment) {
+  const rows = buildGovernanceRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const title = '1 &middot; Sources';
+  let desc = 'The policy upload &mdash; the source documents that make up our risk-treatment measures.';
+  if (rows.length) {
+    const totalRtm = rows.reduce((a, r) => a + r.total, 0);
+    const caps = new Set(rows.map(r => r.capId)).size;
+    desc = `${rows.length} document${rows.length === 1 ? '' : 's'} &middot; ${totalRtm} risk-treatment measure${totalRtm === 1 ? '' : 's'} across ${caps} capabilit${caps === 1 ? 'y' : 'ies'}.`;
+  }
+  const header = `
+    <div class="measure-card-header">
+      <span class="measure-icon">🗂️</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+    </div>`;
+  if (!rows.length) {
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
+  }
+  const badge = r => {
+    const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
+    const [cls, txt] = map[r.status];
+    return `<span class="gov-badge ${cls}" title="${r.approved} approved &middot; ${r.draft} draft (of ${r.total})">${txt}</span>`;
+  };
+  const body = rows.map(r => `<tr>
+    <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
+    <td class="src-doc"><div class="src-doc-name">${r.document}</div><div class="src-doc-sub">${r.type}</div></td>
+    <td class="src-rtm" title="${r.total} risk-treatment measure(s) in this document">${r.total}</td>
+    <td class="src-status">${badge(r)}</td>
+  </tr>`).join('');
+  return `
+    <div class="card measure-card">
+      ${header}
+      <div class="rcsa-table-wrap">
+        <table class="src-table">
+          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-rtm"><col class="src-c-status"></colgroup>
+          <thead><tr>
+            <th>Capability</th>
+            <th>Document</th>
+            <th class="src-rtm" title="Number of risk-treatment measures (policy statements / group standards) in this document"># RTM's</th>
+            <th class="src-status">Document status</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 // ── Control Operationalisation Coverage — per document, with the risk profile ──

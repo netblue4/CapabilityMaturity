@@ -27,7 +27,6 @@ function closeExecReportModal() {
 const EXEC_STORY = [
   { name: 'ICT Governance',              q: 'Have we formally identified and approved what we must do to manage IT risk?' },
   { name: 'IT Risk &amp; Control Framework', q: "What goes wrong if we don't follow our policies — and what controls treat it?" },
-  { name: 'Operational Compliance',      q: 'Who brings each policy to life — who owns and implements the controls?' },
   { name: 'DORA &amp; Group fit-for-purpose', q: 'How fast are we replacing the old pre-DORA base with fit-for-purpose DORA controls?' },
 ];
 
@@ -70,17 +69,11 @@ function generateExecReport() {
     ${execStep(1)}
     <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA)}</div>
     ${execStep(2)}
-    <div class="exec-sc-grid">${RISK_THEMES.map(t => renderFrameworkCard(currentA, t)).join('')}</div>
+    ${RISK_THEMES.map(t => `<div class="exec-rcsa-wrap">${renderFrameworkCard(currentA, t)}</div>`).join('')}
     ${execStep(3)}
-    <div class="exec-rcsa-wrap">${renderOwnerGapCard(currentA, prevA)}</div>
-    ${execStep(4)}
     <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
     <div class="exec-sec-div">Supporting Detail</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
-    <div class="exec-sec-div">Appendix — Operationalisation Detail</div>
-    <div class="exec-rcsa-wrap">${renderMergedRiskTable(currentA)}</div>
-    <div class="exec-sec-div">Appendix — Controls by Owner</div>
-    <div class="exec-rcsa-wrap">${renderControlsByOwner(currentA)}</div>
   `;
   showView('exec-report');
 }

@@ -31,9 +31,11 @@ function showRatingsModal(measureId) {
 }
 
 function closeRatingsModal(e) {
-  if (e.target.id === "ratings-modal") {
-    document.getElementById("ratings-modal").style.display = "none";
-  }
+  if (e && e.target && e.target.id !== "ratings-modal") return;   // ignore clicks inside the box
+  const m = document.getElementById("ratings-modal");
+  m.style.display = "none";
+  const box = m.querySelector(".modal-box");
+  if (box) box.classList.remove("modal-wide");
 }
 
 // ── Metrics explainer modal ──────────────────────────────────

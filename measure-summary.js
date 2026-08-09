@@ -134,7 +134,10 @@ function renderPlanningCard(assessment) {
   const rows = buildPlanningRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = '3 &middot; Planning &mdash; Risk-Treatment Measures to Controls';
   const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control.';
-  const tools = rows.length ? `<button class="btn-link plan-copy" onclick="copyPlanningTable(this)">⧉ Copy for Excel</button>` : '';
+  const tools = `<div class="plan-tools">
+    <button class="btn-link" onclick="showPlanningGuide()">ℹ Instructions &amp; prompts</button>
+    ${rows.length ? `<button class="btn-link plan-copy" onclick="copyPlanningTable(this)">⧉ Copy for Excel</button>` : ''}
+  </div>`;
   const header = `
     <div class="measure-card-header">
       <span class="measure-icon">🧭</span>
@@ -156,6 +159,7 @@ function renderPlanningCard(assessment) {
     <td class="plan-ctrl">${r.controlName ? escHtml(r.controlName) : '<span class="plan-none">— no control mapped —</span>'}</td>
     <td class="plan-type-c">${typeCell(r.controlType)}</td>
     <td class="plan-status-c">${statusCell(r.controlStatus)}</td>
+    <td class="plan-desc"><div class="plan-desc-clip" title="${escHtml(r.desc)}">${escHtml(r.desc)}</div></td>
   </tr>`).join('');
   return `
     <div class="card measure-card">
@@ -164,12 +168,144 @@ function renderPlanningCard(assessment) {
         <table class="plan-table">
           <thead><tr>
             <th>Capability</th><th>Document</th><th>Statement Ref</th><th>Statement Header</th>
-            <th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th>
+            <th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th><th>Control Description</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>
       </div>
     </div>`;
+}
+
+// ── Planning guide (in-app instructions + AI prompts) ─────────────
+const PLAN_PROMPT_1 = `ROLE
+You are an IT risk & control analyst helping integrate newly generated controls into an
+existing DORA control framework without creating duplicates.
+
+TASK
+For each NEW CANDIDATE control, decide whether an EXISTING control already achieves the
+same control objective. Compare on OBJECTIVE / INTENT — what the control is trying to
+achieve — NOT on wording, control name, or format.
+
+HOW TO READ THE INPUTS
+- EXISTING INVENTORY is a tab-separated export with columns:
+  Capability | Document | Statement Ref | Statement Header | Risk | Control Name |
+  Control Type | Control Status | Control Description
+  The control's objective lives in "Control Description". For newer controls it is stated
+  explicitly (Objective / Description / Expected evidence). For older Pre-DORA controls it
+  is usually NOT explicit — you must DERIVE the objective by reading the description.
+- NEW CANDIDATES each have a name and a description containing objective + expected evidence.
+
+RULES
+1. Only compare controls within the SAME capability.
+2. A candidate is a DUPLICATE only if an existing control's objective would already satisfy
+   the candidate's objective (fully or substantially). Overlapping topic alone is not enough.
+3. Be conservative: if unsure, mark confidence Medium or Low rather than forcing DUPLICATE.
+4. A candidate may match more than one existing control — pick the single best match and
+   name any others in the "Why" note.
+5. Never invent controls, refs, or capabilities that are not in the inputs.
+
+OUTPUT (a table, most-confident duplicates first, then the NEW ones)
+Candidate Control | Verdict (DUPLICATE / NEW) | Matched Existing Control | Existing Statement Ref | Confidence (H/M/L) | Why (one line)
+- For NEW, leave "Matched Existing Control" and "Existing Statement Ref" blank.
+- "Why" must cite the shared objective for a DUPLICATE, or the gap that makes it NEW.
+
+=== EXISTING INVENTORY (paste the Planning card "Copy for Excel", filtered to one capability) ===
+<PASTE HERE>
+
+=== NEW CANDIDATE CONTROLS (from your generation step, same capability) ===
+<PASTE HERE>`;
+
+const PLAN_PROMPT_2 = `ROLE
+You are an IT risk & control analyst resolving duplicate controls found in integration.
+
+CONTEXT
+For each confirmed DUPLICATE (a new candidate whose objective is already met by an existing
+control), produce the two edits we make:
+ (a) tag the EXISTING control so it also evidences the new RTM, and
+ (b) close the NEW control, pointing at the existing one.
+
+INPUTS (one row per confirmed duplicate)
+New Control | New Statement Ref | Matched Existing Control | Existing Statement Ref
+
+OUTPUT (a table, one row per duplicate)
+ - Existing control to edit: «Matched Existing Control»
+ - Add to its Control: Description: append «New Statement Ref» to its linked-statements list
+   so the existing control now also maps to the new RTM.
+ - New control to close: «New Control»
+ - New control Control Status: Proposed Close
+ - New control reason (use exactly this wording, substituting the placeholders):
+   Proposed Close — already mapped to «Matched Existing Control» «Existing Statement Ref»
+
+RULES
+- Use only the values provided; do not invent refs or controls.
+- Keep the reason wording exactly as specified.
+
+=== CONFIRMED DUPLICATES (paste the DUPLICATE rows from Prompt 1, adding each New Statement Ref) ===
+<PASTE HERE>`;
+
+const PLAN_PROMPT_3 = `ROLE
+You are an IT risk & control analyst preparing genuinely-new controls for the operational
+team to implement.
+
+CONTEXT
+For each NEW control (no existing control covers its objective), write a short brief the
+operational team uses to complete the control's description so it evidences the control
+objective — after which the control status is set to Implemented.
+
+INPUTS (one per new control)
+Control Name | Statement Ref | Control Objective | Expected Evidence
+
+OUTPUT (per control)
+ - Control: «Control Name» (ref «Statement Ref»)
+ - What the description must state — 3 to 5 bullets: the specific activity performed, how
+   often, by whom, and the artefact that proves it — written so an assessor could verify it.
+ - A ready-to-adapt description paragraph in plain operational language that meets the objective.
+ - Reminder: once agreed with the operational team, set Control Status = Implemented.
+
+RULES
+- Ground every bullet in the stated objective and expected evidence; do not invent scope.
+- Keep it concise and practical for an operational owner to action.
+
+=== NEW CONTROLS (paste the NEW rows from Prompt 1, with their objective & expected evidence) ===
+<PASTE HERE>`;
+
+function copyGuidePrompt(btn) {
+  const pre = btn.closest('.guide-prompt').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  }).catch(() => { btn.textContent = 'Copy failed'; });
+}
+
+function showPlanningGuide() {
+  const promptBlock = (label, text) => `
+    <div class="guide-prompt">
+      <div class="guide-prompt-hd"><span>${label}</span><button class="btn-link guide-copy" onclick="copyGuidePrompt(this)">⧉ Copy prompt</button></div>
+      <pre>${escHtml(text)}</pre>
+    </div>`;
+  const body = `
+    <p class="guide-intro">Turn new source statements into live, non-duplicated controls. Filter this card to one capability, <b>Copy for Excel</b>, then copy the matching prompt below and paste both into your AI tool.</p>
+    <h4 class="guide-h">The process</h4>
+    <ol class="guide-steps">
+      <li><b>Add</b> the new source's statements to the policy upload file (one row per RTM: capability, document, statement ref, statement header, status).</li>
+      <li><b>Re-import</b> the policy file — the <b>1 · Sources</b> card confirms the new document and its RTM count.</li>
+      <li><b>Generate</b> (your existing prompt) — for each new RTM, a draft risk + draft control whose description holds the objective, description and expected evidence.</li>
+      <li><b>Deduplicate</b> — Copy this card (filtered to the capability) and run <b>Prompt 1</b> to find candidates already covered by an existing control.</li>
+      <li><b>Split</b> each candidate by Prompt 1's verdict — duplicate or new.</li>
+      <li><b>Duplicate</b> → run <b>Prompt 2</b>: tag the existing control with the new statement ref; set the new control <i>“Proposed Close — already mapped to «control» «ref»”</i>.</li>
+      <li><b>New</b> → run <b>Prompt 3</b>: brief the operational team to complete the description evidencing the objective; set the control <b>Implemented</b>.</li>
+      <li><b>Re-import</b> the risk data — the funnel and framework cards reflect the integration; anything still Draft or Uncovered is your backlog.</li>
+    </ol>
+    <h4 class="guide-h">Prompts</h4>
+    ${promptBlock('Prompt 1 — Duplicate finder (step 4)', PLAN_PROMPT_1)}
+    ${promptBlock('Prompt 2 — Resolve a duplicate (step 6)', PLAN_PROMPT_2)}
+    ${promptBlock('Prompt 3 — Implementation brief (step 7)', PLAN_PROMPT_3)}`;
+  document.getElementById('modal-title').textContent = 'Planning — process & AI prompts';
+  document.getElementById('modal-body').innerHTML = body;
+  const m = document.getElementById('ratings-modal');
+  const box = m.querySelector('.modal-box');
+  if (box) box.classList.add('modal-wide');
+  m.style.display = 'flex';
 }
 
 // ── Control Operationalisation Coverage — per document, with the risk profile ──

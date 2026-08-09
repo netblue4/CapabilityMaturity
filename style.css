@@ -2696,6 +2696,19 @@ details[open] .profile-card-chevron {
 .mrt-sort { cursor: pointer; user-select: none; }
 .mrt-sort:hover { color: var(--text); }
 .mrt-arrow { margin-left: .2rem; font-size: .6rem; }
+
+/* RTM Ownership table (exec report) */
+.rto-owner { font-weight: 600; color: var(--text); }
+.rto-num { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.rto-table th.rto-num, .rto-table th.rto-bar-th { text-align: center; }
+.rto-bar-td { min-width: 150px; font-family: var(--font-mono); font-size: .8rem; }
+.rto-cell { display: flex; align-items: center; gap: .5rem; }
+.rto-fig { white-space: nowrap; }
+.rto-track { flex: 1; height: 7px; background: var(--track); border-radius: 4px; overflow: hidden; min-width: 40px; }
+.rto-track > i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.rto-pct { font-size: .72rem; color: var(--text-muted); width: 2.8em; text-align: right; }
+.rto-total td { border-top: 2px solid var(--border); font-weight: 700; }
+.rto-total-sub { font-weight: 400; font-size: .7rem; color: var(--text-muted); }
 .mrt-dash { color: var(--text-muted); }
 .mrt-ns td { opacity: .72; }
 .mrt-nostart {
@@ -2768,7 +2781,8 @@ details[open] .profile-card-chevron {
 .src-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
 .src-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
 .src-table th.src-rtm, .src-table th.src-status { text-align: center; }
-col.src-c-cap { width: 22%; } col.src-c-doc { width: 48%; } col.src-c-rtm { width: 14%; } col.src-c-status { width: 16%; }
+col.src-c-cap { width: 22%; } col.src-c-doc { width: 34%; } col.src-c-type { width: 16%; } col.src-c-rtm { width: 12%; } col.src-c-status { width: 16%; }
+.src-type { color: var(--text-muted); font-size: .78rem; }
 .src-table tbody td { padding: .6rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
 .src-table tbody tr:last-child td { border-bottom: none; }
 .src-cap { color: var(--text); font-weight: 500; }

@@ -71,6 +71,59 @@ function renderRiskProfileTable(risks, wrap) {
 // ── Sources — policy-import summary (main working screen) ──────────
 // One row per capability × document from the policy upload: how many
 // risk-treatment measures (statements) it holds and its approval status.
+let _srcRows = [];
+let _srcSort = { col: 'capName', dir: 1 };
+const SRC_STATUS_RANK = { approved: 0, partial: 1, draft: 2 };
+const SRC_FIELD = {
+  capName:  r => r.capName || '',
+  document: r => r.document || '',
+  type:     r => r.type || '',
+  total:    r => r.total,
+  status:   r => SRC_STATUS_RANK[r.status] ?? 9,
+};
+function srcSortRows() {
+  const f = SRC_FIELD[_srcSort.col] || SRC_FIELD.capName;
+  const dir = _srcSort.dir;
+  return _srcRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+    return String(va).localeCompare(String(vb)) * dir;
+  });
+}
+function srcHead() {
+  const arrow = c => _srcSort.col === c ? `<span class="mrt-arrow">${_srcSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortSourcesTable('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>
+    ${th('capName', 'Capability')}
+    ${th('document', 'Document')}
+    ${th('type', 'Type')}
+    ${th('total', "# RTM's", 'src-rtm')}
+    ${th('status', 'Document status', 'src-status')}
+  </tr>`;
+}
+function srcBody(rows) {
+  const badge = r => {
+    const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
+    const [cls, txt] = map[r.status];
+    return `<span class="gov-badge ${cls}" title="${r.approved} approved &middot; ${r.draft} draft (of ${r.total})">${txt}</span>`;
+  };
+  return rows.map(r => `<tr>
+    <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
+    <td class="src-doc"><div class="src-doc-name">${r.document}</div></td>
+    <td class="src-type">${r.type}</td>
+    <td class="src-rtm" title="${r.total} risk-treatment measure(s) in this document">${r.total}</td>
+    <td class="src-status">${badge(r)}</td>
+  </tr>`).join('');
+}
+function sortSourcesTable(col) {
+  if (_srcSort.col === col) _srcSort.dir *= -1;
+  else _srcSort = { col, dir: 1 };
+  const tb = document.getElementById('src-tbody');
+  const th = document.getElementById('src-thead');
+  if (tb) tb.innerHTML = srcBody(srcSortRows());
+  if (th) th.innerHTML = srcHead();
+}
+
 function renderSourcesCard(assessment) {
   const rows = buildGovernanceRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = '1 &middot; Sources';
@@ -88,30 +141,16 @@ function renderSourcesCard(assessment) {
   if (!rows.length) {
     return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
   }
-  const badge = r => {
-    const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
-    const [cls, txt] = map[r.status];
-    return `<span class="gov-badge ${cls}" title="${r.approved} approved &middot; ${r.draft} draft (of ${r.total})">${txt}</span>`;
-  };
-  const body = rows.map(r => `<tr>
-    <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
-    <td class="src-doc"><div class="src-doc-name">${r.document}</div><div class="src-doc-sub">${r.type}</div></td>
-    <td class="src-rtm" title="${r.total} risk-treatment measure(s) in this document">${r.total}</td>
-    <td class="src-status">${badge(r)}</td>
-  </tr>`).join('');
+  _srcRows = rows;
+  _srcSort = { col: 'capName', dir: 1 };
   return `
     <div class="card measure-card">
       ${header}
       <div class="rcsa-table-wrap">
         <table class="src-table">
-          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-rtm"><col class="src-c-status"></colgroup>
-          <thead><tr>
-            <th>Capability</th>
-            <th>Document</th>
-            <th class="src-rtm" title="Number of risk-treatment measures (policy statements / group standards) in this document"># RTM's</th>
-            <th class="src-status">Document status</th>
-          </tr></thead>
-          <tbody>${body}</tbody>
+          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-rtm"><col class="src-c-status"></colgroup>
+          <thead id="src-thead">${srcHead()}</thead>
+          <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>
       </div>
     </div>`;

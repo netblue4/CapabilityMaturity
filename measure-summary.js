@@ -156,6 +156,7 @@ function renderPlanningCard(assessment) {
     <td class="plan-ctrl">${r.controlName ? escHtml(r.controlName) : '<span class="plan-none">— no control mapped —</span>'}</td>
     <td class="plan-type-c">${typeCell(r.controlType)}</td>
     <td class="plan-status-c">${statusCell(r.controlStatus)}</td>
+    <td class="plan-desc"><div class="plan-desc-clip" title="${escHtml(r.desc)}">${escHtml(r.desc)}</div></td>
   </tr>`).join('');
   return `
     <div class="card measure-card">
@@ -164,7 +165,7 @@ function renderPlanningCard(assessment) {
         <table class="plan-table">
           <thead><tr>
             <th>Capability</th><th>Document</th><th>Statement Ref</th><th>Statement Header</th>
-            <th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th>
+            <th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th><th>Control Description</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

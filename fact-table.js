@@ -273,6 +273,7 @@ function buildPlanningRows(policyRows, facts) {
       type: typeLabel(f.controlType),
       status: ftIsImplemented(f) ? 'Implemented' : 'Draft',
       risk: (f.riskTitle || '').trim(),
+      desc: (f.controlDesc || '').trim(),
     };
     (f.matchedPolicyRows || []).forEach(mp => {
       const key = mp.capId + '||' + ftNorm(mp.statementRef);
@@ -295,9 +296,9 @@ function buildPlanningRows(policyRows, facts) {
       seen.add(k); return true;
     });
     if (!ctrls.length) {
-      rows.push({ ...base, risk: '', controlName: '', controlType: '', controlStatus: '' });
+      rows.push({ ...base, risk: '', controlName: '', controlType: '', controlStatus: '', desc: '' });
     } else {
-      ctrls.forEach(c => rows.push({ ...base, risk: c.risk, controlName: c.name, controlType: c.type, controlStatus: c.status }));
+      ctrls.forEach(c => rows.push({ ...base, risk: c.risk, controlName: c.name, controlType: c.type, controlStatus: c.status, desc: c.desc }));
     }
   });
 
@@ -314,7 +315,8 @@ function buildPlanningRows(policyRows, facts) {
     rows.push({
       capName: capName(f.capId), document: '', ref: '', header: '',
       risk, controlName: name, controlType: 'Pre-DORA',
-      controlStatus: ftIsImplemented(f) ? 'Implemented' : 'Draft', preDora: true,
+      controlStatus: ftIsImplemented(f) ? 'Implemented' : 'Draft',
+      desc: (f.controlDesc || '').trim(), preDora: true,
     });
   });
 

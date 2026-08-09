@@ -181,6 +181,7 @@
         riskTitle:      cols.riskTitle      ? (row[cols.riskTitle]      || '').trim() : '',
         riskStatus:     cols.status         ? (row[cols.status]         || '').toLowerCase().trim() : '',
         controlName:    rawName,
+        controlDesc:    rawDesc,
         controlType,
         controlOwner:   cols.owner          ? (row[cols.owner]          || '').trim() : '',
         riskOwner:      cols.riskOwner      ? (row[cols.riskOwner]      || '').trim() : '',

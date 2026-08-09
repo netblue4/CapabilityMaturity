@@ -2729,6 +2729,23 @@ details[open] .profile-card-chevron {
 .gov-draft    { background: rgba(176,125,69,.20);  color: var(--clr-warning); }
 .gov-partial  { background: rgba(139,148,158,.18); color: var(--text-muted); }
 
+/* ── Planning card — RTM → controls (flat, Excel-filterable) ──── */
+.plan-copy { font-family: var(--font-mono); font-size: .72rem; white-space: nowrap; }
+.plan-table { width: 100%; border-collapse: collapse; font-size: .8rem; min-width: 920px; }
+.plan-table thead th { text-align: left; font-family: var(--font-mono); font-size: .6rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.plan-table tbody td { padding: .5rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.plan-table tbody tr:last-child td { border-bottom: none; }
+.plan-cap { color: var(--text); font-weight: 500; white-space: nowrap; }
+.plan-ref { font-family: var(--font-mono); white-space: nowrap; }
+.plan-hdr { color: var(--text-muted); }
+.plan-ctrl { font-weight: 500; }
+.plan-gap td { background: color-mix(in srgb, var(--clr-warning) 6%, transparent); }
+.plan-none { color: var(--clr-warning); font-style: italic; font-weight: 400; }
+.plan-type { font-size: .68rem; color: var(--text-muted); font-family: var(--font-mono); white-space: nowrap; }
+.plan-status { font-family: var(--font-mono); font-size: .66rem; font-weight: 700; padding: .12rem .5rem; border-radius: 20px; white-space: nowrap; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.plan-st-impl  { background: color-mix(in srgb, var(--clr-success) 18%, transparent); color: var(--clr-success); }
+.plan-st-draft { background: color-mix(in srgb, var(--clr-warning) 18%, transparent); color: var(--clr-warning); }
+
 /* ── Sources card — policy-import summary ────────────────────── */
 .src-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
 .src-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }

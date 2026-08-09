@@ -108,6 +108,56 @@ function buildRiskPolicyFacts(riskRows, policyRows) {
   });
 }
 
+// ── RTM ownership rollup (exec report) ────────────────────────────
+// Groups by the RTM owner defined in the POLICY upload. For each owning team:
+//   • RTMs owned      — distinct policy statements they own
+//   • Controls linked — controls that operationalise those RTMs
+//   • Implemented     — of those, how many are implemented
+//   • Assessed        — of those, how many have been assessed
+// A control that backs RTMs owned by several teams counts under EACH of those
+// owners (option a), so per-owner figures sum to MORE than the de-duplicated
+// grand total — the totals row counts each control once. Owners with RTMs but
+// no controls yet still appear (operationalisation not started).
+function buildRtmOwnerRows(policyRows, facts) {
+  const OWNER = o => (o || '').trim() || 'Unassigned';
+  const live  = (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim());
+  const map = {};
+  const bucket = o => map[o] || (map[o] = { owner: o, rtmKeys: new Set(), ctrl: new Set(), impl: new Set(), assessed: new Set() });
+
+  // RTMs owned — one per distinct policy statement.
+  const allRtm = new Set();
+  (policyRows || []).forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    allRtm.add(key);
+    bucket(OWNER(pr.owner)).rtmKeys.add(key);
+  });
+
+  // Controls linked — attribute each control to every owner whose RTM it backs.
+  const allCtrl = new Set(), allImpl = new Set(), allAssessed = new Set();
+  live.forEach((f, i) => {
+    const owners = new Set((f.matchedPolicyRows || []).map(mp => OWNER(mp.owner)));
+    if (!owners.size) return;                        // not linked to any RTM
+    const id   = ftNorm(f.controlName) + '#' + i;    // each fact is one control
+    const impl = ftIsImplemented(f), asd = ftIsAssessed(f);
+    owners.forEach(o => {
+      const b = bucket(o);
+      b.ctrl.add(id);
+      if (impl) b.impl.add(id);
+      if (asd)  b.assessed.add(id);
+    });
+    allCtrl.add(id); if (impl) allImpl.add(id); if (asd) allAssessed.add(id);
+  });
+
+  const rows = Object.values(map)
+    .map(b => ({ owner: b.owner, rtms: b.rtmKeys.size, controls: b.ctrl.size, implemented: b.impl.size, assessed: b.assessed.size }))
+    .filter(r => r.rtms > 0 || r.controls > 0);
+
+  return {
+    rows,
+    totals: { rtms: allRtm.size, controls: allCtrl.size, implemented: allImpl.size, assessed: allAssessed.size },
+  };
+}
+
 // ── Ownership of the unimplemented gap ────────────────────────────
 // Of the controls not yet implemented, which accountable team (policy OWNER)
 // owns them. Grouped by the raw owner string — no role→department mapping.

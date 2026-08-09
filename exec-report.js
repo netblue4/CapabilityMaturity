@@ -73,6 +73,7 @@ function generateExecReport() {
     ${execStep(3)}
     <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
     <div class="exec-sec-div">Supporting Detail</div>
+    <div class="exec-rcsa-wrap">${renderRtmOwnerCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
   `;
   showView('exec-report');
@@ -251,6 +252,103 @@ function renderOwnerGapCard(assessment, prev) {
         </div>
       </div>
       <div class="owg-list">${teams.map(row).join('')}</div>
+    </div>`;
+}
+
+// ── RTM Ownership — accountability by owning team (exec report) ────
+// Groups controls by the RTM owner (from the policy upload). A control backing
+// several teams' RTMs counts under each (option a); the totals row counts each
+// control once. Sorting is a live-screen aid — the print captures whatever
+// order is applied.
+let _rtmoRows = [];
+let _rtmoTotals = null;
+let _rtmoSort = { col: 'controls', dir: -1 };
+const RTMO_FIELD = {
+  owner:       r => r.owner || '',
+  rtms:        r => r.rtms,
+  controls:    r => r.controls,
+  implemented: r => r.implemented,
+  assessed:    r => r.assessed,
+};
+function rtmoSortRows() {
+  const f = RTMO_FIELD[_rtmoSort.col] || RTMO_FIELD.controls;
+  const dir = _rtmoSort.dir;
+  return _rtmoRows.slice().sort((a, b) => {
+    // Unassigned always sinks to the bottom, regardless of sort.
+    if ((a.owner === 'Unassigned') !== (b.owner === 'Unassigned')) return a.owner === 'Unassigned' ? 1 : -1;
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.owner.localeCompare(b.owner);
+    return String(va).localeCompare(String(vb)) * dir;
+  });
+}
+function rtmoHead() {
+  const arrow = c => _rtmoSort.col === c ? `<span class="mrt-arrow">${_rtmoSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortRtmOwnerTable('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>
+    ${th('owner', 'Owner / Team')}
+    ${th('rtms', 'RTMs owned', 'rto-num')}
+    ${th('controls', 'Controls linked', 'rto-num')}
+    ${th('implemented', 'Implemented', 'rto-bar-th')}
+    ${th('assessed', 'Assessed', 'rto-bar-th')}
+  </tr>`;
+}
+function rtmoBarCell(n, d) {
+  if (!d) return `<td class="rto-bar-td"><span class="mrt-dash">—</span></td>`;
+  const pct = Math.round(100 * n / d);
+  return `<td class="rto-bar-td"><div class="rto-cell">
+    <span class="rto-fig"><b>${n}</b>/${d}</span>
+    <span class="rto-track"><i style="width:${pct}%"></i></span>
+    <span class="rto-pct">${pct}%</span>
+  </div></td>`;
+}
+function rtmoBody(rows) {
+  const body = rows.map(r => `<tr>
+    <td class="rto-owner" title="${escHtml(r.owner)}">${escHtml(r.owner)}</td>
+    <td class="rto-num">${r.rtms}</td>
+    <td class="rto-num">${r.controls}</td>
+    ${rtmoBarCell(r.implemented, r.controls)}
+    ${rtmoBarCell(r.assessed, r.controls)}
+  </tr>`).join('');
+  const t = _rtmoTotals || { rtms: 0, controls: 0, implemented: 0, assessed: 0 };
+  const tpct = (n, d) => d ? Math.round(100 * n / d) + '%' : '—';
+  const totalRow = `<tr class="rto-total">
+    <td>All owners <span class="rto-total-sub">controls counted once</span></td>
+    <td class="rto-num">${t.rtms}</td>
+    <td class="rto-num">${t.controls}</td>
+    <td class="rto-bar-td"><b>${t.implemented}</b>/${t.controls} · ${tpct(t.implemented, t.controls)}</td>
+    <td class="rto-bar-td"><b>${t.assessed}</b>/${t.controls} · ${tpct(t.assessed, t.controls)}</td>
+  </tr>`;
+  return body + totalRow;
+}
+function sortRtmOwnerTable(col) {
+  if (_rtmoSort.col === col) _rtmoSort.dir *= -1;
+  else _rtmoSort = { col, dir: col === 'owner' ? 1 : -1 };
+  const tb = document.getElementById('rto-tbody');
+  const th = document.getElementById('rto-thead');
+  if (tb) tb.innerHTML = rtmoBody(rtmoSortRows());
+  if (th) th.innerHTML = rtmoHead();
+}
+function renderRtmOwnerCard(assessment) {
+  const { rows, totals } = buildRtmOwnerRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  if (!rows.length) return '';
+  _rtmoRows = rows;
+  _rtmoTotals = totals;
+  _rtmoSort = { col: 'controls', dir: -1 };
+  return `
+    <div class="card measure-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">👥</span>
+        <div style="flex:1">
+          <h3 class="measure-card-title">RTM Ownership</h3>
+          <p class="measure-card-desc">Every risk-treatment measure has an owner in the policy upload. Per owning team: the RTMs they own, the controls operationalising them, and how many of those controls are implemented and assessed. A control backing several teams' RTMs counts under each, so the rows sum to more than the de-duplicated total (see All owners). Click a heading to sort.</p>
+        </div>
+      </div>
+      <div class="rcsa-table-wrap">
+        <table class="opcov-table rto-table">
+          <thead id="rto-thead">${rtmoHead()}</thead>
+          <tbody id="rto-tbody">${rtmoBody(rtmoSortRows())}</tbody>
+        </table>
+      </div>
     </div>`;
 }
 

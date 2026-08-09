@@ -133,7 +133,7 @@ function copyPlanningTable(btn) {
 function renderPlanningCard(assessment) {
   const rows = buildPlanningRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = '3 &middot; Planning &mdash; Risk-Treatment Measures to Controls';
-  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping, ready to copy into Excel and filter by RTM or control.';
+  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control.';
   const tools = rows.length ? `<button class="btn-link plan-copy" onclick="copyPlanningTable(this)">⧉ Copy for Excel</button>` : '';
   const header = `
     <div class="measure-card-header">
@@ -146,11 +146,13 @@ function renderPlanningCard(assessment) {
   }
   const typeCell = t => t ? `<span class="plan-type">${t}</span>` : '';
   const statusCell = s => s ? `<span class="plan-status ${s === 'Implemented' ? 'plan-st-impl' : 'plan-st-draft'}">${s}</span>` : '';
-  const body = rows.map(r => `<tr${r.controlName ? '' : ' class="plan-gap"'}>
+  const rowCls = r => r.controlName ? (r.preDora ? 'plan-predora' : '') : 'plan-gap';
+  const body = rows.map(r => `<tr${rowCls(r) ? ` class="${rowCls(r)}"` : ''}>
     <td class="plan-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="plan-doc">${escHtml(r.document)}</td>
     <td class="plan-ref">${escHtml(r.ref)}</td>
     <td class="plan-hdr">${escHtml(r.header)}</td>
+    <td class="plan-risk">${escHtml(r.risk)}</td>
     <td class="plan-ctrl">${r.controlName ? escHtml(r.controlName) : '<span class="plan-none">— no control mapped —</span>'}</td>
     <td class="plan-type-c">${typeCell(r.controlType)}</td>
     <td class="plan-status-c">${statusCell(r.controlStatus)}</td>
@@ -162,7 +164,7 @@ function renderPlanningCard(assessment) {
         <table class="plan-table">
           <thead><tr>
             <th>Capability</th><th>Document</th><th>Statement Ref</th><th>Statement Header</th>
-            <th>Control Name</th><th>Control Type</th><th>Control Status</th>
+            <th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

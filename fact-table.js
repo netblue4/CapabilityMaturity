@@ -263,12 +263,17 @@ function buildGovernanceRows(policyRows, facts) {
 function buildPlanningRows(policyRows, facts) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
   const typeLabel = t => t === 'locPol' ? 'Local Policy' : t === 'grpStd' ? 'Group Standard' : 'Pre-DORA';
+  const live = (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim());
+
+  // Statement-driven rows: one per (statement × control × risk).
   const byStmt = {};
-  (facts || []).forEach(f => {
-    if (ftIsClosedControl(f)) return;
-    const name = (f.controlName || '').trim();
-    if (!name) return;
-    const entry = { name, type: typeLabel(f.controlType), status: ftIsImplemented(f) ? 'Implemented' : 'Draft' };
+  live.forEach(f => {
+    const entry = {
+      name: f.controlName.trim(),
+      type: typeLabel(f.controlType),
+      status: ftIsImplemented(f) ? 'Implemented' : 'Draft',
+      risk: (f.riskTitle || '').trim(),
+    };
     (f.matchedPolicyRows || []).forEach(mp => {
       const key = mp.capId + '||' + ftNorm(mp.statementRef);
       (byStmt[key] = byStmt[key] || []).push(entry);
@@ -285,21 +290,41 @@ function buildPlanningRows(policyRows, facts) {
     };
     const seen = new Set();
     const ctrls = (byStmt[key] || []).filter(c => {
-      const k = ftNorm(c.name);
+      const k = ftNorm(c.name) + '|' + ftNorm(c.risk);
       if (seen.has(k)) return false;
       seen.add(k); return true;
     });
     if (!ctrls.length) {
-      rows.push({ ...base, controlName: '', controlType: '', controlStatus: '' });
+      rows.push({ ...base, risk: '', controlName: '', controlType: '', controlStatus: '' });
     } else {
-      ctrls.forEach(c => rows.push({ ...base, controlName: c.name, controlType: c.type, controlStatus: c.status }));
+      ctrls.forEach(c => rows.push({ ...base, risk: c.risk, controlName: c.name, controlType: c.type, controlStatus: c.status }));
     }
   });
+
+  // Pre-DORA (operational) controls with no policy mapping — capability-level
+  // rows (document / ref / header blank), one per (control × risk). The mapped
+  // pre-DORA controls already appear under their statement above.
+  const preSeen = new Set();
+  live.filter(f => f.controlType === 'operational' && !(f.matchedPolicyRows || []).length).forEach(f => {
+    const name = f.controlName.trim();
+    const risk = (f.riskTitle || '').trim();
+    const k = f.capId + '|' + ftNorm(name) + '|' + ftNorm(risk);
+    if (preSeen.has(k)) return;
+    preSeen.add(k);
+    rows.push({
+      capName: capName(f.capId), document: '', ref: '', header: '',
+      risk, controlName: name, controlType: 'Pre-DORA',
+      controlStatus: ftIsImplemented(f) ? 'Implemented' : 'Draft', preDora: true,
+    });
+  });
+
   rows.sort((a, b) =>
     a.capName.localeCompare(b.capName) ||
+    ((a.document ? 0 : 1) - (b.document ? 0 : 1)) ||
     a.document.localeCompare(b.document) ||
     a.ref.localeCompare(b.ref) ||
-    a.controlName.localeCompare(b.controlName));
+    (a.controlName || '').localeCompare(b.controlName || '') ||
+    (a.risk || '').localeCompare(b.risk || ''));
   return rows;
 }
 

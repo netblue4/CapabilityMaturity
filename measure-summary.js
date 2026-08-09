@@ -177,22 +177,44 @@ function renderPlanningCard(assessment) {
 }
 
 // ── Planning guide (in-app instructions + AI prompts) ─────────────
+// All three prompts operate on ONE shared 14-column table (progressive
+// enrichment). Prompt 1 builds the table; you review it in Excel; Prompt 2
+// appends the resolution columns; Prompt 3 appends the description column.
+// Every prompt re-emits the WHOLE table so it round-trips Excel ↔ AI tool.
+const PLAN_SHARED_COLS = `Capability | Control Name | Statement Ref | Control Objective | Expected Evidence | Verdict | Matched Existing Control | Existing Statement Ref | Confidence | Why | Description | Control Status | Control Reason | Ready-To-Adapt Description`;
+
 const PLAN_PROMPT_1 = `ROLE
-You are an IT risk & control analyst helping integrate newly generated controls into an
-existing DORA control framework without creating duplicates.
+You are an IT risk & control analyst integrating newly generated controls into an existing
+DORA control framework without creating duplicates.
 
 TASK
-For each NEW CANDIDATE control, decide whether an EXISTING control already achieves the
-same control objective. Compare on OBJECTIVE / INTENT — what the control is trying to
-achieve — NOT on wording, control name, or format.
+Build the SHARED WORKING TABLE. For each NEW CANDIDATE control, extract its objective and
+expected evidence, then decide whether an EXISTING control already achieves the same control
+objective. Compare on OBJECTIVE / INTENT — what the control is trying to achieve — NOT on
+wording, control name, or format.
+
+THE SHARED WORKING TABLE (14 columns — every later prompt reuses this exact table)
+${PLAN_SHARED_COLS}
+You fill columns 1–10 now. Leave columns 11–14 EMPTY (later prompts fill them):
+ 1  Capability                — from the candidate
+ 2  Control Name              — the candidate's name
+ 3  Statement Ref             — the new statement ref the candidate operationalises
+ 4  Control Objective         — extracted from the candidate's description (what it achieves)
+ 5  Expected Evidence         — extracted from the candidate's description (what proves it)
+ 6  Verdict                   — DUPLICATE or NEW
+ 7  Matched Existing Control  — for DUPLICATE, the existing control's name (else blank)
+ 8  Existing Statement Ref    — for DUPLICATE, that control's statement ref (else blank)
+ 9  Confidence                — H / M / L
+ 10 Why                       — one line: the shared objective (DUPLICATE) or the gap (NEW)
+ 11–14 Description | Control Status | Control Reason | Ready-To-Adapt Description — leave blank
 
 HOW TO READ THE INPUTS
 - EXISTING INVENTORY is a tab-separated export with columns:
   Capability | Document | Statement Ref | Statement Header | Risk | Control Name |
   Control Type | Control Status | Control Description
   The control's objective lives in "Control Description". For newer controls it is stated
-  explicitly (Objective / Description / Expected evidence). For older Pre-DORA controls it
-  is usually NOT explicit — you must DERIVE the objective by reading the description.
+  explicitly (Objective / Description / Expected evidence). For older Pre-DORA controls it is
+  usually NOT explicit — DERIVE the objective by reading the description.
 - NEW CANDIDATES each have a name and a description containing objective + expected evidence.
 
 RULES
@@ -200,14 +222,14 @@ RULES
 2. A candidate is a DUPLICATE only if an existing control's objective would already satisfy
    the candidate's objective (fully or substantially). Overlapping topic alone is not enough.
 3. Be conservative: if unsure, mark confidence Medium or Low rather than forcing DUPLICATE.
-4. A candidate may match more than one existing control — pick the single best match and
-   name any others in the "Why" note.
+4. A candidate may match more than one existing control — pick the single best match and name
+   any others in the "Why" note.
 5. Never invent controls, refs, or capabilities that are not in the inputs.
 
-OUTPUT (a table, most-confident duplicates first, then the NEW ones)
-Candidate Control | Verdict (DUPLICATE / NEW) | Matched Existing Control | Existing Statement Ref | Confidence (H/M/L) | Why (one line)
-- For NEW, leave "Matched Existing Control" and "Existing Statement Ref" blank.
-- "Why" must cite the shared objective for a DUPLICATE, or the gap that makes it NEW.
+OUTPUT
+Return ONLY the shared working table as TAB-SEPARATED values inside a code block: a header row
+of all 14 column names, then one row per candidate (most-confident duplicates first, then the
+NEW ones). Keep all 14 columns present even where empty, so it pastes straight into Excel.
 
 === EXISTING INVENTORY (paste the Planning card "Copy for Excel", filtered to one capability) ===
 <PASTE HERE>
@@ -216,31 +238,36 @@ Candidate Control | Verdict (DUPLICATE / NEW) | Matched Existing Control | Exist
 <PASTE HERE>`;
 
 const PLAN_PROMPT_2 = `ROLE
-You are an IT risk & control analyst resolving duplicate controls found in integration.
+You are an IT risk & control analyst resolving each row of the shared working table.
 
 CONTEXT
-For each confirmed DUPLICATE (a new candidate whose objective is already met by an existing
-control), produce the two edits we make:
- (a) tag the EXISTING control so it also evidences the new RTM, and
- (b) close the NEW control, pointing at the existing one.
+This is the SAME table Prompt 1 produced. Since then a human has reviewed and corrected
+columns 6–9 (Verdict, Matched Existing Control, Existing Statement Ref, Confidence) in Excel.
+Trust those human values. Now fill the resolution columns for every row.
 
-INPUTS (one row per confirmed duplicate)
-New Control | New Statement Ref | Matched Existing Control | Existing Statement Ref
-
-OUTPUT (a table, one row per duplicate)
- - Existing control to edit: «Matched Existing Control»
- - Add to its Control: Description: append «New Statement Ref» to its linked-statements list
-   so the existing control now also maps to the new RTM.
- - New control to close: «New Control»
- - New control Control Status: Proposed Close
- - New control reason (use exactly this wording, substituting the placeholders):
-   Proposed Close — already mapped to «Matched Existing Control» «Existing Statement Ref»
+THE SHARED WORKING TABLE (14 columns)
+${PLAN_SHARED_COLS}
+Fill columns 11–13 (leave 14 for Prompt 3):
+ 11 Description     — the edit to make:
+      • DUPLICATE → "Append «Statement Ref» to «Matched Existing Control» linked statements"
+        (this tags the existing control so it also evidences the new RTM)
+      • NEW        → leave blank (Prompt 3 writes the ready-to-adapt description)
+ 12 Control Status  — DUPLICATE → "Proposed Close"   |   NEW → "Implemented"
+ 13 Control Reason  —
+      • DUPLICATE → use EXACTLY this wording, substituting the placeholders:
+        Proposed Close — already mapped to «Matched Existing Control» «Existing Statement Ref»
+      • NEW        → leave blank
 
 RULES
-- Use only the values provided; do not invent refs or controls.
-- Keep the reason wording exactly as specified.
+- Do NOT change columns 1–10; echo them back exactly as received.
+- Use only the values already in the row; do not invent refs or controls.
+- Keep the DUPLICATE reason wording exactly as specified.
 
-=== CONFIRMED DUPLICATES (paste the DUPLICATE rows from Prompt 1, adding each New Statement Ref) ===
+OUTPUT
+Return ONLY the full shared working table as TAB-SEPARATED values inside a code block: the
+14-column header row, then every input row with columns 11–13 now filled and 14 still blank.
+
+=== SHARED WORKING TABLE (paste your reviewed Prompt 1 table) ===
 <PASTE HERE>`;
 
 const PLAN_PROMPT_3 = `ROLE
@@ -248,25 +275,28 @@ You are an IT risk & control analyst preparing genuinely-new controls for the op
 team to implement.
 
 CONTEXT
-For each NEW control (no existing control covers its objective), write a short brief the
-operational team uses to complete the control's description so it evidences the control
-objective — after which the control status is set to Implemented.
+This is the SAME table, now carrying Prompt 2's resolution columns. For each NEW row (Verdict
+= NEW, Control Status = Implemented) write the description the operational team will adopt so
+the control evidences its objective.
 
-INPUTS (one per new control)
-Control Name | Statement Ref | Control Objective | Expected Evidence
-
-OUTPUT (per control)
- - Control: «Control Name» (ref «Statement Ref»)
- - What the description must state — 3 to 5 bullets: the specific activity performed, how
-   often, by whom, and the artefact that proves it — written so an assessor could verify it.
- - A ready-to-adapt description paragraph in plain operational language that meets the objective.
- - Reminder: once agreed with the operational team, set Control Status = Implemented.
+THE SHARED WORKING TABLE (14 columns)
+${PLAN_SHARED_COLS}
+Fill column 14 only:
+ 14 Ready-To-Adapt Description — for NEW rows, a plain-operational-language paragraph that
+      meets the Control Objective and produces the Expected Evidence: state the specific
+      activity performed, how often, by whom, and the artefact that proves it — written so an
+      assessor could verify it. For DUPLICATE rows leave this blank.
 
 RULES
-- Ground every bullet in the stated objective and expected evidence; do not invent scope.
+- Do NOT change columns 1–13; echo them back exactly as received.
+- Ground the description in the row's Control Objective and Expected Evidence; invent no scope.
 - Keep it concise and practical for an operational owner to action.
 
-=== NEW CONTROLS (paste the NEW rows from Prompt 1, with their objective & expected evidence) ===
+OUTPUT
+Return ONLY the full shared working table as TAB-SEPARATED values inside a code block: the
+14-column header row, then every input row with column 14 filled for NEW rows.
+
+=== SHARED WORKING TABLE (paste your Prompt 2 table) ===
 <PASTE HERE>`;
 
 function copyGuidePrompt(btn) {
@@ -284,22 +314,22 @@ function showPlanningGuide() {
       <pre>${escHtml(text)}</pre>
     </div>`;
   const body = `
-    <p class="guide-intro">Turn new source statements into live, non-duplicated controls. Filter this card to one capability, <b>Copy for Excel</b>, then copy the matching prompt below and paste both into your AI tool.</p>
+    <p class="guide-intro">Turn new source statements into live, non-duplicated controls. The three prompts all work on <b>one shared 14-column table</b> — each prompt fills its own columns and re-emits the whole table, so it round-trips cleanly between Excel and your AI tool. Filter this card to one capability, <b>Copy for Excel</b>, then run the prompts in order.</p>
+    <h4 class="guide-h">The shared table</h4>
+    <p class="guide-intro" style="margin-top:0"><code>Capability · Control Name · Statement Ref · Control Objective · Expected Evidence · Verdict · Matched Existing Control · Existing Statement Ref · Confidence · Why · Description · Control Status · Control Reason · Ready-To-Adapt Description</code></p>
     <h4 class="guide-h">The process</h4>
     <ol class="guide-steps">
-      <li><b>Add</b> the new source's statements to the policy upload file (one row per RTM: capability, document, statement ref, statement header, status).</li>
-      <li><b>Re-import</b> the policy file — the <b>1 · Sources</b> card confirms the new document and its RTM count.</li>
-      <li><b>Generate</b> (your existing prompt) — for each new RTM, a draft risk + draft control whose description holds the objective, description and expected evidence.</li>
-      <li><b>Deduplicate</b> — Copy this card (filtered to the capability) and run <b>Prompt 1</b> to find candidates already covered by an existing control.</li>
-      <li><b>Split</b> each candidate by Prompt 1's verdict — duplicate or new.</li>
-      <li><b>Duplicate</b> → run <b>Prompt 2</b>: tag the existing control with the new statement ref; set the new control <i>“Proposed Close — already mapped to «control» «ref»”</i>.</li>
-      <li><b>New</b> → run <b>Prompt 3</b>: brief the operational team to complete the description evidencing the objective; set the control <b>Implemented</b>.</li>
-      <li><b>Re-import</b> the risk data — the funnel and framework cards reflect the integration; anything still Draft or Uncovered is your backlog.</li>
+      <li><b>Prep the sources</b> — add the new document's statements to the policy upload file, re-import, and <b>Generate</b> (your existing prompt) a draft risk + draft control per new RTM (objective, description &amp; expected evidence held in the control description).</li>
+      <li><b>Prompt 1 — build the table.</b> <b>Copy for Excel</b> (filtered to the capability) for the existing inventory, then run Prompt 1. It creates the shared table and fills columns 1–10: it extracts each candidate's <b>Control Objective</b> and <b>Expected Evidence</b> and sets a <b>Verdict</b> (Duplicate / New).</li>
+      <li><b>Review in Excel.</b> Paste Prompt 1's table into Excel and human-check the judgement columns — <b>Verdict, Matched Existing Control, Existing Statement Ref, Confidence</b> — correcting anything the AI got wrong.</li>
+      <li><b>Prompt 2 — resolve.</b> Paste the reviewed table with Prompt 2. It fills <b>Description, Control Status, Control Reason</b>: Duplicates → tag the existing control with the new ref and set <i>“Proposed Close — already mapped to «control» «ref»”</i>; New → <b>Implemented</b>.</li>
+      <li><b>Prompt 3 — describe.</b> Paste Prompt 2's table with Prompt 3. For every New row it fills <b>Ready-To-Adapt Description</b> — the operational paragraph that evidences the objective.</li>
+      <li><b>Update Riskonnect.</b> Take Prompt 3's finished table and apply it: close the duplicates, adopt the new descriptions, then re-import the risk data — the funnel and framework cards reflect the integration; anything still Draft or Uncovered is your backlog.</li>
     </ol>
     <h4 class="guide-h">Prompts</h4>
-    ${promptBlock('Prompt 1 — Duplicate finder (step 4)', PLAN_PROMPT_1)}
-    ${promptBlock('Prompt 2 — Resolve a duplicate (step 6)', PLAN_PROMPT_2)}
-    ${promptBlock('Prompt 3 — Implementation brief (step 7)', PLAN_PROMPT_3)}`;
+    ${promptBlock('Prompt 1 — Build the table &amp; find duplicates (step 2)', PLAN_PROMPT_1)}
+    ${promptBlock('Prompt 2 — Resolve (Description / Status / Reason) (step 4)', PLAN_PROMPT_2)}
+    ${promptBlock('Prompt 3 — Ready-to-adapt description (step 5)', PLAN_PROMPT_3)}`;
   document.getElementById('modal-title').textContent = 'Planning — process & AI prompts';
   document.getElementById('modal-body').innerHTML = body;
   const m = document.getElementById('ratings-modal');

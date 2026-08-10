@@ -110,8 +110,10 @@ function rtmfLegend(items) {
 function rtmfUnit(donut, legend) {
   return `<div class="rtmf-unit">${donut}<div>${legend}</div></div>`;
 }
+let _rtmFunnelData = null;
 function renderRtmFunnel(assessment) {
   const f = buildRtmFunnel(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  _rtmFunnelData = f;
   const header = `
     <div class="measure-card-header">
       <span class="measure-icon">🎯</span>
@@ -167,13 +169,13 @@ function renderRtmFunnel(assessment) {
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer rtmf-rtm">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">2</span><span class="rtmf-lname">Risk-Treatment Measures (RTM)</span><span class="rtmf-lsub">our sources detail the RTM's we use to treat IT risk</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">2</span><span class="rtmf-lname">Risk-Treatment Measures (RTM)</span><span class="rtmf-lsub">our sources detail the RTM's we use to treat IT risk</span><button class="btn-link rtmf-detail no-print" onclick="showFunnelDetail('rtm')">ℹ Detail</button></div>
         <div class="rtmf-units">${rtmfUnit(rtmfDonut(typeSegs, f.total, 'measures'), rtmfLegend(typeLegend))}</div>
       </div>
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">which RTM's should be operationalised with controls</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">which RTM's should be operationalised with controls</span><button class="btn-link rtmf-detail no-print" onclick="showFunnelDetail('planning')">ℹ Detail</button></div>
         <div class="rtmf-units">
           ${rtmfUnit(opedDonut, opedLegend)}
           <div class="rtmf-unit-sep"></div>
@@ -184,11 +186,60 @@ function renderRtmFunnel(assessment) {
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer rtmf-framework">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">4</span><span class="rtmf-lname">ICT Risk &amp; Control Framework</span><span class="rtmf-axis-tag">implemented control operationalising RTM's</span></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">4</span><span class="rtmf-lname">ICT Risk &amp; Control Framework</span><span class="rtmf-axis-tag">implemented control operationalising RTM's</span><button class="btn-link rtmf-detail no-print" onclick="showFunnelDetail('framework')">ℹ Detail</button></div>
         <div class="rtmf-units">${rtmfUnit(ctrlDonut, ctrlLegend)}</div>
         <div class="rtmf-cap">${f.ctrlTotal} implemented controls we run</div>
       </div>
     </div>`;
+}
+
+// ── Funnel "Detail" popups — how to reconcile each layer with the
+//    main-screen Planning table (copied to Excel) ────────────────────
+function showFunnelDetail(layer) {
+  const f = _rtmFunnelData;
+  if (!f) return;
+  const dedupRtm = 'Then <b>Remove Duplicates</b> on <b>Capability + Statement Ref</b>.';
+  const item = (val, name, def, filter) => `
+    <div class="fdet-item">
+      <div class="fdet-hd"><span class="fdet-val">${val}</span><span class="fdet-name">${name}</span></div>
+      <div class="fdet-def">${def}</div>
+      <div class="fdet-filter"><span class="fdet-flabel">Filter</span> ${filter}</div>
+    </div>`;
+  let title, intro, items;
+  if (layer === 'rtm') {
+    const lp = f.sources.find(s => s.name === 'Local Policy');
+    const gs = f.sources.find(s => s.name === 'Group Standards');
+    title = 'Layer 2 · Risk-Treatment Measures — how to reconcile';
+    intro = 'Every number here counts <b>distinct RTMs</b> (policy statements). In the copied Planning table each RTM can span several rows, so always de-duplicate.';
+    items =
+      item(f.total, 'Measures (RTMs)', 'Every distinct risk-treatment measure in the policy upload.', `Keep rows where <b>Statement Ref</b> is not blank. ${dedupRtm}`) +
+      (lp ? item(lp.count, 'Local Policy', 'RTMs whose source document is a local policy.', `<b>RTM Source = Local Policy</b>. ${dedupRtm}`) : '') +
+      (gs ? item(gs.count, 'Group Standards', 'RTMs whose source document is a group standard.', `<b>RTM Source = Group Standard</b>. ${dedupRtm}`) : '');
+  } else if (layer === 'planning') {
+    title = 'Layer 3 · Planning — how to reconcile';
+    intro = 'Every number here counts <b>distinct RTMs</b>, classified by the <b>Planning Status</b> column (priority: Built new › Reused pre-DORA › Drafted › Uncovered). Filter, then de-duplicate on Capability + Statement Ref.';
+    items =
+      item(f.evidenced, 'LIVE (operationalised)', 'RTMs with at least one implemented control.', `<b>Planning Status = Built new</b> OR <b>Reused pre-DORA</b>. ${dedupRtm}`) +
+      item(f.built, 'Built new', 'RTM operationalised by a new DORA control.', `<b>Planning Status = Built new</b>. ${dedupRtm}`) +
+      item(f.reused, 'Reused pre-DORA', 'RTM operationalised by an existing pre-DORA control.', `<b>Planning Status = Reused pre-DORA</b>. ${dedupRtm}`) +
+      item(f.inProcess, 'IN PROCESS', 'RTMs not yet operationalised by an implemented control.', `<b>Planning Status = Drafted</b> OR <b>Uncovered</b>. ${dedupRtm}`) +
+      item(f.drafted, "Key RTM's Drafted as controls", 'RTM has a control, but it is still in draft.', `<b>Planning Status = Drafted</b>. ${dedupRtm}`) +
+      item(f.uncovered, 'Uncovered', 'RTM has no control mapped at all.', `<b>Planning Status = Uncovered</b>. ${dedupRtm}`);
+  } else {
+    title = 'Layer 4 · ICT Risk & Control Framework — how to reconcile';
+    intro = 'These count <b>implemented controls</b>, not RTMs. A control can appear on several rows, so de-duplicate on <b>Control Name</b> (not Statement Ref).';
+    items =
+      item(f.ctrlTotal, 'Implemented controls we run', 'Every implemented control, whether or not it maps to an RTM.', 'Filter <b>Control Status = Implemented</b>. Then <b>Remove Duplicates</b> on <b>Control Name</b>.') +
+      item(f.ctrlMapped, 'Mapped to a RTM', 'Implemented controls that operationalise at least one RTM.', 'Filter <b>Control Status = Implemented</b> AND <b>Statement Ref</b> not blank. Then <b>Remove Duplicates</b> on <b>Control Name</b>.') +
+      item(f.ctrlUnmapped, 'Not mapped to RTM', 'Implemented controls with no RTM behind them (Planning Status = Pre-DORA (unmapped)).', 'Filter <b>Control Status = Implemented</b> AND <b>Statement Ref</b> is blank. Then <b>Remove Duplicates</b> on <b>Control Name</b>.') +
+      '<p class="fdet-note">Note: control counts de-duplicate on Control Name — if two different controls share a name the total can differ by that overlap.</p>';
+  }
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = `<p class="fdet-intro">${intro}</p>${items}`;
+  const m = document.getElementById('ratings-modal');
+  const box = m.querySelector('.modal-box');
+  if (box) box.classList.add('modal-wide');
+  m.style.display = 'flex';
 }
 
 // ── Exec "so what" callouts (below the three score cards) ──────

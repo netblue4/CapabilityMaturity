@@ -172,7 +172,7 @@ function copyPlanningTable(btn) {
 function renderPlanningCard(assessment) {
   const rows = buildPlanningRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = '3 &middot; Planning &mdash; Risk-Treatment Measures to Controls';
-  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control.';
+  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control. Use <b>RTM Source</b>, <b>Planning Status</b> and <b>Statement Owner</b> to reconcile with the exec-report funnel (each layer has a ℹ Detail popup with the exact filter).';
   const tools = `<div class="plan-tools">
     <button class="btn-link" onclick="showPlanningGuide()">ℹ Instructions &amp; prompts</button>
     ${rows.length ? `<button class="btn-link plan-copy" onclick="copyPlanningTable(this)">⧉ Copy for Excel</button>` : ''}
@@ -188,12 +188,17 @@ function renderPlanningCard(assessment) {
   }
   const typeCell = t => t ? `<span class="plan-type">${t}</span>` : '';
   const statusCell = s => s ? `<span class="plan-status ${s === 'Implemented' ? 'plan-st-impl' : 'plan-st-draft'}">${s}</span>` : '';
+  const PLAN_ST_CLS = { 'Built new': 'plan-ps-built', 'Reused pre-DORA': 'plan-ps-reused', 'Drafted': 'plan-ps-drafted', 'Uncovered': 'plan-ps-uncovered', 'Pre-DORA (unmapped)': 'plan-ps-predora' };
+  const planCell = s => s ? `<span class="plan-ps ${PLAN_ST_CLS[s] || ''}">${escHtml(s)}</span>` : '';
   const rowCls = r => r.controlName ? (r.preDora ? 'plan-predora' : '') : 'plan-gap';
   const body = rows.map(r => `<tr${rowCls(r) ? ` class="${rowCls(r)}"` : ''}>
     <td class="plan-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="plan-doc">${escHtml(r.document)}</td>
+    <td class="plan-src">${escHtml(r.source)}</td>
     <td class="plan-ref">${escHtml(r.ref)}</td>
     <td class="plan-hdr">${escHtml(r.header)}</td>
+    <td class="plan-owner">${escHtml(r.owner)}</td>
+    <td class="plan-plan">${planCell(r.planStatus)}</td>
     <td class="plan-risk">${escHtml(r.risk)}</td>
     <td class="plan-ctrl">${r.controlName ? escHtml(r.controlName) : '<span class="plan-none">— no control mapped —</span>'}</td>
     <td class="plan-type-c">${typeCell(r.controlType)}</td>
@@ -206,8 +211,8 @@ function renderPlanningCard(assessment) {
       <div class="rcsa-table-wrap">
         <table class="plan-table">
           <thead><tr>
-            <th>Capability</th><th>Document</th><th>Statement Ref</th><th>Statement Header</th>
-            <th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th><th>Control Description</th>
+            <th>Capability</th><th>Document</th><th>RTM Source</th><th>Statement Ref</th><th>Statement Header</th>
+            <th>Statement Owner</th><th>Planning Status</th><th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th><th>Control Description</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

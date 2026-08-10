@@ -2750,6 +2750,29 @@ details[open] .profile-card-chevron {
 .modal-box.modal-wide { width: 800px; }
 .guide-intro { font-size: .85rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 1rem; }
 .guide-intro b { color: var(--text); }
+
+/* Funnel "Detail" links + reconciliation popup */
+.rtmf-detail { margin-left: .6rem; font-size: .68rem; white-space: nowrap; flex: none; }
+.fdet-intro { font-size: .85rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 1rem; }
+.fdet-intro b, .fdet-item b { color: var(--text); }
+.fdet-item { border: 1px solid var(--border); border-radius: 8px; padding: .6rem .75rem; margin-bottom: .6rem; }
+.fdet-hd { display: flex; align-items: baseline; gap: .55rem; margin-bottom: .3rem; }
+.fdet-val { font-family: var(--font-mono); font-weight: 700; font-size: 1rem; color: var(--accent); }
+.fdet-name { font-weight: 600; color: var(--text); }
+.fdet-def { font-size: .8rem; color: var(--text-muted); line-height: 1.45; margin-bottom: .4rem; }
+.fdet-filter { font-size: .8rem; color: var(--text); line-height: 1.5; background: var(--track); border-radius: 6px; padding: .4rem .55rem; }
+.fdet-flabel { font-family: var(--font-mono); font-size: .58rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-right: .4rem; }
+.fdet-note { font-size: .75rem; color: var(--text-muted); font-style: italic; margin: .5rem 0 0; }
+
+/* Planning table — reconciliation columns */
+.plan-src { font-size: .72rem; color: var(--text-muted); white-space: nowrap; }
+.plan-owner { font-size: .74rem; color: var(--text); white-space: nowrap; }
+.plan-ps { font-family: var(--font-mono); font-size: .62rem; font-weight: 700; padding: .12rem .5rem; border-radius: 20px; white-space: nowrap; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.plan-ps-built { background: color-mix(in srgb, var(--clr-success) 22%, transparent); color: var(--clr-success); }
+.plan-ps-reused { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.plan-ps-drafted { background: color-mix(in srgb, var(--clr-warning) 24%, transparent); color: var(--clr-warning); }
+.plan-ps-uncovered { background: color-mix(in srgb, var(--clr-danger) 20%, transparent); color: var(--clr-danger); }
+.plan-ps-predora { background: var(--track); color: var(--text-muted); }
 .guide-h { font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text); margin: 1.2rem 0 .55rem; }
 .guide-steps { margin: 0; padding-left: 1.2rem; font-size: .84rem; line-height: 1.5; }
 .guide-steps li { margin: .35rem 0; }

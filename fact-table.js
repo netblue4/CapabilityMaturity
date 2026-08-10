@@ -313,6 +313,8 @@ function buildGovernanceRows(policyRows, facts) {
 function buildPlanningRows(policyRows, facts) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
   const typeLabel = t => t === 'locPol' ? 'Local Policy' : t === 'grpStd' ? 'Group Standard' : 'Pre-DORA';
+  const srcLabel  = t => isLocPolType(t) ? 'Local Policy' : isGrpStdType(t) ? 'Group Standard' : ((t || '').trim() || '');
+  const cls = buildRtmClass(policyRows, facts);   // per-RTM bucket (reconciles with the funnel)
   const live = (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim());
 
   // Statement-driven rows: one per (statement × control × risk).
@@ -336,8 +338,11 @@ function buildPlanningRows(policyRows, facts) {
     const base = {
       capName: capName(pr.capId),
       document: (pr.document || '').trim() || '(no document)',
+      source: srcLabel(pr.type),
       ref: pr.statementRef || '',
       header: pr.statementHeader || '',
+      owner: (pr.owner || '').trim(),
+      planStatus: cls[key] || 'Uncovered',
     };
     const seen = new Set();
     const ctrls = (byStmt[key] || []).filter(c => {
@@ -363,7 +368,8 @@ function buildPlanningRows(policyRows, facts) {
     if (preSeen.has(k)) return;
     preSeen.add(k);
     rows.push({
-      capName: capName(f.capId), document: '', ref: '', header: '',
+      capName: capName(f.capId), document: '', source: '', ref: '', header: '',
+      owner: '', planStatus: 'Pre-DORA (unmapped)',
       risk, controlName: name, controlType: 'Pre-DORA',
       controlStatus: ftIsImplemented(f) ? 'Implemented' : 'Draft',
       desc: (f.controlDesc || '').trim(), preDora: true,
@@ -390,24 +396,20 @@ function buildPlanningRows(policyRows, facts) {
 // "built" wins when a measure is evidenced by both a new and a pre-DORA control.
 // Story 2 (control axis): orphans = pre-DORA controls we run that map to no
 // measure — reconciles with the "pre-DORA not linked" exec metric.
-function buildRtmFunnel(policyRows, facts) {
-  const polRows = policyRows || [];
-  const live = (facts || []).filter(f => !ftIsClosedControl(f));
-
-  const rtm = {};        // capId||statementRef → evidence flags
-  const srcCount = {};   // document-type label → count of measures
-  polRows.forEach(pr => {
+// Per-RTM operationalisation bucket — the single source of truth shared by the
+// exec-report funnel (renderRtmFunnel) and the main-screen Planning table
+// (buildPlanningRows), so their counts always reconcile. Returns
+// { "capId||normRef" -> 'Built new' | 'Reused pre-DORA' | 'Drafted' | 'Uncovered' }
+// for every policy statement, applying the priority built > reused > drafted >
+// uncovered. Closed controls are excluded (same as everywhere else).
+function buildRtmClass(policyRows, facts) {
+  const rtm = {};
+  (policyRows || []).forEach(pr => {
     const key = pr.capId + '||' + ftNorm(pr.statementRef);
-    if (key in rtm) return;
-    rtm[key] = { built: false, reused: false, drafted: false };
-    const label = isLocPolType(pr.type) ? 'Local Policy'
-      : isGrpStdType(pr.type) ? 'Group Standards'
-      : ((pr.type || '').trim() || 'Other');
-    srcCount[label] = (srcCount[label] || 0) + 1;
+    if (!(key in rtm)) rtm[key] = { built: false, reused: false, drafted: false };
   });
-
-  live.forEach(f => {
-    const impl = ftIsImplemented(f);
+  (facts || []).filter(f => !ftIsClosedControl(f)).forEach(f => {
+    const impl   = ftIsImplemented(f);
     const isDora = f.controlType === 'locPol' || f.controlType === 'grpStd';
     (f.matchedPolicyRows || []).forEach(mp => {
       const r = rtm[mp.capId + '||' + ftNorm(mp.statementRef)];
@@ -416,12 +418,37 @@ function buildRtmFunnel(policyRows, facts) {
       else r.drafted = true;
     });
   });
+  const out = {};
+  Object.entries(rtm).forEach(([k, r]) => {
+    out[k] = r.built ? 'Built new' : r.reused ? 'Reused pre-DORA' : r.drafted ? 'Drafted' : 'Uncovered';
+  });
+  return out;
+}
 
+function buildRtmFunnel(policyRows, facts) {
+  const polRows = policyRows || [];
+  const live = (facts || []).filter(f => !ftIsClosedControl(f));
+
+  // Layer 1/2 — sources: distinct RTMs counted by document-type label.
+  const seenSrc = new Set();
+  const srcCount = {};
+  polRows.forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    if (seenSrc.has(key)) return;
+    seenSrc.add(key);
+    const label = isLocPolType(pr.type) ? 'Local Policy'
+      : isGrpStdType(pr.type) ? 'Group Standards'
+      : ((pr.type || '').trim() || 'Other');
+    srcCount[label] = (srcCount[label] || 0) + 1;
+  });
+
+  // Layer 3 — per-RTM operationalisation bucket (shared classifier).
+  const cls = buildRtmClass(polRows, facts);
   let built = 0, reused = 0, drafted = 0, uncovered = 0;
-  Object.values(rtm).forEach(r => {
-    if (r.built) built++;
-    else if (r.reused) reused++;
-    else if (r.drafted) drafted++;
+  Object.values(cls).forEach(b => {
+    if (b === 'Built new') built++;
+    else if (b === 'Reused pre-DORA') reused++;
+    else if (b === 'Drafted') drafted++;
     else uncovered++;
   });
   const total = built + reused + drafted + uncovered;

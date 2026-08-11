@@ -75,6 +75,7 @@
       status:     find('document status', 'status'),
       header:     find('statement header', 'header'),
       owner:      find('owner', 'accountable', 'responsible'),
+      disposition: find('disposition', 'gap treatment', 'treatment'),
     };
   }
 
@@ -197,8 +198,9 @@
       const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
       const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
       const own  = _piCols.owner    ? (row[_piCols.owner]    || '').trim() : '';
+      const disp = _piCols.disposition ? (row[_piCols.disposition] || '').trim() : '';
       if (!ref) return;
-      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, owner: own });
+      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, owner: own, disposition: disp });
     });
 
     renderPiReviewTable();
@@ -246,8 +248,9 @@
       const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
       const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
       const own  = _piCols.owner    ? (row[_piCols.owner]    || '').trim() : '';
+      const disp = _piCols.disposition ? (row[_piCols.disposition] || '').trim() : '';
       if (!ref) return;
-      policyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, owner: own });
+      policyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, owner: own, disposition: disp });
     });
 
     assessment.policyRows = policyRows;

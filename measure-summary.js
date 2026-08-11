@@ -308,9 +308,11 @@ Trust those human values. Now fill the resolution columns for every row.
 THE SHARED WORKING TABLE (14 columns)
 ${PLAN_SHARED_COLS}
 Fill columns 11–13 (leave 14 for Prompt 3):
- 11 Description     — the edit to make:
-      • DUPLICATE → "Append «Statement Ref» to «Matched Existing Control» linked statements"
-        (this tags the existing control so it also evidences the new RTM)
+ 11 Description     — the existing control's updated link line. This tags the existing control
+      so it also evidences the new RTM. Use EXACTLY this house format, listing every Policy &
+      Group Standard statement the control now links to — its own «Existing Statement Ref»
+      first, then the newly-linked «Statement Ref» (comma-separated inside the brackets):
+      • DUPLICATE → Control is linked to the following Policy & Group Standard statements: («Existing Statement Ref», «Statement Ref»)
       • NEW        → leave blank (Prompt 3 writes the ready-to-adapt description)
  12 Control Status  — DUPLICATE → "Proposed Close"   |   NEW → "Implemented"
  13 Control Reason  —
@@ -321,7 +323,9 @@ Fill columns 11–13 (leave 14 for Prompt 3):
 RULES
 - Do NOT change columns 1–10; echo them back exactly as received.
 - Use only the values already in the row; do not invent refs or controls.
-- Keep the DUPLICATE reason wording exactly as specified.
+- Keep the DUPLICATE Description and Reason wording exactly as specified — the Description must
+  start with "Control is linked to the following Policy & Group Standard statements:" and list
+  the refs in brackets.
 
 OUTPUT
 Return ONLY the full shared working table as TAB-SEPARATED values inside a code block: the

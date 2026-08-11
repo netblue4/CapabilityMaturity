@@ -346,13 +346,17 @@ the control evidences its objective.
 THE SHARED WORKING TABLE (14 columns)
 ${PLAN_SHARED_COLS}
 Fill column 14 only:
- 14 Ready-To-Adapt Description — for NEW rows, a plain-operational-language paragraph that
-      meets the Control Objective and produces the Expected Evidence: state the specific
-      activity performed, how often, by whom, and the artefact that proves it — written so an
-      assessor could verify it. For DUPLICATE rows leave this blank.
+ 14 Ready-To-Adapt Description — for NEW rows, write TWO parts:
+      (a) the house link line FIRST, EXACTLY in this format, using the row's own «Statement Ref»:
+          Control is linked to the following Policy & Group Standard statements: («Statement Ref»)
+      (b) then a plain-operational-language paragraph that meets the Control Objective and
+          produces the Expected Evidence: state the specific activity performed, how often, by
+          whom, and the artefact that proves it — written so an assessor could verify it.
+      For DUPLICATE rows leave this blank.
 
 RULES
 - Do NOT change columns 1–13; echo them back exactly as received.
+- Always start a NEW row's description with the house link line above, then the paragraph.
 - Ground the description in the row's Control Objective and Expected Evidence; invent no scope.
 - Keep it concise and practical for an operational owner to action.
 
@@ -384,10 +388,10 @@ function showPlanningGuide() {
     <h4 class="guide-h">The process</h4>
     <ol class="guide-steps">
       <li><b>Prep the sources</b> — add the new document's statements to the policy upload file, re-import, and <b>Generate</b> (your existing prompt) a draft risk + draft control per new RTM (objective, description &amp; expected evidence held in the control description).</li>
-      <li><b>Prompt 1 — build the table.</b> <b>Copy for Excel</b> (filtered to the capability) for the existing inventory, then run Prompt 1. It creates the shared table and fills columns 1–10: it extracts each candidate's <b>Control Objective</b> and <b>Expected Evidence</b> and sets a <b>Verdict</b> (Duplicate / New).</li>
+      <li><b>Prompt 1</b> — <i>What it does:</i> for each new candidate control it extracts the objective and expected evidence, then decides whether an existing control already achieves the same objective. <i>How you see it:</i> it marks each candidate <b>Duplicate</b> or <b>New</b> and fills columns 1–10. <span class="guide-do">Do: Copy for Excel (filtered to the capability) as the existing inventory, then run Prompt 1.</span></li>
       <li><b>Review in Excel.</b> Paste Prompt 1's table into Excel and human-check the judgement columns — <b>Verdict, Matched Existing Control, Existing Statement Ref, Confidence</b> — correcting anything the AI got wrong.</li>
-      <li><b>Prompt 2 — resolve.</b> Paste the reviewed table with Prompt 2. It fills <b>Description, Control Status, Control Reason</b>: Duplicates → tag the existing control with the new ref and set <i>“Proposed Close — already mapped to «control» «ref»”</i>; New → <b>Implemented</b>.</li>
-      <li><b>Prompt 3 — describe.</b> Paste Prompt 2's table with Prompt 3. For every New row it fills <b>Ready-To-Adapt Description</b> — the operational paragraph that evidences the objective.</li>
+      <li><b>Prompt 2</b> — <i>What it does:</i> for each duplicate it links the existing control to the new statement and closes the duplicate; for each new control it marks it ready to implement. <i>How you see it:</i> it fills <b>Description</b> (the standard link line), <b>Control Status</b> (Proposed Close / Implemented) and <b>Control Reason</b>. <span class="guide-do">Do: paste your reviewed table, then run Prompt 2.</span></li>
+      <li><b>Prompt 3</b> — <i>What it does:</i> for each genuinely-new control it writes the description the operational team will adopt so the control evidences its objective. <i>How you see it:</i> it fills <b>Ready-To-Adapt Description</b> — the standard link line followed by a plain-English operational paragraph. <span class="guide-do">Do: paste Prompt 2's table, then run Prompt 3.</span></li>
       <li><b>Update Riskonnect.</b> Take Prompt 3's finished table and apply it: close the duplicates, adopt the new descriptions, then re-import the risk data — the funnel and framework cards reflect the integration; anything still Draft or Uncovered is your backlog.</li>
     </ol>
     <h4 class="guide-h">Prompts</h4>

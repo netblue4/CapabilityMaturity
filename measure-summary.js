@@ -79,9 +79,10 @@ const SRC_FIELD = {
   document: r => r.document || '',
   type:     r => r.type || '',
   total:    r => r.total,
-  performed: r => r.dispPerformed || 0,
-  temp:      r => r.dispTemp || 0,
-  permanent: r => r.dispPermanent || 0,
+  invisible: r => r.invisible || 0,
+  excE:      r => r.excE || 0,
+  excWT:     r => r.excWT || 0,
+  excWP:     r => r.excWP || 0,
   status:   r => SRC_STATUS_RANK[r.status] ?? 9,
 };
 function srcSortRows() {
@@ -101,9 +102,10 @@ function srcHead() {
     ${th('document', 'Document')}
     ${th('type', 'Type')}
     ${th('total', "# RTM's", 'src-rtm')}
-    ${th('performed', 'Performed<br>no control', 'src-disp')}
-    ${th('temp', 'Temp<br>exception', 'src-disp')}
-    ${th('permanent', 'Perm<br>exception', 'src-disp')}
+    ${th('invisible', 'Performed<br>no control', 'src-disp')}
+    ${th('excE', 'E', 'src-disp')}
+    ${th('excWT', 'WT', 'src-disp')}
+    ${th('excWP', 'WP', 'src-disp')}
     ${th('status', 'Document status', 'src-status')}
   </tr>`;
 }
@@ -119,9 +121,10 @@ function srcBody(rows) {
     <td class="src-doc"><div class="src-doc-name">${r.document}</div></td>
     <td class="src-type">${r.type}</td>
     <td class="src-rtm" title="${r.total} risk-treatment measure(s) in this document">${r.total}</td>
-    ${disp(r.dispPerformed, 'src-disp-perf', `${r.dispPerformed || 0} RTM(s) performed with no control — invisible work`)}
-    ${disp(r.dispTemp, 'src-disp-temp', `${r.dispTemp || 0} RTM(s) with a temporary exception (blocked by tool/resource)`)}
-    ${disp(r.dispPermanent, 'src-disp-perm', `${r.dispPermanent || 0} RTM(s) with a permanent exception (risk accepted)`)}
+    ${disp(r.invisible, 'src-disp-perf', `${r.invisible || 0} RTM(s) performed with no control and no exception — invisible work`)}
+    ${disp(r.excE, 'src-disp-perm', `${r.excE || 0} Exemption (E): objective applies but cannot be implemented (technical)`)}
+    ${disp(r.excWT, 'src-disp-temp', `${r.excWT || 0} Waiver Temporary (WT): applies but need time / a new tool`)}
+    ${disp(r.excWP, 'src-disp-perm', `${r.excWP || 0} Waiver Permanent (WP): applies but we will not build it (regulatory)`)}
     <td class="src-status">${badge(r)}</td>
   </tr>`).join('');
 }
@@ -142,8 +145,8 @@ function renderSourcesCard(assessment) {
     const totalRtm = rows.reduce((a, r) => a + r.total, 0);
     const caps = new Set(rows.map(r => r.capId)).size;
     desc = `${rows.length} document${rows.length === 1 ? '' : 's'} &middot; ${totalRtm} risk-treatment measure${totalRtm === 1 ? '' : 's'} across ${caps} capabilit${caps === 1 ? 'y' : 'ies'}.`;
-    const perf = rows.reduce((a, r) => a + (r.dispPerformed || 0), 0);
-    if (perf) desc += ` <b>${perf}</b> performed with no control &mdash; work we do that isn't tracked as a control.`;
+    const inv = rows.reduce((a, r) => a + (r.invisible || 0), 0);
+    if (inv) desc += ` <b>${inv}</b> performed with no control &mdash; work we do that isn't tracked as a control.`;
   }
   const header = `
     <div class="measure-card-header">
@@ -160,7 +163,7 @@ function renderSourcesCard(assessment) {
       ${header}
       <div class="rcsa-table-wrap">
         <table class="src-table">
-          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-rtm"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"></colgroup>
+          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-rtm"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"></colgroup>
           <thead id="src-thead">${srcHead()}</thead>
           <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>
@@ -184,7 +187,7 @@ function copyPlanningTable(btn) {
 function renderPlanningCard(assessment) {
   const rows = buildPlanningRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = '3 &middot; Planning &mdash; Risk-Treatment Measures to Controls';
-  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control. Use <b>RTM Source</b>, <b>Planning Status</b> and <b>Statement Owner</b> to reconcile with the exec-report funnel (each layer has a ℹ Detail popup with the exact filter).';
+  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control. The <b>Exception</b> column (E / WT / WP from the policy upload) refines <b>Planning Status</b> for RTMs with no control. Use <b>RTM Source</b>, <b>Planning Status</b> and <b>Statement Owner</b> to reconcile with the exec-report funnel (each layer has a ℹ Detail popup with the exact filter).';
   const tools = `<div class="plan-tools">
     <button class="btn-link" onclick="showPlanningGuide()">ℹ Instructions &amp; prompts</button>
     ${rows.length ? `<button class="btn-link plan-copy" onclick="copyPlanningTable(this)">⧉ Copy for Excel</button>` : ''}
@@ -200,7 +203,7 @@ function renderPlanningCard(assessment) {
   }
   const typeCell = t => t ? `<span class="plan-type">${t}</span>` : '';
   const statusCell = s => s ? `<span class="plan-status ${s === 'Implemented' ? 'plan-st-impl' : 'plan-st-draft'}">${s}</span>` : '';
-  const PLAN_ST_CLS = { 'Built new': 'plan-ps-built', 'Reused pre-DORA': 'plan-ps-reused', 'Drafted': 'plan-ps-drafted', 'Uncovered': 'plan-ps-uncovered', 'Pre-DORA (unmapped)': 'plan-ps-predora' };
+  const PLAN_ST_CLS = { 'Built new': 'plan-ps-built', 'Reused pre-DORA': 'plan-ps-reused', 'Drafted': 'plan-ps-drafted', 'Performed (no control)': 'plan-ps-uncovered', 'Waiver (temporary)': 'plan-ps-reused', 'Waiver (permanent)': 'plan-ps-predora', 'Exemption': 'plan-ps-predora', 'Pre-DORA (unmapped)': 'plan-ps-predora' };
   const planCell = s => s ? `<span class="plan-ps ${PLAN_ST_CLS[s] || ''}">${escHtml(s)}</span>` : '';
   const rowCls = r => r.controlName ? (r.preDora ? 'plan-predora' : '') : 'plan-gap';
   const body = rows.map(r => `<tr${rowCls(r) ? ` class="${rowCls(r)}"` : ''}>
@@ -210,6 +213,7 @@ function renderPlanningCard(assessment) {
     <td class="plan-ref">${escHtml(r.ref)}</td>
     <td class="plan-hdr">${escHtml(r.header)}</td>
     <td class="plan-owner">${escHtml(r.owner)}</td>
+    <td class="plan-exc">${escHtml(r.exception)}</td>
     <td class="plan-plan">${planCell(r.planStatus)}</td>
     <td class="plan-risk">${escHtml(r.risk)}</td>
     <td class="plan-ctrl">${r.controlName ? escHtml(r.controlName) : '<span class="plan-none">— no control mapped —</span>'}</td>
@@ -224,7 +228,7 @@ function renderPlanningCard(assessment) {
         <table class="plan-table">
           <thead><tr>
             <th>Capability</th><th>Document</th><th>RTM Source</th><th>Statement Ref</th><th>Statement Header</th>
-            <th>Statement Owner</th><th>Planning Status</th><th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th><th>Control Description</th>
+            <th>Statement Owner</th><th>Exception</th><th>Planning Status</th><th>Risk</th><th>Control Name</th><th>Control Type</th><th>Control Status</th><th>Control Description</th>
           </tr></thead>
           <tbody>${body}</tbody>
         </table>

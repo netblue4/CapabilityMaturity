@@ -537,7 +537,7 @@ const RTM_MATURITY = [
   { key: 'incomplete',   label: 'Incomplete / suspended', meaning: 'A control exists but an exception is open — WT: incomplete, fix in progress; E/WP: suspended, no fix planned.' },
   { key: 'proposed',     label: 'Proposed',               meaning: 'Risk identified, treatment proposed (control drafted) — reactive, unstructured, key-person dependent.' },
   { key: 'notTreated',   label: 'Not treated',            meaning: 'Risk identified but not treated — accepted under an exception (E/WT/WP).' },
-  { key: 'notPerformed', label: 'Not performed',          meaning: 'Risk identified, but the RTM is not performed or done ad hoc — key-person dependent.' },
+  { key: 'notPerformed', label: 'Performed ad hoc',        meaning: 'Risk identified, but the RTM is not performed or done ad hoc — key-person dependent.' },
 ];
 function buildRtmMaturity(policyRows, facts) {
   const cls = buildRtmClass(policyRows, facts);

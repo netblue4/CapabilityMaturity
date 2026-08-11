@@ -79,6 +79,9 @@ const SRC_FIELD = {
   document: r => r.document || '',
   type:     r => r.type || '',
   total:    r => r.total,
+  performed: r => r.dispPerformed || 0,
+  temp:      r => r.dispTemp || 0,
+  permanent: r => r.dispPermanent || 0,
   status:   r => SRC_STATUS_RANK[r.status] ?? 9,
 };
 function srcSortRows() {
@@ -98,6 +101,9 @@ function srcHead() {
     ${th('document', 'Document')}
     ${th('type', 'Type')}
     ${th('total', "# RTM's", 'src-rtm')}
+    ${th('performed', 'Performed<br>no control', 'src-disp')}
+    ${th('temp', 'Temp<br>exception', 'src-disp')}
+    ${th('permanent', 'Perm<br>exception', 'src-disp')}
     ${th('status', 'Document status', 'src-status')}
   </tr>`;
 }
@@ -107,11 +113,15 @@ function srcBody(rows) {
     const [cls, txt] = map[r.status];
     return `<span class="gov-badge ${cls}" title="${r.approved} approved &middot; ${r.draft} draft (of ${r.total})">${txt}</span>`;
   };
+  const disp = (n, cls, tip) => `<td class="src-disp ${n ? cls : ''}" title="${tip}">${n ? n : '<span class="src-zero">·</span>'}</td>`;
   return rows.map(r => `<tr>
     <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="src-doc"><div class="src-doc-name">${r.document}</div></td>
     <td class="src-type">${r.type}</td>
     <td class="src-rtm" title="${r.total} risk-treatment measure(s) in this document">${r.total}</td>
+    ${disp(r.dispPerformed, 'src-disp-perf', `${r.dispPerformed || 0} RTM(s) performed with no control — invisible work`)}
+    ${disp(r.dispTemp, 'src-disp-temp', `${r.dispTemp || 0} RTM(s) with a temporary exception (blocked by tool/resource)`)}
+    ${disp(r.dispPermanent, 'src-disp-perm', `${r.dispPermanent || 0} RTM(s) with a permanent exception (risk accepted)`)}
     <td class="src-status">${badge(r)}</td>
   </tr>`).join('');
 }
@@ -132,6 +142,8 @@ function renderSourcesCard(assessment) {
     const totalRtm = rows.reduce((a, r) => a + r.total, 0);
     const caps = new Set(rows.map(r => r.capId)).size;
     desc = `${rows.length} document${rows.length === 1 ? '' : 's'} &middot; ${totalRtm} risk-treatment measure${totalRtm === 1 ? '' : 's'} across ${caps} capabilit${caps === 1 ? 'y' : 'ies'}.`;
+    const perf = rows.reduce((a, r) => a + (r.dispPerformed || 0), 0);
+    if (perf) desc += ` <b>${perf}</b> performed with no control &mdash; work we do that isn't tracked as a control.`;
   }
   const header = `
     <div class="measure-card-header">
@@ -148,7 +160,7 @@ function renderSourcesCard(assessment) {
       ${header}
       <div class="rcsa-table-wrap">
         <table class="src-table">
-          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-rtm"><col class="src-c-status"></colgroup>
+          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-rtm"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"></colgroup>
           <thead id="src-thead">${srcHead()}</thead>
           <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>

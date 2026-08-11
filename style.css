@@ -2804,8 +2804,14 @@ details[open] .profile-card-chevron {
 .src-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
 .src-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
 .src-table th.src-rtm, .src-table th.src-status { text-align: center; }
-col.src-c-cap { width: 22%; } col.src-c-doc { width: 34%; } col.src-c-type { width: 16%; } col.src-c-rtm { width: 12%; } col.src-c-status { width: 16%; }
+col.src-c-cap { width: 17%; } col.src-c-doc { width: 21%; } col.src-c-type { width: 11%; } col.src-c-rtm { width: 8%; } col.src-c-disp { width: 10%; } col.src-c-status { width: 13%; }
 .src-type { color: var(--text-muted); font-size: .78rem; }
+.src-table th.src-disp { text-align: center; }
+.src-disp { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.src-disp-perf { color: var(--clr-warning); font-weight: 700; }
+.src-disp-temp { color: var(--accent); font-weight: 600; }
+.src-disp-perm { color: var(--text-muted); font-weight: 600; }
+.src-zero { color: var(--border); }
 .src-table tbody td { padding: .6rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
 .src-table tbody tr:last-child td { border-bottom: none; }
 .src-cap { color: var(--text); font-weight: 500; }

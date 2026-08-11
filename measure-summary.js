@@ -187,7 +187,7 @@ function copyPlanningTable(btn) {
 function renderPlanningCard(assessment) {
   const rows = buildPlanningRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const title = '3 &middot; Planning &mdash; Risk-Treatment Measures to Controls';
-  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control. The <b>Exception</b> column (E / WT / WP from the policy upload) refines <b>Planning Status</b> for RTMs with no control. Use <b>RTM Source</b>, <b>Planning Status</b> and <b>Statement Owner</b> to reconcile with the exec-report funnel (each layer has a ℹ Detail popup with the exact filter).';
+  const desc  = 'Which controls implement which RTMs — one row per control-to-statement mapping (with its risk), plus unmapped pre-DORA controls as capability rows. Copy into Excel and filter by capability, RTM or control. The <b>Exception</b> column shows the E / WT / WP code from the policy upload. Use <b>RTM Source</b>, <b>Planning Status</b> and <b>Statement Owner</b> to reconcile with the exec-report funnel (each layer has a ℹ Detail popup with the exact filter).';
   const tools = `<div class="plan-tools">
     <button class="btn-link" onclick="showPlanningGuide()">ℹ Instructions &amp; prompts</button>
     ${rows.length ? `<button class="btn-link plan-copy" onclick="copyPlanningTable(this)">⧉ Copy for Excel</button>` : ''}
@@ -203,7 +203,7 @@ function renderPlanningCard(assessment) {
   }
   const typeCell = t => t ? `<span class="plan-type">${t}</span>` : '';
   const statusCell = s => s ? `<span class="plan-status ${s === 'Implemented' ? 'plan-st-impl' : 'plan-st-draft'}">${s}</span>` : '';
-  const PLAN_ST_CLS = { 'Built new': 'plan-ps-built', 'Reused pre-DORA': 'plan-ps-reused', 'Drafted': 'plan-ps-drafted', 'Performed (no control)': 'plan-ps-uncovered', 'Waiver (temporary)': 'plan-ps-reused', 'Waiver (permanent)': 'plan-ps-predora', 'Exemption': 'plan-ps-predora', 'Pre-DORA (unmapped)': 'plan-ps-predora' };
+  const PLAN_ST_CLS = { 'Built new': 'plan-ps-built', 'Reused pre-DORA': 'plan-ps-reused', 'Drafted': 'plan-ps-drafted', 'Uncovered': 'plan-ps-uncovered', 'Pre-DORA (unmapped)': 'plan-ps-predora' };
   const planCell = s => s ? `<span class="plan-ps ${PLAN_ST_CLS[s] || ''}">${escHtml(s)}</span>` : '';
   const rowCls = r => r.controlName ? (r.preDora ? 'plan-predora' : '') : 'plan-gap';
   const body = rows.map(r => `<tr${rowCls(r) ? ` class="${rowCls(r)}"` : ''}>

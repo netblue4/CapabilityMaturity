@@ -222,9 +222,9 @@ function showFunnelDetail(layer) {
       item(f.evidenced, 'LIVE (operationalised)', 'RTMs with at least one implemented control.', `<b>Planning Status = Built new</b> OR <b>Reused pre-DORA</b>. ${dedupRtm}`) +
       item(f.built, 'Built new', 'RTM operationalised by a new DORA control.', `<b>Planning Status = Built new</b>. ${dedupRtm}`) +
       item(f.reused, 'Reused pre-DORA', 'RTM operationalised by an existing pre-DORA control.', `<b>Planning Status = Reused pre-DORA</b>. ${dedupRtm}`) +
-      item(f.inProcess, 'IN PROCESS', 'RTMs not yet operationalised by an implemented control.', `<b>Planning Status</b> is <b>Drafted</b>, <b>Performed (no control)</b>, <b>Waiver (temporary)</b>, <b>Waiver (permanent)</b> or <b>Exemption</b>. ${dedupRtm}`) +
+      item(f.inProcess, 'IN PROCESS', 'RTMs not yet operationalised by an implemented control.', `<b>Planning Status = Drafted</b> OR <b>Uncovered</b>. ${dedupRtm}`) +
       item(f.drafted, "Key RTM's Drafted as controls", 'RTM has a control, but it is still in draft.', `<b>Planning Status = Drafted</b>. ${dedupRtm}`) +
-      item(f.uncovered, 'Uncovered', 'RTM has no control mapped at all — now split by the Exception column.', `<b>Planning Status</b> is <b>Performed (no control)</b>, <b>Waiver (temporary)</b>, <b>Waiver (permanent)</b> or <b>Exemption</b>. ${dedupRtm}`);
+      item(f.uncovered, 'Uncovered', 'RTM has no control mapped at all.', `<b>Planning Status = Uncovered</b>. ${dedupRtm}`);
   } else {
     title = 'Layer 4 · ICT Risk & Control Framework — how to reconcile';
     intro = 'These count <b>implemented controls</b>, not RTMs. A control can appear on several rows, so de-duplicate on <b>Control Name</b> (not Statement Ref).';

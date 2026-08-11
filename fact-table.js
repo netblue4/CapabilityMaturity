@@ -312,16 +312,14 @@ function buildGovernanceRows(policyRows, facts) {
     if (ftNorm(pr.status).includes('approv')) r.approved++;
     else r.draft++;   // anything not explicitly approved counts as draft/not-approved
     if (refAny.has(ftNorm(pr.statementRef))) r.riskTracked++;
-    // Exception counts describe the GAP — only RTMs with no control (Uncovered),
-    // so E + WT + WP + invisible sum to this document's uncovered RTMs and line
-    // up with the Planning Status column. A control beats an exception.
-    if (cls[pr.capId + '||' + ftNorm(pr.statementRef)] === 'Uncovered') {
-      const e = ftException(pr.exception);
-      if (e === 'E') r.excE++;
-      else if (e === 'WT') r.excWT++;
-      else if (e === 'WP') r.excWP++;
-      else r.invisible++;   // no exception + no control = invisible work
-    }
+    // Raw exception counts (E/WT/WP) — shown whatever the control status, so an
+    // uploaded exception always appears. "Invisible" is the work we do with no
+    // control and no exception (Uncovered + blank).
+    const e = ftException(pr.exception);
+    if (e === 'E') r.excE++;
+    else if (e === 'WT') r.excWT++;
+    else if (e === 'WP') r.excWP++;
+    else if (cls[pr.capId + '||' + ftNorm(pr.statementRef)] === 'Uncovered') r.invisible++;
   });
   const rows = Object.values(map).map(r => ({
     ...r,
@@ -362,15 +360,6 @@ function buildPlanningRows(policyRows, facts) {
   const rows = [];
   (policyRows || []).forEach(pr => {
     const key = pr.capId + '||' + ftNorm(pr.statementRef);
-    // Exception refines the "Uncovered" bucket only (a control beats an exception).
-    const excCode = ftException(pr.exception);
-    let planStatus = cls[key] || 'Uncovered';
-    if (planStatus === 'Uncovered') {
-      planStatus = excCode === 'WT' ? 'Waiver (temporary)'
-        : excCode === 'E'  ? 'Exemption'
-        : excCode === 'WP' ? 'Waiver (permanent)'
-        : 'Performed (no control)';
-    }
     const base = {
       capName: capName(pr.capId),
       document: (pr.document || '').trim() || '(no document)',
@@ -378,8 +367,8 @@ function buildPlanningRows(policyRows, facts) {
       ref: pr.statementRef || '',
       header: pr.statementHeader || '',
       owner: (pr.owner || '').trim(),
-      exception: excCode,
-      planStatus,
+      exception: ftException(pr.exception),   // raw code (E/WT/WP) for its own column
+      planStatus: cls[key] || 'Uncovered',
     };
     const seen = new Set();
     const ctrls = (byStmt[key] || []).filter(c => {

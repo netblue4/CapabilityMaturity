@@ -145,10 +145,16 @@ function renderRtmFunnel(assessment) {
     { value: f.built,  label: 'Built new',        pct: pOf(f.built, f.evidenced),  color: cBuild },
     { value: f.reused, label: 'Reused pre-DORA',  pct: pOf(f.reused, f.evidenced), color: cReuse },
   ]);
-  const inprocDonut = rtmfDonut([{ value: f.drafted, color: cDraft }, { value: f.uncovered, color: cUnc }], f.inProcess, 'in process');
+  const cWaive = 'color-mix(in srgb, var(--text-muted) 55%, var(--track))';
+  const inprocDonut = rtmfDonut([
+    { value: f.decisionNeeded, color: cUnc },
+    { value: f.inBuild, color: cDraft },
+    { value: f.waived, color: cWaive },
+  ], f.inProcess, 'to decide');
   const inprocLegend = rtmfLegend([
-    { value: f.drafted,   label: "Key RTM's Drafted as controls", pct: pOf(f.drafted, f.inProcess), color: cDraft },
-    { value: f.uncovered, label: 'Uncovered', pct: pOf(f.uncovered, f.inProcess), color: cUnc },
+    { value: f.decisionNeeded, label: 'Decision needed — invisible work',   pct: pOf(f.decisionNeeded, f.inProcess), color: cUnc },
+    { value: f.inBuild,        label: 'In build — control drafted',          pct: pOf(f.inBuild, f.inProcess),        color: cDraft },
+    { value: f.waived,         label: 'Waived / exempted (E/WT/WP)',         pct: pOf(f.waived, f.inProcess),         color: cWaive },
   ]);
 
   // Layer 4 — control framework (control axis)
@@ -175,13 +181,13 @@ function renderRtmFunnel(assessment) {
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">which RTM's should be operationalised with controls</span><button class="btn-link rtmf-detail no-print" onclick="showFunnelDetail('planning')">ℹ Detail</button></div>
+        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">operationalised, or awaiting a decision: build, waive or exempt</span><button class="btn-link rtmf-detail no-print" onclick="showFunnelDetail('planning')">ℹ Detail</button></div>
         <div class="rtmf-units">
           ${rtmfUnit(opedDonut, opedLegend)}
           <div class="rtmf-unit-sep"></div>
           ${rtmfUnit(inprocDonut, inprocLegend)}
         </div>
-        <div class="rtmf-cap">RTM's operationalised ${f.evidenced} &nbsp;+&nbsp; still in process ${f.inProcess} &nbsp;=&nbsp; ${f.total} measures</div>
+        <div class="rtmf-cap">RTM's operationalised ${f.evidenced} &nbsp;+&nbsp; in process ${f.inProcess} &nbsp;=&nbsp; ${f.total} measures &nbsp;&middot;&nbsp; <b>${f.decisionNeeded}</b> awaiting a decision</div>
       </div>
       <div class="rtmf-arrow">↓</div>
 
@@ -217,14 +223,15 @@ function showFunnelDetail(layer) {
       (gs ? item(gs.count, 'Group Standards', 'RTMs whose source document is a group standard.', `<b>RTM Source = Group Standard</b>. ${dedupRtm}`) : '');
   } else if (layer === 'planning') {
     title = 'Layer 3 · Planning — how to reconcile';
-    intro = 'Every number here counts <b>distinct RTMs</b>, classified by the <b>Planning Status</b> column (priority: Built new › Reused pre-DORA › Drafted › Uncovered). Filter, then de-duplicate on Capability + Statement Ref.';
+    intro = 'Every number here counts <b>distinct RTMs</b>. The left donut uses <b>Planning Status</b>; the right (in-process) donut is split by <b>decision</b> using the <b>Exception</b> column. Filter, then de-duplicate on Capability + Statement Ref.';
     items =
       item(f.evidenced, 'LIVE (operationalised)', 'RTMs with at least one implemented control.', `<b>Planning Status = Built new</b> OR <b>Reused pre-DORA</b>. ${dedupRtm}`) +
       item(f.built, 'Built new', 'RTM operationalised by a new DORA control.', `<b>Planning Status = Built new</b>. ${dedupRtm}`) +
       item(f.reused, 'Reused pre-DORA', 'RTM operationalised by an existing pre-DORA control.', `<b>Planning Status = Reused pre-DORA</b>. ${dedupRtm}`) +
-      item(f.inProcess, 'IN PROCESS', 'RTMs not yet operationalised by an implemented control.', `<b>Planning Status = Drafted</b> OR <b>Uncovered</b>. ${dedupRtm}`) +
-      item(f.drafted, "Key RTM's Drafted as controls", 'RTM has a control, but it is still in draft.', `<b>Planning Status = Drafted</b>. ${dedupRtm}`) +
-      item(f.uncovered, 'Uncovered', 'RTM has no control mapped at all.', `<b>Planning Status = Uncovered</b>. ${dedupRtm}`);
+      item(f.inProcess, 'IN PROCESS', 'RTMs not yet operationalised — the decision queue below.', `<b>Planning Status = Drafted</b> OR <b>Uncovered</b>. ${dedupRtm}`) +
+      item(f.decisionNeeded, 'Decision needed', 'No control and no exception — invisible work awaiting a call (build / accept / add to policy).', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is blank. ${dedupRtm}`) +
+      item(f.inBuild, 'In build', 'A control is drafted — decision taken, build in progress.', `<b>Planning Status = Drafted</b>. ${dedupRtm}`) +
+      item(f.waived, 'Waived / exempted', 'No control, but an exception has been filed (E / WT / WP).', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is <b>E</b>, <b>WT</b> or <b>WP</b>. ${dedupRtm}`);
   } else {
     title = 'Layer 4 · ICT Risk & Control Framework — how to reconcile';
     intro = 'These count <b>implemented controls</b>, not RTMs. A control can appear on several rows, so de-duplicate on <b>Control Name</b> (not Statement Ref).';

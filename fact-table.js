@@ -479,6 +479,24 @@ function buildRtmFunnel(policyRows, facts) {
   });
   const total = built + reused + drafted + uncovered;
 
+  // Decision view of the IN-PROCESS RTMs (drafted + uncovered), using the
+  // Exception column. Partitions in-process into exactly three decision states:
+  //   inBuild        — a control is drafted (decision: build, in progress)
+  //   waived         — uncovered but has an E/WT/WP exception (decision taken)
+  //   decisionNeeded — uncovered with no exception (invisible work, no decision)
+  // These sum to inProcess (drafted + uncovered).
+  const excByKey = {};
+  polRows.forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    const e = ftException(pr.exception);
+    if (e && !excByKey[key]) excByKey[key] = e;
+  });
+  let decisionNeeded = 0, inBuild = 0, waived = 0;
+  Object.entries(cls).forEach(([k, bucket]) => {
+    if (bucket === 'Drafted') inBuild++;
+    else if (bucket === 'Uncovered') { if (excByKey[k]) waived++; else decisionNeeded++; }
+  });
+
   const orphans = live.filter(f =>
     f.controlType === 'operational' && ftIsImplemented(f) && !(f.matchedPolicyRows || []).length).length;
 
@@ -498,6 +516,7 @@ function buildRtmFunnel(policyRows, facts) {
   return {
     sources, total, built, reused, drafted, uncovered, orphans,
     evidenced: built + reused, inProcess: drafted + uncovered,
+    decisionNeeded, inBuild, waived,
     haveControl: built + reused + drafted,
     evidencedPct: pct(built + reused), haveControlPct: pct(built + reused + drafted),
     ctrlTotal, ctrlMapped, ctrlUnmapped,

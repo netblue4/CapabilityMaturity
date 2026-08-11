@@ -523,6 +523,48 @@ function buildRtmFunnel(policyRows, facts) {
   };
 }
 
+// ── RTM maturity (5 states) split by source ───────────────────────
+// Combines control coverage (buildRtmClass) with the Exception column into one
+// per-RTM maturity state, counted separately for Local Policy vs Group Standards.
+//   treated      — control implemented, no exception (consistent, repeatable)
+//   incomplete   — a control exists (draft/implemented) AND an exception is open
+//                  (WT = incomplete/fixing, E/WP = suspended/partial)
+//   proposed     — control drafted, no exception (reactive, key-person)
+//   notTreated   — no control, but an exception is filed (accepted / waived)
+//   notPerformed — no control, no exception (not performed or ad hoc)
+const RTM_MATURITY = [
+  { key: 'treated',      label: 'Treated',                meaning: 'Risk identified & treated — consistent, repeatable.' },
+  { key: 'incomplete',   label: 'Incomplete / suspended', meaning: 'A control exists but an exception is open — WT: incomplete, fix in progress; E/WP: suspended, no fix planned.' },
+  { key: 'proposed',     label: 'Proposed',               meaning: 'Risk identified, treatment proposed (control drafted) — reactive, unstructured, key-person dependent.' },
+  { key: 'notTreated',   label: 'Not treated',            meaning: 'Risk identified but not treated — accepted under an exception (E/WT/WP).' },
+  { key: 'notPerformed', label: 'Not performed',          meaning: 'Risk identified, but the RTM is not performed or done ad hoc — key-person dependent.' },
+];
+function buildRtmMaturity(policyRows, facts) {
+  const cls = buildRtmClass(policyRows, facts);
+  const srcLabel = t => isLocPolType(t) ? 'Local Policy' : isGrpStdType(t) ? 'Group Standards' : 'Other';
+  const blank = () => ({ treated: 0, incomplete: 0, proposed: 0, notTreated: 0, notPerformed: 0, total: 0 });
+  const bySource = { 'Local Policy': blank(), 'Group Standards': blank(), 'Other': blank() };
+  const total = blank();
+  const seen = new Set();
+  (policyRows || []).forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    if (seen.has(key)) return;                 // one row per distinct RTM
+    seen.add(key);
+    const bucket = cls[key] || 'Uncovered';
+    const exc = ftException(pr.exception);
+    let state;
+    if (exc) state = (bucket === 'Uncovered') ? 'notTreated' : 'incomplete';
+    else if (bucket === 'Built new' || bucket === 'Reused pre-DORA') state = 'treated';
+    else if (bucket === 'Drafted') state = 'proposed';
+    else state = 'notPerformed';
+    const src = srcLabel(pr.type);
+    (bySource[src] || bySource['Other'])[state]++;
+    (bySource[src] || bySource['Other']).total++;
+    total[state]++; total.total++;
+  });
+  return { states: RTM_MATURITY, bySource, total };
+}
+
 // ── Control type filters ──────────────────────────────────────────
 function ftLocPol(facts)      { return facts.filter(f => f.controlType === 'locPol'); }
 function ftGrpStd(facts)      { return facts.filter(f => f.controlType === 'grpStd'); }

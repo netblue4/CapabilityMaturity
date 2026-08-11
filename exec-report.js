@@ -111,6 +111,7 @@ function rtmfUnit(donut, legend) {
   return `<div class="rtmf-unit">${donut}<div>${legend}</div></div>`;
 }
 let _rtmFunnelData = null;
+let _rtmMaturityData = null;
 function renderRtmFunnel(assessment) {
   const f = buildRtmFunnel(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   _rtmFunnelData = f;
@@ -139,23 +140,22 @@ function renderRtmFunnel(assessment) {
   const typeSegs = f.sources.map((s, i) => ({ value: s.count, color: RTMF_TYPE_COLORS[i % RTMF_TYPE_COLORS.length] }));
   const typeLegend = f.sources.map((s, i) => ({ value: s.count, label: s.name, pct: pOf(s.count, f.total), color: RTMF_TYPE_COLORS[i % RTMF_TYPE_COLORS.length] }));
 
-  // Layer 3 — analysis
-  const opedDonut = rtmfDonut([{ value: f.built, color: cBuild }, { value: f.reused, color: cReuse }], f.evidenced, 'live');
-  const opedLegend = rtmfLegend([
-    { value: f.built,  label: 'Built new',        pct: pOf(f.built, f.evidenced),  color: cBuild },
-    { value: f.reused, label: 'Reused pre-DORA',  pct: pOf(f.reused, f.evidenced), color: cReuse },
-  ]);
+  // Layer 3 — RTM maturity (5 states) split by source
   const cWaive = 'color-mix(in srgb, var(--text-muted) 55%, var(--track))';
-  const inprocDonut = rtmfDonut([
-    { value: f.decisionNeeded, color: cUnc },
-    { value: f.inBuild, color: cDraft },
-    { value: f.waived, color: cWaive },
-  ], f.inProcess, 'in process');
-  const inprocLegend = rtmfLegend([
-    { value: f.decisionNeeded, label: 'No control — draft or deprioritise?',     pct: pOf(f.decisionNeeded, f.inProcess), color: cUnc },
-    { value: f.inBuild,        label: 'Control drafted — implement or close?',   pct: pOf(f.inBuild, f.inProcess),        color: cDraft },
-    { value: f.waived,         label: 'Waived / exempted (E/WT/WP)',             pct: pOf(f.waived, f.inProcess),         color: cWaive },
-  ]);
+  const MAT_COLORS = { treated: cBuild, incomplete: cReuse, proposed: cDraft, notTreated: cWaive, notPerformed: cUnc };
+  const mat = buildRtmMaturity(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  _rtmMaturityData = mat;
+  const matDonut = rtmfDonut(mat.states.map(s => ({ value: mat.total[s.key], color: MAT_COLORS[s.key] })), mat.total.total, 'RTMs');
+  const matRow = s => `<tr>
+    <td class="rtmf-mstate"><i class="rtmf-sw" style="background:${MAT_COLORS[s.key]}"></i><span class="rtmf-ml">${escHtml(s.label)}</span><span class="rtmf-mmean">${escHtml(s.meaning)}</span></td>
+    <td class="rtmf-mc">${mat.bySource['Local Policy'][s.key] || 0}</td>
+    <td class="rtmf-mc">${mat.bySource['Group Standards'][s.key] || 0}</td>
+  </tr>`;
+  const matTable = `<table class="rtmf-mtable">
+    <thead><tr><th></th><th class="rtmf-mc">Local Policy</th><th class="rtmf-mc">Group Std</th></tr></thead>
+    <tbody>${mat.states.map(matRow).join('')}</tbody>
+    <tfoot><tr><td class="rtmf-mstate rtmf-mtot">Total</td><td class="rtmf-mc">${mat.bySource['Local Policy'].total}</td><td class="rtmf-mc">${mat.bySource['Group Standards'].total}</td></tr></tfoot>
+  </table>`;
 
   // Layer 4 — control framework (control axis)
   const ctrlDonut = rtmfDonut([{ value: f.ctrlMapped, color: 'var(--clr-success)' }, { value: f.ctrlUnmapped, color: 'var(--clr-danger)' }], f.ctrlTotal, 'controls');
@@ -181,13 +181,12 @@ function renderRtmFunnel(assessment) {
       <div class="rtmf-arrow">↓</div>
 
       <div class="rtmf-layer">
-        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">operationalised, or awaiting a management decision</span><button class="btn-link rtmf-detail no-print" onclick="showFunnelDetail('planning')">ℹ Detail</button></div>
-        <div class="rtmf-units">
-          ${rtmfUnit(opedDonut, opedLegend)}
-          <div class="rtmf-unit-sep"></div>
-          ${rtmfUnit(inprocDonut, inprocLegend)}
+        <div class="rtmf-eyebrow"><span class="rtmf-num">3</span><span class="rtmf-lname">Planning &mdash; Risk-Treatment Measures to Controls</span><span class="rtmf-lsub">RTM maturity: how well each risk-treatment measure is treated</span><button class="btn-link rtmf-detail no-print" onclick="showFunnelDetail('planning')">ℹ Detail</button></div>
+        <div class="rtmf-units rtmf-matunits">
+          <div class="rtmf-matdonut">${matDonut}</div>
+          <div class="rtmf-matwrap">${matTable}</div>
         </div>
-        <div class="rtmf-cap">RTM's operationalised ${f.evidenced} &nbsp;+&nbsp; in process ${f.inProcess} &nbsp;=&nbsp; ${f.total} measures &nbsp;&middot;&nbsp; <b>${f.decisionNeeded + f.inBuild}</b> awaiting a management decision</div>
+        <div class="rtmf-cap"><b>${mat.total.treated}</b> of ${mat.total.total} RTM's treated &mdash; consistent &amp; repeatable &nbsp;&middot;&nbsp; <b>${mat.total.notPerformed}</b> not performed (invisible / ad hoc)</div>
       </div>
       <div class="rtmf-arrow">↓</div>
 
@@ -222,16 +221,16 @@ function showFunnelDetail(layer) {
       (lp ? item(lp.count, 'Local Policy', 'RTMs whose source document is a local policy.', `<b>RTM Source = Local Policy</b>. ${dedupRtm}`) : '') +
       (gs ? item(gs.count, 'Group Standards', 'RTMs whose source document is a group standard.', `<b>RTM Source = Group Standard</b>. ${dedupRtm}`) : '');
   } else if (layer === 'planning') {
-    title = 'Layer 3 · Planning — how to reconcile';
-    intro = 'Every number here counts <b>distinct RTMs</b>. The left donut uses <b>Planning Status</b>; the right (in-process) donut is split by <b>decision</b> using the <b>Exception</b> column. Filter, then de-duplicate on Capability + Statement Ref.';
+    const m = _rtmMaturityData || { total: {} };
+    const t = m.total;
+    title = 'Layer 3 · RTM maturity — how to reconcile';
+    intro = 'Each RTM is placed in one of five maturity states, combining <b>Planning Status</b> (the control) with the <b>Exception</b> column. Filter, then de-duplicate on Capability + Statement Ref; split by <b>RTM Source</b> for the Local Policy / Group Standards columns.';
     items =
-      item(f.evidenced, 'LIVE (operationalised)', 'RTMs with at least one implemented control.', `<b>Planning Status = Built new</b> OR <b>Reused pre-DORA</b>. ${dedupRtm}`) +
-      item(f.built, 'Built new', 'RTM operationalised by a new DORA control.', `<b>Planning Status = Built new</b>. ${dedupRtm}`) +
-      item(f.reused, 'Reused pre-DORA', 'RTM operationalised by an existing pre-DORA control.', `<b>Planning Status = Reused pre-DORA</b>. ${dedupRtm}`) +
-      item(f.inProcess, 'IN PROCESS', 'RTMs not yet operationalised — the decision queue below.', `<b>Planning Status = Drafted</b> OR <b>Uncovered</b>. ${dedupRtm}`) +
-      item(f.decisionNeeded, 'No control — draft or deprioritise?', 'No control drafted and no exception filed. This is either invisible, key-person-dependent work, or the RTM was judged not key so no control was drafted. The call: draft a control to make it repeatable, or formally deprioritise / accept it.', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is blank. ${dedupRtm}`) +
-      item(f.inBuild, 'Control drafted — implement or close?', 'The RTM was judged key, so a control was drafted to make the work repeatable and consistent. Awaiting a go/no-go: implement the control, or accept there will be no control and close it (the RTM then drops to not key).', `<b>Planning Status = Drafted</b>. ${dedupRtm}`) +
-      item(f.waived, 'Waived / exempted (E/WT/WP)', 'No control, but an exception has been filed — a decision is recorded (E = exemption, WT = temporary waiver, WP = permanent waiver).', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is <b>E</b>, <b>WT</b> or <b>WP</b>. ${dedupRtm}`);
+      item(t.treated || 0, 'Treated', 'Control implemented and no exception — consistent, repeatable.', `<b>Planning Status = Built new</b> OR <b>Reused pre-DORA</b>, AND <b>Exception</b> is blank. ${dedupRtm}`) +
+      item(t.incomplete || 0, 'Incomplete / suspended', 'A control exists (drafted or implemented) but an exception is open — WT: incomplete/fixing; E/WP: suspended.', `<b>Planning Status = Built new</b>, <b>Reused pre-DORA</b> or <b>Drafted</b>, AND <b>Exception</b> is <b>E</b>, <b>WT</b> or <b>WP</b>. ${dedupRtm}`) +
+      item(t.proposed || 0, 'Proposed', 'Control drafted, no exception — reactive, unstructured, key-person dependent.', `<b>Planning Status = Drafted</b> AND <b>Exception</b> is blank. ${dedupRtm}`) +
+      item(t.notTreated || 0, 'Not treated', 'No control, but an exception is filed — accepted / waived (E/WT/WP).', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is <b>E</b>, <b>WT</b> or <b>WP</b>. ${dedupRtm}`) +
+      item(t.notPerformed || 0, 'Not performed', 'No control and no exception — not performed or done ad hoc, key-person dependent.', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is blank. ${dedupRtm}`);
   } else {
     title = 'Layer 4 · ICT Risk & Control Framework — how to reconcile';
     intro = 'These count <b>implemented controls</b>, not RTMs. A control can appear on several rows, so de-duplicate on <b>Control Name</b> (not Statement Ref).';

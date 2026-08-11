@@ -266,21 +266,26 @@ function buildRiskProfile(facts) {
 // ── Governance rows — one per (capability × document), approved vs draft ──
 // Derived from the policy upload's Document Status; replaces the old
 // governance maturity slider.
-// Normalise the RTM "Disposition" column (Lens A) to a canonical bucket.
-// Values in the policy upload: "Performed - no control" | "Temporary exception"
-// | "Permanent exception" (blank = not decided). Matching is lenient.
-function ftDisposition(v) {
+// Normalise the RTM "Exception" column (Lens A) to a canonical code.
+// Values in the policy upload (from the exception form):
+//   E  = Exemption        — objective applies but we cannot implement it (technical)
+//   WT = Waiver Temporary — objective applies but we need time / a new tool
+//   WP = Waiver Permanent — objective applies but we will not build it (regulatory)
+//   ''  (blank)           = no exception → we do it.
+// Matching is lenient (accepts the code or the full wording).
+function ftException(v) {
   const s = ftNorm(v);
   if (!s) return '';
-  if (s.includes('perform') || s.includes('no control')) return 'performed';
-  if (s.includes('temp')) return 'temp';
-  if (s.includes('perm') || s.includes('except')) return 'permanent';
+  if (s === 'e'  || s.includes('exempt')) return 'E';
+  if (s === 'wt' || (s.includes('waiver') && s.includes('temp')) || s.includes('temporary')) return 'WT';
+  if (s === 'wp' || (s.includes('waiver') && s.includes('perm')) || s.includes('permanent')) return 'WP';
   return '';
 }
 
 function buildGovernanceRows(policyRows, facts) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
   const active = (facts || []).filter(f => !ftIsClosedControl(f));   // non-closed controls only
+  const cls = buildRtmClass(policyRows, facts);   // per-RTM control coverage (for "invisible work")
 
   // Statement refs that an active control touches — the "tracked as risks" rule.
   const refAny = new Set();
@@ -301,16 +306,22 @@ function buildGovernanceRows(policyRows, facts) {
   (policyRows || []).forEach(pr => {
     const doc = (pr.document || '').trim() || '(no document)';
     const key = pr.capId + '||' + doc;
-    if (!map[key]) map[key] = { key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0, dispPerformed: 0, dispTemp: 0, dispPermanent: 0 };
+    if (!map[key]) map[key] = { key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0, excE: 0, excWT: 0, excWP: 0, invisible: 0 };
     const r = map[key];
     r.total++;
     if (ftNorm(pr.status).includes('approv')) r.approved++;
     else r.draft++;   // anything not explicitly approved counts as draft/not-approved
     if (refAny.has(ftNorm(pr.statementRef))) r.riskTracked++;
-    const d = ftDisposition(pr.disposition);
-    if (d === 'performed') r.dispPerformed++;
-    else if (d === 'temp') r.dispTemp++;
-    else if (d === 'permanent') r.dispPermanent++;
+    // Exception counts describe the GAP — only RTMs with no control (Uncovered),
+    // so E + WT + WP + invisible sum to this document's uncovered RTMs and line
+    // up with the Planning Status column. A control beats an exception.
+    if (cls[pr.capId + '||' + ftNorm(pr.statementRef)] === 'Uncovered') {
+      const e = ftException(pr.exception);
+      if (e === 'E') r.excE++;
+      else if (e === 'WT') r.excWT++;
+      else if (e === 'WP') r.excWP++;
+      else r.invisible++;   // no exception + no control = invisible work
+    }
   });
   const rows = Object.values(map).map(r => ({
     ...r,
@@ -351,6 +362,15 @@ function buildPlanningRows(policyRows, facts) {
   const rows = [];
   (policyRows || []).forEach(pr => {
     const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    // Exception refines the "Uncovered" bucket only (a control beats an exception).
+    const excCode = ftException(pr.exception);
+    let planStatus = cls[key] || 'Uncovered';
+    if (planStatus === 'Uncovered') {
+      planStatus = excCode === 'WT' ? 'Waiver (temporary)'
+        : excCode === 'E'  ? 'Exemption'
+        : excCode === 'WP' ? 'Waiver (permanent)'
+        : 'Performed (no control)';
+    }
     const base = {
       capName: capName(pr.capId),
       document: (pr.document || '').trim() || '(no document)',
@@ -358,7 +378,8 @@ function buildPlanningRows(policyRows, facts) {
       ref: pr.statementRef || '',
       header: pr.statementHeader || '',
       owner: (pr.owner || '').trim(),
-      planStatus: cls[key] || 'Uncovered',
+      exception: excCode,
+      planStatus,
     };
     const seen = new Set();
     const ctrls = (byStmt[key] || []).filter(c => {
@@ -385,7 +406,7 @@ function buildPlanningRows(policyRows, facts) {
     preSeen.add(k);
     rows.push({
       capName: capName(f.capId), document: '', source: '', ref: '', header: '',
-      owner: '', planStatus: 'Pre-DORA (unmapped)',
+      owner: '', exception: '', planStatus: 'Pre-DORA (unmapped)',
       risk, controlName: name, controlType: 'Pre-DORA',
       controlStatus: ftIsImplemented(f) ? 'Implemented' : 'Draft',
       desc: (f.controlDesc || '').trim(), preDora: true,

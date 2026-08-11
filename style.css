@@ -2767,6 +2767,7 @@ details[open] .profile-card-chevron {
 /* Planning table — reconciliation columns */
 .plan-src { font-size: .72rem; color: var(--text-muted); white-space: nowrap; }
 .plan-owner { font-size: .74rem; color: var(--text); white-space: nowrap; }
+.plan-exc { font-family: var(--font-mono); font-size: .72rem; font-weight: 700; color: var(--clr-warning); text-align: center; }
 .plan-ps { font-family: var(--font-mono); font-size: .62rem; font-weight: 700; padding: .12rem .5rem; border-radius: 20px; white-space: nowrap; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .plan-ps-built { background: color-mix(in srgb, var(--clr-success) 22%, transparent); color: var(--clr-success); }
 .plan-ps-reused { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
@@ -2804,7 +2805,7 @@ details[open] .profile-card-chevron {
 .src-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
 .src-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
 .src-table th.src-rtm, .src-table th.src-status { text-align: center; }
-col.src-c-cap { width: 17%; } col.src-c-doc { width: 21%; } col.src-c-type { width: 11%; } col.src-c-rtm { width: 8%; } col.src-c-disp { width: 10%; } col.src-c-status { width: 13%; }
+col.src-c-cap { width: 15%; } col.src-c-doc { width: 20%; } col.src-c-type { width: 10%; } col.src-c-rtm { width: 7%; } col.src-c-disp { width: 9%; } col.src-c-status { width: 12%; }
 .src-type { color: var(--text-muted); font-size: .78rem; }
 .src-table th.src-disp { text-align: center; }
 .src-disp { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }

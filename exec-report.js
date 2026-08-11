@@ -147,7 +147,7 @@ function renderRtmFunnel(assessment) {
   _rtmMaturityData = mat;
   const matDonut = rtmfDonut(mat.states.map(s => ({ value: mat.total[s.key], color: MAT_COLORS[s.key] })), mat.total.total, 'RTMs');
   const matRow = s => `<tr>
-    <td class="rtmf-mstate"><i class="rtmf-sw" style="background:${MAT_COLORS[s.key]}"></i><span class="rtmf-ml">${escHtml(s.label)}</span><span class="rtmf-mmean">${escHtml(s.meaning)}</span></td>
+    <td class="rtmf-mstate"><span class="rtmf-mhd"><i class="rtmf-sw" style="background:${MAT_COLORS[s.key]}"></i><span class="rtmf-ml">${escHtml(s.label)}</span></span><span class="rtmf-mmean">${escHtml(s.meaning)}</span></td>
     <td class="rtmf-mc">${mat.bySource['Local Policy'][s.key] || 0}</td>
     <td class="rtmf-mc">${mat.bySource['Group Standards'][s.key] || 0}</td>
   </tr>`;
@@ -186,7 +186,7 @@ function renderRtmFunnel(assessment) {
           <div class="rtmf-matdonut">${matDonut}</div>
           <div class="rtmf-matwrap">${matTable}</div>
         </div>
-        <div class="rtmf-cap"><b>${mat.total.treated}</b> of ${mat.total.total} RTM's treated &mdash; consistent &amp; repeatable &nbsp;&middot;&nbsp; <b>${mat.total.notPerformed}</b> not performed (invisible / ad hoc)</div>
+        <div class="rtmf-cap"><b>${mat.total.treated}</b> of ${mat.total.total} RTM's treated &mdash; consistent &amp; repeatable &nbsp;&middot;&nbsp; <b>${mat.total.notPerformed}</b> performed ad hoc (invisible / key-person)</div>
       </div>
       <div class="rtmf-arrow">↓</div>
 
@@ -230,7 +230,7 @@ function showFunnelDetail(layer) {
       item(t.incomplete || 0, 'Incomplete / suspended', 'A control exists (drafted or implemented) but an exception is open — WT: incomplete/fixing; E/WP: suspended.', `<b>Planning Status = Built new</b>, <b>Reused pre-DORA</b> or <b>Drafted</b>, AND <b>Exception</b> is <b>E</b>, <b>WT</b> or <b>WP</b>. ${dedupRtm}`) +
       item(t.proposed || 0, 'Proposed', 'Control drafted, no exception — reactive, unstructured, key-person dependent.', `<b>Planning Status = Drafted</b> AND <b>Exception</b> is blank. ${dedupRtm}`) +
       item(t.notTreated || 0, 'Not treated', 'No control, but an exception is filed — accepted / waived (E/WT/WP).', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is <b>E</b>, <b>WT</b> or <b>WP</b>. ${dedupRtm}`) +
-      item(t.notPerformed || 0, 'Not performed', 'No control and no exception — not performed or done ad hoc, key-person dependent.', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is blank. ${dedupRtm}`);
+      item(t.notPerformed || 0, 'Performed ad hoc', 'No control and no exception — not performed or done ad hoc, key-person dependent.', `<b>Planning Status = Uncovered</b> AND <b>Exception</b> is blank. ${dedupRtm}`);
   } else {
     title = 'Layer 4 · ICT Risk & Control Framework — how to reconcile';
     intro = 'These count <b>implemented controls</b>, not RTMs. A control can appear on several rows, so de-duplicate on <b>Control Name</b> (not Statement Ref).';

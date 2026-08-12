@@ -219,8 +219,11 @@ function ftAggregateRisks(facts) {
     const t = ftNorm(f.riskTitle);
     if (!t) return;
     const key = f.capId + '|' + t;
-    const r = map[key] || (map[key] = { title: f.riskTitle, owner: '', residual: 0, active: 0, implemented: 0, tested: 0, effective: 0, docKeys: new Set() });
+    const r = map[key] || (map[key] = { title: f.riskTitle, owner: '', residual: 0, active: 0, implemented: 0, tested: 0, effective: 0, srcLoc: 0, srcGrp: 0, srcPre: 0, docKeys: new Set() });
     r.active++;
+    if (f.controlType === 'locPol') r.srcLoc++;
+    else if (f.controlType === 'grpStd') r.srcGrp++;
+    else if (f.controlType === 'operational') r.srcPre++;
     if (ftIsImplemented(f)) r.implemented++;
     if (ftIsAssessed(f))    r.tested++;
     if (ftIsEffective(f))   r.effective++;
@@ -247,6 +250,7 @@ function ftFinalizeRisk(r) {
   const elevated = b === 'extreme' || b === 'significant' || b === 'na' || conf === 'low' || conf === 'med' || gap;
   return { title: r.title, owner: r.owner, residual: r.residual, active: r.active,
     implemented: r.implemented, tested: r.tested, effective: r.effective,
+    srcLoc: r.srcLoc, srcGrp: r.srcGrp, srcPre: r.srcPre,
     band: b, testedPct, conf, gap, isAct, elevated, docKeys: r.docKeys };
 }
 

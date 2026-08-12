@@ -5,13 +5,10 @@ function renderMeasureSummary(assessment) {
 
   const srcSlot = document.getElementById("sources-card-row");
   if (srcSlot) srcSlot.innerHTML = renderSourcesCard(assessment);
-  const planSlot = document.getElementById("planning-card-row");
-  if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
-  const govSlot = document.getElementById("governance-card-row");
-  if (govSlot) govSlot.innerHTML = renderGovernanceCard(assessment);
   const rmSlot = document.getElementById("riskmgmt-card-row");
   if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
-  document.getElementById("risk-card-row").innerHTML = renderRiskMgmtSummaryCard(assessment, prev);
+  const planSlot = document.getElementById("planning-card-row");
+  if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }
 
 // ── Risk-profile table (shared by the governance + Pre-DORA cards) ──
@@ -78,8 +75,7 @@ const SRC_FIELD = {
   capName:  r => r.capName || '',
   document: r => r.document || '',
   type:     r => r.type || '',
-  total:    r => r.total,
-  invisible: r => r.invisible || 0,
+  tracked:  r => r.riskTracked || 0,
   excE:      r => r.excE || 0,
   excWT:     r => r.excWT || 0,
   excWP:     r => r.excWP || 0,
@@ -101,12 +97,12 @@ function srcHead() {
     ${th('capName', 'Capability')}
     ${th('document', 'Document')}
     ${th('type', 'Type')}
-    ${th('total', "# RTM's", 'src-rtm')}
-    ${th('invisible', 'Performed<br>no control', 'src-disp')}
+    ${th('tracked', 'Risk-tracked statements', 'src-track-h')}
     ${th('excE', 'E', 'src-disp')}
     ${th('excWT', 'WT', 'src-disp')}
     ${th('excWP', 'WP', 'src-disp')}
     ${th('status', 'Document status', 'src-status')}
+    <th class="src-risks-h">Risks</th>
   </tr>`;
 }
 function srcBody(rows) {
@@ -116,16 +112,23 @@ function srcBody(rows) {
     return `<span class="gov-badge ${cls}" title="${r.approved} approved &middot; ${r.draft} draft (of ${r.total})">${txt}</span>`;
   };
   const disp = (n, cls, tip) => `<td class="src-disp ${n ? cls : ''}" title="${tip}">${n ? n : '<span class="src-zero">·</span>'}</td>`;
+  const trackCell = r => {
+    const w = r.total > 0 ? Math.round(100 * r.riskTracked / r.total) : 0;
+    return `<div class="rp-track"><span class="rp-track-num">${r.riskTracked}<span class="rp-den"> / ${r.total}</span></span><span class="rp-track-bar"><i style="width:${w}%"></i></span></div>`;
+  };
+  const riskList = r => (r.risks && r.risks.length)
+    ? r.risks.map(k => `<div class="src-risk-item" title="${escHtml(k.title)}">${escHtml(k.title)}</div>`).join('')
+    : '<span class="src-zero">—</span>';
   return rows.map(r => `<tr>
     <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="src-doc"><div class="src-doc-name">${r.document}</div></td>
     <td class="src-type">${r.type}</td>
-    <td class="src-rtm" title="${r.total} risk-treatment measure(s) in this document">${r.total}</td>
-    ${disp(r.invisible, 'src-disp-perf', `${r.invisible || 0} RTM(s) performed with no control and no exception — invisible work`)}
+    <td class="src-track" title="${r.riskTracked} of ${r.total} statement(s) tracked as risk(s)">${trackCell(r)}</td>
     ${disp(r.excE, 'src-disp-perm', `${r.excE || 0} Exemption (E): objective applies but cannot be implemented (technical)`)}
     ${disp(r.excWT, 'src-disp-temp', `${r.excWT || 0} Waiver Temporary (WT): applies but need time / a new tool`)}
     ${disp(r.excWP, 'src-disp-perm', `${r.excWP || 0} Waiver Permanent (WP): applies but we will not build it (regulatory)`)}
     <td class="src-status">${badge(r)}</td>
+    <td class="src-risks">${riskList(r)}</td>
   </tr>`).join('');
 }
 function sortSourcesTable(col) {
@@ -144,9 +147,8 @@ function renderSourcesCard(assessment) {
   if (rows.length) {
     const totalRtm = rows.reduce((a, r) => a + r.total, 0);
     const caps = new Set(rows.map(r => r.capId)).size;
-    desc = `${rows.length} document${rows.length === 1 ? '' : 's'} &middot; ${totalRtm} risk-treatment measure${totalRtm === 1 ? '' : 's'} across ${caps} capabilit${caps === 1 ? 'y' : 'ies'}.`;
-    const inv = rows.reduce((a, r) => a + (r.invisible || 0), 0);
-    if (inv) desc += ` <b>${inv}</b> performed with no control &mdash; work we do that isn't tracked as a control.`;
+    const tracked = rows.reduce((a, r) => a + (r.riskTracked || 0), 0);
+    desc = `${rows.length} document${rows.length === 1 ? '' : 's'} &middot; ${totalRtm} risk-treatment measure${totalRtm === 1 ? '' : 's'} across ${caps} capabilit${caps === 1 ? 'y' : 'ies'} &middot; <b>${tracked}</b> tracked as a risk.`;
   }
   const header = `
     <div class="measure-card-header">
@@ -163,7 +165,7 @@ function renderSourcesCard(assessment) {
       ${header}
       <div class="rcsa-table-wrap">
         <table class="src-table">
-          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-rtm"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"></colgroup>
+          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
           <thead id="src-thead">${srcHead()}</thead>
           <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>
@@ -463,14 +465,14 @@ function renderGovernanceCard(assessment) {
     </div>`;
 }
 
-// ── Control Operationalisation Coverage — Pre-DORA ─────────────────
-// Pre-DORA (operational) controls have no policy/standard home, so they are
-// listed by risk with the same risk-profile columns as the governance card.
-function renderPreDoraCard(assessment) {
-  const facts = (assessment.riskPolicyFacts || []).filter(f => f.controlType === 'operational');
-  const risks = buildRiskProfile(facts);
-  const title = 'Control Operationalisation Coverage &mdash; Pre-DORA';
-  const desc  = 'Pre-DORA operational controls (narrow disruption-risk scope) &mdash; the risks they mitigate and the control assurance behind them.';
+// ── Risks & their Controls — full risk register ───────────────────
+// One row per ICT risk: the assurance behind it (residual, implemented, tested,
+// effective, confidence) plus how many treating controls come from each source
+// (Local Policy / Group Standards / pre-DORA).
+function renderRiskRegisterCard(assessment) {
+  const risks = buildRiskProfile(assessment.riskPolicyFacts || []);
+  const title = 'Risks &amp; their Controls';
+  const desc  = 'Every ICT risk, the assurance behind it, and how many treating controls come from each source.';
   const elevOn = window._rpElevated !== false;
   const header = `
     <div class="measure-card-header">
@@ -479,12 +481,36 @@ function renderPreDoraCard(assessment) {
       ${risks.length ? rpElevToggle() : ''}
     </div>`;
   if (!risks.length) {
-    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No pre-DORA controls yet.</p></div>`;
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
   }
+  const srcCell = n => n ? `<b>${n}</b>` : '<span class="src-zero">·</span>';
+  const body = risks.map(k => {
+    const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
+    const owner = (k.owner || '').trim();
+    return `<tr class="${cls}">
+      <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
+      <td class="rp-num">${rpResCell(k)}</td>
+      <td class="rp-num">${rpFrac(k.implemented, k.active)}</td>
+      <td class="rp-num">${rpFrac(k.tested, k.active)}</td>
+      <td class="rp-num">${rpFrac(k.effective, k.active, true)}</td>
+      <td class="rp-num">${rpConfCell(k)}</td>
+      <td class="rp-num rr-src" title="${k.srcLoc || 0} treating control(s) from Local Policy">${srcCell(k.srcLoc)}</td>
+      <td class="rp-num rr-src" title="${k.srcGrp || 0} treating control(s) from Group Standards">${srcCell(k.srcGrp)}</td>
+      <td class="rp-num rr-src" title="${k.srcPre || 0} treating pre-DORA control(s)">${srcCell(k.srcPre)}</td>
+    </tr>`;
+  }).join('');
   return `
     <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
       ${header}
-      <div class="rcsa-table-wrap">${renderRiskProfileTable(risks, false)}</div>
+      <div class="rcsa-table-wrap">
+        <table class="rp-table rr-table">
+          <thead><tr>
+            <th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th>
+            <th class="rp-num rr-src">Local Policy</th><th class="rp-num rr-src">Group Std</th><th class="rp-num rr-src">Pre-DORA</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
     </div>`;
 }
 
@@ -874,7 +900,7 @@ const RISK_THEMES = [
 // Main (working) screen: only the Pre-DORA control-operationalisation card.
 // The Local Policy / Group Standard operationalisation cards were removed.
 function renderThemedRiskSection(assessment, prev) {
-  return `<div class="theme-block">${renderPreDoraCard(assessment)}</div>`;
+  return `<div class="theme-block">${renderRiskRegisterCard(assessment)}</div>`;
 }
 
 // Quarter-over-quarter arrow — green when the change is in the good direction.

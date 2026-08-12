@@ -2806,8 +2806,13 @@ details[open] .profile-card-chevron {
 .src-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
 .src-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
 .src-table th.src-rtm, .src-table th.src-status { text-align: center; }
-col.src-c-cap { width: 15%; } col.src-c-doc { width: 20%; } col.src-c-type { width: 10%; } col.src-c-rtm { width: 7%; } col.src-c-disp { width: 9%; } col.src-c-status { width: 12%; }
+col.src-c-cap { width: 11%; } col.src-c-doc { width: 15%; } col.src-c-type { width: 8%; } col.src-c-track { width: 13%; } col.src-c-disp { width: 6%; } col.src-c-status { width: 10%; } col.src-c-risks { width: 25%; }
 .src-type { color: var(--text-muted); font-size: .78rem; }
+.src-table th.src-track-h, .src-table th.src-risks-h { text-align: left; }
+.src-track { vertical-align: middle; }
+.src-risk-item { font-size: .74rem; color: var(--text); line-height: 1.35; padding: .1rem 0; border-bottom: 1px dotted var(--border-subtle); }
+.src-risk-item:last-child { border-bottom: none; }
+.rr-table th.rr-src, .rr-table td.rr-src { text-align: center; border-left: 1px solid var(--border-subtle); }
 .src-table th.src-disp { text-align: center; }
 .src-disp { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .src-disp-perf { color: var(--clr-warning); font-weight: 700; }

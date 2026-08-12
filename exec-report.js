@@ -67,13 +67,13 @@ function generateExecReport() {
       <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
     </div>
     ${execStep(1)}
-    <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA)}</div>
+    <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA, prevA)}</div>
     ${execStep(2)}
-    ${RISK_THEMES.map(t => `<div class="exec-rcsa-wrap">${renderFrameworkCard(currentA, t)}</div>`).join('')}
+    <div class="exec-rcsa-wrap">${renderExecRiskCard(currentA, prevA)}</div>
     ${execStep(3)}
     <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
     <div class="exec-sec-div">Supporting Detail</div>
-    <div class="exec-rcsa-wrap">${renderRtmOwnerCard(currentA)}</div>
+    <div class="exec-rcsa-wrap">${renderRtmOwnerCard(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
   `;
   showView('exec-report');
@@ -105,15 +105,61 @@ function rtmfDonut(segs, big, small) {
 }
 function rtmfLegend(items) {
   return `<div class="rtmf-legend">${items.map(it =>
-    `<div class="rtmf-lg"><i style="background:${it.color}"></i><b>${it.value}</b> <span>${escHtml(it.label)} (${it.pct}%)</span></div>`).join('')}</div>`;
+    `<div class="rtmf-lg"><i style="background:${it.color}"></i><b>${it.value}</b> <span>${escHtml(it.label)} (${it.pct}%)${it.trend || ''}</span></div>`).join('')}</div>`;
 }
 function rtmfUnit(donut, legend) {
   return `<div class="rtmf-unit">${donut}<div>${legend}</div></div>`;
 }
+// ── IT Risk & Control Framework — all risks, with q-o-q trend arrows ──
+const EXEC_CONF_SCORE = { high: 3, med: 2, low: 1, na: 0 };
+function renderExecRiskCard(current, prev) {
+  const risks = buildRiskProfile(current.riskPolicyFacts || []);
+  const pmap = {};
+  if (prev) buildRiskProfile(prev.riskPolicyFacts || []).forEach(k => { pmap[ftNorm(k.title)] = k; });
+  const title = 'IT Risk &amp; Control Framework &mdash; Pre-DORA';
+  const desc = 'Every ICT risk, the assurance behind it, and how each metric moved since last quarter (▲/▼).';
+  const elevOn = window._rpElevated !== false;
+  const header = `
+    <div class="measure-card-header">
+      <span class="measure-icon">🛡️</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+      ${risks.length ? rpElevToggle() : ''}
+    </div>`;
+  if (!risks.length) {
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
+  }
+  const body = risks.map(k => {
+    const pv = pmap[ftNorm(k.title)];
+    const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
+    const owner = (k.owner || '').trim();
+    const tr = (val, pval, dir) => pv ? qoqTrend(val, pval, dir) : '';
+    return `<tr class="${cls}">
+      <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
+      <td class="rp-num">${rpResCell(k)}${tr(k.residual, pv && pv.residual, 'downGood')}</td>
+      <td class="rp-num">${rpFrac(k.implemented, k.active)}${tr(k.implemented, pv && pv.implemented, 'upGood')}</td>
+      <td class="rp-num">${rpFrac(k.tested, k.active)}${tr(k.tested, pv && pv.tested, 'upGood')}</td>
+      <td class="rp-num">${rpFrac(k.effective, k.active, true)}${tr(k.effective, pv && pv.effective, 'upGood')}</td>
+      <td class="rp-num">${rpConfCell(k)}${pv ? qoqTrend(EXEC_CONF_SCORE[k.conf], EXEC_CONF_SCORE[pv.conf], 'upGood') : ''}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
+      ${header}
+      <div class="rcsa-table-wrap">
+        <table class="rp-table">
+          <thead><tr><th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 let _rtmFunnelData = null;
 let _rtmMaturityData = null;
-function renderRtmFunnel(assessment) {
+function renderRtmFunnel(assessment, prev) {
   const f = buildRtmFunnel(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const pf = prev ? buildRtmFunnel(prev.policyRows || [], prev.riskPolicyFacts || []) : null;
+  const pmat = prev ? buildRtmMaturity(prev.policyRows || [], prev.riskPolicyFacts || []) : null;
   _rtmFunnelData = f;
   const header = `
     <div class="measure-card-header">
@@ -137,8 +183,9 @@ function renderRtmFunnel(assessment) {
     `<div class="rtmf-src"><div class="rtmf-src-name">${escHtml(s.name)}</div><div class="rtmf-src-val">${s.count}</div></div>`).join('');
 
   // Layer 2 — RTM composition by document type
+  const prevSrc = name => pf ? (pf.sources.find(s => s.name === name) || {}).count : null;
   const typeSegs = f.sources.map((s, i) => ({ value: s.count, color: RTMF_TYPE_COLORS[i % RTMF_TYPE_COLORS.length] }));
-  const typeLegend = f.sources.map((s, i) => ({ value: s.count, label: s.name, pct: pOf(s.count, f.total), color: RTMF_TYPE_COLORS[i % RTMF_TYPE_COLORS.length] }));
+  const typeLegend = f.sources.map((s, i) => ({ value: s.count, label: s.name, pct: pOf(s.count, f.total), color: RTMF_TYPE_COLORS[i % RTMF_TYPE_COLORS.length], trend: qoqTrend(s.count, prevSrc(s.name), 'neutral') }));
 
   // Layer 3 — RTM maturity (5 states) split by source
   const cWaive = 'color-mix(in srgb, var(--text-muted) 55%, var(--track))';
@@ -146,10 +193,13 @@ function renderRtmFunnel(assessment) {
   const mat = buildRtmMaturity(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   _rtmMaturityData = mat;
   const matDonut = rtmfDonut(mat.states.map(s => ({ value: mat.total[s.key], color: MAT_COLORS[s.key] })), mat.total.total, 'RTMs');
+  // Only "treated" going up is good; every other (un-treated) state going up is bad.
+  const MAT_DIR = { treated: 'upGood', incomplete: 'downGood', proposed: 'downGood', notTreated: 'downGood', notPerformed: 'downGood' };
+  const matTrend = (src, key) => pmat ? qoqTrend(mat.bySource[src][key] || 0, pmat.bySource[src][key] || 0, MAT_DIR[key]) : '';
   const matRow = s => `<tr>
     <td class="rtmf-mstate"><span class="rtmf-mhd"><i class="rtmf-sw" style="background:${MAT_COLORS[s.key]}"></i><span class="rtmf-ml">${escHtml(s.label)}</span></span><span class="rtmf-mmean">${escHtml(s.meaning)}</span></td>
-    <td class="rtmf-mc">${mat.bySource['Local Policy'][s.key] || 0}</td>
-    <td class="rtmf-mc">${mat.bySource['Group Standards'][s.key] || 0}</td>
+    <td class="rtmf-mc">${mat.bySource['Local Policy'][s.key] || 0}${matTrend('Local Policy', s.key)}</td>
+    <td class="rtmf-mc">${mat.bySource['Group Standards'][s.key] || 0}${matTrend('Group Standards', s.key)}</td>
   </tr>`;
   const matTable = `<table class="rtmf-mtable">
     <thead><tr><th></th><th class="rtmf-mc">Local Policy</th><th class="rtmf-mc">Group Std</th></tr></thead>
@@ -160,8 +210,8 @@ function renderRtmFunnel(assessment) {
   // Layer 4 — control framework (control axis)
   const ctrlDonut = rtmfDonut([{ value: f.ctrlMapped, color: 'var(--clr-success)' }, { value: f.ctrlUnmapped, color: 'var(--clr-danger)' }], f.ctrlTotal, 'controls');
   const ctrlLegend = rtmfLegend([
-    { value: f.ctrlMapped,   label: 'Mapped to a RTM', pct: pOf(f.ctrlMapped, f.ctrlTotal),   color: 'var(--clr-success)' },
-    { value: f.ctrlUnmapped, label: 'Not mapped to RTM - No reason for running', pct: pOf(f.ctrlUnmapped, f.ctrlTotal), color: 'var(--clr-danger)' },
+    { value: f.ctrlMapped,   label: 'Mapped to a RTM', pct: pOf(f.ctrlMapped, f.ctrlTotal),   color: 'var(--clr-success)', trend: qoqTrend(f.ctrlMapped, pf && pf.ctrlMapped, 'upGood') },
+    { value: f.ctrlUnmapped, label: 'Not mapped to RTM - No reason for running', pct: pOf(f.ctrlUnmapped, f.ctrlTotal), color: 'var(--clr-danger)', trend: qoqTrend(f.ctrlUnmapped, pf && pf.ctrlUnmapped, 'downGood') },
   ]);
 
   return `
@@ -186,7 +236,7 @@ function renderRtmFunnel(assessment) {
           <div class="rtmf-matdonut">${matDonut}</div>
           <div class="rtmf-matwrap">${matTable}</div>
         </div>
-        <div class="rtmf-cap"><b>${mat.total.treated}</b> of ${mat.total.total} RTM's treated &mdash; consistent &amp; repeatable &nbsp;&middot;&nbsp; <b>${mat.total.notPerformed}</b> performed ad hoc (invisible / key-person)</div>
+        <div class="rtmf-cap"><b>${mat.total.treated}</b>${pmat ? qoqTrend(mat.total.treated, pmat.total.treated, 'upGood') : ''} of ${mat.total.total} RTM's treated &mdash; consistent &amp; repeatable &nbsp;&middot;&nbsp; <b>${mat.total.notPerformed}</b>${pmat ? qoqTrend(mat.total.notPerformed, pmat.total.notPerformed, 'downGood') : ''} performed ad hoc (invisible / key-person)</div>
       </div>
       <div class="rtmf-arrow">↓</div>
 
@@ -319,6 +369,8 @@ function renderOwnerGapCard(assessment, prev) {
 // order is applied.
 let _rtmoRows = [];
 let _rtmoTotals = null;
+let _rtmoPrev = {};
+let _rtmoPrevTotals = null;
 let _rtmoSort = { col: 'controls', dir: -1 };
 const RTMO_FIELD = {
   owner:       r => r.owner || '',
@@ -349,31 +401,37 @@ function rtmoHead() {
     ${th('assessed', 'Assessed', 'rto-bar-th')}
   </tr>`;
 }
-function rtmoBarCell(n, d) {
+function rtmoBarCell(n, d, trend) {
   if (!d) return `<td class="rto-bar-td"><span class="mrt-dash">—</span></td>`;
   const pct = Math.round(100 * n / d);
   return `<td class="rto-bar-td"><div class="rto-cell">
-    <span class="rto-fig"><b>${n}</b>/${d}</span>
+    <span class="rto-fig"><b>${n}</b>/${d}${trend || ''}</span>
     <span class="rto-track"><i style="width:${pct}%"></i></span>
     <span class="rto-pct">${pct}%</span>
   </div></td>`;
 }
 function rtmoBody(rows) {
-  const body = rows.map(r => `<tr>
+  const body = rows.map(r => {
+    const pv = _rtmoPrev[r.owner];
+    const tr = (val, pval, dir) => pv ? qoqTrend(val, pval, dir) : '';
+    return `<tr>
     <td class="rto-owner" title="${escHtml(r.owner)}">${escHtml(r.owner)}</td>
-    <td class="rto-num">${r.rtms}</td>
-    <td class="rto-num">${r.controls}</td>
-    ${rtmoBarCell(r.implemented, r.controls)}
-    ${rtmoBarCell(r.assessed, r.controls)}
-  </tr>`).join('');
+    <td class="rto-num">${r.rtms}${tr(r.rtms, pv && pv.rtms, 'neutral')}</td>
+    <td class="rto-num">${r.controls}${tr(r.controls, pv && pv.controls, 'neutral')}</td>
+    ${rtmoBarCell(r.implemented, r.controls, tr(r.implemented, pv && pv.implemented, 'upGood'))}
+    ${rtmoBarCell(r.assessed, r.controls, tr(r.assessed, pv && pv.assessed, 'upGood'))}
+  </tr>`;
+  }).join('');
   const t = _rtmoTotals || { rtms: 0, controls: 0, implemented: 0, assessed: 0 };
+  const pt = _rtmoPrevTotals;
+  const ptr = (val, pval, dir) => pt ? qoqTrend(val, pval, dir) : '';
   const tpct = (n, d) => d ? Math.round(100 * n / d) + '%' : '—';
   const totalRow = `<tr class="rto-total">
     <td>All owners <span class="rto-total-sub">controls counted once</span></td>
-    <td class="rto-num">${t.rtms}</td>
-    <td class="rto-num">${t.controls}</td>
-    <td class="rto-bar-td"><b>${t.implemented}</b>/${t.controls} · ${tpct(t.implemented, t.controls)}</td>
-    <td class="rto-bar-td"><b>${t.assessed}</b>/${t.controls} · ${tpct(t.assessed, t.controls)}</td>
+    <td class="rto-num">${t.rtms}${ptr(t.rtms, pt && pt.rtms, 'neutral')}</td>
+    <td class="rto-num">${t.controls}${ptr(t.controls, pt && pt.controls, 'neutral')}</td>
+    <td class="rto-bar-td"><b>${t.implemented}</b>/${t.controls} · ${tpct(t.implemented, t.controls)}${ptr(t.implemented, pt && pt.implemented, 'upGood')}</td>
+    <td class="rto-bar-td"><b>${t.assessed}</b>/${t.controls} · ${tpct(t.assessed, t.controls)}${ptr(t.assessed, pt && pt.assessed, 'upGood')}</td>
   </tr>`;
   return body + totalRow;
 }
@@ -385,11 +443,18 @@ function sortRtmOwnerTable(col) {
   if (tb) tb.innerHTML = rtmoBody(rtmoSortRows());
   if (th) th.innerHTML = rtmoHead();
 }
-function renderRtmOwnerCard(assessment) {
+function renderRtmOwnerCard(assessment, prev) {
   const { rows, totals } = buildRtmOwnerRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   if (!rows.length) return '';
   _rtmoRows = rows;
   _rtmoTotals = totals;
+  _rtmoPrev = {};
+  _rtmoPrevTotals = null;
+  if (prev) {
+    const pr = buildRtmOwnerRows(prev.policyRows || [], prev.riskPolicyFacts || []);
+    pr.rows.forEach(r => { _rtmoPrev[r.owner] = r; });
+    _rtmoPrevTotals = pr.totals;
+  }
   _rtmoSort = { col: 'controls', dir: -1 };
   return `
     <div class="card measure-card">

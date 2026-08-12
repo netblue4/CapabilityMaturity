@@ -2945,3 +2945,4 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .qoq { font-size: .72rem; font-weight: 600; white-space: nowrap; vertical-align: middle; }
 .qoq-good { color: var(--clr-success); }
 .qoq-bad  { color: var(--clr-danger); }
+.qoq-neutral { color: var(--text-muted); }

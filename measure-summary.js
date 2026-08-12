@@ -912,6 +912,17 @@ function qoqArrow(curr, prev, lowerIsBetter) {
   return ` <span class="qoq ${good ? 'qoq-good' : 'qoq-bad'}" title="was ${prev} last period">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</span>`;
 }
 
+// Plain green/red trend arrow (no number) for dense tables.
+// dir: 'upGood' (higher is better) | 'downGood' (lower is better) | 'neutral'.
+function qoqTrend(curr, prev, dir) {
+  if (prev == null || curr == null) return '';
+  const d = curr - prev;
+  if (!d) return '';
+  const up = d > 0;
+  const cls = dir === 'neutral' ? 'qoq-neutral' : (dir === 'downGood' ? (up ? 'qoq-bad' : 'qoq-good') : (up ? 'qoq-good' : 'qoq-bad'));
+  return ` <span class="qoq ${cls}" title="was ${prev} last period">${up ? '▲' : '▼'}</span>`;
+}
+
 // ── Risk Management — Portfolio Health Card ──────────────────
 // theme (optional) = { key, name, dora }: scopes the card to one control type.
 // prev (optional) = previous assessment, for quarter-over-quarter arrows.

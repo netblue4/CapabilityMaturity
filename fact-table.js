@@ -601,8 +601,9 @@ function ftRiskStatusLabel(f) { return FT_RISK_STATUS_LABEL[ftRiskStatus(f)] || 
 function ftControlStatus(f) {
   const s = ftNorm(typeof f === 'string' ? f : (f && f.controlStatus));
   if (s === '' || s === '-')                    return 'not-implemented';
-  if (s === 'open')                             return 'implemented';
-  if (s.includes('close') || s.includes('inactive')) return 'closed';
+  if (s.startsWith('not'))                      return 'not-implemented';   // "Not implemented" / "Not started"
+  if (s.includes('close') || s.includes('inactive')) return 'closed';       // closed / inactive / proposed close
+  if (s === 'open' || s.includes('implement') || s.includes('live')) return 'implemented';
   return 'not-implemented';
 }
 const FT_CTRL_STATUS_LABEL = { implemented: 'Implemented', closed: 'Closed', 'not-implemented': 'Not implemented' };

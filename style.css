@@ -2813,6 +2813,7 @@ col.src-c-cap { width: 11%; } col.src-c-doc { width: 15%; } col.src-c-type { wid
 .src-risk-item { font-size: .74rem; color: var(--text); line-height: 1.35; padding: .1rem 0; border-bottom: 1px dotted var(--border-subtle); }
 .src-risk-item:last-child { border-bottom: none; }
 .rr-table th.rr-src, .rr-table td.rr-src { text-align: center; border-left: 1px solid var(--border-subtle); }
+.rr-cap { font-weight: 600; color: var(--text); white-space: nowrap; }
 .src-table th.src-disp { text-align: center; }
 .src-disp { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .src-disp-perf { color: var(--clr-warning); font-weight: 700; }

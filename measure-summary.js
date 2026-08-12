@@ -469,25 +469,54 @@ function renderGovernanceCard(assessment) {
 // One row per ICT risk: the assurance behind it (residual, implemented, tested,
 // effective, confidence) plus how many treating controls come from each source
 // (Local Policy / Group Standards / pre-DORA).
-function renderRiskRegisterCard(assessment) {
-  const risks = buildRiskProfile(assessment.riskPolicyFacts || []);
-  const title = 'Risks &amp; their Controls';
-  const desc  = 'Every ICT risk, the assurance behind it, and how many treating controls come from each source.';
-  const elevOn = window._rpElevated !== false;
-  const header = `
-    <div class="measure-card-header">
-      <span class="measure-icon">🎯</span>
-      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
-      ${risks.length ? rpElevToggle() : ''}
-    </div>`;
-  if (!risks.length) {
-    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
-  }
+let _rrRows = [];
+let _rrSort = { col: null, dir: 1 };
+const RR_CONF_RANK = { na: 0, low: 1, med: 2, high: 3 };
+const RR_FIELD = {
+  capName:     r => r._capName || '',
+  title:       r => r.title || '',
+  residual:    r => r.residual || 0,
+  implemented: r => r.active ? r.implemented / r.active : -1,
+  tested:      r => r.active ? r.tested / r.active : -1,
+  effective:   r => r.active ? r.effective / r.active : -1,
+  conf:        r => RR_CONF_RANK[r.conf] ?? 0,
+  srcLoc:      r => r.srcLoc || 0,
+  srcGrp:      r => r.srcGrp || 0,
+  srcPre:      r => r.srcPre || 0,
+};
+function rrSortRows() {
+  if (!_rrSort.col) return _rrRows;   // default: buildRiskProfile's worst-first order
+  const f = RR_FIELD[_rrSort.col] || RR_FIELD.capName;
+  const dir = _rrSort.dir;
+  return _rrRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || (a._capName || '').localeCompare(b._capName || '') || (a.title || '').localeCompare(b.title || '');
+    return String(va).localeCompare(String(vb)) * dir || (a.title || '').localeCompare(b.title || '');
+  });
+}
+function rrHead() {
+  const arrow = c => _rrSort.col === c ? `<span class="mrt-arrow">${_rrSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortRiskRegister('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>
+    ${th('capName', 'Capability')}
+    ${th('title', 'Risk')}
+    ${th('residual', 'Residual', 'rp-num')}
+    ${th('implemented', 'Implemented', 'rp-num')}
+    ${th('tested', 'Tested', 'rp-num')}
+    ${th('effective', 'Effective', 'rp-num')}
+    ${th('conf', 'Confidence', 'rp-num')}
+    ${th('srcLoc', 'Local Policy', 'rp-num rr-src')}
+    ${th('srcGrp', 'Group Std', 'rp-num rr-src')}
+    ${th('srcPre', 'Pre-DORA', 'rp-num rr-src')}
+  </tr>`;
+}
+function rrBody(rows) {
   const srcCell = n => n ? `<b>${n}</b>` : '<span class="src-zero">·</span>';
-  const body = risks.map(k => {
+  return rows.map(k => {
     const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
     const owner = (k.owner || '').trim();
     return `<tr class="${cls}">
+      <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
       <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
       <td class="rp-num">${rpResCell(k)}</td>
       <td class="rp-num">${rpFrac(k.implemented, k.active)}</td>
@@ -499,16 +528,40 @@ function renderRiskRegisterCard(assessment) {
       <td class="rp-num rr-src" title="${k.srcPre || 0} treating pre-DORA control(s)">${srcCell(k.srcPre)}</td>
     </tr>`;
   }).join('');
+}
+function sortRiskRegister(col) {
+  if (_rrSort.col === col) _rrSort.dir *= -1;
+  else _rrSort = { col, dir: (col === 'capName' || col === 'title') ? 1 : -1 };
+  const tb = document.getElementById('rr-tbody');
+  const th = document.getElementById('rr-thead');
+  if (tb) tb.innerHTML = rrBody(rrSortRows());
+  if (th) th.innerHTML = rrHead();
+}
+function renderRiskRegisterCard(assessment) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const risks = buildRiskProfile(assessment.riskPolicyFacts || []);
+  risks.forEach(k => { k._capName = capName(k.capId); });
+  const title = 'Risks &amp; their Controls';
+  const desc  = 'Every ICT risk, the assurance behind it, and how many treating controls come from each source. Sort by Capability to group a capability\'s risks for de-duplication.';
+  const elevOn = window._rpElevated !== false;
+  const header = `
+    <div class="measure-card-header">
+      <span class="measure-icon">🎯</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+      ${risks.length ? rpElevToggle() : ''}
+    </div>`;
+  if (!risks.length) {
+    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
+  }
+  _rrRows = risks;
+  _rrSort = { col: null, dir: 1 };
   return `
     <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
       ${header}
       <div class="rcsa-table-wrap">
         <table class="rp-table rr-table">
-          <thead><tr>
-            <th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th>
-            <th class="rp-num rr-src">Local Policy</th><th class="rp-num rr-src">Group Std</th><th class="rp-num rr-src">Pre-DORA</th>
-          </tr></thead>
-          <tbody>${body}</tbody>
+          <thead id="rr-thead">${rrHead()}</thead>
+          <tbody id="rr-tbody">${rrBody(rrSortRows())}</tbody>
         </table>
       </div>
     </div>`;

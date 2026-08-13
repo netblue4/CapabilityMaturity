@@ -112,6 +112,8 @@ function rtmfUnit(donut, legend) {
 }
 // ── IT Risk & Control Framework — all risks, with q-o-q trend arrows ──
 const EXEC_CONF_SCORE = { high: 3, med: 2, low: 1, na: 0 };
+const EXEC_BAND_WORD = { extreme: 'Extreme', significant: 'Significant', moderate: 'Moderate', low: 'Low', na: 'Not assessed' };
+const EXEC_CONF_WORD = { high: 'High', med: 'Medium', low: 'Low', na: 'n/a' };
 let _erRows = [];
 let _erPrevMap = {};
 let _erSort = { col: null, dir: 1 };
@@ -158,12 +160,12 @@ function erBody(rows) {
     return `<tr class="${cls}">
       <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
       <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
-      <td class="rp-num">${rpResCell(k)}${tr(k.residual, pv && pv.residual, 'downGood')}</td>
+      <td class="rp-num">${rpResCell(k)}${pv ? qoqTrend(k.residual, pv.residual, 'downGood', EXEC_BAND_WORD[pv.band] || pv.residual) : ''}</td>
       <td class="rp-num"><b>${k.active}</b>${tr(k.active, pv && pv.active, 'upGood')}</td>
       <td class="rp-num">${rpFrac(k.implemented, k.active)}${tr(k.implemented, pv && pv.implemented, 'upGood')}</td>
       <td class="rp-num">${rpFrac(k.tested, k.active)}${tr(k.tested, pv && pv.tested, 'upGood')}</td>
       <td class="rp-num">${rpFrac(k.effective, k.active, true)}${tr(k.effective, pv && pv.effective, 'upGood')}</td>
-      <td class="rp-num">${rpConfCell(k)}${pv ? qoqTrend(EXEC_CONF_SCORE[k.conf], EXEC_CONF_SCORE[pv.conf], 'upGood') : ''}</td>
+      <td class="rp-num">${rpConfCell(k)}${pv ? qoqTrend(EXEC_CONF_SCORE[k.conf], EXEC_CONF_SCORE[pv.conf], 'upGood', EXEC_CONF_WORD[pv.conf] || pv.conf) : ''}</td>
     </tr>`;
   }).join('');
 }

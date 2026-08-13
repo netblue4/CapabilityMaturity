@@ -112,12 +112,72 @@ function rtmfUnit(donut, legend) {
 }
 // ── IT Risk & Control Framework — all risks, with q-o-q trend arrows ──
 const EXEC_CONF_SCORE = { high: 3, med: 2, low: 1, na: 0 };
+let _erRows = [];
+let _erPrevMap = {};
+let _erSort = { col: null, dir: 1 };
+const ER_FIELD = {
+  title:       r => r.title || '',
+  residual:    r => r.residual || 0,
+  controls:    r => r.active || 0,
+  implemented: r => r.active ? r.implemented / r.active : -1,
+  tested:      r => r.active ? r.tested / r.active : -1,
+  effective:   r => r.active ? r.effective / r.active : -1,
+  conf:        r => EXEC_CONF_SCORE[r.conf] ?? 0,
+};
+function erSortRows() {
+  if (!_erSort.col) return _erRows;   // default: buildRiskProfile's worst-first order
+  const f = ER_FIELD[_erSort.col] || ER_FIELD.title;
+  const dir = _erSort.dir;
+  return _erRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || (a.title || '').localeCompare(b.title || '');
+    return String(va).localeCompare(String(vb)) * dir || (a.title || '').localeCompare(b.title || '');
+  });
+}
+function erHead() {
+  const arrow = c => _erSort.col === c ? `<span class="mrt-arrow">${_erSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExecRisk('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>
+    ${th('title', 'Risk')}
+    ${th('residual', 'Residual', 'rp-num')}
+    ${th('controls', 'Controls', 'rp-num')}
+    ${th('implemented', 'Implemented', 'rp-num')}
+    ${th('tested', 'Tested', 'rp-num')}
+    ${th('effective', 'Effective', 'rp-num')}
+    ${th('conf', 'Confidence', 'rp-num')}
+  </tr>`;
+}
+function erBody(rows) {
+  return rows.map(k => {
+    const pv = _erPrevMap[ftNorm(k.title)];
+    const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
+    const owner = (k.owner || '').trim();
+    const tr = (val, pval, dir) => pv ? qoqTrend(val, pval, dir) : '';
+    return `<tr class="${cls}">
+      <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
+      <td class="rp-num">${rpResCell(k)}${tr(k.residual, pv && pv.residual, 'downGood')}</td>
+      <td class="rp-num"><b>${k.active}</b>${tr(k.active, pv && pv.active, 'upGood')}</td>
+      <td class="rp-num">${rpFrac(k.implemented, k.active)}${tr(k.implemented, pv && pv.implemented, 'upGood')}</td>
+      <td class="rp-num">${rpFrac(k.tested, k.active)}${tr(k.tested, pv && pv.tested, 'upGood')}</td>
+      <td class="rp-num">${rpFrac(k.effective, k.active, true)}${tr(k.effective, pv && pv.effective, 'upGood')}</td>
+      <td class="rp-num">${rpConfCell(k)}${pv ? qoqTrend(EXEC_CONF_SCORE[k.conf], EXEC_CONF_SCORE[pv.conf], 'upGood') : ''}</td>
+    </tr>`;
+  }).join('');
+}
+function sortExecRisk(col) {
+  if (_erSort.col === col) _erSort.dir *= -1;
+  else _erSort = { col, dir: col === 'title' ? 1 : -1 };
+  const tb = document.getElementById('er-tbody');
+  const th = document.getElementById('er-thead');
+  if (tb) tb.innerHTML = erBody(erSortRows());
+  if (th) th.innerHTML = erHead();
+}
 function renderExecRiskCard(current, prev) {
   const risks = buildRiskProfile(current.riskPolicyFacts || []);
-  const pmap = {};
-  if (prev) buildRiskProfile(prev.riskPolicyFacts || []).forEach(k => { pmap[ftNorm(k.title)] = k; });
-  const title = 'IT Risk &amp; Control Framework &mdash; Pre-DORA';
-  const desc = 'Every ICT risk, the assurance behind it, and how each metric moved since last quarter (▲/▼).';
+  _erPrevMap = {};
+  if (prev) buildRiskProfile(prev.riskPolicyFacts || []).forEach(k => { _erPrevMap[ftNorm(k.title)] = k; });
+  const title = 'IT Risk &amp; Control Framework';
+  const desc = 'Every ICT risk, the controls behind it and its assurance — with how each metric moved since last quarter (▲/▼).';
   const elevOn = window._rpElevated !== false;
   const header = `
     <div class="measure-card-header">
@@ -128,27 +188,15 @@ function renderExecRiskCard(current, prev) {
   if (!risks.length) {
     return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
   }
-  const body = risks.map(k => {
-    const pv = pmap[ftNorm(k.title)];
-    const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
-    const owner = (k.owner || '').trim();
-    const tr = (val, pval, dir) => pv ? qoqTrend(val, pval, dir) : '';
-    return `<tr class="${cls}">
-      <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
-      <td class="rp-num">${rpResCell(k)}${tr(k.residual, pv && pv.residual, 'downGood')}</td>
-      <td class="rp-num">${rpFrac(k.implemented, k.active)}${tr(k.implemented, pv && pv.implemented, 'upGood')}</td>
-      <td class="rp-num">${rpFrac(k.tested, k.active)}${tr(k.tested, pv && pv.tested, 'upGood')}</td>
-      <td class="rp-num">${rpFrac(k.effective, k.active, true)}${tr(k.effective, pv && pv.effective, 'upGood')}</td>
-      <td class="rp-num">${rpConfCell(k)}${pv ? qoqTrend(EXEC_CONF_SCORE[k.conf], EXEC_CONF_SCORE[pv.conf], 'upGood') : ''}</td>
-    </tr>`;
-  }).join('');
+  _erRows = risks;
+  _erSort = { col: null, dir: 1 };
   return `
     <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
       ${header}
       <div class="rcsa-table-wrap">
         <table class="rp-table">
-          <thead><tr><th>Risk</th><th class="rp-num">Residual</th><th class="rp-num">Implemented</th><th class="rp-num">Tested</th><th class="rp-num">Effective</th><th class="rp-num">Confidence</th></tr></thead>
-          <tbody>${body}</tbody>
+          <thead id="er-thead">${erHead()}</thead>
+          <tbody id="er-tbody">${erBody(erSortRows())}</tbody>
         </table>
       </div>
     </div>`;

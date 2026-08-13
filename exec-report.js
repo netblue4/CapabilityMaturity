@@ -116,6 +116,7 @@ let _erRows = [];
 let _erPrevMap = {};
 let _erSort = { col: null, dir: 1 };
 const ER_FIELD = {
+  capName:     r => r._capName || '',
   title:       r => r.title || '',
   residual:    r => r.residual || 0,
   controls:    r => r.active || 0,
@@ -138,6 +139,7 @@ function erHead() {
   const arrow = c => _erSort.col === c ? `<span class="mrt-arrow">${_erSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExecRisk('${k}')">${label}${arrow(k)}</th>`;
   return `<tr>
+    ${th('capName', 'Capability')}
     ${th('title', 'Risk')}
     ${th('residual', 'Residual', 'rp-num')}
     ${th('controls', 'Controls', 'rp-num')}
@@ -154,6 +156,7 @@ function erBody(rows) {
     const owner = (k.owner || '').trim();
     const tr = (val, pval, dir) => pv ? qoqTrend(val, pval, dir) : '';
     return `<tr class="${cls}">
+      <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
       <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
       <td class="rp-num">${rpResCell(k)}${tr(k.residual, pv && pv.residual, 'downGood')}</td>
       <td class="rp-num"><b>${k.active}</b>${tr(k.active, pv && pv.active, 'upGood')}</td>
@@ -166,14 +169,16 @@ function erBody(rows) {
 }
 function sortExecRisk(col) {
   if (_erSort.col === col) _erSort.dir *= -1;
-  else _erSort = { col, dir: col === 'title' ? 1 : -1 };
+  else _erSort = { col, dir: (col === 'title' || col === 'capName') ? 1 : -1 };
   const tb = document.getElementById('er-tbody');
   const th = document.getElementById('er-thead');
   if (tb) tb.innerHTML = erBody(erSortRows());
   if (th) th.innerHTML = erHead();
 }
 function renderExecRiskCard(current, prev) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
   const risks = buildRiskProfile(current.riskPolicyFacts || []);
+  risks.forEach(k => { k._capName = capName(k.capId); });
   _erPrevMap = {};
   if (prev) buildRiskProfile(prev.riskPolicyFacts || []).forEach(k => { _erPrevMap[ftNorm(k.title)] = k; });
   const title = 'IT Risk &amp; Control Framework';

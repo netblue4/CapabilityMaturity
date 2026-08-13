@@ -967,13 +967,16 @@ function qoqArrow(curr, prev, lowerIsBetter) {
 
 // Plain green/red trend arrow (no number) for dense tables.
 // dir: 'upGood' (higher is better) | 'downGood' (lower is better) | 'neutral'.
-function qoqTrend(curr, prev, dir) {
+// prevLabel (optional): word shown in the tooltip instead of the raw number
+// (e.g. "Significant" for a residual band) — clearer for executives.
+function qoqTrend(curr, prev, dir, prevLabel) {
   if (prev == null || curr == null) return '';
   const d = curr - prev;
   if (!d) return '';
   const up = d > 0;
   const cls = dir === 'neutral' ? 'qoq-neutral' : (dir === 'downGood' ? (up ? 'qoq-bad' : 'qoq-good') : (up ? 'qoq-good' : 'qoq-bad'));
-  return ` <span class="qoq ${cls}" title="was ${prev} last period">${up ? '▲' : '▼'}</span>`;
+  const was = prevLabel != null ? prevLabel : prev;
+  return ` <span class="qoq ${cls}" title="was ${was} last period">${up ? '▲' : '▼'}</span>`;
 }
 
 // ── Risk Management — Portfolio Health Card ──────────────────

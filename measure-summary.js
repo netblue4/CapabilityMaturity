@@ -369,6 +369,53 @@ Return ONLY the full shared working table as TAB-SEPARATED values inside a code 
 === SHARED WORKING TABLE (paste your Prompt 2 table) ===
 <PASTE HERE>`;
 
+// Upstream mapping prompt (Control 1): DORA articles → policy statements.
+const PLAN_PROMPT_DORA = `ROLE
+You are an IT compliance analyst mapping DORA (Regulation (EU) 2022/2554, its RTS/ITS, and the
+major-incident criteria (MIC) and reporting (MIR) standards) to an organisation's policy
+statements, to prove regulatory coverage.
+
+TASK
+For every DORA requirement, find the policy statement(s) that satisfy it. Match on MEANING —
+what the requirement demands vs what the statement requires — NOT on capability labels or
+wording. A requirement may be satisfied by several statements; a statement may satisfy several
+requirements. If no statement adequately covers a requirement, flag it as a GAP.
+
+HOW TO READ THE INPUTS
+- DORA MAP (tab-separated): Article | Digital Resilience Objective | Capability
+  "Digital Resilience Objective" is the requirement to satisfy. "Capability" is DORA's own
+  capability label.
+- POLICY STATEMENTS (tab-separated): Capability | Type | Document | Statement Ref |
+  Statement Header | Statement | Owner | Control
+  For LOCAL POLICY rows the "Statement" text is full and descriptive — match on it.
+  For GROUP STANDARDS rows the "Statement" text is often BLANK — match on the Statement Header
+  and the Control name instead, and LOWER your confidence accordingly.
+
+RULES
+1. The two files use DIFFERENT capability taxonomies (the DORA map is finer-grained; the
+   statements are coarser, with a catch-all such as "Ops"). Use capability only as a HINT to
+   narrow candidates — never require the labels to match. Match on the requirement meaning.
+2. A DORA requirement may map to MANY statements — list them all, one output row per
+   (requirement x matched statement).
+3. If a requirement has no adequate statement, output ONE row for it with Matched Statement Ref
+   blank and Gap = Yes — this is a coverage gap to disclose (your exception evidence).
+4. Confidence: High = statement text clearly satisfies the requirement; Medium = partial or
+   inferred; Low = matched only on a Group-Standard header/control name (no statement text).
+5. Never invent statement refs. IGNORE section-header separator rows in the statements file
+   (rows that carry only a capability name with an empty Statement Ref).
+
+OUTPUT
+Return ONLY a table as TAB-SEPARATED values in a code block, header row first:
+DORA Ref | Digital Resilience Objective | DORA Capability | Matched Statement Ref | Statement Header | Match Basis | Confidence | Gap
+- "Match Basis": statement-text | header/control-name | none (gap).
+- Order: matched requirements first (grouped by DORA Ref), then all Gap rows last.
+
+=== DORA MAP (paste the DORA-to-capability mapping) ===
+<PASTE HERE>
+
+=== POLICY STATEMENTS (paste the policy-statement export) ===
+<PASTE HERE>`;
+
 function copyGuidePrompt(btn) {
   const pre = btn.closest('.guide-prompt').querySelector('pre');
   navigator.clipboard.writeText(pre.textContent).then(() => {
@@ -396,6 +443,9 @@ function showPlanningGuide() {
       <li><b>Prompt 3</b> — <i>What it does:</i> for each genuinely-new control it writes the description the operational team will adopt so the control evidences its objective. <i>How you see it:</i> it fills <b>Ready-To-Adapt Description</b> — the standard link line followed by a plain-English operational paragraph. <span class="guide-do">Do: paste Prompt 2's table, then run Prompt 3.</span></li>
       <li><b>Update Riskonnect.</b> Take Prompt 3's finished table and apply it: close the duplicates, adopt the new descriptions, then re-import the risk data — the funnel and framework cards reflect the integration; anything still Draft or Uncovered is your backlog.</li>
     </ol>
+    <h4 class="guide-h">Upstream — align policy to DORA (Control 1)</h4>
+    <p class="guide-intro" style="margin-top:0">Map DORA articles/RTS to your policy statements to prove regulatory coverage. Paste your <b>DORA-to-capability map</b> and your <b>policy-statement export</b>; the output lists each requirement, its matched statement ref(s), a confidence, and a gap flag for anything uncovered (your exception evidence). Match is on meaning, not capability labels — strong for Local Policy (full statement text), weaker for Group Standards (blank text, matched on header/control name).</p>
+    ${promptBlock('DORA mapping — map DORA articles to policy statements', PLAN_PROMPT_DORA)}
     <h4 class="guide-h">Prompts</h4>
     ${promptBlock('Prompt 1 — Build the table &amp; find duplicates (step 2)', PLAN_PROMPT_1)}
     ${promptBlock('Prompt 2 — Resolve (Description / Status / Reason) (step 4)', PLAN_PROMPT_2)}

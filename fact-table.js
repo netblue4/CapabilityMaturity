@@ -569,6 +569,121 @@ function buildRtmMaturity(policyRows, facts) {
   return { states: RTM_MATURITY, bySource, total };
 }
 
+// ── DORA obligation completeness (Control 1) ──────────────────────
+// Joins the DORA→policy mapping upload (doraRows) onto the existing policy
+// statements + controls, so we can measure COMPLETENESS: which DORA obligations
+// have an owned policy / group-standard statement (Gate 1), and for the covered
+// ones, whether that statement is backed by a control and how far it is
+// operationalised. Single source shared by the import review step, the
+// dashboard completeness card and the three evidence pages.
+//
+// doraRows : { article, obligationId, requirement, statementRef,
+//              statementHeader, document, unmapped }  — one row per
+//              (compliance statement × mapped ref); unmapped rows are the
+//              "No matching policy" sentinels from the upload.
+// Join key : statementRef → policyRows.statementRef, same normalisation and
+//            sub-ref→parent fallback used by buildRiskPolicyFacts.
+//
+// Returns { articles:[{article,obligations:[o]}], obligations:[o],
+//           totalObligations, coveredObligations, completenessPct }
+//   o = { obligationId, article, requirement, covered,
+//         mappedRefs:[{ ref, header, capId, source, owner, backing,
+//                       status, effective, exception }] }
+// An obligation is COVERED when at least one of its non-sentinel refs resolves
+// to a statement in the policy register (any covered row wins).
+function buildDoraObligations(doraRows, policyRows, facts) {
+  doraRows   = doraRows   || [];
+  policyRows = policyRows || [];
+
+  // Ref index: normRef → [policyRow]. Each policy row carries capId/owner/type/…
+  const polByRef = {};
+  policyRows.forEach(pr => {
+    const key = ftNorm(pr.statementRef);
+    if (!key) return;
+    (polByRef[key] = polByRef[key] || []).push(pr);
+  });
+  const polKeys = Object.keys(polByRef);
+
+  // Resolve a DORA statement ref to policy rows — exact, else sub-ref→parent
+  // (guard next char '.' so "SR30" does not match "SR3"), mirroring
+  // buildRiskPolicyFacts.
+  function resolveRef(ref) {
+    const key = ftNorm(ref);
+    if (!key) return [];
+    if (polByRef[key]) return polByRef[key];
+    const out = [];
+    polKeys.forEach(pk => { if (key.startsWith(pk) && key[pk.length] === '.') out.push(...polByRef[pk]); });
+    return out;
+  }
+
+  // Per-RTM control backing (shared classifier, reconciles with the funnel).
+  const cls = buildRtmClass(policyRows, facts);   // capId||normRef → bucket
+
+  // Effectiveness index: capId||normRef → true when a live control mapped to it
+  // is rated effective (design + operating both green).
+  const effByKey = {};
+  (facts || []).filter(f => !ftIsClosedControl(f) && ftIsEffective(f)).forEach(f => {
+    (f.matchedPolicyRows || []).forEach(mp => { effByKey[mp.capId + '||' + ftNorm(mp.statementRef)] = true; });
+  });
+
+  const srcLabel = t => isLocPolType(t) ? 'Local Policy' : isGrpStdType(t) ? 'Group Standard' : ((t || '').trim() || '');
+
+  // Group DORA rows by obligation id.
+  const oblMap = {};
+  const oblOrder = [];
+  doraRows.forEach(row => {
+    const id = (row.obligationId || '').trim();
+    if (!id) return;
+    if (!oblMap[id]) {
+      oblMap[id] = { obligationId: id, article: (row.article || '').trim(), requirement: (row.requirement || '').trim(), mappedRefs: [], _seen: new Set() };
+      oblOrder.push(id);
+    }
+    const o = oblMap[id];
+    if (!o.requirement && row.requirement) o.requirement = row.requirement.trim();
+    if (!o.article && row.article)         o.article     = row.article.trim();
+    if (row.unmapped) return;                       // sentinel — no statement
+    resolveRef(row.statementRef).forEach(pr => {
+      const key = pr.capId + '||' + ftNorm(pr.statementRef);
+      if (o._seen.has(key)) return;
+      o._seen.add(key);
+      const backing = cls[key] || 'Uncovered';
+      o.mappedRefs.push({
+        ref:       pr.statementRef,
+        header:    pr.statementHeader || row.statementHeader || '',
+        capId:     pr.capId,
+        source:    srcLabel(pr.type),
+        owner:     (pr.owner || '').trim(),
+        backing,                                     // Built new | Reused pre-DORA | Drafted | Uncovered
+        status:    (backing === 'Built new' || backing === 'Reused pre-DORA') ? 'implemented' : backing === 'Drafted' ? 'draft' : 'not-implemented',
+        effective: !!effByKey[key],
+        exception: ftException(pr.exception),
+      });
+    });
+  });
+
+  // Group obligations by article (first-appearance order), sorted numerically by id within.
+  const artMap = {}, artOrder = [];
+  oblOrder.forEach(id => {
+    const o = oblMap[id];
+    delete o._seen;
+    o.covered = o.mappedRefs.length > 0;
+    const a = o.article || '(no article)';
+    if (!artMap[a]) { artMap[a] = { article: a, obligations: [] }; artOrder.push(a); }
+    artMap[a].obligations.push(o);
+  });
+  const articles = artOrder.map(a => {
+    artMap[a].obligations.sort((x, y) => x.obligationId.localeCompare(y.obligationId, undefined, { numeric: true }));
+    return artMap[a];
+  });
+  const obligations = articles.flatMap(a => a.obligations);
+
+  const totalObligations   = obligations.length;
+  const coveredObligations = obligations.filter(o => o.covered).length;
+  const completenessPct    = totalObligations ? Math.round(100 * coveredObligations / totalObligations) : 0;
+
+  return { articles, obligations, totalObligations, coveredObligations, completenessPct };
+}
+
 // ── Control type filters ──────────────────────────────────────────
 function ftLocPol(facts)      { return facts.filter(f => f.controlType === 'locPol'); }
 function ftGrpStd(facts)      { return facts.filter(f => f.controlType === 'grpStd'); }

@@ -3,12 +3,89 @@ function renderMeasureSummary(assessment) {
   const currentIndex = db.assessments.findIndex(a => a.id === assessment.id);
   const prev = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
 
+  const doraSlot = document.getElementById("dora-card-row");
+  if (doraSlot) doraSlot.innerHTML = renderDoraCoverageCard(assessment);
   const srcSlot = document.getElementById("sources-card-row");
   if (srcSlot) srcSlot.innerHTML = renderSourcesCard(assessment);
   const rmSlot = document.getElementById("riskmgmt-card-row");
   if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
   const planSlot = document.getElementById("planning-card-row");
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
+}
+
+// ── Control 1 · Regulatory SOA completeness card ──────────────────
+// The Gate-1 view: of the DORA obligations, how many have an owned policy /
+// group-standard statement. Uncovered obligations (no statement at all) are the
+// compliance gap and are listed in red. Reads buildDoraObligations.
+function renderDoraCoverageCard(assessment) {
+  const model = buildDoraObligations(
+    assessment.doraRows || [], assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const title = 'Control 1 &middot; Regulatory SOA &mdash; DORA obligation completeness';
+  const header = (icon, desc) => `
+    <div class="measure-card-header">
+      <span class="measure-icon">${icon}</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+    </div>`;
+
+  if (!model.totalObligations) {
+    return `<div class="card measure-card">${header('⚖️', 'The regulatory obligation universe — mapped to owned policy &amp; group-standard statements.')}
+      <p class="policy-no-data" style="margin:.5rem 0">No DORA mapping uploaded yet. Use <b>+ New / Edit Assessment → Import DORA Mapping</b>.</p></div>`;
+  }
+
+  const covered   = model.coveredObligations;
+  const total     = model.totalObligations;
+  const uncovered = total - covered;
+  const pct       = model.completenessPct;
+  const desc = `<b>${covered}</b> of <b>${total}</b> DORA obligations backed by an owned statement &middot; <b>${pct}%</b> complete &middot; <b class="${uncovered ? 'dora-gap-num' : ''}">${uncovered}</b> uncovered.`;
+
+  const bar = `
+    <div class="dora-bar-wrap">
+      <div class="dora-bar"><i class="dora-bar-fill" style="width:${pct}%"></i></div>
+      <span class="dora-bar-pct">${pct}%</span>
+    </div>`;
+
+  // Per-article coverage summary.
+  const artRows = model.articles.map(a => {
+    const cov = a.obligations.filter(o => o.covered).length;
+    const tot = a.obligations.length;
+    const w   = tot ? Math.round(100 * cov / tot) : 0;
+    const full = cov === tot;
+    return `<tr>
+      <td class="dora-art-c">${escHtml(a.article)}</td>
+      <td class="dora-artcov-c">
+        <div class="dora-frac"><span class="dora-frac-num ${full ? '' : 'dora-frac-partial'}">${cov}<span class="dora-frac-den">/${tot}</span></span>
+        <span class="dora-mini-bar"><i style="width:${w}%"></i></span></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Uncovered obligations — the compliance gap, in red.
+  const uncov = model.obligations.filter(o => !o.covered);
+  const uncovBlock = uncov.length ? `
+    <div class="dora-uncov-block">
+      <div class="dora-uncov-hdr">⚠ Uncovered obligations — no owned statement (${uncov.length})</div>
+      <table class="dora-uncov-tbl">
+        <thead><tr><th>Article</th><th>Obligation</th><th>Requirement</th></tr></thead>
+        <tbody>${uncov.map(o => `<tr>
+          <td class="dora-uncov-art">${escHtml(o.article)}</td>
+          <td class="dora-uncov-obl">${escHtml(o.obligationId)}</td>
+          <td class="dora-uncov-req">${escHtml(o.requirement)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>` : `<p class="dora-all-covered">✓ Every DORA obligation is backed by an owned statement.</p>`;
+
+  return `
+    <div class="card measure-card">
+      ${header('⚖️', desc)}
+      ${bar}
+      <div class="rcsa-table-wrap">
+        <table class="dora-art-tbl">
+          <thead><tr><th>DORA article</th><th>Obligations covered</th></tr></thead>
+          <tbody>${artRows}</tbody>
+        </table>
+      </div>
+      ${uncovBlock}
+    </div>`;
 }
 
 // ── Risk-profile table (shared by the governance + Pre-DORA cards) ──

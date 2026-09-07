@@ -200,6 +200,11 @@ function buildCapabilityFields() {
           onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data</button>
         <span id="policy-import-summary" class="import-data-summary">No policy data uploaded</span>
       </div>
+      <div class="import-btn-item">
+        <button type="button" class="btn btn-outline"
+          onclick="showView('dora-import');initDoraImport()">📥 Import DORA Mapping</button>
+        <span id="dora-import-summary" class="import-data-summary">No DORA mapping uploaded</span>
+      </div>
     </div>`;
 
   container.innerHTML = importBtnsRow + capFilterCard + CONFIG.capabilities.map(cap => `
@@ -418,6 +423,8 @@ function saveAssessment(e) {
     if (prevData.riskPolicyFacts)  assessment.riskPolicyFacts  = prevData.riskPolicyFacts;
     if (prevData.policyStatements) assessment.policyStatements = prevData.policyStatements;
     if (prevData.factSummary)      assessment.factSummary      = prevData.factSummary;
+    if (prevData.doraRows)         assessment.doraRows         = prevData.doraRows;
+    if (prevData.doraMeta)         assessment.doraMeta         = prevData.doraMeta;
   }
 
   if (editingId) {

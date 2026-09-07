@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ICT Capability Maturity Tracker</title>
+  <title>Measurable IT Regulatory Oversight Model</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
@@ -16,8 +16,8 @@
       <div class="logo-block">
         <span class="logo-icon">◈</span>
         <div>
-          <h1 class="site-title" id="app-title">ICT Capability Maturity Tracker</h1>
-          <p class="site-subtitle">ICT Process Excellence Tracker</p>
+          <h1 class="site-title" id="app-title">Measurable IT Regulatory Oversight Model</h1>
+          <p class="site-subtitle">DORA obligation → policy statement → control → operationalisation</p>
         </div>
       </div>
     </div>
@@ -46,6 +46,7 @@
           </label>
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
           <button class="btn btn-outline" onclick="showExecReportModal()">📋 Exec Report</button>
+          <button class="btn btn-outline" onclick="showEvidenceModal()">📄 Evidence</button>
         </div>
       </div>
 
@@ -57,6 +58,8 @@
       </div>
 
       <div id="dashboard-content">
+
+        <div id="dora-card-row" class="risk-card-row"></div>
 
         <div id="sources-card-row" class="risk-card-row"></div>
 
@@ -130,6 +133,36 @@
         <div style="display:flex;gap:.75rem;margin-top:1.25rem">
           <button class="btn btn-primary" onclick="generateExecReport()">Generate</button>
           <button class="btn btn-ghost"   onclick="closeExecReportModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evidence Report View -->
+    <section id="view-evidence" class="view">
+      <div class="section-header no-print">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>Compliance Evidence</h2>
+      </div>
+      <div id="evidence-content"></div>
+    </section>
+
+    <!-- Evidence Chooser Modal -->
+    <div id="evidence-modal" class="modal-overlay" onclick="if(event.target===this)closeEvidenceModal()" style="display:none">
+      <div class="modal-box" style="max-width:460px">
+        <div class="modal-header">
+          <h3>Generate Compliance Evidence</h3>
+          <button class="modal-close" onclick="closeEvidenceModal()">✕</button>
+        </div>
+        <div class="form-row">
+          <label>Assessment</label>
+          <select id="evidence-sel" class="exec-sel"></select>
+        </div>
+        <p class="ev-modal-desc">Each control produces its own print-ready page you can save as PDF and attach to the matching Riskonnect control.</p>
+        <div class="ev-modal-btns">
+          <button class="btn btn-primary" onclick="generateEvidence(1)">Control 1 · Regulatory SOA completeness</button>
+          <button class="btn btn-primary" onclick="generateEvidence(2)">Control 2 · Statements backed by controls</button>
+          <button class="btn btn-primary" onclick="generateEvidence(3)">Control 3 · Controls operationalised &amp; live</button>
+          <button class="btn btn-ghost" onclick="closeEvidenceModal()">Cancel</button>
         </div>
       </div>
     </div>
@@ -240,6 +273,40 @@
       </div>
     </section>
 
+    <!-- DORA Mapping Import Wizard View -->
+    <section id="view-dora-import" class="view">
+      <div class="section-header">
+        <button class="btn btn-ghost" onclick="showView('assessment')">← Back</button>
+        <h2>Import DORA → Policy Mapping</h2>
+      </div>
+
+      <!-- Step 1: Upload -->
+      <div id="dora-upload" class="card rk-section">
+        <h3 class="rk-step-title">Step 1 — Upload the DORA → Policy Map CSV</h3>
+        <p class="rk-step-desc">Upload the CSV export of your DORA mapping (one row per compliance statement &times; mapped statement ref). It must contain a <strong>ComplianceStatementNumber</strong> column and a <strong>Statement Ref</strong> column. Unmapped obligations should remain in the file as <em>"No matching policy"</em> rows so completeness can be measured. Import your <strong>Policy Statements</strong> first so coverage resolves.</p>
+        <div class="rk-upload-row">
+          <label class="btn btn-primary rk-file-label">
+            Choose CSV file
+            <input type="file" id="dora-file-input" accept=".csv,.txt" style="display:none" onchange="handleDoraFile(this)" />
+          </label>
+          <span id="dora-upload-info" class="rk-upload-info"></span>
+        </div>
+      </div>
+
+      <!-- Step 2: Review & save -->
+      <div id="dora-review" class="card rk-section" style="display:none">
+        <h3 class="rk-step-title">Step 2 — Review coverage &amp; save</h3>
+        <p id="dora-review-count" class="rk-step-desc"></p>
+        <div id="dora-review-wrap"></div>
+        <div class="rk-save-row">
+          <label class="rk-save-lbl">Save to</label>
+          <span id="dora-assessment-name" class="rk-save-lbl" style="font-weight:600;font-style:normal"></span>
+          <button class="btn btn-primary" onclick="saveDoraImport()">Save to Assessment</button>
+          <button class="btn btn-ghost" onclick="showView('assessment')">Cancel</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Ratings Modal -->
     <div id="ratings-modal" class="modal-overlay" onclick="closeRatingsModal(event)" style="display:none">
       <div class="modal-box">
@@ -254,7 +321,7 @@
   </main>
 
   <footer class="site-footer">
-    <span>ICT Capability Maturity Tracker</span>
+    <span>Measurable IT Regulatory Oversight Model</span>
     <span class="footer-sep">|</span>
     <span>Data stored in JSON · <a href="https://github.com/netblue4/CapabilityMaturity" target="_blank">GitHub</a></span>
   </footer>
@@ -272,6 +339,8 @@
   <script src="exec-report.js"></script>
   <script src="riskonnect-import.js"></script>
   <script src="policy-import.js"></script>
+  <script src="dora-import.js"></script>
+  <script src="evidence-report.js"></script>
   <script>
     // Sync theme toggle button label after DOM ready
     (function () {

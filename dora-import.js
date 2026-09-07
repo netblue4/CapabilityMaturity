@@ -30,30 +30,39 @@
     }
   }
 
-  // ── CSV parsing (same quoted-field handling as the other wizards) ─
-  function dParseRow(line) {
-    const out = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
-        else inQ = !inQ;
-      } else if (ch === ',' && !inQ) { out.push(cur); cur = ''; }
-      else { cur += ch; }
-    }
-    out.push(cur);
-    return out;
-  }
-
+  // ── CSV parsing ──────────────────────────────────────────────────
+  // Single-pass, quote-aware parse. Commas AND newlines inside double-quoted
+  // fields are treated as data, so multi-line free-text fields (e.g. the
+  // Paragraph Requirement column) don't break row/column alignment.
   function dParseCSV(text) {
-    const lines = text.split(/\r?\n/);
-    if (!lines.length) return { headers: [], rows: [] };
-    const headers = dParseRow(lines[0]).map(h => h.trim());
+    const s = String(text).replace(/\r\n?/g, '\n');   // normalise CRLF / CR → LF
+    const grid = [];
+    let row = [], cur = '', inQ = false;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (inQ) {
+        if (ch === '"') {
+          if (s[i + 1] === '"') { cur += '"'; i++; }   // escaped quote
+          else inQ = false;
+        } else cur += ch;
+      } else if (ch === '"') {
+        inQ = true;
+      } else if (ch === ',') {
+        row.push(cur); cur = '';
+      } else if (ch === '\n') {
+        row.push(cur); grid.push(row); row = []; cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur !== '' || row.length) { row.push(cur); grid.push(row); }   // flush final field/row
+    if (!grid.length) return { headers: [], rows: [] };
+
+    const headers = grid[0].map(h => h.trim());
     const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-      const vals = dParseRow(lines[i]);
+    for (let r = 1; r < grid.length; r++) {
+      const vals = grid[r];
+      if (vals.length === 1 && vals[0].trim() === '') continue;   // skip blank lines
       const obj = {};
       headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').trim(); });
       rows.push(obj);

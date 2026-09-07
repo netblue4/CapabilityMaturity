@@ -3037,3 +3037,5 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ev-modal-desc { font-size: .78rem; color: var(--text-muted); margin: .3rem 0 .9rem; line-height: 1.45; }
 .ev-modal-btns { display: flex; flex-direction: column; gap: .55rem; }
 .ev-modal-btns .btn { text-align: left; }
+.ev-top-btns { display: flex; gap: .5rem; flex-shrink: 0; }
+#evidence-content { overflow-x: auto; }

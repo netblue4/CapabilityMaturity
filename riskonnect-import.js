@@ -90,6 +90,7 @@
       controlStatus:  find('control: status', 'control status'),
       lastAssessDate: find('last control assessment', 'last assessment', 'assessment date'),
       controlName:    find('control: name', 'control name', 'control: title', 'control title'),
+      controlNumber:  find('control: number', 'control number', 'control: id', 'control id', 'control: reference', 'control reference', 'control ref'),
       controlDesc:    find('control: description', 'control description', 'controls description'),
     };
   }
@@ -181,6 +182,7 @@
         riskTitle:      cols.riskTitle      ? (row[cols.riskTitle]      || '').trim() : '',
         riskStatus:     cols.status         ? (row[cols.status]         || '').toLowerCase().trim() : '',
         controlName:    rawName,
+        controlNumber:  cols.controlNumber ? (row[cols.controlNumber] || '').trim() : '',
         controlDesc:    rawDesc,
         controlType,
         controlOwner:   cols.owner          ? (row[cols.owner]          || '').trim() : '',

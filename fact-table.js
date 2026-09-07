@@ -626,6 +626,26 @@ function buildDoraObligations(doraRows, policyRows, facts) {
     (f.matchedPolicyRows || []).forEach(mp => { effByKey[mp.capId + '||' + ftNorm(mp.statementRef)] = true; });
   });
 
+  // Per-statement backing controls: capId||normRef → [{ name, number,
+  // provenance, status, effective }] — the actual live controls that cite the
+  // statement, for the evidence "Control Number & Name" / provenance columns.
+  const ctrlByKey = {};
+  (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).forEach(f => {
+    const detail = {
+      name:       (f.controlName || '').trim(),
+      number:     (f.controlNumber || '').trim(),
+      provenance: f.controlType === 'operational' ? 'Reused (pre-DORA control)' : 'New (DORA control)',
+      status:     ftControlStatus(f) === 'implemented' ? 'implemented' : ftControlStatus(f) === 'closed' ? 'closed' : 'draft',
+      effective:  ftIsEffective(f),
+    };
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const k = mp.capId + '||' + ftNorm(mp.statementRef);
+      const arr = ctrlByKey[k] || (ctrlByKey[k] = []);
+      const dk = ftNorm(detail.number) + '|' + ftNorm(detail.name);
+      if (!arr.some(c => (ftNorm(c.number) + '|' + ftNorm(c.name)) === dk)) arr.push(detail);
+    });
+  });
+
   const srcLabel = t => isLocPolType(t) ? 'Local Policy' : isGrpStdType(t) ? 'Group Standard' : ((t || '').trim() || '');
 
   // Group DORA rows by obligation id.
@@ -650,6 +670,8 @@ function buildDoraObligations(doraRows, policyRows, facts) {
       o.mappedRefs.push({
         ref:       pr.statementRef,
         header:    pr.statementHeader || row.statementHeader || '',
+        detail:    pr.statementDetail || '',
+        document:  (pr.document || '').trim(),
         capId:     pr.capId,
         source:    srcLabel(pr.type),
         owner:     (pr.owner || '').trim(),
@@ -657,6 +679,7 @@ function buildDoraObligations(doraRows, policyRows, facts) {
         status:    (backing === 'Built new' || backing === 'Reused pre-DORA') ? 'implemented' : backing === 'Drafted' ? 'draft' : 'not-implemented',
         effective: !!effByKey[key],
         exception: ftException(pr.exception),
+        controls:  ctrlByKey[key] || [],             // backing controls (name/number/provenance/status/effective)
       });
     });
   });

@@ -325,6 +325,14 @@ function refreshPolicyCards() {
       : 'No policy data uploaded';
   }
 
+  const doraSummary = document.getElementById('dora-import-summary');
+  if (doraSummary) {
+    const dm = assessment?.doraMeta;
+    doraSummary.textContent = dm
+      ? `${dm.totalObligations} obligations · ${dm.coveredObligations} covered · Uploaded ${dm.uploadDate}`
+      : 'No DORA mapping uploaded';
+  }
+
   const rkSummary = document.getElementById('rk-data-summary');
   if (rkSummary) {
     const riskRows = assessment?.riskRows || [];

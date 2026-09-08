@@ -116,12 +116,14 @@ function renderDoraCoverageCard(assessment) {
   _d1uSort = { col: null, dir: 1 };
 
   const uncovBlock = _d1uRows.length ? `
-    <div class="dora-uncov-block">
-      <div class="dora-uncov-hdr">⚠ Uncovered obligations — no owned statement (${_d1uRows.length})</div>
-      <table class="dora-uncov-tbl">
-        <thead id="d1u-thead">${d1uHead()}</thead>
-        <tbody id="d1u-tbody">${d1uBody(d1uSortRows())}</tbody>
-      </table>
+    <div class="dora-uncov-block collapsed">
+      <div class="dora-uncov-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> To reach 100% — obligations with no owned statement (${_d1uRows.length})</div>
+      <div class="act-body rcsa-table-wrap">
+        <table class="dora-uncov-tbl">
+          <thead id="d1u-thead">${d1uHead()}</thead>
+          <tbody id="d1u-tbody">${d1uBody(d1uSortRows())}</tbody>
+        </table>
+      </div>
     </div>` : `<p class="dora-all-covered">✓ Every DORA obligation is backed by an owned statement.</p>`;
 
   return `
@@ -136,6 +138,12 @@ function renderDoraCoverageCard(assessment) {
       </div>
       ${uncovBlock}
     </div>`;
+}
+
+// Collapse / expand an action-list block (shared by all three Control cards).
+function toggleActBlock(hdr) {
+  const b = hdr.closest('.act-block, .dora-uncov-block');
+  if (b) b.classList.toggle('collapsed');
 }
 
 // Shared "at a glance" progress bar (green fill on a red track). Used by all
@@ -337,9 +345,9 @@ function renderSourcesCard(assessment) {
   _c2gapSort = { col: null, dir: 1 };
 
   const gapBlock = _c2gapRows.length ? `
-    <div class="act-block">
-      <div class="act-hdr">☑ To reach 100% — statements with no control (${_c2gapRows.length})</div>
-      <div class="rcsa-table-wrap">
+    <div class="act-block collapsed">
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> To reach 100% — statements with no control (${_c2gapRows.length})</div>
+      <div class="rcsa-table-wrap act-body">
         <table class="act-tbl">
           <thead id="c2gap-thead">${c2gapHead()}</thead>
           <tbody id="c2gap-tbody">${c2gapBody(c2gapSortRows())}</tbody>
@@ -847,9 +855,9 @@ function renderRiskRegisterCard(assessment) {
   _c3gapSort = { col: null, dir: 1 };
 
   const gapBlock = _c3gapRows.length ? `
-    <div class="act-block">
-      <div class="act-hdr">☑ To reach 100% — backing controls not yet live &amp; effective (${_c3gapRows.length})</div>
-      <div class="rcsa-table-wrap">
+    <div class="act-block collapsed">
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> To reach 100% — backing controls not yet live &amp; effective (${_c3gapRows.length})</div>
+      <div class="rcsa-table-wrap act-body">
         <table class="act-tbl">
           <thead id="c3gap-thead">${c3gapHead()}</thead>
           <tbody id="c3gap-tbody">${c3gapBody(c3gapSortRows())}</tbody>

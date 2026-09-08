@@ -3052,6 +3052,12 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .act-tbl tbody td { padding: .5rem .7rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
 .act-tbl tbody tr:last-child td { border-bottom: none; }
 .act-cap { color: var(--text); font-weight: 500; white-space: nowrap; }
+
+/* Collapsible action blocks (all three Control cards) */
+.act-hdr, .dora-uncov-hdr { cursor: pointer; user-select: none; }
+.act-caret { display: inline-block; font-size: .7rem; margin-right: .15rem; transition: transform .15s ease; }
+.act-block.collapsed .act-caret, .dora-uncov-block.collapsed .act-caret { transform: rotate(-90deg); }
+.act-block.collapsed .act-body, .dora-uncov-block.collapsed .act-body { display: none; }
 .act-ref, .act-refs { white-space: normal; }
 .act-risks { color: var(--text-muted); }
 .act-exc { font-family: var(--font-mono); font-size: .68rem; font-weight: 700; padding: .1rem .4rem; border-radius: 20px; background: color-mix(in srgb, var(--clr-warning) 22%, transparent); color: var(--clr-warning); print-color-adjust: exact; -webkit-print-color-adjust: exact; }

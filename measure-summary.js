@@ -21,30 +21,22 @@ function renderMeasureSummary(assessment) {
 // Two sortable tables: per-article coverage, and the uncovered-obligations
 // action list. Both carry the Capability the DORA upload links each article to.
 
-// ── Table A: per-article coverage, broken out by covering document ──
-// One row per (article × document that covers ≥1 of its obligations), showing
-// the source (Local Policy / Group Standard), the document, and how many of the
-// article's obligations that document covers. An article covered by both a
-// policy and a standard gets a row for each; an obligation covered by both is
-// counted under each document (so document counts may overlap).
+// ── Table A: per-article coverage ──
 let _d1aRows = [], _d1aSort = { col: null, dir: 1 };
-const D1A_FIELD = {
-  article: r => r.article || '', capability: r => r.capability || '',
-  source: r => r.source || '', document: r => r.document || '', covered: r => r.covered,
-};
+const D1A_FIELD = { article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
 function d1aSortRows() {
   if (!_d1aSort.col) return _d1aRows;
   const f = D1A_FIELD[_d1aSort.col] || D1A_FIELD.article, dir = _d1aSort.dir;
   return _d1aRows.slice().sort((a, b) => {
     const va = f(a), vb = f(b);
-    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.article.localeCompare(b.article) || a.document.localeCompare(b.document);
-    return String(va).localeCompare(String(vb)) * dir || a.article.localeCompare(b.article);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.article.localeCompare(b.article);
+    return String(va).localeCompare(String(vb)) * dir;
   });
 }
 function d1aHead() {
   const arrow = c => _d1aSort.col === c ? `<span class="mrt-arrow">${_d1aSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortDora1Art('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'DORA article')}${th('capability', 'Capability')}${th('source', 'Source')}${th('document', 'Document')}${th('covered', 'Obligations covered')}</tr>`;
+  return `<tr>${th('article', 'DORA article')}${th('capability', 'Capability')}${th('covered', 'Obligations covered')}</tr>`;
 }
 function d1aBody(rows) {
   return rows.map(r => {
@@ -52,11 +44,9 @@ function d1aBody(rows) {
     return `<tr>
       <td class="dora-art-c">${escHtml(r.article)}</td>
       <td class="dora-cap-c">${escHtml(r.capability) || '<span class="src-zero">—</span>'}</td>
-      <td class="dora-src-c">${escHtml(r.source) || '<span class="src-zero">—</span>'}</td>
-      <td class="dora-doc-c">${escHtml(r.document) || '<span class="src-zero">— none —</span>'}</td>
       <td class="dora-artcov-c">
         <div class="dora-frac"><span class="dora-frac-num ${full ? '' : 'dora-frac-partial'}">${r.covered}<span class="dora-frac-den">/${r.total}</span></span>
-        <span class="dora-mini-bar"><i style="width:${r.total ? Math.round(100 * r.covered / r.total) : 0}%"></i></span></div>
+        <span class="dora-mini-bar"><i style="width:${r.pct}%"></i></span></div>
       </td>
     </tr>`;
   }).join('');
@@ -117,28 +107,9 @@ function renderDoraCoverageCard(assessment) {
   const pct       = model.completenessPct;
   const desc = `<b>${covered}</b> of <b>${total}</b> DORA obligations backed by an owned statement &middot; <b>${pct}%</b> complete &middot; <b class="${uncovered ? 'dora-gap-num' : ''}">${uncovered}</b> uncovered.`;
 
-  _d1aRows = [];
-  model.articles.forEach(a => {
-    const tot = a.obligations.length;
-    const docs = {};   // document → { document, source, count of this article's obligations it covers }
-    a.obligations.forEach(o => {
-      if (!o.covered) return;
-      const seenDoc = new Set();   // count an obligation once per document
-      o.mappedRefs.forEach(m => {
-        const d = m.document || '(no document)';
-        if (seenDoc.has(d)) return;
-        seenDoc.add(d);
-        const e = docs[d] || (docs[d] = { document: d, source: m.source || '', count: 0 });
-        e.count++;
-        if (!e.source && m.source) e.source = m.source;
-      });
-    });
-    const docList = Object.values(docs).sort((x, y) => (x.source || '').localeCompare(y.source) || x.document.localeCompare(y.document));
-    if (docList.length) {
-      docList.forEach(e => _d1aRows.push({ article: a.article, capability: a.capability || '', source: e.source, document: e.document, covered: e.count, total: tot }));
-    } else {
-      _d1aRows.push({ article: a.article, capability: a.capability || '', source: '', document: '', covered: 0, total: tot });
-    }
+  _d1aRows = model.articles.map(a => {
+    const cov = a.obligations.filter(o => o.covered).length, tot = a.obligations.length;
+    return { article: a.article, capability: a.capability || '', covered: cov, total: tot, pct: tot ? Math.round(100 * cov / tot) : 0 };
   });
   _d1aSort = { col: null, dir: 1 };
   _d1uRows = model.obligations.filter(o => !o.covered);
@@ -249,7 +220,6 @@ const SRC_FIELD = {
   document: r => r.document || '',
   type:     r => r.type || '',
   tracked:  r => r.riskTracked || 0,
-  implemented: r => r.implemented || 0,
   excE:      r => r.excE || 0,
   excWT:     r => r.excWT || 0,
   excWP:     r => r.excWP || 0,
@@ -272,7 +242,6 @@ function srcHead() {
     ${th('document', 'Document')}
     ${th('type', 'Type')}
     ${th('tracked', 'Control-tracked statements', 'src-track-h')}
-    ${th('implemented', 'IMP', 'src-disp')}
     ${th('excE', 'E', 'src-disp')}
     ${th('excWT', 'WT', 'src-disp')}
     ${th('excWP', 'WP', 'src-disp')}
@@ -299,7 +268,6 @@ function srcBody(rows) {
     <td class="src-doc"><div class="src-doc-name">${r.document}</div></td>
     <td class="src-type">${r.type}</td>
     <td class="src-track" title="${r.riskTracked} of ${r.total} statement(s) tracked by a control">${trackCell(r)}</td>
-    ${disp(r.implemented, 'src-disp-imp', `${r.implemented || 0} implemented — no exemption and already running (live control)`)}
     ${disp(r.excE, 'src-disp-perm', `${r.excE || 0} Exemption (E): objective applies but cannot be implemented (technical)`)}
     ${disp(r.excWT, 'src-disp-temp', `${r.excWT || 0} Waiver Temporary (WT): applies but need time / a new tool`)}
     ${disp(r.excWP, 'src-disp-perm', `${r.excWP || 0} Waiver Permanent (WP): applies but we will not build it (regulatory)`)}
@@ -393,7 +361,7 @@ function renderSourcesCard(assessment) {
       ${cmProgressBar(cov.backedPct)}
       <div class="rcsa-table-wrap">
         <table class="src-table">
-          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
+          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
           <thead id="src-thead">${srcHead()}</thead>
           <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>

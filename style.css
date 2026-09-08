@@ -3039,3 +3039,20 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ev-modal-btns .btn { text-align: left; }
 .ev-top-btns { display: flex; gap: .5rem; flex-shrink: 0; }
 #evidence-content { overflow-x: auto; }
+
+/* ── Control-1 card: Capability cells ───────────────────────────── */
+.dora-cap-c { color: var(--text); }
+.dora-uncov-cap { color: var(--text-muted); white-space: nowrap; }
+
+/* ── Action-list tables (Control 2 & 3 "to reach 100%") ─────────── */
+.act-block { margin-top: 1.1rem; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: var(--radius); overflow: hidden; }
+.act-hdr { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-family: var(--font-mono); font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: .5rem .7rem; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.act-tbl { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.act-tbl thead th { text-align: left; font-family: var(--font-mono); font-size: .58rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .5rem .7rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.act-tbl tbody td { padding: .5rem .7rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.act-tbl tbody tr:last-child td { border-bottom: none; }
+.act-cap { color: var(--text); font-weight: 500; white-space: nowrap; }
+.act-ref, .act-refs { white-space: normal; }
+.act-risks { color: var(--text-muted); }
+.act-exc { font-family: var(--font-mono); font-size: .68rem; font-weight: 700; padding: .1rem .4rem; border-radius: 20px; background: color-mix(in srgb, var(--clr-warning) 22%, transparent); color: var(--clr-warning); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.act-todo { color: var(--clr-warning); font-weight: 700; }

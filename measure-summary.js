@@ -17,6 +17,75 @@ function renderMeasureSummary(assessment) {
 // The Gate-1 view: of the DORA obligations, how many have an owned policy /
 // group-standard statement. Uncovered obligations (no statement at all) are the
 // compliance gap and are listed in red. Reads buildDoraObligations.
+//
+// Two sortable tables: per-article coverage, and the uncovered-obligations
+// action list. Both carry the Capability the DORA upload links each article to.
+
+// ── Table A: per-article coverage ──
+let _d1aRows = [], _d1aSort = { col: null, dir: 1 };
+const D1A_FIELD = { article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
+function d1aSortRows() {
+  if (!_d1aSort.col) return _d1aRows;
+  const f = D1A_FIELD[_d1aSort.col] || D1A_FIELD.article, dir = _d1aSort.dir;
+  return _d1aRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.article.localeCompare(b.article);
+    return String(va).localeCompare(String(vb)) * dir;
+  });
+}
+function d1aHead() {
+  const arrow = c => _d1aSort.col === c ? `<span class="mrt-arrow">${_d1aSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortDora1Art('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>${th('article', 'DORA article')}${th('capability', 'Capability')}${th('covered', 'Obligations covered')}</tr>`;
+}
+function d1aBody(rows) {
+  return rows.map(r => {
+    const full = r.covered === r.total;
+    return `<tr>
+      <td class="dora-art-c">${escHtml(r.article)}</td>
+      <td class="dora-cap-c">${escHtml(r.capability) || '<span class="src-zero">—</span>'}</td>
+      <td class="dora-artcov-c">
+        <div class="dora-frac"><span class="dora-frac-num ${full ? '' : 'dora-frac-partial'}">${r.covered}<span class="dora-frac-den">/${r.total}</span></span>
+        <span class="dora-mini-bar"><i style="width:${r.pct}%"></i></span></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function sortDora1Art(col) {
+  if (_d1aSort.col === col) _d1aSort.dir *= -1; else _d1aSort = { col, dir: 1 };
+  const tb = document.getElementById('d1a-tbody'), th = document.getElementById('d1a-thead');
+  if (tb) tb.innerHTML = d1aBody(d1aSortRows());
+  if (th) th.innerHTML = d1aHead();
+}
+
+// ── Table B: uncovered obligations (action list) ──
+let _d1uRows = [], _d1uSort = { col: null, dir: 1 };
+const D1U_FIELD = { article: r => r.article || '', capability: r => r.capability || '', obligation: r => r.obligationId || '', requirement: r => r.requirement || '' };
+function d1uSortRows() {
+  if (!_d1uSort.col) return _d1uRows;
+  const f = D1U_FIELD[_d1uSort.col] || D1U_FIELD.article, dir = _d1uSort.dir;
+  return _d1uRows.slice().sort((a, b) => String(f(a)).localeCompare(String(f(b)), undefined, { numeric: true }) * dir);
+}
+function d1uHead() {
+  const arrow = c => _d1uSort.col === c ? `<span class="mrt-arrow">${_d1uSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label) => `<th class="mrt-sort" onclick="sortDora1Unc('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>${th('article', 'Article')}${th('capability', 'Capability')}${th('obligation', 'Obligation')}${th('requirement', 'Requirement')}</tr>`;
+}
+function d1uBody(rows) {
+  return rows.map(o => `<tr>
+    <td class="dora-uncov-art">${escHtml(o.article)}</td>
+    <td class="dora-uncov-cap">${escHtml(o.capability) || '—'}</td>
+    <td class="dora-uncov-obl">${escHtml(o.obligationId)}</td>
+    <td class="dora-uncov-req">${escHtml(o.requirement)}</td>
+  </tr>`).join('');
+}
+function sortDora1Unc(col) {
+  if (_d1uSort.col === col) _d1uSort.dir *= -1; else _d1uSort = { col, dir: 1 };
+  const tb = document.getElementById('d1u-tbody'), th = document.getElementById('d1u-thead');
+  if (tb) tb.innerHTML = d1uBody(d1uSortRows());
+  if (th) th.innerHTML = d1uHead();
+}
+
 function renderDoraCoverageCard(assessment) {
   const model = buildDoraObligations(
     assessment.doraRows || [], assessment.policyRows || [], assessment.riskPolicyFacts || []);
@@ -38,53 +107,43 @@ function renderDoraCoverageCard(assessment) {
   const pct       = model.completenessPct;
   const desc = `<b>${covered}</b> of <b>${total}</b> DORA obligations backed by an owned statement &middot; <b>${pct}%</b> complete &middot; <b class="${uncovered ? 'dora-gap-num' : ''}">${uncovered}</b> uncovered.`;
 
-  const bar = `
-    <div class="dora-bar-wrap">
-      <div class="dora-bar"><i class="dora-bar-fill" style="width:${pct}%"></i></div>
-      <span class="dora-bar-pct">${pct}%</span>
-    </div>`;
+  _d1aRows = model.articles.map(a => {
+    const cov = a.obligations.filter(o => o.covered).length, tot = a.obligations.length;
+    return { article: a.article, capability: a.capability || '', covered: cov, total: tot, pct: tot ? Math.round(100 * cov / tot) : 0 };
+  });
+  _d1aSort = { col: null, dir: 1 };
+  _d1uRows = model.obligations.filter(o => !o.covered);
+  _d1uSort = { col: null, dir: 1 };
 
-  // Per-article coverage summary.
-  const artRows = model.articles.map(a => {
-    const cov = a.obligations.filter(o => o.covered).length;
-    const tot = a.obligations.length;
-    const w   = tot ? Math.round(100 * cov / tot) : 0;
-    const full = cov === tot;
-    return `<tr>
-      <td class="dora-art-c">${escHtml(a.article)}</td>
-      <td class="dora-artcov-c">
-        <div class="dora-frac"><span class="dora-frac-num ${full ? '' : 'dora-frac-partial'}">${cov}<span class="dora-frac-den">/${tot}</span></span>
-        <span class="dora-mini-bar"><i style="width:${w}%"></i></span></div>
-      </td>
-    </tr>`;
-  }).join('');
-
-  // Uncovered obligations — the compliance gap, in red.
-  const uncov = model.obligations.filter(o => !o.covered);
-  const uncovBlock = uncov.length ? `
+  const uncovBlock = _d1uRows.length ? `
     <div class="dora-uncov-block">
-      <div class="dora-uncov-hdr">⚠ Uncovered obligations — no owned statement (${uncov.length})</div>
+      <div class="dora-uncov-hdr">⚠ Uncovered obligations — no owned statement (${_d1uRows.length})</div>
       <table class="dora-uncov-tbl">
-        <thead><tr><th>Article</th><th>Obligation</th><th>Requirement</th></tr></thead>
-        <tbody>${uncov.map(o => `<tr>
-          <td class="dora-uncov-art">${escHtml(o.article)}</td>
-          <td class="dora-uncov-obl">${escHtml(o.obligationId)}</td>
-          <td class="dora-uncov-req">${escHtml(o.requirement)}</td>
-        </tr>`).join('')}</tbody>
+        <thead id="d1u-thead">${d1uHead()}</thead>
+        <tbody id="d1u-tbody">${d1uBody(d1uSortRows())}</tbody>
       </table>
     </div>` : `<p class="dora-all-covered">✓ Every DORA obligation is backed by an owned statement.</p>`;
 
   return `
     <div class="card measure-card">
       ${header('⚖️', desc)}
-      ${bar}
+      ${cmProgressBar(pct)}
       <div class="rcsa-table-wrap">
         <table class="dora-art-tbl">
-          <thead><tr><th>DORA article</th><th>Obligations covered</th></tr></thead>
-          <tbody>${artRows}</tbody>
+          <thead id="d1a-thead">${d1aHead()}</thead>
+          <tbody id="d1a-tbody">${d1aBody(d1aSortRows())}</tbody>
         </table>
       </div>
       ${uncovBlock}
+    </div>`;
+}
+
+// Shared "at a glance" progress bar (green fill on a red track). Used by all
+// three Control cards so they read consistently.
+function cmProgressBar(pct) {
+  return `<div class="dora-bar-wrap">
+      <div class="dora-bar"><i class="dora-bar-fill" style="width:${pct}%"></i></div>
+      <span class="dora-bar-pct">${pct}%</span>
     </div>`;
 }
 
@@ -217,29 +276,81 @@ function sortSourcesTable(col) {
   if (th) th.innerHTML = srcHead();
 }
 
+// ── Control 2 action list: statements with no control ─────────────
+let _c2gapRows = [], _c2gapSort = { col: null, dir: 1 };
+const EXC_RANK = { '': 0, WT: 1, E: 2, WP: 3 };
+const C2GAP_FIELD = {
+  capName: r => r.capName || '', document: r => r.document || '', source: r => r.source || '',
+  ref: r => r.ref || '', header: r => r.header || '', owner: r => r.owner || '',
+  exception: r => EXC_RANK[r.exception] ?? 0,
+};
+function c2gapSortRows() {
+  if (!_c2gapSort.col) return _c2gapRows;
+  const f = C2GAP_FIELD[_c2gapSort.col] || C2GAP_FIELD.capName, dir = _c2gapSort.dir;
+  return _c2gapRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || (a.ref || '').localeCompare(b.ref || '');
+    return String(va).localeCompare(String(vb), undefined, { numeric: true }) * dir;
+  });
+}
+function c2gapHead() {
+  const arrow = c => _c2gapSort.col === c ? `<span class="mrt-arrow">${_c2gapSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label) => `<th class="mrt-sort" onclick="sortC2Gap('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>${th('capName', 'Capability')}${th('document', 'Document')}${th('source', 'Source')}${th('ref', 'Statement ref')}${th('header', 'Statement header')}${th('owner', 'Owner')}${th('exception', 'Exception')}</tr>`;
+}
+function c2gapBody(rows) {
+  return rows.map(r => `<tr>
+    <td class="act-cap" title="${escHtml(r.capName)}">${escHtml(shortName(r.capName))}</td>
+    <td>${escHtml(r.document)}</td>
+    <td>${escHtml(r.source)}</td>
+    <td class="act-ref"><span class="dora-ref">${escHtml(r.ref)}</span></td>
+    <td>${escHtml(r.header)}</td>
+    <td>${escHtml(r.owner) || '<span class="src-zero">—</span>'}</td>
+    <td>${r.exception ? `<span class="act-exc">${escHtml(r.exception)}</span>` : '<span class="src-zero">—</span>'}</td>
+  </tr>`).join('');
+}
+function sortC2Gap(col) {
+  if (_c2gapSort.col === col) _c2gapSort.dir *= -1; else _c2gapSort = { col, dir: 1 };
+  const tb = document.getElementById('c2gap-tbody'), th = document.getElementById('c2gap-thead');
+  if (tb) tb.innerHTML = c2gapBody(c2gapSortRows());
+  if (th) th.innerHTML = c2gapHead();
+}
+
 function renderSourcesCard(assessment) {
   const rows = buildGovernanceRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  const title = '1 &middot; Sources';
-  let desc = 'The policy upload &mdash; the source documents that make up our risk-treatment measures.';
-  if (rows.length) {
-    const totalRtm = rows.reduce((a, r) => a + r.total, 0);
-    const caps = new Set(rows.map(r => r.capId)).size;
-    const tracked = rows.reduce((a, r) => a + (r.riskTracked || 0), 0);
-    desc = `${rows.length} document${rows.length === 1 ? '' : 's'} &middot; ${totalRtm} risk-treatment measure${totalRtm === 1 ? '' : 's'} across ${caps} capabilit${caps === 1 ? 'y' : 'ies'} &middot; <b>${tracked}</b> tracked as a risk.`;
-  }
-  const header = `
+  const cov  = buildStatementCoverage(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const title = 'Control 2 &middot; Policy statements backed by controls';
+  const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">🗂️</span>
       <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!rows.length) {
-    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
+    return `<div class="card measure-card">${header('The policy upload &mdash; the statements that make up our risk-treatment measures, and whether a control backs each one.')}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
   }
+  const gap = cov.total - cov.backed;
+  const desc = `<b>${cov.backed}</b> of <b>${cov.total}</b> policy &amp; group-standard statements backed by a control &middot; <b>${cov.backedPct}%</b> &middot; <b class="${gap ? 'dora-gap-num' : ''}">${gap}</b> with no control.`;
+
   _srcRows = rows;
   _srcSort = { col: 'capName', dir: 1 };
+  _c2gapRows = cov.uncovered;
+  _c2gapSort = { col: null, dir: 1 };
+
+  const gapBlock = _c2gapRows.length ? `
+    <div class="act-block">
+      <div class="act-hdr">☑ To reach 100% — statements with no control (${_c2gapRows.length})</div>
+      <div class="rcsa-table-wrap">
+        <table class="act-tbl">
+          <thead id="c2gap-thead">${c2gapHead()}</thead>
+          <tbody id="c2gap-tbody">${c2gapBody(c2gapSortRows())}</tbody>
+        </table>
+      </div>
+    </div>` : `<p class="dora-all-covered">✓ Every statement is backed by a control.</p>`;
+
   return `
     <div class="card measure-card">
-      ${header}
+      ${header(desc)}
+      ${cmProgressBar(cov.backedPct)}
       <div class="rcsa-table-wrap">
         <table class="src-table">
           <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
@@ -247,6 +358,7 @@ function renderSourcesCard(assessment) {
           <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>
       </div>
+      ${gapBlock}
     </div>`;
 }
 
@@ -664,33 +776,98 @@ function sortRiskRegister(col) {
   if (tb) tb.innerHTML = rrBody(rrSortRows());
   if (th) th.innerHTML = rrHead();
 }
+
+// ── Control 3 action list: backing controls not yet live/effective ─
+let _c3gapRows = [], _c3gapSort = { col: null, dir: 1 };
+const C3_STATUS_RANK = { draft: 0, implemented: 1 };
+const C3GAP_FIELD = {
+  capName:    r => r.capName || '',
+  control:    r => (r.number ? r.number + ' ' : '') + (r.name || ''),
+  provenance: r => r.provenance || '',
+  status:     r => C3_STATUS_RANK[r.status] ?? 0,
+  effective:  r => r.effective ? 1 : 0,
+};
+function c3gapSortRows() {
+  if (!_c3gapSort.col) return _c3gapRows;
+  const f = C3GAP_FIELD[_c3gapSort.col] || C3GAP_FIELD.capName, dir = _c3gapSort.dir;
+  return _c3gapRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || (a.name || '').localeCompare(b.name || '');
+    return String(va).localeCompare(String(vb), undefined, { numeric: true }) * dir;
+  });
+}
+function c3gapHead() {
+  const arrow = c => _c3gapSort.col === c ? `<span class="mrt-arrow">${_c3gapSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label) => `<th class="mrt-sort" onclick="sortC3Gap('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>${th('capName', 'Capability')}${th('control', 'Control Number &amp; Name')}${th('provenance', 'Provenance')}${th('status', 'Status')}${th('effective', 'Effective')}<th>Statement ref(s)</th><th>Risk(s)</th></tr>`;
+}
+function c3gapBody(rows) {
+  const ctrl = r => (r.number ? r.number + ' — ' : '') + r.name;
+  const statusCell = r => r.status === 'implemented' ? '<span class="ev-yes">Live</span>' : '<span class="act-todo">Not live</span>';
+  const effCell = r => r.status !== 'implemented' ? '<span class="src-zero">—</span>' : (r.effective ? '<span class="ev-yes">Effective</span>' : '<span class="act-todo">Not effective</span>');
+  return rows.map(r => `<tr>
+    <td class="act-cap" title="${escHtml(r.capName)}">${escHtml(shortName(r.capName))}</td>
+    <td>${escHtml(ctrl(r))}</td>
+    <td>${escHtml(r.provenance)}</td>
+    <td>${statusCell(r)}</td>
+    <td>${effCell(r)}</td>
+    <td class="act-refs">${r.refs.map(x => `<span class="dora-ref">${escHtml(x)}</span>`).join(' ') || '<span class="src-zero">—</span>'}</td>
+    <td class="act-risks">${r.risks.map(escHtml).join('; ') || '<span class="src-zero">—</span>'}</td>
+  </tr>`).join('');
+}
+function sortC3Gap(col) {
+  if (_c3gapSort.col === col) _c3gapSort.dir *= -1; else _c3gapSort = { col, dir: 1 };
+  const tb = document.getElementById('c3gap-tbody'), th = document.getElementById('c3gap-thead');
+  if (tb) tb.innerHTML = c3gapBody(c3gapSortRows());
+  if (th) th.innerHTML = c3gapHead();
+}
+
 function renderRiskRegisterCard(assessment) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
   const risks = buildRiskProfile(assessment.riskPolicyFacts || []);
   risks.forEach(k => { k._capName = capName(k.capId); });
-  const title = 'Risks &amp; their Controls';
-  const desc  = 'Every ICT risk, the assurance behind it, and how many treating controls come from each source. Sort by Capability to group a capability\'s risks for de-duplication.';
+  const ops = buildBackingControlOps(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const title = 'Control 3 &middot; Controls operationalised &amp; live';
   const elevOn = window._rpElevated !== false;
-  const header = `
+  const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">🎯</span>
       <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
       ${risks.length ? rpElevToggle() : ''}
     </div>`;
   if (!risks.length) {
-    return `<div class="card measure-card">${header}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
+    return `<div class="card measure-card">${header('Every ICT risk, the assurance behind it, and whether the controls that back our statements are live and effective.')}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
   }
+  const opsGap = ops.total - ops.liveEffective;
+  const desc = `<b>${ops.liveEffective}</b> of <b>${ops.total}</b> backing controls live &amp; effective &middot; <b>${ops.pct}%</b> &middot; <b class="${opsGap ? 'dora-gap-num' : ''}">${opsGap}</b> to operationalise.`;
+
   _rrRows = risks;
   _rrSort = { col: null, dir: 1 };
+  _c3gapRows = ops.gap;
+  _c3gapSort = { col: null, dir: 1 };
+
+  const gapBlock = _c3gapRows.length ? `
+    <div class="act-block">
+      <div class="act-hdr">☑ To reach 100% — backing controls not yet live &amp; effective (${_c3gapRows.length})</div>
+      <div class="rcsa-table-wrap">
+        <table class="act-tbl">
+          <thead id="c3gap-thead">${c3gapHead()}</thead>
+          <tbody id="c3gap-tbody">${c3gapBody(c3gapSortRows())}</tbody>
+        </table>
+      </div>
+    </div>` : (ops.total ? `<p class="dora-all-covered">✓ Every backing control is live and effective.</p>` : '');
+
   return `
     <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
-      ${header}
+      ${header(desc)}
+      ${cmProgressBar(ops.pct)}
       <div class="rcsa-table-wrap">
         <table class="rp-table rr-table">
           <thead id="rr-thead">${rrHead()}</thead>
           <tbody id="rr-tbody">${rrBody(rrSortRows())}</tbody>
         </table>
       </div>
+      ${gapBlock}
     </div>`;
 }
 

@@ -655,12 +655,13 @@ function buildDoraObligations(doraRows, policyRows, facts) {
     const id = (row.obligationId || '').trim();
     if (!id) return;
     if (!oblMap[id]) {
-      oblMap[id] = { obligationId: id, article: (row.article || '').trim(), requirement: (row.requirement || '').trim(), mappedRefs: [], _seen: new Set() };
+      oblMap[id] = { obligationId: id, article: (row.article || '').trim(), requirement: (row.requirement || '').trim(), capability: (row.capability || '').trim(), mappedRefs: [], _seen: new Set() };
       oblOrder.push(id);
     }
     const o = oblMap[id];
     if (!o.requirement && row.requirement) o.requirement = row.requirement.trim();
     if (!o.article && row.article)         o.article     = row.article.trim();
+    if (!o.capability && row.capability)   o.capability   = row.capability.trim();
     if (row.unmapped) return;                       // sentinel — no statement
     resolveRef(row.statementRef).forEach(pr => {
       const key = pr.capId + '||' + ftNorm(pr.statementRef);
@@ -696,6 +697,8 @@ function buildDoraObligations(doraRows, policyRows, facts) {
   });
   const articles = artOrder.map(a => {
     artMap[a].obligations.sort((x, y) => x.obligationId.localeCompare(y.obligationId, undefined, { numeric: true }));
+    // Article-level capability = distinct capabilities of its obligations.
+    artMap[a].capability = [...new Set(artMap[a].obligations.map(o => o.capability).filter(Boolean))].join(', ');
     return artMap[a];
   });
   const obligations = articles.flatMap(a => a.obligations);
@@ -705,6 +708,83 @@ function buildDoraObligations(doraRows, policyRows, facts) {
   const completenessPct    = totalObligations ? Math.round(100 * coveredObligations / totalObligations) : 0;
 
   return { articles, obligations, totalObligations, coveredObligations, completenessPct };
+}
+
+// ── Statement coverage (Control 2) ────────────────────────────────
+// One entry per distinct policy statement (capId||ref): is it backed by a
+// control, plus the backing control(s). Feeds the Sources card's summary,
+// progress bar and "statements with no control" action list.
+function buildStatementCoverage(policyRows, facts) {
+  const capName  = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const srcLabel = t => isLocPolType(t) ? 'Local Policy' : isGrpStdType(t) ? 'Group Standard' : ((t || '').trim() || '');
+  const cls = buildRtmClass(policyRows, facts);   // capId||normRef → bucket
+
+  const ctrlByKey = {};
+  (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).forEach(f => {
+    const detail = {
+      name:       (f.controlName || '').trim(),
+      number:     (f.controlNumber || '').trim(),
+      status:     ftIsImplemented(f) ? 'implemented' : 'draft',
+      effective:  ftIsEffective(f),
+    };
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const k = mp.capId + '||' + ftNorm(mp.statementRef);
+      (ctrlByKey[k] = ctrlByKey[k] || []).push(detail);
+    });
+  });
+
+  const seen = new Set();
+  const statements = [];
+  (policyRows || []).forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    if (seen.has(key)) return;
+    seen.add(key);
+    const backing = cls[key] || 'Uncovered';
+    statements.push({
+      key, capId: pr.capId, capName: capName(pr.capId),
+      ref: pr.statementRef || '', header: pr.statementHeader || '',
+      document: (pr.document || '').trim() || '(no document)', source: srcLabel(pr.type),
+      owner: (pr.owner || '').trim(), exception: ftException(pr.exception),
+      backing, hasControl: backing !== 'Uncovered', controls: ctrlByKey[key] || [],
+    });
+  });
+  const total  = statements.length;
+  const backed = statements.filter(s => s.hasControl).length;
+  return { statements, total, backed, backedPct: total ? Math.round(100 * backed / total) : 0,
+           uncovered: statements.filter(s => !s.hasControl) };
+}
+
+// ── Backing-control operationalisation (Control 3) ────────────────
+// One entry per distinct live control that cites ≥1 policy statement (deduped by
+// capability + number + name). Feeds the Risks card's Control-3 summary,
+// progress bar and "controls not yet live/effective" action list.
+function buildBackingControlOps(policyRows, facts) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const map = {};
+  (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim() && (f.matchedPolicyRows || []).length).forEach(f => {
+    const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    const d = map[ck] || (map[ck] = {
+      capId: f.capId, capName: capName(f.capId),
+      name: (f.controlName || '').trim(), number: (f.controlNumber || '').trim(),
+      provenance: f.controlType === 'operational' ? 'Reused (pre-DORA control)' : 'New (DORA control)',
+      implemented: false, effective: false, refs: new Set(), risks: new Set(),
+    });
+    if (ftIsImplemented(f)) d.implemented = true;
+    if (ftIsEffective(f))   d.effective = true;
+    (f.matchedPolicyRows || []).forEach(mp => d.refs.add(mp.statementRef));
+    if ((f.riskTitle || '').trim()) d.risks.add(f.riskTitle.trim());
+  });
+  const controls = Object.values(map).map(d => ({
+    capId: d.capId, capName: d.capName, name: d.name, number: d.number, provenance: d.provenance,
+    implemented: d.implemented, effective: d.effective,
+    liveEffective: d.implemented && d.effective,
+    status: d.implemented ? 'implemented' : 'draft',
+    refs: [...d.refs], risks: [...d.risks],
+  }));
+  const total   = controls.length;
+  const liveEff = controls.filter(c => c.liveEffective).length;
+  return { controls, total, liveEffective: liveEff, pct: total ? Math.round(100 * liveEff / total) : 0,
+           gap: controls.filter(c => !c.liveEffective) };
 }
 
 // ── Control type filters ──────────────────────────────────────────

@@ -2818,6 +2818,7 @@ col.src-c-cap { width: 11%; } col.src-c-doc { width: 15%; } col.src-c-type { wid
 .src-disp { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .src-disp-perf { color: var(--clr-warning); font-weight: 700; }
 .src-disp-temp { color: var(--accent); font-weight: 600; }
+.src-disp-imp  { color: var(--clr-success); font-weight: 700; }
 .src-disp-perm { color: var(--text-muted); font-weight: 600; }
 .src-zero { color: var(--border); }
 .src-table tbody td { padding: .6rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
@@ -3040,8 +3041,10 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ev-top-btns { display: flex; gap: .5rem; flex-shrink: 0; }
 #evidence-content { overflow-x: auto; }
 
-/* ── Control-1 card: Capability cells ───────────────────────────── */
+/* ── Control-1 card: Capability / Source / Document cells ───────── */
 .dora-cap-c { color: var(--text); }
+.dora-src-c { color: var(--text-muted); white-space: nowrap; }
+.dora-doc-c { color: var(--text); }
 .dora-uncov-cap { color: var(--text-muted); white-space: nowrap; }
 
 /* ── Action-list tables (Control 2 & 3 "to reach 100%") ─────────── */

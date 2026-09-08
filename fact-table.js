@@ -787,6 +787,149 @@ function buildBackingControlOps(policyRows, facts) {
            gap: controls.filter(c => !c.liveEffective) };
 }
 
+// ══════════════════════════════════════════════════════════════════
+// Executive-report rollups (the 3-control scorecard). Pure — computed for
+// the current assessment; the exec generator runs them again on the previous
+// assessment to drive QoQ arrows. See docs/exec-report-plan.md.
+// ══════════════════════════════════════════════════════════════════
+
+// ── Control 1: per-DORA-article coverage (spec rows 2–5) ──────────
+// Per article: total obligations and how many are covered overall, by a policy,
+// by a group standard, by any control (backed), by an implemented (live)
+// control, and fully operationalised (live AND effective). An obligation counts
+// toward a lens if ANY of its mapped statements satisfies it.
+function buildDoraArticleCoverage(doraRows, policyRows, facts) {
+  const model = buildDoraObligations(doraRows, policyRows, facts);
+  const articles = model.articles.map(a => {
+    let covered = 0, byPolicy = 0, byGroupStandard = 0, byBacked = 0, byImplemented = 0, fullyOperationalised = 0;
+    a.obligations.forEach(o => {
+      if (!o.covered) return;
+      covered++;
+      const refs = o.mappedRefs;
+      if (refs.some(m => m.source === 'Local Policy'))    byPolicy++;
+      if (refs.some(m => m.source === 'Group Standard'))  byGroupStandard++;
+      if (refs.some(m => m.backing !== 'Uncovered'))      byBacked++;
+      if (refs.some(m => m.status === 'implemented'))     byImplemented++;
+      if (refs.some(m => m.status === 'implemented' && m.effective)) fullyOperationalised++;
+    });
+    return { article: a.article, capability: a.capability || '', total: a.obligations.length,
+             covered, byPolicy, byGroupStandard, byBacked, byImplemented, fullyOperationalised };
+  });
+  const sum = k => articles.reduce((s, r) => s + r[k], 0);
+  return {
+    articles,
+    totals: {
+      total: sum('total'), covered: sum('covered'), byPolicy: sum('byPolicy'),
+      byGroupStandard: sum('byGroupStandard'), byBacked: sum('byBacked'),
+      byImplemented: sum('byImplemented'), fullyOperationalised: sum('fullyOperationalised'),
+    },
+  };
+}
+
+// ── Control 2: statement operationalisation, split by source (rows 8–9) ──
+// Per distinct statement: backed (any control) and operationalised (a live
+// control — Built new / Reused pre-DORA). Aggregated overall and by source.
+function buildStatementOps(policyRows, facts) {
+  const cov = buildStatementCoverage(policyRows, facts);
+  const mk = () => ({ total: 0, backed: 0, operationalised: 0 });
+  const all = mk(), bySource = { 'Local Policy': mk(), 'Group Standard': mk(), 'Other': mk() };
+  cov.statements.forEach(s => {
+    const grp = bySource[s.source] || bySource['Other'];
+    const live = s.backing === 'Built new' || s.backing === 'Reused pre-DORA';
+    [all, grp].forEach(b => { b.total++; if (s.hasControl) b.backed++; if (live) b.operationalised++; });
+  });
+  const pct = b => b.total ? Math.round(100 * b.operationalised / b.total) : 0;
+  return {
+    all, policy: bySource['Local Policy'], groupStandard: bySource['Group Standard'], other: bySource['Other'],
+    operationalisedPct: { all: pct(all), policy: pct(bySource['Local Policy']), groupStandard: pct(bySource['Group Standard']) },
+  };
+}
+
+// ── Control 2: per-document detail + anomalies (rows 12–16, 19–21, 13, 14) ──
+// Per policy / group-standard document:
+//   disposition   — statements by Implemented-status (no waiver) / E / WT / WP  (12,19)
+//   operationalised — statements with a live control                            (15,20)
+//   control mix   — controls citing the doc's statements by Draft / Implemented /
+//                   Tested / Effective (independent flags; controls deduped)     (16,21)
+//   invisibleWork — Implemented-status statements with NO control                (13)
+//   staleWaiver   — statements with a waiver that DO have a live control         (14)
+function buildExecDocDetail(policyRows, facts) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const typeOf  = pr => isLocPolType(pr.type) ? 'policy' : isGrpStdType(pr.type) ? 'groupStandard' : 'other';
+  const cls = buildRtmClass(policyRows, facts);
+  const dkey = (capId, doc) => capId + '||' + doc;
+
+  const docs = {};
+  const seenStmt = new Set();
+  (policyRows || []).forEach(pr => {
+    const doc = (pr.document || '').trim() || '(no document)';
+    const key = dkey(pr.capId, doc);
+    const d = docs[key] || (docs[key] = {
+      key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: typeOf(pr),
+      total: 0, implementedStatus: 0, excE: 0, excWT: 0, excWP: 0, operationalised: 0,
+      invisibleWork: 0, staleWaiver: 0, ctrlDraft: 0, ctrlImpl: 0, ctrlTested: 0, ctrlEffective: 0,
+      _ctrlSeen: new Set(),
+    });
+    const sKey = pr.capId + '||' + ftNorm(pr.statementRef);
+    if (seenStmt.has(sKey)) return;   // one row per distinct statement
+    seenStmt.add(sKey);
+    d.total++;
+    const e = ftException(pr.exception);
+    const b = cls[sKey];
+    const live = b === 'Built new' || b === 'Reused pre-DORA';
+    if (e === 'E') d.excE++;
+    else if (e === 'WT') d.excWT++;
+    else if (e === 'WP') d.excWP++;
+    else d.implementedStatus++;                 // no waiver = self-declared "we do this"
+    if (live) d.operationalised++;
+    if (!e && b === 'Uncovered') d.invisibleWork++;   // implemented-status, no control
+    if (e && live) d.staleWaiver++;                   // waiver but a live control exists
+  });
+
+  // Control-status mix per document (controls deduped by identity per doc).
+  (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).forEach(f => {
+    const impl = ftIsImplemented(f), tested = ftIsAssessed(f), eff = ftIsEffective(f);
+    const cid = ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    const docsSeen = new Set();
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const key = dkey(mp.capId, (mp.document || '').trim() || '(no document)');
+      const d = docs[key];
+      if (!d || docsSeen.has(key)) return;
+      docsSeen.add(key);
+      if (d._ctrlSeen.has(cid)) return;
+      d._ctrlSeen.add(cid);
+      if (impl) d.ctrlImpl++; else d.ctrlDraft++;
+      if (tested) d.ctrlTested++;
+      if (eff) d.ctrlEffective++;
+    });
+  });
+
+  const rows = Object.values(docs).map(d => { delete d._ctrlSeen; return d; });
+  rows.sort((a, b) => a.type.localeCompare(b.type) || a.capName.localeCompare(b.capName) || a.document.localeCompare(b.document));
+  return { rows, policy: rows.filter(r => r.type === 'policy'), groupStandard: rows.filter(r => r.type === 'groupStandard') };
+}
+
+// ── The hero scorecard (three control %s + composite + chain) ─────
+function buildExecScorecard(doraRows, policyRows, facts) {
+  const art  = buildDoraArticleCoverage(doraRows, policyRows, facts);
+  const sops = buildStatementOps(policyRows, facts);
+  const ops  = buildBackingControlOps(policyRows, facts);
+  const t = art.totals;
+  const pctOf = (n, d) => d ? Math.round(100 * n / d) : 0;
+  return {
+    control1: { pct: pctOf(t.covered, t.total), n: t.covered, d: t.total },          // obligations covered
+    control2: { pct: pctOf(sops.all.backed, sops.all.total), n: sops.all.backed, d: sops.all.total },  // statements backed
+    control3: { pct: ops.pct, n: ops.liveEffective, d: ops.total },                   // controls live & effective
+    composite: { pct: pctOf(t.fullyOperationalised, t.total), n: t.fullyOperationalised, d: t.total },  // obligations fully operationalised
+    chain: {
+      obligations: t.total,
+      ownedStatement: t.covered,
+      backedByControl: t.byBacked,
+      liveEffective: t.fullyOperationalised,
+    },
+  };
+}
+
 // ── Control type filters ──────────────────────────────────────────
 function ftLocPol(facts)      { return facts.filter(f => f.controlType === 'locPol'); }
 function ftGrpStd(facts)      { return facts.filter(f => f.controlType === 'grpStd'); }

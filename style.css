@@ -3074,6 +3074,19 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsc-seg-t { font-family: var(--font-mono); font-size: .55rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); margin-top: .15rem; }
 .exsc-seg-arrow { color: var(--text-muted); font-size: 1rem; padding: 0 .1rem; align-self: flex-start; margin-top: -2px; }
 
+/* ── Exec report — Act 1 coverage matrix ────────────────────────── */
+.exm-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.exm-tbl thead th { text-align: left; font-family: var(--font-mono); font-size: .58rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.exm-tbl tbody td { padding: .5rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.exm-tbl tbody tr:last-child td { border-bottom: none; }
+.exm-art { color: var(--text); font-weight: 500; }
+.exm-cap { color: var(--text-muted); white-space: nowrap; }
+.exm-bar { display: flex; align-items: center; gap: .5rem; min-width: 120px; }
+.exm-bar-num { font-family: var(--font-mono); font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.exm-den { color: var(--text-muted); font-weight: 400; }
+.exm-track { flex: 1; height: 7px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; min-width: 40px; }
+.exm-track i { display: block; height: 100%; border-radius: 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
 /* ── Control-1 card: Capability / Source / Document cells ───────── */
 .dora-cap-c { color: var(--text); }
 .dora-src-c { color: var(--text-muted); white-space: nowrap; }

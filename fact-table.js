@@ -310,24 +310,20 @@ function buildGovernanceRows(policyRows, facts) {
   (policyRows || []).forEach(pr => {
     const doc = (pr.document || '').trim() || '(no document)';
     const key = pr.capId + '||' + doc;
-    if (!map[key]) map[key] = { key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0, implemented: 0, excE: 0, excWT: 0, excWP: 0, invisible: 0 };
+    if (!map[key]) map[key] = { key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0, excE: 0, excWT: 0, excWP: 0, invisible: 0 };
     const r = map[key];
     r.total++;
     if (ftNorm(pr.status).includes('approv')) r.approved++;
     else r.draft++;   // anything not explicitly approved counts as draft/not-approved
     if (refAny.has(ftNorm(pr.statementRef))) r.riskTracked++;
     // Raw exception counts (E/WT/WP) — shown whatever the control status, so an
-    // uploaded exception always appears. Of the statements with NO exception:
-    //   implemented — already operationalised by a live control (Built / Reused)
-    //   invisible   — no control at all (Uncovered)
-    //   (Drafted with no exception = in progress, counted in neither)
+    // uploaded exception always appears. "Invisible" is the work we do with no
+    // control and no exception (Uncovered + blank).
     const e = ftException(pr.exception);
-    const bucket = cls[pr.capId + '||' + ftNorm(pr.statementRef)];
     if (e === 'E') r.excE++;
     else if (e === 'WT') r.excWT++;
     else if (e === 'WP') r.excWP++;
-    else if (bucket === 'Built new' || bucket === 'Reused pre-DORA') r.implemented++;
-    else if (bucket === 'Uncovered') r.invisible++;
+    else if (cls[pr.capId + '||' + ftNorm(pr.statementRef)] === 'Uncovered') r.invisible++;
   });
   const rows = Object.values(map).map(r => ({
     ...r,

@@ -55,17 +55,10 @@ function generateExecReport() {
   closeExecReportModal();
 
   document.getElementById('exec-report-content').innerHTML = `
-    <div class="exec-report-top no-print">
-      <div>
-        <h2 class="exec-report-title">ROC Report</h2>
-        <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
-      </div>
+    <div class="exec-report-top no-print" style="justify-content:flex-end">
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
-    <div class="exec-report-top print-only" style="display:none">
-      <h2 class="exec-report-title">ROC Report</h2>
-      <p class="exec-report-sub">${currentA.label} · ${formatDate(currentA.date)}</p>
-    </div>
+    ${renderExecScorecard(currentA, prevA)}
     ${execStep(1)}
     <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA, prevA)}</div>
     ${execStep(2)}
@@ -77,6 +70,80 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
   `;
   showView('exec-report');
+}
+
+// ── Hero scorecard band (Control 1 / 2 / 3 at a glance) ───────────
+// Reads buildExecScorecard for the current and previous assessment; RAG colour
+// by percentage, QoQ delta arrows against the previous assessment.
+function execScColor(pct) {
+  return pct >= 80 ? 'var(--clr-success)' : pct >= 50 ? 'var(--clr-warning)' : 'var(--clr-danger)';
+}
+function execScDelta(cur, prev) {
+  if (prev == null) return '';
+  const d = cur - prev;
+  if (d === 0) return '<span class="exsc-flat">■ no change</span>';
+  const up = d > 0;
+  return `<span class="exsc-${up ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${up ? '+' : ''}${d}%</span>`;
+}
+function execScGauge(pct, n, d) {
+  const col = execScColor(pct);
+  const C = 2 * Math.PI * 52;
+  const dash = Math.max(0, Math.min(100, pct)) / 100 * C;
+  return `<div class="exsc-ring">
+    <svg viewBox="0 0 132 132" width="118" height="118">
+      <circle class="exsc-track" cx="66" cy="66" r="52"></circle>
+      <circle class="exsc-arc" cx="66" cy="66" r="52" stroke="${col}" stroke-dasharray="${dash.toFixed(1)} ${C.toFixed(1)}"></circle>
+    </svg>
+    <div class="exsc-ctr"><div class="exsc-pct" style="color:${col}">${pct}%</div><div class="exsc-frac">${n} / ${d}</div></div>
+  </div>`;
+}
+function renderExecScorecard(currentA, prevA) {
+  const cur  = buildExecScorecard(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const prev = prevA ? buildExecScorecard(prevA.doraRows || [], prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
+  const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
+
+  const gauge = (key, tag, name, desc) => {
+    const c = cur[key], p = prev ? prev[key] : null;
+    return `<div class="exsc-gauge">
+      <div class="exsc-gtag">${tag}</div>
+      <div class="exsc-gname">${name}</div>
+      ${execScGauge(c.pct, c.n, c.d)}
+      <div class="exsc-qoq">${execScDelta(c.pct, p ? p.pct : null)}</div>
+      <div class="exsc-gdesc">${desc}</div>
+    </div>`;
+  };
+
+  const ch = cur.chain, total = ch.obligations || 1;
+  const seg = (n, label) => {
+    const w = Math.round(100 * n / total);
+    return `<div class="exsc-seg"><div class="exsc-seg-bar"><i style="width:${w}%;background:${execScColor(w)}"></i></div><div class="exsc-seg-n">${n}</div><div class="exsc-seg-t">${label}</div></div>`;
+  };
+  const arrow = '<div class="exsc-seg-arrow">→</div>';
+  const subVs = prevA ? ` &nbsp;·&nbsp; vs ${escHtml(prevA.label)}` : '';
+
+  return `
+  <div class="exsc">
+    <div class="exsc-hdr">
+      <div>
+        <div class="exsc-eyebrow">◈ ${escHtml(app)}</div>
+        <h2 class="exsc-title">DORA Operationalisation Scorecard</h2>
+        <div class="exsc-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)}${subVs}</div>
+      </div>
+      <div class="exsc-composite">
+        <div class="exsc-big" style="color:${execScColor(cur.composite.pct)}">${cur.composite.pct}%</div>
+        <div class="exsc-big-lbl">Obligations fully<br>operationalised</div>
+        <div class="exsc-qoq">${execScDelta(cur.composite.pct, prev ? prev.composite.pct : null)}</div>
+      </div>
+    </div>
+    <div class="exsc-row">
+      ${gauge('control1', 'Control 1', 'Regulatory SOA', 'DORA obligations backed by an owned policy or group-standard statement')}
+      ${gauge('control2', 'Control 2', 'Statements backed by controls', 'Owned statements with at least one control that cites them')}
+      ${gauge('control3', 'Control 3', 'Controls live &amp; effective', 'Backing controls implemented and rated effective in the RCSA')}
+    </div>
+    <div class="exsc-chain">
+      ${seg(ch.obligations, 'Obligations')}${arrow}${seg(ch.ownedStatement, 'Owned statement')}${arrow}${seg(ch.backedByControl, 'Backed by control')}${arrow}${seg(ch.liveEffective, 'Live &amp; effective')}
+    </div>
+  </div>`;
 }
 
 // ── Risk-Treatment Operationalisation — 4-layer card (top of Step 1) ──

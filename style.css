@@ -3041,6 +3041,39 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ev-top-btns { display: flex; gap: .5rem; flex-shrink: 0; }
 #evidence-content { overflow-x: auto; }
 
+/* ── Exec report — hero scorecard band ──────────────────────────── */
+.exsc { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 1.3rem 1.4rem; margin-bottom: 1.25rem; }
+.exsc-hdr { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.exsc-eyebrow { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: .35rem; }
+.exsc-title { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 700; margin: 0; }
+.exsc-sub { color: var(--text-muted); font-size: .82rem; margin-top: .25rem; }
+.exsc-composite { text-align: right; flex-shrink: 0; }
+.exsc-big { font-family: var(--font-mono); font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.exsc-big-lbl { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-top: .3rem; line-height: 1.3; }
+.exsc-row { display: flex; gap: 1rem; margin-top: 1.35rem; }
+.exsc-gauge { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 1rem .9rem .9rem; text-align: center; }
+.exsc-gtag { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.exsc-gname { font-size: .88rem; font-weight: 600; margin: .15rem 0 .55rem; }
+.exsc-ring { position: relative; width: 118px; height: 118px; margin: 0 auto; }
+.exsc-ring svg { transform: rotate(-90deg); }
+.exsc-track { fill: none; stroke: color-mix(in srgb, var(--text) 12%, transparent); stroke-width: 11; }
+.exsc-arc { fill: none; stroke-width: 11; stroke-linecap: round; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exsc-ctr { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.exsc-pct { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; }
+.exsc-frac { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); margin-top: 2px; }
+.exsc-qoq { margin-top: .6rem; font-family: var(--font-mono); font-size: .66rem; min-height: 1em; }
+.exsc-up { color: var(--clr-success); }
+.exsc-dn { color: var(--clr-danger); }
+.exsc-flat { color: var(--text-muted); }
+.exsc-gdesc { color: var(--text-muted); font-size: .7rem; margin-top: .45rem; line-height: 1.35; }
+.exsc-chain { display: flex; align-items: center; gap: 2px; margin-top: 1.25rem; }
+.exsc-seg { flex: 1; text-align: center; }
+.exsc-seg-bar { height: 9px; border-radius: 6px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; }
+.exsc-seg-bar i { display: block; height: 100%; border-radius: 6px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exsc-seg-n { font-family: var(--font-mono); font-size: .72rem; font-weight: 700; margin-top: .35rem; }
+.exsc-seg-t { font-family: var(--font-mono); font-size: .55rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); margin-top: .15rem; }
+.exsc-seg-arrow { color: var(--text-muted); font-size: 1rem; padding: 0 .1rem; align-self: flex-start; margin-top: -2px; }
+
 /* ── Control-1 card: Capability / Source / Document cells ───────── */
 .dora-cap-c { color: var(--text); }
 .dora-src-c { color: var(--text-muted); white-space: nowrap; }

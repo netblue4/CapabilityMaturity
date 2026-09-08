@@ -88,6 +88,7 @@
       ref:         find('statement ref', 'ref', 'reference'),
       header:      find('statement header', 'header'),
       document:    docIdx >= 0 ? headers[docIdx] : null,
+      capability:  find('capability', 'process', 'domain', 'function'),
       article:     find('dora', 'article', 'regulation'),
     };
   }
@@ -126,6 +127,7 @@
           statementRef:    ref,
           statementHeader: _dCols.header      ? (row[_dCols.header]      || '').trim() : '',
           document:        doc,
+          capability:      _dCols.capability   ? (row[_dCols.capability]   || '').trim() : '',
           unmapped:        isUnmapped(ref, doc),
         };
       }).filter(r => r.obligationId);
@@ -166,6 +168,7 @@
         return `
           <tr class="${o.covered ? '' : 'dora-row-uncov'}">
             <td class="dora-obl">${esc(o.obligationId)}</td>
+            <td>${esc(o.capability)}</td>
             <td class="dora-req">${esc(o.requirement)}</td>
             <td class="dora-cov">${o.covered ? '<span class="dora-cov-yes">Covered</span>' : '<span class="dora-cov-no">Uncovered</span>'}</td>
             <td>${refs}</td>
@@ -175,7 +178,7 @@
         <div class="dora-art-block">
           <div class="dora-art-hdr"><span class="dora-art-name">${esc(a.article)}</span><span class="dora-art-count">${cov}/${a.obligations.length} covered</span></div>
           <table class="dora-tbl">
-            <thead><tr><th>Obligation</th><th>Requirement</th><th>Coverage</th><th>Policy / Standard ref</th></tr></thead>
+            <thead><tr><th>Obligation</th><th>Capability</th><th>Requirement</th><th>Coverage</th><th>Policy / Standard ref</th></tr></thead>
             <tbody>${body}</tbody>
           </table>
         </div>`;

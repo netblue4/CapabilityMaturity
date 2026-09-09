@@ -167,17 +167,17 @@ function renderExecScorecard(currentA, prevA) {
       </div>
     </div>
     <div class="exsc-row">
-      ${gauge('control1', 'Control 1', 'Regulatory SOA', 'DORA obligations backed by an owned policy or group-standard statement', `Owned statements: <b>${sops.policy.total}</b> policy · <b>${sops.groupStandard.total}</b> group standard`)}
+      ${gauge('control1', 'Control 1', 'Regulatory SOA', `${cur.control1.n} DORA digital resilience objectives covered by ${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements`)}
       <div class="exsc-gauge exsc-gauge-c2">
         <div class="exsc-gtag">Control 2</div>
-        <div class="exsc-gname">Statements backed by controls</div>
+        <div class="exsc-gname">Policy and Group Standard statements covering DORA digital resilience objectives</div>
         <div class="exsc-c2-donuts">${execStackDonut(c2p.impl, c2p.draft, c2p.none, { label: 'Policy', caption: `<span class="exsc-c2-imp">${c2p.impl} impl</span> · <span class="exsc-c2-drf">${c2p.draft} draft</span> · <span class="exsc-c2-non">${c2p.none} none</span>` })}${execStackDonut(c2g.impl, c2g.draft, c2g.none, { label: 'Group Standard', caption: `<span class="exsc-c2-imp">${c2g.impl} impl</span> · <span class="exsc-c2-drf">${c2g.draft} draft</span> · <span class="exsc-c2-non">${c2g.none} none</span>` })}</div>
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Implemented</span> <span class="exsc-c2-drf">■ Draft</span> <span class="exsc-c2-non">■ No control</span></div>
-        <div class="exsc-gdesc">Drafted-but-not-implemented (amber) is the resourcing gap — controls written, not yet live.</div>
+        <div class="exsc-gdesc">${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements are operationalised with ${bops.total} controls.</div>
       </div>
       <div class="exsc-gauge exsc-gauge-c3">
         <div class="exsc-gtag">Control 3</div>
-        <div class="exsc-gname">Controls live &amp; effective</div>
+        <div class="exsc-gname">Controls operationalising DORA digital resilience objectives</div>
         <div class="exsc-c2-donuts">${execStackDonut(c3.eff, c3.implNotEff, c3.draft, { centreLbl: 'controls', caption: `<span class="exsc-c2-imp">${c3.eff} effective</span> · <span class="exsc-c2-drf">${c3.implNotEff} to improve</span> · <span class="exsc-c2-non">${c3.draft} draft</span>` })}</div>
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Effective</span> <span class="exsc-c2-drf">■ Implemented, not effective</span> <span class="exsc-c2-non">■ Draft</span></div>
         <div class="exsc-gdesc">Amber = implemented but not yet rated effective — the controls that need improvement.</div>

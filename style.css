@@ -3134,6 +3134,11 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ex3-axt  { fill: var(--text-muted); font-family: var(--font-mono); font-size: 9px; letter-spacing: .05em; }
 .ex3-dz   { fill: var(--clr-danger); font-family: var(--font-mono); font-size: 9px; opacity: .7; letter-spacing: .08em; }
 .ex3-quad-note { font-size: .7rem; color: var(--text-muted); margin-top: .3rem; }
+.ex3-zchip { font-family: var(--font-mono); font-size: .66rem; font-weight: 700; padding: .12rem .55rem; border-radius: 20px; white-space: nowrap; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.ex3-z-green { background: color-mix(in srgb, var(--clr-success) 20%, transparent); color: var(--clr-success); }
+.ex3-z-amber { background: color-mix(in srgb, var(--clr-warning) 22%, transparent); color: var(--clr-warning); }
+.ex3-z-red   { background: color-mix(in srgb, var(--clr-danger) 20%, transparent); color: var(--clr-danger); }
+.ex3-z-na    { color: var(--text-muted); }
 
 /* ── Exec report — Close (what needs attention) ─────────────────── */
 .exa-list { display: flex; flex-direction: column; gap: .6rem; margin-top: .4rem; }

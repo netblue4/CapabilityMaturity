@@ -297,51 +297,103 @@ function renderExecControl2(currentA, prevA) {
 // ── Act 3 · Control 3 — controls operationalised & live (risk view) ──
 // The residual-vs-effectiveness quadrant + a risk-assurance summary table
 // (spec row 24). Reads buildRiskProfile + buildBackingControlOps.
-const EX3_BAND_COL = {
-  extreme: 'var(--clr-danger)',
-  significant: 'color-mix(in srgb, var(--clr-danger) 65%, var(--clr-warning))',
-  moderate: 'var(--clr-warning)',
-  low: 'var(--clr-success)', none: 'var(--clr-success)',
-};
+// Zone of a risk from residual (x) × control effectiveness (y), per the
+// exec-defined grid. Effectiveness = share of the risk's controls rated
+// effective. Not-assessed risks (no residual) have no zone.
+//   eff ≥ 50 : residual <20 green, ≥20 amber
+//   eff < 50 : residual <12 green, 12–20 amber, ≥20 red (danger)
+function ex3Zone(k) {
+  if (k.band === 'na' || !k.residual) return { key: 'na', label: 'n/a', col: 'var(--text-muted)' };
+  const e = k.active ? 100 * k.effective / k.active : 0, r = k.residual;
+  const key = e >= 50 ? (r >= 20 ? 'amber' : 'green') : (r >= 20 ? 'red' : (r >= 12 ? 'amber' : 'green'));
+  const col = key === 'red' ? 'var(--clr-danger)' : key === 'amber' ? 'var(--clr-warning)' : 'var(--clr-success)';
+  return { key, label: key.charAt(0).toUpperCase() + key.slice(1), col };
+}
 function execQuadrant(risks) {
   const assessed = risks.filter(k => k.band !== 'na' && k.residual > 0);
   const notAssessed = risks.length - assessed.length;
   const W = 760, H = 300, mL = 46, mR = 16, mT = 14, mB = 34;
-  const pL = mL, pR = W - mR, pT = mT, pB = H - mB, pW = pR - pL, pH = pB - pT, RMAX = 36;
+  const pL = mL, pR = W - mR, pT = mT, pB = H - mB, pW = pR - pL, pH = pB - pT, RMAX = 38;
   const xs = r => pL + Math.min(r, RMAX) / RMAX * pW;
   const ys = e => pT + (1 - Math.max(0, Math.min(100, e)) / 100) * pH;
-  const dz = `<rect x="${xs(20).toFixed(1)}" y="${ys(50).toFixed(1)}" width="${(pR - xs(20)).toFixed(1)}" height="${(pB - ys(50)).toFixed(1)}" fill="color-mix(in srgb, var(--clr-danger) 11%, transparent)"></rect>`;
-  const grid = [12, 20, 28].map(v => `<line x1="${xs(v).toFixed(1)}" y1="${pT}" x2="${xs(v).toFixed(1)}" y2="${pB}" class="ex3-grid"></line>`).join('') +
+  const rect = (r0, r1, e0, e1, col, pct) => `<rect x="${xs(r0).toFixed(1)}" y="${ys(e1).toFixed(1)}" width="${(xs(r1) - xs(r0)).toFixed(1)}" height="${(ys(e0) - ys(e1)).toFixed(1)}" fill="color-mix(in srgb, ${col} ${pct}%, transparent)"></rect>`;
+  const zones =
+    rect(0, 20, 50, 100, 'var(--clr-success)', 12) +   // top-left  green
+    rect(20, 38, 50, 100, 'var(--clr-warning)', 12) +  // top-right amber
+    rect(0, 12, 0, 50, 'var(--clr-success)', 12) +     // bottom-left green
+    rect(12, 20, 0, 50, 'var(--clr-warning)', 12) +    // bottom-mid amber
+    rect(20, 38, 0, 50, 'var(--clr-danger)', 14);      // bottom-right red (danger)
+  const grid = [12, 20].map(v => `<line x1="${xs(v).toFixed(1)}" y1="${pT}" x2="${xs(v).toFixed(1)}" y2="${pB}" class="ex3-grid"></line>`).join('') +
     `<line x1="${pL}" y1="${ys(50).toFixed(1)}" x2="${pR}" y2="${ys(50).toFixed(1)}" class="ex3-grid"></line>`;
   const axes = `<line x1="${pL}" y1="${pB}" x2="${pR}" y2="${pB}" class="ex3-axis"></line><line x1="${pL}" y1="${pT}" x2="${pL}" y2="${pB}" class="ex3-axis"></line>`;
   const bubbles = assessed.map(k => {
     const eff = k.active ? Math.round(100 * k.effective / k.active) : 0;
     const r = Math.min(9, 4 + (k.active || 1));
-    return `<circle cx="${xs(k.residual).toFixed(1)}" cy="${ys(eff).toFixed(1)}" r="${r}" fill="${EX3_BAND_COL[k.band] || 'var(--accent)'}" fill-opacity="0.75" stroke="var(--bg2)" stroke-width="1"><title>${escHtml(k.title)} — residual ${k.residual}, ${eff}% effective</title></circle>`;
+    return `<circle cx="${xs(k.residual).toFixed(1)}" cy="${ys(eff).toFixed(1)}" r="${r}" fill="${ex3Zone(k).col}" fill-opacity="0.9" stroke="var(--bg2)" stroke-width="1.5"><title>${escHtml(k.title)} — residual ${k.residual}, ${eff}% effective</title></circle>`;
   }).join('');
-  const xlabels = [0, 12, 20, 28, 36].map(v => `<text x="${xs(v).toFixed(1)}" y="${pB + 16}" class="ex3-tick" text-anchor="middle">${v}</text>`).join('');
+  const xlabels = [0, 12, 20, 38].map(v => `<text x="${xs(v).toFixed(1)}" y="${pB + 16}" class="ex3-tick" text-anchor="middle">${v}</text>`).join('');
   const ylabels = [0, 50, 100].map(v => `<text x="${pL - 6}" y="${(ys(v) + 3).toFixed(1)}" class="ex3-tick" text-anchor="end">${v}%</text>`).join('');
   const titles = `<text x="${((pL + pR) / 2).toFixed(0)}" y="${H - 2}" class="ex3-axt" text-anchor="middle">Residual risk →</text>` +
     `<text x="11" y="${((pT + pB) / 2).toFixed(0)}" class="ex3-axt" text-anchor="middle" transform="rotate(-90 11 ${((pT + pB) / 2).toFixed(0)})">Control effectiveness →</text>`;
   const dzLabel = `<text x="${pR - 6}" y="${pB - 6}" class="ex3-dz" text-anchor="end">DANGER ZONE</text>`;
   return `<div class="ex3-quad-wrap">
-    <svg viewBox="0 0 ${W} ${H}" class="ex3-quad" preserveAspectRatio="xMidYMid meet">${dz}${grid}${axes}${bubbles}${xlabels}${ylabels}${titles}${dzLabel}</svg>
+    <svg viewBox="0 0 ${W} ${H}" class="ex3-quad" preserveAspectRatio="xMidYMid meet">${zones}${grid}${axes}${bubbles}${xlabels}${ylabels}${titles}${dzLabel}</svg>
     ${notAssessed ? `<div class="ex3-quad-note">${notAssessed} risk(s) not yet assessed (no residual) — excluded from the plot.</div>` : ''}
   </div>`;
 }
+// ── Sortable risk-assurance table (with Zone column) ──
+let _ex3Rows = [], _ex3Sort = { col: null, dir: 1 };
+const EX3_CONF_RANK = { na: 0, low: 1, med: 2, high: 3 };
+const EX3_ZONE_RANK = { na: 0, green: 1, amber: 2, red: 3 };
+const EX3_FIELD = {
+  capName: k => k._capName || '', title: k => k.title || '', residual: k => k.residual || 0,
+  implemented: k => k.active ? k.implemented / k.active : -1,
+  tested: k => k.active ? k.tested / k.active : -1,
+  effective: k => k.active ? k.effective / k.active : -1,
+  conf: k => EX3_CONF_RANK[k.conf] ?? 0,
+  zone: k => EX3_ZONE_RANK[ex3Zone(k).key],
+};
+function ex3SortRows() {
+  if (!_ex3Sort.col) return _ex3Rows;
+  const f = EX3_FIELD[_ex3Sort.col] || EX3_FIELD.residual, dir = _ex3Sort.dir;
+  return _ex3Rows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || (a._capName || '').localeCompare(b._capName || '') || a.title.localeCompare(b.title);
+    return String(va).localeCompare(String(vb)) * dir || a.title.localeCompare(b.title);
+  });
+}
+function ex3Head() {
+  const arrow = c => _ex3Sort.col === c ? `<span class="mrt-arrow">${_ex3Sort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, l, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExec3('${k}')">${l}${arrow(k)}</th>`;
+  return `<tr>${th('capName', 'Capability')}${th('title', 'Risk')}${th('residual', 'Residual', 'rp-num')}${th('implemented', 'Implemented', 'rp-num')}${th('tested', 'Tested', 'rp-num')}${th('effective', 'Effective', 'rp-num')}${th('conf', 'Confidence', 'rp-num')}${th('zone', 'Zone')}</tr>`;
+}
+function ex3Body(rows) {
+  return rows.map(k => {
+    const z = ex3Zone(k);
+    return `<tr class="rp-row${k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : '')}">
+      <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
+      <td><div class="rp-title">${escHtml(k.title)}</div></td>
+      <td class="rp-num">${rpResCell(k)}</td>
+      <td class="rp-num">${rpFrac(k.implemented, k.active)}</td>
+      <td class="rp-num">${rpFrac(k.tested, k.active)}</td>
+      <td class="rp-num">${rpFrac(k.effective, k.active, true)}</td>
+      <td class="rp-num">${rpConfCell(k)}</td>
+      <td><span class="ex3-zchip ex3-z-${z.key}">${z.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+function sortExec3(col) {
+  if (_ex3Sort.col === col) _ex3Sort.dir *= -1; else _ex3Sort = { col, dir: (col === 'capName' || col === 'title') ? 1 : -1 };
+  const tb = document.getElementById('ex3-tbody'), th = document.getElementById('ex3-thead');
+  if (tb) tb.innerHTML = ex3Body(ex3SortRows());
+  if (th) th.innerHTML = ex3Head();
+}
 function ex3RiskTable(risks) {
-  const body = risks.map(k => `<tr class="rp-row${k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : '')}">
-    <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
-    <td><div class="rp-title">${escHtml(k.title)}</div></td>
-    <td class="rp-num">${rpResCell(k)}</td>
-    <td class="rp-num">${rpFrac(k.implemented, k.active)}</td>
-    <td class="rp-num">${rpFrac(k.tested, k.active)}</td>
-    <td class="rp-num">${rpFrac(k.effective, k.active, true)}</td>
-    <td class="rp-num">${rpConfCell(k)}</td>
-  </tr>`).join('');
+  _ex3Rows = risks;
+  _ex3Sort = { col: null, dir: 1 };
   return `<table class="rp-table rr-table">
-    <thead><tr><th>Capability</th><th>Risk</th><th>Residual</th><th>Implemented</th><th>Tested</th><th>Effective</th><th>Confidence</th></tr></thead>
-    <tbody>${body}</tbody></table>`;
+    <thead id="ex3-thead">${ex3Head()}</thead>
+    <tbody id="ex3-tbody">${ex3Body(ex3SortRows())}</tbody></table>`;
 }
 function renderExecControl3(currentA, prevA) {
   const facts   = currentA.riskPolicyFacts || [];
@@ -355,7 +407,7 @@ function renderExecControl3(currentA, prevA) {
       <div style="flex:1"><div class="exsc-eyebrow">Act 3 · Control 3</div><h3 class="measure-card-title">Controls operationalised &amp; live</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!risks.length) return `<div class="card measure-card">${head('No risk data uploaded for this assessment.')}</div>`;
-  const danger = risks.filter(k => (k.band === 'extreme' || k.band === 'significant') && (k.active ? k.effective / k.active : 0) < 0.5).length;
+  const danger = risks.filter(k => ex3Zone(k).key === 'red').length;
   const desc = `<b>${ops.liveEffective}</b>/${ops.total} backing controls live &amp; effective (${ops.pct}% ${execScDelta(ops.pct, prevOps ? prevOps.pct : null)}). Risks plotted by residual severity vs how effective their controls are — the red zone is high residual with weak controls${danger ? ` (<b class="dora-gap-num">${danger}</b> there)` : ''}.`;
   return `<div class="card measure-card">
     ${head(desc)}

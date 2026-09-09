@@ -3124,6 +3124,17 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ex2-ct-test  { color: var(--accent2); }
 .ex2-ct-eff   { color: var(--clr-success); }
 
+/* ── Exec report — Act 3 (Control 3) quadrant ───────────────────── */
+.ex3-quad-wrap { margin: .5rem 0 1rem; }
+.ex3-quad { width: 100%; height: auto; max-height: 340px; }
+.ex3-quad circle, .ex3-quad rect { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.ex3-grid { stroke: color-mix(in srgb, var(--text) 10%, transparent); stroke-width: 1; stroke-dasharray: 3 3; }
+.ex3-axis { stroke: color-mix(in srgb, var(--text) 28%, transparent); stroke-width: 1; }
+.ex3-tick { fill: var(--text-muted); font-family: var(--font-mono); font-size: 9px; }
+.ex3-axt  { fill: var(--text-muted); font-family: var(--font-mono); font-size: 9px; letter-spacing: .05em; }
+.ex3-dz   { fill: var(--clr-danger); font-family: var(--font-mono); font-size: 9px; opacity: .7; letter-spacing: .08em; }
+.ex3-quad-note { font-size: .7rem; color: var(--text-muted); margin-top: .3rem; }
+
 /* ── Control-1 card: Capability / Source / Document cells ───────── */
 .dora-cap-c { color: var(--text); }
 .dora-src-c { color: var(--text-muted); white-space: nowrap; }

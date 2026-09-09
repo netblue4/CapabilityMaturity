@@ -286,6 +286,24 @@ function ftException(v) {
   return '';
 }
 
+// Full statement disposition (the Exception column is now a disposition field).
+// Values in the policy upload:
+//   IMPLEMENTED       → 'IMP'     — control in place & running (self-declared)
+//   PART-Implemented  → 'PART'    — half implemented
+//   UNKNOWN / blank   → 'UNKNOWN' — not known (a blank is NEVER treated as implemented)
+//   E / WT / WP                  — the exemption / temporary / permanent waivers
+// Order matters: test "part" before "implement" so PART-Implemented ≠ IMPLEMENTED.
+function ftDisposition(v) {
+  const s = ftNorm(v);
+  if (!s) return 'UNKNOWN';
+  if (s.includes('part')) return 'PART';
+  if (s.includes('implement')) return 'IMP';
+  if (s === 'e'  || s.includes('exempt')) return 'E';
+  if (s === 'wt' || (s.includes('waiver') && s.includes('temp')) || s.includes('temporary')) return 'WT';
+  if (s === 'wp' || (s.includes('waiver') && s.includes('perm')) || s.includes('permanent')) return 'WP';
+  return 'UNKNOWN';
+}
+
 function buildGovernanceRows(policyRows, facts) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
   const active = (facts || []).filter(f => !ftIsClosedControl(f));   // non-closed controls only
@@ -317,13 +335,14 @@ function buildGovernanceRows(policyRows, facts) {
     else r.draft++;   // anything not explicitly approved counts as draft/not-approved
     if (refAny.has(ftNorm(pr.statementRef))) r.riskTracked++;
     // Raw exception counts (E/WT/WP) — shown whatever the control status, so an
-    // uploaded exception always appears. "Invisible" is the work we do with no
-    // control and no exception (Uncovered + blank).
+    // uploaded exception always appears. "Invisible" is the hidden work: a
+    // statement self-declared implemented / part-implemented but with no control.
     const e = ftException(pr.exception);
+    const disp = ftDisposition(pr.exception);
     if (e === 'E') r.excE++;
     else if (e === 'WT') r.excWT++;
     else if (e === 'WP') r.excWP++;
-    else if (cls[pr.capId + '||' + ftNorm(pr.statementRef)] === 'Uncovered') r.invisible++;
+    if ((disp === 'IMP' || disp === 'PART') && cls[pr.capId + '||' + ftNorm(pr.statementRef)] === 'Uncovered') r.invisible++;
   });
   const rows = Object.values(map).map(r => ({
     ...r,
@@ -866,23 +885,29 @@ function buildExecDocDetail(policyRows, facts) {
     const key = dkey(pr.capId, doc);
     const d = docs[key] || (docs[key] = {
       key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: typeOf(pr),
-      total: 0, implementedStatus: 0, excE: 0, excWT: 0, excWP: 0, operationalised: 0,
-      invisibleWork: 0, staleWaiver: 0, ctrlDraft: 0, ctrlImpl: 0, ctrlTested: 0, ctrlEffective: 0,
+      total: 0, implementedStatus: 0, partImplemented: 0, unknown: 0, excE: 0, excWT: 0, excWP: 0,
+      operationalised: 0, invisibleWork: 0, staleWaiver: 0, ctrlDraft: 0, ctrlImpl: 0, ctrlTested: 0, ctrlEffective: 0,
       _ctrlSeen: new Set(),
     });
     const sKey = pr.capId + '||' + ftNorm(pr.statementRef);
     if (seenStmt.has(sKey)) return;   // one row per distinct statement
     seenStmt.add(sKey);
     d.total++;
-    const e = ftException(pr.exception);
+    const disp = ftDisposition(pr.exception);   // IMP | PART | UNKNOWN | E | WT | WP
     const b = cls[sKey];
     const live = b === 'Built new' || b === 'Reused pre-DORA';
-    if (e === 'E') d.excE++;
-    else if (e === 'WT') d.excWT++;
-    else if (e === 'WP') d.excWP++;
-    else d.implementedStatus++;                 // no waiver = self-declared "we do this"
+    if (disp === 'IMP')       d.implementedStatus++;
+    else if (disp === 'PART') d.partImplemented++;
+    else if (disp === 'E')    d.excE++;
+    else if (disp === 'WT')   d.excWT++;
+    else if (disp === 'WP')   d.excWP++;
+    else                      d.unknown++;      // UNKNOWN (and any blank — never "implemented")
     if (live) d.operationalised++;
-    if (!e && b === 'Uncovered') d.invisibleWork++;   // implemented-status, no control
+    // Invisible work — statements self-declared implemented or part-implemented
+    // but with NO control citing them (the hidden work we're doing).
+    if ((disp === 'IMP' || disp === 'PART') && b === 'Uncovered') d.invisibleWork++;
+    // Stale waiver — a waiver (E/WT/WP) that already has a live control.
+    const e = ftException(pr.exception);
     if (e && live) d.staleWaiver++;                   // waiver but a live control exists
   });
 

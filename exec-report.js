@@ -232,12 +232,14 @@ function ex2DispBar(d) {
   const total = d.total || 1;
   const segs = [
     { n: d.implementedStatus, c: 'var(--clr-success)' },
+    { n: d.partImplemented, c: 'color-mix(in srgb, var(--clr-success) 55%, var(--accent))' },
     { n: d.excWT, c: 'var(--clr-warning)' },
     { n: d.excE,  c: 'var(--clr-danger)' },
     { n: d.excWP, c: 'color-mix(in srgb, var(--clr-danger) 55%, var(--text-muted))' },
+    { n: d.unknown, c: 'color-mix(in srgb, var(--text-muted) 55%, transparent)' },
   ];
   return `<div class="ex2-stack">${segs.filter(s => s.n > 0).map(s => `<i style="width:${Math.round(100 * s.n / total)}%;background:${s.c}"></i>`).join('')}</div>
-    <div class="ex2-disp-legend"><span class="ex2-dc ex2-dc-imp">${d.implementedStatus}</span><span class="ex2-dc ex2-dc-wt">${d.excWT}</span><span class="ex2-dc ex2-dc-e">${d.excE}</span><span class="ex2-dc ex2-dc-wp">${d.excWP}</span></div>`;
+    <div class="ex2-disp-legend"><span class="ex2-dc ex2-dc-imp" title="Implemented">${d.implementedStatus}</span><span class="ex2-dc ex2-dc-part" title="Part-implemented">${d.partImplemented}</span><span class="ex2-dc ex2-dc-wt" title="Temporary waiver">${d.excWT}</span><span class="ex2-dc ex2-dc-e" title="Exemption">${d.excE}</span><span class="ex2-dc ex2-dc-wp" title="Permanent waiver">${d.excWP}</span><span class="ex2-dc ex2-dc-unk" title="Unknown">${d.unknown}</span></div>`;
 }
 function ex2CtrlChips(d) {
   return `<span class="ex2-ct ex2-ct-draft" title="Draft controls">D ${d.ctrlDraft}</span><span class="ex2-ct ex2-ct-impl" title="Implemented controls">I ${d.ctrlImpl}</span><span class="ex2-ct ex2-ct-test" title="Tested controls">T ${d.ctrlTested}</span><span class="ex2-ct ex2-ct-eff" title="Effective controls">E ${d.ctrlEffective}</span>`;
@@ -275,7 +277,7 @@ function renderExecControl2(currentA, prevA) {
       <div class="ex2-flag-body"><div class="ex2-flag-t">${title}</div><div class="ex2-flag-d">${body}</div></div>
     </div>`;
 
-  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a live control (${ops.operationalisedPct.all}%). Disposition bar: <span class="ex2-dc-imp">Implemented</span> · <span class="ex2-dc-wt">Temp waiver</span> · <span class="ex2-dc-e">Exemption</span> · <span class="ex2-dc-wp">Perm waiver</span>.`;
+  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a live control (${ops.operationalisedPct.all}%). Disposition bar: <span class="ex2-dc-imp">Implemented</span> · <span class="ex2-dc-part">Part</span> · <span class="ex2-dc-wt">Temp waiver</span> · <span class="ex2-dc-e">Exemption</span> · <span class="ex2-dc-wp">Perm waiver</span> · <span class="ex2-dc-unk">Unknown</span>.`;
 
   return `<div class="card measure-card">
     ${head(desc)}
@@ -284,7 +286,7 @@ function renderExecControl2(currentA, prevA) {
       ${ex2AggBar('Group-standard statements operationalised', ops.groupStandard, prevOps ? prevOps.groupStandard : null)}
     </div>
     <div class="ex2-flags">
-      ${flag(inv, 'ex2-flag-warn', 'Invisible work', `Statements marked implemented (no waiver) with no control tracking them.${inv ? ' — ' + invDrill : ' None — good.'}`)}
+      ${flag(inv, 'ex2-flag-warn', 'Invisible work', `Statements self-declared implemented or part-implemented with no control tracking them.${inv ? ' — ' + invDrill : ' None — good.'}`)}
       ${flag(stale, 'ex2-flag-bad', 'Stale / incorrect waivers', `Statements carrying a waiver that already have a live control — the waiver should be lifted.${stale ? ' — ' + staleDrill : ' None — good.'}`)}
     </div>
     <div class="ex2-section">Group Standards — approval &amp; operationalisation</div>
@@ -445,7 +447,7 @@ function renderExecAttention(currentA) {
       action: 'Owned statements not backed by any control — assign or build one.',
       list: noCtrl.map(s => `${escHtml(s.ref)} · ${escHtml(shortName(s.capName))}`) },
     { sev: 'med', cat: 'Invisible work', n: invis.reduce((s, d) => s + d.invisibleWork, 0),
-      action: 'Implemented statements with no control tracking them — add a control for evidence.',
+      action: 'Implemented / part-implemented statements with no control tracking them — add a control for evidence.',
       list: invis.map(d => `${escHtml(d.document)} (${d.invisibleWork})`) },
     { sev: 'med', cat: 'Controls not yet live & effective', n: gapCtrl.length,
       action: 'Backing controls drafted or not yet effective — operationalise them.',

@@ -3114,9 +3114,11 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ex2-disp-legend { margin-top: .3rem; display: flex; gap: .45rem; font-family: var(--font-mono); font-size: .64rem; }
 .ex2-dc { font-weight: 700; }
 .ex2-dc-imp { color: var(--clr-success); }
+.ex2-dc-part { color: color-mix(in srgb, var(--clr-success) 55%, var(--accent)); }
 .ex2-dc-wt  { color: var(--clr-warning); }
 .ex2-dc-e   { color: var(--clr-danger); }
 .ex2-dc-wp  { color: color-mix(in srgb, var(--clr-danger) 55%, var(--text-muted)); }
+.ex2-dc-unk { color: var(--text-muted); }
 .ex2-ctrls { white-space: nowrap; }
 .ex2-ct { font-family: var(--font-mono); font-size: .66rem; font-weight: 700; margin-right: .35rem; }
 .ex2-ct-draft { color: var(--text-muted); }

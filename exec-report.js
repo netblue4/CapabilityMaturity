@@ -60,13 +60,10 @@ function generateExecReport() {
     </div>
     ${renderExecScorecard(currentA, prevA)}
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
-    ${execStep(1)}
-    <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA, prevA)}</div>
-    ${execStep(2)}
+    <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
+    <div class="exec-sec-div">Risk &amp; supporting detail</div>
     <div class="exec-rcsa-wrap">${renderExecRiskCard(currentA, prevA)}</div>
-    ${execStep(3)}
     <div class="exec-rcsa-wrap">${renderDoraTransition(currentA, prevA)}</div>
-    <div class="exec-sec-div">Supporting Detail</div>
     <div class="exec-rcsa-wrap">${renderRtmOwnerCard(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
   `;
@@ -219,6 +216,84 @@ function renderExecCoverageMatrix(currentA) {
         <tbody id="exm-tbody">${exmBody(exmSortRows())}</tbody>
       </table>
     </div>
+  </div>`;
+}
+
+// ── Act 2 · Control 2 — statements backed & operationalised ───────
+// Aggregate operationalisation (rows 8–9), per-document disposition +
+// control-status detail (rows 12–16, 19–21), and the two compliance-hygiene
+// callouts (rows 13, 14). Reads buildStatementOps + buildExecDocDetail.
+function ex2AggBar(label, o, prevO) {
+  const pct = o.total ? Math.round(100 * o.operationalised / o.total) : 0;
+  const prevPct = prevO && prevO.total ? Math.round(100 * prevO.operationalised / prevO.total) : null;
+  return `<div class="ex2-agg-item">
+    <div class="ex2-agg-top"><span class="ex2-agg-lbl">${label}</span><span class="ex2-agg-val"><b>${o.operationalised}</b>/<span class="exm-den">${o.total}</span> &middot; ${pct}% ${execScDelta(pct, prevPct)}</span></div>
+    <div class="ex2-agg-track"><i style="width:${pct}%;background:${execScColor(pct)}"></i></div>
+  </div>`;
+}
+function ex2DispBar(d) {
+  const total = d.total || 1;
+  const segs = [
+    { n: d.implementedStatus, c: 'var(--clr-success)' },
+    { n: d.excWT, c: 'var(--clr-warning)' },
+    { n: d.excE,  c: 'var(--clr-danger)' },
+    { n: d.excWP, c: 'color-mix(in srgb, var(--clr-danger) 55%, var(--text-muted))' },
+  ];
+  return `<div class="ex2-stack">${segs.filter(s => s.n > 0).map(s => `<i style="width:${Math.round(100 * s.n / total)}%;background:${s.c}"></i>`).join('')}</div>
+    <div class="ex2-disp-legend"><span class="ex2-dc ex2-dc-imp">${d.implementedStatus}</span><span class="ex2-dc ex2-dc-wt">${d.excWT}</span><span class="ex2-dc ex2-dc-e">${d.excE}</span><span class="ex2-dc ex2-dc-wp">${d.excWP}</span></div>`;
+}
+function ex2CtrlChips(d) {
+  return `<span class="ex2-ct ex2-ct-draft" title="Draft controls">D ${d.ctrlDraft}</span><span class="ex2-ct ex2-ct-impl" title="Implemented controls">I ${d.ctrlImpl}</span><span class="ex2-ct ex2-ct-test" title="Tested controls">T ${d.ctrlTested}</span><span class="ex2-ct ex2-ct-eff" title="Effective controls">E ${d.ctrlEffective}</span>`;
+}
+function ex2DocTable(rows) {
+  if (!rows.length) return '<p class="policy-no-data" style="margin:.3rem 0">None uploaded.</p>';
+  const body = rows.map(d => `<tr>
+    <td class="exm-art">${escHtml(d.document)}</td>
+    <td class="exm-cap">${escHtml(d.capName)}</td>
+    <td class="ex2-num">${d.total}</td>
+    <td class="ex2-disp">${ex2DispBar(d)}</td>
+    <td>${exmBar(d.operationalised, d.total)}</td>
+    <td class="ex2-ctrls">${ex2CtrlChips(d)}</td>
+  </tr>`).join('');
+  return `<table class="exm-tbl ex2-tbl">
+    <thead><tr><th>Document</th><th>Capability</th><th>Statements</th><th>Disposition</th><th>Operationalised</th><th>Controls (D/I/T/E)</th></tr></thead>
+    <tbody>${body}</tbody></table>`;
+}
+function renderExecControl2(currentA, prevA) {
+  const ops     = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const prevOps = prevA ? buildStatementOps(prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
+  const doc     = buildExecDocDetail(currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const head = desc => `<div class="measure-card-header">
+      <span class="measure-icon">🗂️</span>
+      <div style="flex:1"><div class="exsc-eyebrow">Act 2 · Control 2</div><h3 class="measure-card-title">Statements backed &amp; operationalised</h3><p class="measure-card-desc">${desc}</p></div>
+    </div>`;
+  if (!doc.rows.length) return `<div class="card measure-card">${head('No policy data uploaded for this assessment.')}</div>`;
+
+  const inv   = doc.rows.reduce((s, d) => s + d.invisibleWork, 0);
+  const stale = doc.rows.reduce((s, d) => s + d.staleWaiver, 0);
+  const invDrill   = doc.rows.filter(d => d.invisibleWork > 0).map(d => `${escHtml(d.document)} (${d.invisibleWork})`).join(', ');
+  const staleDrill = doc.rows.filter(d => d.staleWaiver > 0).map(d => `${escHtml(d.document)} (${d.staleWaiver})`).join(', ');
+  const flag = (n, cls, title, body) => `<div class="ex2-flag ${n ? cls : 'ex2-flag-ok'}">
+      <div class="ex2-flag-n">${n}</div>
+      <div class="ex2-flag-body"><div class="ex2-flag-t">${title}</div><div class="ex2-flag-d">${body}</div></div>
+    </div>`;
+
+  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a live control (${ops.operationalisedPct.all}%). Disposition bar: <span class="ex2-dc-imp">Implemented</span> · <span class="ex2-dc-wt">Temp waiver</span> · <span class="ex2-dc-e">Exemption</span> · <span class="ex2-dc-wp">Perm waiver</span>.`;
+
+  return `<div class="card measure-card">
+    ${head(desc)}
+    <div class="ex2-agg">
+      ${ex2AggBar('Policy statements operationalised', ops.policy, prevOps ? prevOps.policy : null)}
+      ${ex2AggBar('Group-standard statements operationalised', ops.groupStandard, prevOps ? prevOps.groupStandard : null)}
+    </div>
+    <div class="ex2-flags">
+      ${flag(inv, 'ex2-flag-warn', 'Invisible work', `Statements marked implemented (no waiver) with no control tracking them.${inv ? ' — ' + invDrill : ' None — good.'}`)}
+      ${flag(stale, 'ex2-flag-bad', 'Stale / incorrect waivers', `Statements carrying a waiver that already have a live control — the waiver should be lifted.${stale ? ' — ' + staleDrill : ' None — good.'}`)}
+    </div>
+    <div class="ex2-section">Group Standards — approval &amp; operationalisation</div>
+    <div class="rcsa-table-wrap">${ex2DocTable(doc.groupStandard)}</div>
+    <div class="ex2-section">Policies — approval &amp; operationalisation</div>
+    <div class="rcsa-table-wrap">${ex2DocTable(doc.policy)}</div>
   </div>`;
 }
 

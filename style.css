@@ -3087,6 +3087,43 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exm-track { flex: 1; height: 7px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; min-width: 40px; }
 .exm-track i { display: block; height: 100%; border-radius: 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 
+/* ── Exec report — Act 2 (Control 2) ────────────────────────────── */
+.ex2-agg { display: flex; gap: 1.5rem; margin: .5rem 0 1rem; flex-wrap: wrap; }
+.ex2-agg-item { flex: 1; min-width: 240px; }
+.ex2-agg-top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; font-size: .78rem; margin-bottom: .32rem; }
+.ex2-agg-lbl { color: var(--text); font-weight: 500; }
+.ex2-agg-val { font-family: var(--font-mono); font-size: .74rem; white-space: nowrap; }
+.ex2-agg-track { height: 10px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; }
+.ex2-agg-track i { display: block; height: 100%; border-radius: 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.ex2-flags { display: flex; gap: .8rem; margin: .3rem 0 .6rem; flex-wrap: wrap; }
+.ex2-flag { flex: 1; min-width: 260px; display: flex; gap: .7rem; align-items: flex-start; border: 1px solid var(--border); border-radius: 10px; padding: .7rem .8rem; }
+.ex2-flag-warn { border-color: color-mix(in srgb, var(--clr-warning) 45%, var(--border)); background: color-mix(in srgb, var(--clr-warning) 8%, transparent); }
+.ex2-flag-bad  { border-color: color-mix(in srgb, var(--clr-danger) 45%, var(--border)); background: color-mix(in srgb, var(--clr-danger) 8%, transparent); }
+.ex2-flag-ok   { border-color: color-mix(in srgb, var(--clr-success) 40%, var(--border)); background: color-mix(in srgb, var(--clr-success) 6%, transparent); }
+.ex2-flag-n { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; line-height: 1; }
+.ex2-flag-warn .ex2-flag-n { color: var(--clr-warning); }
+.ex2-flag-bad .ex2-flag-n  { color: var(--clr-danger); }
+.ex2-flag-ok .ex2-flag-n   { color: var(--clr-success); }
+.ex2-flag-t { font-weight: 600; font-size: .84rem; }
+.ex2-flag-d { color: var(--text-muted); font-size: .72rem; line-height: 1.4; margin-top: .15rem; }
+.ex2-section { font-family: var(--font-mono); font-size: .64rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin: 1.1rem 0 .4rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: .3rem; }
+.ex2-num { font-family: var(--font-mono); font-weight: 700; }
+.ex2-disp { min-width: 130px; }
+.ex2-stack { display: flex; height: 9px; border-radius: 6px; overflow: hidden; background: color-mix(in srgb, var(--text) 10%, transparent); min-width: 90px; }
+.ex2-stack i { display: block; height: 100%; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.ex2-disp-legend { margin-top: .3rem; display: flex; gap: .45rem; font-family: var(--font-mono); font-size: .64rem; }
+.ex2-dc { font-weight: 700; }
+.ex2-dc-imp { color: var(--clr-success); }
+.ex2-dc-wt  { color: var(--clr-warning); }
+.ex2-dc-e   { color: var(--clr-danger); }
+.ex2-dc-wp  { color: color-mix(in srgb, var(--clr-danger) 55%, var(--text-muted)); }
+.ex2-ctrls { white-space: nowrap; }
+.ex2-ct { font-family: var(--font-mono); font-size: .66rem; font-weight: 700; margin-right: .35rem; }
+.ex2-ct-draft { color: var(--text-muted); }
+.ex2-ct-impl  { color: var(--accent); }
+.ex2-ct-test  { color: var(--accent2); }
+.ex2-ct-eff   { color: var(--clr-success); }
+
 /* ── Control-1 card: Capability / Source / Document cells ───────── */
 .dora-cap-c { color: var(--text); }
 .dora-src-c { color: var(--text-muted); white-space: nowrap; }

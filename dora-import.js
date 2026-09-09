@@ -1,9 +1,11 @@
 // ── DORA → Policy Mapping Import Wizard (Control 1) ───────────────
 //
 // Third upload in the workflow (after Policy statements, before / with Risk
-// data). One row per (compliance statement × mapped statement ref). Joins to
-// the already-uploaded policy statements on STATEMENT REF, so there is NO
-// capability-mapping step — the flow is simply upload → review → save.
+// data). One row per (obligation × mapped statement ref); the obligation id is
+// the "paragraph reference" column and the requirement text is the "digital
+// resilience objectives" column. Joins to the already-uploaded policy
+// statements on STATEMENT REF, so there is NO capability-mapping step — the
+// flow is simply upload → review → save.
 //
 // Unmapped obligations arrive as explicit sentinel rows
 // (STATEMENT REF = "No matching policy", HEADER = "N/A", Document = "Not Found");
@@ -83,8 +85,8 @@
     let docIdx = hl.findIndex(h => h === 'document');
     if (docIdx < 0) docIdx = hl.findIndex(h => h.includes('document') && !h.includes('type') && !h.includes('status'));
     return {
-      obligation:  find('compliancestatementnumber', 'compliance statement', 'statement number', 'obligation'),
-      requirement: find('paragraph requirement', 'requirement', 'paragraph'),
+      obligation:  find('paragraph reference', 'paragraph ref', 'compliancestatementnumber', 'compliance statement', 'statement number', 'obligation'),
+      requirement: find('digital resilience objective', 'digital resilience', 'resilience objective', 'objective', 'paragraph requirement', 'requirement'),
       ref:         find('statement ref', 'ref', 'reference'),
       header:      find('statement header', 'header'),
       document:    docIdx >= 0 ? headers[docIdx] : null,
@@ -110,7 +112,7 @@
       if (!rows.length) { alert('No data rows found in the CSV file.'); return; }
       _dCols = detectDoraColumns(headers);
       if (!_dCols.obligation) {
-        alert('Could not find a Compliance Statement Number column.\nColumns found: ' + headers.join(', '));
+        alert('Could not find a "paragraph reference" (obligation) column.\nColumns found: ' + headers.join(', '));
         return;
       }
       if (!_dCols.ref) {

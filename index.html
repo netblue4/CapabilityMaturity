@@ -283,7 +283,7 @@
       <!-- Step 1: Upload -->
       <div id="dora-upload" class="card rk-section">
         <h3 class="rk-step-title">Step 1 — Upload the DORA → Policy Map CSV</h3>
-        <p class="rk-step-desc">Upload the CSV export of your DORA mapping (one row per compliance statement &times; mapped statement ref). It must contain a <strong>ComplianceStatementNumber</strong> column and a <strong>Statement Ref</strong> column. Unmapped obligations should remain in the file as <em>"No matching policy"</em> rows so completeness can be measured. Import your <strong>Policy Statements</strong> first so coverage resolves.</p>
+        <p class="rk-step-desc">Upload the CSV export of your DORA mapping (one row per obligation &times; mapped statement ref). It must contain a <strong>paragraph reference</strong> column (the obligation id) and a <strong>Statement Ref</strong> column; the requirement text comes from the <strong>digital resilience objectives</strong> column. Unmapped obligations should remain in the file as <em>"No matching policy"</em> rows so completeness can be measured. Import your <strong>Policy Statements</strong> first so coverage resolves.</p>
         <div class="rk-upload-row">
           <label class="btn btn-primary rk-file-label">
             Choose CSV file

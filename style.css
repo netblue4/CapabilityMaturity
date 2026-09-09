@@ -3087,7 +3087,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsc-c2-totlbl { font-family: var(--font-mono); font-size: .5rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
 .exsc-c2-lbl { font-size: .78rem; font-weight: 600; margin-top: .35rem; }
 .exsc-c2-sub { font-family: var(--font-mono); font-size: .6rem; color: var(--text-muted); margin-top: .15rem; }
-.exsc-c2-legend { font-family: var(--font-mono); font-size: .6rem; display: flex; flex-direction: column; align-items: flex-start; gap: .28rem; margin-top: .5rem; }
+.exsc-c2-legend { font-family: var(--font-mono); font-size: .6rem; display: flex; flex-direction: row; flex-wrap: wrap; gap: .7rem; justify-content: center; margin-top: .5rem; }
 .exsc-c2-imp { color: var(--clr-success); }
 .exsc-c2-drf { color: var(--clr-warning); }
 .exsc-c2-non { color: var(--text-muted); }

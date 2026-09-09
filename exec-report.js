@@ -92,9 +92,37 @@ function execScGauge(pct, n, d) {
     <div class="exsc-ctr"><div class="exsc-pct" style="color:${col}">${pct}%</div><div class="exsc-frac">${n} / ${d}</div></div>
   </div>`;
 }
+// Stacked donut for the Control-2 hero split: of a source's statements, how many
+// are implemented (green), draft-only (amber), or have no control (grey).
+function execStackDonut(impl, draft, none, label) {
+  const segs = [
+    { v: impl, c: 'var(--clr-success)' },
+    { v: draft, c: 'var(--clr-warning)' },
+    { v: none, c: 'color-mix(in srgb, var(--text) 16%, transparent)' },
+  ];
+  const total = impl + draft + none, R = 46, C = 2 * Math.PI * R, SW = 12;
+  let start = 0;
+  const arcs = total
+    ? segs.filter(s => s.v > 0).map(s => {
+        const len = s.v / total * C, off = -start; start += len;
+        return `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${s.c}" stroke-width="${SW}" stroke-dasharray="${len.toFixed(1)} ${(C - len).toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 60 60)"></circle>`;
+      }).join('')
+    : `<circle cx="60" cy="60" r="${R}" fill="none" stroke="color-mix(in srgb, var(--text) 16%, transparent)" stroke-width="${SW}"></circle>`;
+  return `<div class="exsc-c2-one">
+    <div class="exsc-c2-ring">
+      <svg viewBox="0 0 120 120" width="106" height="106" class="exsc-c2-svg">${arcs}</svg>
+      <div class="exsc-c2-ctr"><div class="exsc-c2-tot">${total}</div><div class="exsc-c2-totlbl">statements</div></div>
+    </div>
+    <div class="exsc-c2-lbl">${label}</div>
+    <div class="exsc-c2-sub"><span class="exsc-c2-imp">${impl} impl</span> · <span class="exsc-c2-drf">${draft} draft</span> · <span class="exsc-c2-non">${none} none</span></div>
+  </div>`;
+}
 function renderExecScorecard(currentA, prevA) {
   const cur  = buildExecScorecard(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const prev = prevA ? buildExecScorecard(prevA.doraRows || [], prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
+  const sops = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const c2 = src => ({ impl: src.operationalised, draft: src.backed - src.operationalised, none: src.total - src.backed });
+  const c2p = c2(sops.policy), c2g = c2(sops.groupStandard);
   const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
 
   const gauge = (key, tag, name, desc) => {
@@ -132,7 +160,13 @@ function renderExecScorecard(currentA, prevA) {
     </div>
     <div class="exsc-row">
       ${gauge('control1', 'Control 1', 'Regulatory SOA', 'DORA obligations backed by an owned policy or group-standard statement')}
-      ${gauge('control2', 'Control 2', 'Statements backed by controls', 'Owned statements with at least one control that cites them')}
+      <div class="exsc-gauge exsc-gauge-c2">
+        <div class="exsc-gtag">Control 2</div>
+        <div class="exsc-gname">Statements backed by controls</div>
+        <div class="exsc-c2-donuts">${execStackDonut(c2p.impl, c2p.draft, c2p.none, 'Policy')}${execStackDonut(c2g.impl, c2g.draft, c2g.none, 'Group Standard')}</div>
+        <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Implemented</span> <span class="exsc-c2-drf">■ Draft</span> <span class="exsc-c2-non">■ No control</span></div>
+        <div class="exsc-gdesc">Drafted-but-not-implemented (amber) is the resourcing gap — controls written, not yet live.</div>
+      </div>
       ${gauge('control3', 'Control 3', 'Controls live &amp; effective', 'Backing controls implemented and rated effective in the RCSA')}
     </div>
     <div class="exsc-chain">
@@ -228,34 +262,21 @@ function ex2AggBar(label, o, prevO) {
     <div class="ex2-agg-track"><i style="width:${pct}%;background:${execScColor(pct)}"></i></div>
   </div>`;
 }
-function ex2DispBar(d) {
-  const total = d.total || 1;
-  const segs = [
-    { n: d.implementedStatus, c: 'var(--clr-success)' },
-    { n: d.partImplemented, c: 'color-mix(in srgb, var(--clr-success) 55%, var(--accent))' },
-    { n: d.excWT, c: 'var(--clr-warning)' },
-    { n: d.excE,  c: 'var(--clr-danger)' },
-    { n: d.excWP, c: 'color-mix(in srgb, var(--clr-danger) 55%, var(--text-muted))' },
-    { n: d.unknown, c: 'color-mix(in srgb, var(--text-muted) 55%, transparent)' },
-  ];
-  return `<div class="ex2-stack">${segs.filter(s => s.n > 0).map(s => `<i style="width:${Math.round(100 * s.n / total)}%;background:${s.c}"></i>`).join('')}</div>
-    <div class="ex2-disp-legend"><span class="ex2-dc ex2-dc-imp" title="Implemented">${d.implementedStatus}</span><span class="ex2-dc ex2-dc-part" title="Part-implemented">${d.partImplemented}</span><span class="ex2-dc ex2-dc-wt" title="Temporary waiver">${d.excWT}</span><span class="ex2-dc ex2-dc-e" title="Exemption">${d.excE}</span><span class="ex2-dc ex2-dc-wp" title="Permanent waiver">${d.excWP}</span><span class="ex2-dc ex2-dc-unk" title="Unknown">${d.unknown}</span></div>`;
-}
-function ex2CtrlChips(d) {
-  return `<span class="ex2-ct ex2-ct-draft" title="Draft controls">D ${d.ctrlDraft}</span><span class="ex2-ct ex2-ct-impl" title="Implemented controls">I ${d.ctrlImpl}</span><span class="ex2-ct ex2-ct-test" title="Tested controls">T ${d.ctrlTested}</span><span class="ex2-ct ex2-ct-eff" title="Effective controls">E ${d.ctrlEffective}</span>`;
-}
 function ex2DocTable(rows) {
   if (!rows.length) return '<p class="policy-no-data" style="margin:.3rem 0">None uploaded.</p>';
-  const body = rows.map(d => `<tr>
+  const body = rows.map(d => {
+    const totCtrl = d.ctrlDraft + d.ctrlImpl;   // a control is either draft or implemented
+    return `<tr>
     <td class="exm-art">${escHtml(d.document)}</td>
     <td class="exm-cap">${escHtml(d.capName)}</td>
     <td class="ex2-num">${d.total}</td>
-    <td class="ex2-disp">${ex2DispBar(d)}</td>
-    <td>${exmBar(d.operationalised, d.total)}</td>
-    <td class="ex2-ctrls">${ex2CtrlChips(d)}</td>
-  </tr>`).join('');
+    <td class="rp-num">${rpFrac(d.operationalised, d.total)}</td>
+    <td class="rp-num">${rpFrac(d.ctrlDraft, totCtrl)}</td>
+    <td class="rp-num">${rpFrac(d.ctrlImpl, totCtrl, true)}</td>
+  </tr>`;
+  }).join('');
   return `<table class="exm-tbl ex2-tbl">
-    <thead><tr><th>Document</th><th>Capability</th><th>Statements</th><th>Disposition</th><th>Operationalised</th><th>Controls (D/I/T/E)</th></tr></thead>
+    <thead><tr><th>Document</th><th>Capability</th><th>Statements</th><th>Control backed statements</th><th>Draft</th><th>Implemented</th></tr></thead>
     <tbody>${body}</tbody></table>`;
 }
 function renderExecControl2(currentA, prevA) {
@@ -277,7 +298,7 @@ function renderExecControl2(currentA, prevA) {
       <div class="ex2-flag-body"><div class="ex2-flag-t">${title}</div><div class="ex2-flag-d">${body}</div></div>
     </div>`;
 
-  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a live control (${ops.operationalisedPct.all}%). Disposition bar: <span class="ex2-dc-imp">Implemented</span> · <span class="ex2-dc-part">Part</span> · <span class="ex2-dc-wt">Temp waiver</span> · <span class="ex2-dc-e">Exemption</span> · <span class="ex2-dc-wp">Perm waiver</span> · <span class="ex2-dc-unk">Unknown</span>.`;
+  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a live control (${ops.operationalisedPct.all}%).`;
 
   return `<div class="card measure-card">
     ${head(desc)}

@@ -94,13 +94,14 @@ function execScGauge(pct, n, d) {
 }
 // Stacked donut for the Control-2 hero split: of a source's statements, how many
 // are implemented (green), draft-only (amber), or have no control (grey).
-function execStackDonut(impl, draft, none, label) {
+function execStackDonut(green, amber, grey, opts) {
+  opts = opts || {};
   const segs = [
-    { v: impl, c: 'var(--clr-success)' },
-    { v: draft, c: 'var(--clr-warning)' },
-    { v: none, c: 'color-mix(in srgb, var(--text) 16%, transparent)' },
+    { v: green, c: 'var(--clr-success)' },
+    { v: amber, c: 'var(--clr-warning)' },
+    { v: grey,  c: 'color-mix(in srgb, var(--text) 16%, transparent)' },
   ];
-  const total = impl + draft + none, R = 46, C = 2 * Math.PI * R, SW = 12;
+  const total = green + amber + grey, R = 46, C = 2 * Math.PI * R, SW = 12;
   let start = 0;
   const arcs = total
     ? segs.filter(s => s.v > 0).map(s => {
@@ -111,10 +112,10 @@ function execStackDonut(impl, draft, none, label) {
   return `<div class="exsc-c2-one">
     <div class="exsc-c2-ring">
       <svg viewBox="0 0 120 120" width="106" height="106" class="exsc-c2-svg">${arcs}</svg>
-      <div class="exsc-c2-ctr"><div class="exsc-c2-tot">${total}</div><div class="exsc-c2-totlbl">statements</div></div>
+      <div class="exsc-c2-ctr"><div class="exsc-c2-tot">${total}</div><div class="exsc-c2-totlbl">${opts.centreLbl || 'statements'}</div></div>
     </div>
-    <div class="exsc-c2-lbl">${label}</div>
-    <div class="exsc-c2-sub"><span class="exsc-c2-imp">${impl} impl</span> · <span class="exsc-c2-drf">${draft} draft</span> · <span class="exsc-c2-non">${none} none</span></div>
+    ${opts.label ? `<div class="exsc-c2-lbl">${opts.label}</div>` : ''}
+    <div class="exsc-c2-sub">${opts.caption || ''}</div>
   </div>`;
 }
 function renderExecScorecard(currentA, prevA) {
@@ -123,15 +124,22 @@ function renderExecScorecard(currentA, prevA) {
   const sops = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const c2 = src => ({ impl: src.operationalised, draft: src.backed - src.operationalised, none: src.total - src.backed });
   const c2p = c2(sops.policy), c2g = c2(sops.groupStandard);
+  const bops = buildBackingControlOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const c3 = {
+    eff: bops.controls.filter(c => c.liveEffective).length,
+    implNotEff: bops.controls.filter(c => c.implemented && !c.effective).length,
+    draft: bops.controls.filter(c => !c.implemented).length,
+  };
   const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
 
-  const gauge = (key, tag, name, desc) => {
+  const gauge = (key, tag, name, desc, sub) => {
     const c = cur[key], p = prev ? prev[key] : null;
     return `<div class="exsc-gauge">
       <div class="exsc-gtag">${tag}</div>
       <div class="exsc-gname">${name}</div>
       ${execScGauge(c.pct, c.n, c.d)}
       <div class="exsc-qoq">${execScDelta(c.pct, p ? p.pct : null)}</div>
+      ${sub ? `<div class="exsc-bridge">${sub}</div>` : ''}
       <div class="exsc-gdesc">${desc}</div>
     </div>`;
   };
@@ -159,15 +167,21 @@ function renderExecScorecard(currentA, prevA) {
       </div>
     </div>
     <div class="exsc-row">
-      ${gauge('control1', 'Control 1', 'Regulatory SOA', 'DORA obligations backed by an owned policy or group-standard statement')}
+      ${gauge('control1', 'Control 1', 'Regulatory SOA', 'DORA obligations backed by an owned policy or group-standard statement', `Owned statements: <b>${sops.policy.total}</b> policy · <b>${sops.groupStandard.total}</b> group standard`)}
       <div class="exsc-gauge exsc-gauge-c2">
         <div class="exsc-gtag">Control 2</div>
         <div class="exsc-gname">Statements backed by controls</div>
-        <div class="exsc-c2-donuts">${execStackDonut(c2p.impl, c2p.draft, c2p.none, 'Policy')}${execStackDonut(c2g.impl, c2g.draft, c2g.none, 'Group Standard')}</div>
+        <div class="exsc-c2-donuts">${execStackDonut(c2p.impl, c2p.draft, c2p.none, { label: 'Policy', caption: `<span class="exsc-c2-imp">${c2p.impl} impl</span> · <span class="exsc-c2-drf">${c2p.draft} draft</span> · <span class="exsc-c2-non">${c2p.none} none</span>` })}${execStackDonut(c2g.impl, c2g.draft, c2g.none, { label: 'Group Standard', caption: `<span class="exsc-c2-imp">${c2g.impl} impl</span> · <span class="exsc-c2-drf">${c2g.draft} draft</span> · <span class="exsc-c2-non">${c2g.none} none</span>` })}</div>
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Implemented</span> <span class="exsc-c2-drf">■ Draft</span> <span class="exsc-c2-non">■ No control</span></div>
         <div class="exsc-gdesc">Drafted-but-not-implemented (amber) is the resourcing gap — controls written, not yet live.</div>
       </div>
-      ${gauge('control3', 'Control 3', 'Controls live &amp; effective', 'Backing controls implemented and rated effective in the RCSA')}
+      <div class="exsc-gauge exsc-gauge-c3">
+        <div class="exsc-gtag">Control 3</div>
+        <div class="exsc-gname">Controls live &amp; effective</div>
+        <div class="exsc-c2-donuts">${execStackDonut(c3.eff, c3.implNotEff, c3.draft, { centreLbl: 'controls', caption: `<span class="exsc-c2-imp">${c3.eff} effective</span> · <span class="exsc-c2-drf">${c3.implNotEff} to improve</span> · <span class="exsc-c2-non">${c3.draft} draft</span>` })}</div>
+        <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Effective</span> <span class="exsc-c2-drf">■ Implemented, not effective</span> <span class="exsc-c2-non">■ Draft</span></div>
+        <div class="exsc-gdesc">Amber = implemented but not yet rated effective — the controls that need improvement.</div>
+      </div>
     </div>
     <div class="exsc-chain">
       ${seg(ch.obligations, 'Obligations')}${arrow}${seg(ch.ownedStatement, 'Owned statement')}${arrow}${seg(ch.backedByControl, 'Backed by control')}${arrow}${seg(ch.liveEffective, 'Live &amp; effective')}

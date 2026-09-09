@@ -144,12 +144,6 @@ function renderExecScorecard(currentA, prevA) {
     </div>`;
   };
 
-  const ch = cur.chain, total = ch.obligations || 1;
-  const seg = (n, label) => {
-    const w = Math.round(100 * n / total);
-    return `<div class="exsc-seg"><div class="exsc-seg-bar"><i style="width:${w}%;background:${execScColor(w)}"></i></div><div class="exsc-seg-n">${n}</div><div class="exsc-seg-t">${label}</div></div>`;
-  };
-  const arrow = '<div class="exsc-seg-arrow">→</div>';
   const subVs = prevA ? ` &nbsp;·&nbsp; vs ${escHtml(prevA.label)}` : '';
 
   return `
@@ -182,9 +176,6 @@ function renderExecScorecard(currentA, prevA) {
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Effective</span> <span class="exsc-c2-drf">■ Implemented, not effective</span> <span class="exsc-c2-non">■ Draft</span></div>
         <div class="exsc-gdesc">Amber = implemented but not yet rated effective — the controls that need improvement.</div>
       </div>
-    </div>
-    <div class="exsc-chain">
-      ${seg(ch.obligations, 'Obligations')}${arrow}${seg(ch.ownedStatement, 'Owned statement')}${arrow}${seg(ch.backedByControl, 'Backed by control')}${arrow}${seg(ch.liveEffective, 'Live &amp; effective')}
     </div>
   </div>`;
 }

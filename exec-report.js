@@ -59,6 +59,7 @@ function generateExecReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecScorecard(currentA, prevA)}
+    <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     ${execStep(1)}
     <div class="exec-rcsa-wrap">${renderRtmFunnel(currentA, prevA)}</div>
     ${execStep(2)}
@@ -142,6 +143,81 @@ function renderExecScorecard(currentA, prevA) {
     </div>
     <div class="exsc-chain">
       ${seg(ch.obligations, 'Obligations')}${arrow}${seg(ch.ownedStatement, 'Owned statement')}${arrow}${seg(ch.backedByControl, 'Backed by control')}${arrow}${seg(ch.liveEffective, 'Live &amp; effective')}
+    </div>
+  </div>`;
+}
+
+// ── Act 1 · Control 1 — coverage by DORA article (spec rows 2–5) ──
+// One row per article: capability + four mini progress bars — obligations
+// covered, and covered by a policy, by a group standard, and by an implemented
+// (live) control. Reads buildDoraArticleCoverage. Sortable.
+let _exmRows = [], _exmSort = { col: null, dir: 1 };
+const EXM_FIELD = {
+  article:         r => r.article || '',
+  capability:      r => r.capability || '',
+  covered:         r => r.total ? r.covered / r.total : -1,
+  byPolicy:        r => r.total ? r.byPolicy / r.total : -1,
+  byGroupStandard: r => r.total ? r.byGroupStandard / r.total : -1,
+  byImplemented:   r => r.total ? r.byImplemented / r.total : -1,
+};
+function exmSortRows() {
+  if (!_exmSort.col) return _exmRows;
+  const f = EXM_FIELD[_exmSort.col] || EXM_FIELD.article, dir = _exmSort.dir;
+  return _exmRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.article.localeCompare(b.article);
+    return String(va).localeCompare(String(vb)) * dir;
+  });
+}
+function exmBar(n, total) {
+  const w = total ? Math.round(100 * n / total) : 0;
+  const col = execScColor(w);
+  return `<div class="exm-bar"><span class="exm-bar-num">${n}<span class="exm-den">/${total}</span></span><span class="exm-track"><i style="width:${w}%;background:${col}"></i></span></div>`;
+}
+function exmHead() {
+  const arrow = c => _exmSort.col === c ? `<span class="mrt-arrow">${_exmSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, l) => `<th class="mrt-sort" onclick="sortExecMatrix('${k}')">${l}${arrow(k)}</th>`;
+  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'Covered')}${th('byPolicy', 'via Policy')}${th('byGroupStandard', 'via Group Std')}${th('byImplemented', 'via Implemented control')}</tr>`;
+}
+function exmBody(rows) {
+  return rows.map(a => `<tr>
+    <td class="exm-art">${escHtml(a.article)}</td>
+    <td class="exm-cap">${escHtml(a.capability) || '<span class="src-zero">—</span>'}</td>
+    <td>${exmBar(a.covered, a.total)}</td>
+    <td>${exmBar(a.byPolicy, a.total)}</td>
+    <td>${exmBar(a.byGroupStandard, a.total)}</td>
+    <td>${exmBar(a.byImplemented, a.total)}</td>
+  </tr>`).join('');
+}
+function sortExecMatrix(col) {
+  if (_exmSort.col === col) _exmSort.dir *= -1; else _exmSort = { col, dir: 1 };
+  const tb = document.getElementById('exm-tbody'), th = document.getElementById('exm-thead');
+  if (tb) tb.innerHTML = exmBody(exmSortRows());
+  if (th) th.innerHTML = exmHead();
+}
+function renderExecCoverageMatrix(currentA) {
+  const cov = buildDoraArticleCoverage(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const head = desc => `<div class="measure-card-header">
+      <span class="measure-icon">⚖️</span>
+      <div style="flex:1"><div class="exsc-eyebrow">Act 1 · Control 1</div><h3 class="measure-card-title">Coverage by DORA article</h3><p class="measure-card-desc">${desc}</p></div>
+    </div>`;
+  if (!cov.articles.length) {
+    return `<div class="card measure-card">${head('No DORA mapping uploaded for this assessment.')}</div>`;
+  }
+  const fully   = cov.articles.filter(a => a.covered === a.total).length;
+  const uncov   = cov.articles.filter(a => a.covered === 0).length;
+  const partial = cov.articles.length - fully - uncov;
+  const t = cov.totals;
+  const desc = `${cov.articles.length} articles &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} obligations (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). Bars: obligations covered, and by a policy, a group standard, and an implemented control.`;
+  _exmRows = cov.articles;
+  _exmSort = { col: null, dir: 1 };
+  return `<div class="card measure-card">
+    ${head(desc)}
+    <div class="rcsa-table-wrap">
+      <table class="exm-tbl">
+        <thead id="exm-thead">${exmHead()}</thead>
+        <tbody id="exm-tbody">${exmBody(exmSortRows())}</tbody>
+      </table>
     </div>
   </div>`;
 }

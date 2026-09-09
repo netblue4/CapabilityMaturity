@@ -160,7 +160,7 @@ function renderExecScorecard(currentA, prevA) {
       </div>
       <div class="exsc-composite">
         <div class="exsc-big" style="color:${execScColor(cur.composite.pct)}">${cur.composite.pct}%</div>
-        <div class="exsc-big-lbl">DORA digital resilience objectives fully operationalised with implemented controls</div>
+        <div class="exsc-big-lbl">DORA objectives fully operationalised</div>
         <div class="exsc-qoq">${execScDelta(cur.composite.pct, prev ? prev.composite.pct : null)}</div>
       </div>
     </div>

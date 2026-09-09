@@ -3135,6 +3135,25 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ex3-dz   { fill: var(--clr-danger); font-family: var(--font-mono); font-size: 9px; opacity: .7; letter-spacing: .08em; }
 .ex3-quad-note { font-size: .7rem; color: var(--text-muted); margin-top: .3rem; }
 
+/* ── Exec report — Close (what needs attention) ─────────────────── */
+.exa-list { display: flex; flex-direction: column; gap: .6rem; margin-top: .4rem; }
+.exa-item { border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px; padding: .6rem .8rem; }
+.exa-high { border-left-color: var(--clr-danger); }
+.exa-med  { border-left-color: var(--clr-warning); }
+.exa-low  { border-left-color: var(--accent); }
+.exa-body { flex: 1; }
+.exa-top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.exa-cat { font-weight: 600; font-size: .9rem; }
+.exa-n { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 700; }
+.exa-high .exa-n { color: var(--clr-danger); }
+.exa-med .exa-n  { color: var(--clr-warning); }
+.exa-low .exa-n  { color: var(--accent); }
+.exa-action { color: var(--text-muted); font-size: .75rem; margin-top: .15rem; }
+.exa-drill { font-family: var(--font-mono); font-size: .68rem; color: var(--text); margin-top: .35rem; line-height: 1.6; }
+.exa-more { color: var(--text-muted); }
+.exa-tag { font-size: .6rem; color: var(--clr-warning); }
+.exa-done { color: var(--clr-success); font-weight: 600; margin: .5rem 0; }
+
 /* ── Control-1 card: Capability / Source / Document cells ───────── */
 .dora-cap-c { color: var(--text); }
 .dora-src-c { color: var(--text-muted); white-space: nowrap; }

@@ -62,6 +62,7 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
+    <div class="exec-rcsa-wrap">${renderExecAttention(currentA)}</div>
     <div class="exec-sec-div">Supporting detail</div>
     <div class="exec-rcsa-wrap">${renderRtmOwnerCard(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderRiskMgmtSummaryCard(currentA, prevA, 'exec')}</div>
@@ -363,6 +364,63 @@ function renderExecControl3(currentA, prevA) {
     ${head(desc)}
     ${execQuadrant(risks)}
     <div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div>
+  </div>`;
+}
+
+// ── Close · What needs attention — the path to 100% ──────────────
+// One prioritised list consolidating the gaps across all three controls plus
+// the two hygiene anomalies, so the report ends on the closable work.
+function renderExecAttention(currentA) {
+  const doraRows = currentA.doraRows || [], policyRows = currentA.policyRows || [], facts = currentA.riskPolicyFacts || [];
+  const model = buildDoraObligations(doraRows, policyRows, facts);
+  const cov   = buildStatementCoverage(policyRows, facts);
+  const ops   = buildBackingControlOps(policyRows, facts);
+  const doc   = buildExecDocDetail(policyRows, facts);
+  const cut = (arr, n = 6) => arr.slice(0, n).join(' · ') + (arr.length > n ? ` <span class="exa-more">+${arr.length - n} more</span>` : '');
+  const ctrlLbl = c => (c.number ? c.number + ' — ' : '') + c.name;
+
+  const uncovObl = model.obligations.filter(o => !o.covered);
+  const stale    = doc.rows.filter(d => d.staleWaiver > 0);
+  const noCtrl   = cov.uncovered;
+  const invis    = doc.rows.filter(d => d.invisibleWork > 0);
+  const gapCtrl  = ops.gap;
+
+  const items = [
+    { sev: 'high', cat: 'Uncovered DORA obligations', n: uncovObl.length,
+      action: 'No owned policy or group-standard statement — a Gate-1 compliance gap.',
+      list: uncovObl.map(o => `${escHtml(o.obligationId)}${o.capability ? ' · ' + escHtml(o.capability) : ''}`) },
+    { sev: 'high', cat: 'Stale / incorrect waivers', n: stale.reduce((s, d) => s + d.staleWaiver, 0),
+      action: 'Waived statements that already have a live control — reclassify the waiver.',
+      list: stale.map(d => `${escHtml(d.document)} (${d.staleWaiver})`) },
+    { sev: 'med', cat: 'Statements with no control', n: noCtrl.length,
+      action: 'Owned statements not backed by any control — assign or build one.',
+      list: noCtrl.map(s => `${escHtml(s.ref)} · ${escHtml(shortName(s.capName))}`) },
+    { sev: 'med', cat: 'Invisible work', n: invis.reduce((s, d) => s + d.invisibleWork, 0),
+      action: 'Implemented statements with no control tracking them — add a control for evidence.',
+      list: invis.map(d => `${escHtml(d.document)} (${d.invisibleWork})`) },
+    { sev: 'med', cat: 'Controls not yet live & effective', n: gapCtrl.length,
+      action: 'Backing controls drafted or not yet effective — operationalise them.',
+      list: gapCtrl.map(c => `${escHtml(ctrlLbl(c))} <span class="exa-tag">${c.implemented ? 'not effective' : 'not live'}</span>`) },
+  ].filter(it => it.n > 0);
+
+  const total = items.reduce((s, it) => s + it.n, 0);
+  const head = desc => `<div class="measure-card-header">
+      <span class="measure-icon">✅</span>
+      <div style="flex:1"><div class="exsc-eyebrow">Close · Path to 100%</div><h3 class="measure-card-title">What needs attention</h3><p class="measure-card-desc">${desc}</p></div>
+    </div>`;
+  if (!items.length) {
+    return `<div class="card measure-card">${head('Nothing outstanding across the three controls.')}<p class="exa-done">✓ Every obligation is covered, every statement is backed, and every backing control is live &amp; effective.</p></div>`;
+  }
+  const rows = items.map(it => `<div class="exa-item exa-${it.sev}">
+    <div class="exa-body">
+      <div class="exa-top"><span class="exa-cat">${it.cat}</span><span class="exa-n">${it.n}</span></div>
+      <div class="exa-action">${it.action}</div>
+      <div class="exa-drill">${cut(it.list)}</div>
+    </div>
+  </div>`).join('');
+  return `<div class="card measure-card">
+    ${head(`<b>${total}</b> item${total === 1 ? '' : 's'} to close, in priority order.`)}
+    <div class="exa-list">${rows}</div>
   </div>`;
 }
 

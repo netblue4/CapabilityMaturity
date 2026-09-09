@@ -3053,7 +3053,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsc-row { display: flex; gap: 1rem; margin-top: 1.35rem; }
 .exsc-gauge { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 1rem .9rem .9rem; text-align: center; }
 .exsc-gtag { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
-.exsc-gname { font-size: .88rem; font-weight: 600; margin: .15rem 0 .55rem; }
+.exsc-gname { font-size: .88rem; font-weight: 600; margin: .15rem 0 .55rem; min-height: 2.6em; display: flex; align-items: center; justify-content: center; }
 .exsc-ring { position: relative; width: 118px; height: 118px; margin: 0 auto; }
 .exsc-ring svg { transform: rotate(-90deg); }
 .exsc-track { fill: none; stroke: color-mix(in srgb, var(--text) 12%, transparent); stroke-width: 11; }
@@ -3087,7 +3087,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsc-c2-totlbl { font-family: var(--font-mono); font-size: .5rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
 .exsc-c2-lbl { font-size: .78rem; font-weight: 600; margin-top: .35rem; }
 .exsc-c2-sub { font-family: var(--font-mono); font-size: .6rem; color: var(--text-muted); margin-top: .15rem; }
-.exsc-c2-legend { font-family: var(--font-mono); font-size: .6rem; display: flex; gap: .7rem; justify-content: center; margin-top: .1rem; }
+.exsc-c2-legend { font-family: var(--font-mono); font-size: .6rem; display: flex; flex-wrap: wrap; gap: .7rem; justify-content: flex-start; margin-top: .4rem; }
 .exsc-c2-imp { color: var(--clr-success); }
 .exsc-c2-drf { color: var(--clr-warning); }
 .exsc-c2-non { color: var(--text-muted); }

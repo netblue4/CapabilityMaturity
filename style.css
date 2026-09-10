@@ -3113,6 +3113,10 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exm-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); }
 .exm-leg i { width: 14px; height: 9px; border-radius: 3px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .exm-leg-uncov { background: color-mix(in srgb, var(--text) 14%, transparent); }
+/* Coverage column header: colour each word to match its bar segment (prints legibly) */
+.exm-th-pol { color: var(--accent); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exm-th-grp { color: var(--clr-success); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exm-th-uncov { color: var(--text-muted); }
 /* Control-2 doc tables: fixed layout so the two tables' columns line up */
 .ex2-tbl-fixed { table-layout: fixed; }
 .ex2-tbl-fixed th, .ex2-tbl-fixed td { overflow: hidden; text-overflow: ellipsis; }

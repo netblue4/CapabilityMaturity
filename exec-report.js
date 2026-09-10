@@ -227,7 +227,8 @@ function exmStackBar(a) {
 function exmHead() {
   const arrow = c => _exmSort.col === c ? `<span class="mrt-arrow">${_exmSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l) => `<th class="mrt-sort" onclick="sortExecMatrix('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'Coverage — policy · group std · uncovered')}</tr>`;
+  const covLbl = 'Coverage — <span class="exm-th-pol">policy</span> · <span class="exm-th-grp">group std</span> · <span class="exm-th-uncov">uncovered</span>';
+  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', covLbl)}</tr>`;
 }
 function exmBody(rows) {
   return rows.map(a => `<tr>

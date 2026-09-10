@@ -236,7 +236,7 @@ function renderExecCoverageMatrix(currentA) {
   const cov = buildDoraArticleCoverage(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">⚖️</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Act 1 · Control 1</div><h3 class="measure-card-title">Coverage by DORA article</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Control 1</div><h3 class="measure-card-title">Applicable DORA articles/RTS objectives covered by Policies and Group Standards</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!cov.articles.length) {
     return `<div class="card measure-card">${head('No DORA mapping uploaded for this assessment.')}</div>`;
@@ -245,7 +245,7 @@ function renderExecCoverageMatrix(currentA) {
   const uncov   = cov.articles.filter(a => a.covered === 0).length;
   const partial = cov.articles.length - fully - uncov;
   const t = cov.totals;
-  const desc = `${cov.articles.length} articles &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} obligations (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). Bars: obligations covered, and by a policy, a group standard, and an implemented control.`;
+  const desc = `${cov.articles.length} applicable DORA articles/RTS &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} DORA Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). Bars: DORA Objectives covered, and by a policy, a group standard, and an implemented control.`;
   _exmRows = cov.articles;
   _exmSort = { col: null, dir: 1 };
   return `<div class="card measure-card">

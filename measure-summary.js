@@ -241,7 +241,7 @@ function srcHead() {
     ${th('capName', 'Capability')}
     ${th('document', 'Document')}
     ${th('type', 'Type')}
-    ${th('tracked', 'Control-tracked statements', 'src-track-h')}
+    ${th('tracked', 'Control backed statements', 'src-track-h')}
     ${th('excE', 'E', 'src-disp')}
     ${th('excWT', 'WT', 'src-disp')}
     ${th('excWP', 'WP', 'src-disp')}
@@ -267,7 +267,7 @@ function srcBody(rows) {
     <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="src-doc"><div class="src-doc-name">${r.document}</div></td>
     <td class="src-type">${r.type}</td>
-    <td class="src-track" title="${r.riskTracked} of ${r.total} statement(s) tracked by a control">${trackCell(r)}</td>
+    <td class="src-track" title="${r.riskTracked} of ${r.total} statement(s) backed by a control">${trackCell(r)}</td>
     ${disp(r.excE, 'src-disp-perm', `${r.excE || 0} Exemption (E): objective applies but cannot be implemented (technical)`)}
     ${disp(r.excWT, 'src-disp-temp', `${r.excWT || 0} Waiver Temporary (WT): applies but need time / a new tool`)}
     ${disp(r.excWP, 'src-disp-perm', `${r.excWP || 0} Waiver Permanent (WP): applies but we will not build it (regulatory)`)}
@@ -327,7 +327,7 @@ function sortC2Gap(col) {
 function renderSourcesCard(assessment) {
   const rows = buildGovernanceRows(assessment.policyRows || [], assessment.riskPolicyFacts || []);
   const cov  = buildStatementCoverage(assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  const title = 'Control 2 &middot; Policy statements backed by controls';
+  const title = 'Control 2 &middot; Policy & Group Standard statement operationalised by controls';
   const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">🗂️</span>

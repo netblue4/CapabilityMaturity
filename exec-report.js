@@ -294,7 +294,7 @@ function renderExecControl2(currentA, prevA) {
   const doc     = buildExecDocDetail(currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🗂️</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Act 2 · Control 2</div><h3 class="measure-card-title">Statements backed &amp; operationalised</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Control 2</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by controls</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!doc.rows.length) return `<div class="card measure-card">${head('No policy data uploaded for this assessment.')}</div>`;
 
@@ -307,7 +307,7 @@ function renderExecControl2(currentA, prevA) {
       <div class="ex2-flag-body"><div class="ex2-flag-t">${title}</div><div class="ex2-flag-d">${body}</div></div>
     </div>`;
 
-  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a live control (${ops.operationalisedPct.all}%).`;
+  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a control (Draft or Implemented)(${ops.operationalisedPct.all}%).`;
 
   return `<div class="card measure-card">
     ${head(desc)}

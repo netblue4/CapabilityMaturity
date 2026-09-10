@@ -161,9 +161,9 @@
       }
     });
 
-    return pageHead('Control 2 · Policy statements backed by controls', 'statement → control', meta, stat) + `
+    return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → control', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Obligation(s)</th></tr></thead>
+        <thead><tr><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

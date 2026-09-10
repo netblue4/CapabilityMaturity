@@ -3104,6 +3104,20 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exm-den { color: var(--text-muted); font-weight: 400; }
 .exm-track { flex: 1; height: 7px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; min-width: 40px; }
 .exm-track i { display: block; height: 100%; border-radius: 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Control-1 stacked coverage bar: policy · group-std-only · uncovered (grey track) */
+.exm-stack { display: flex; }
+.exm-stack i { border-radius: 0; }
+.exm-seg-pol { background: var(--accent); }
+.exm-seg-grp { background: var(--clr-success); }
+.exm-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .1rem 0 .7rem; }
+.exm-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); }
+.exm-leg i { width: 14px; height: 9px; border-radius: 3px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exm-leg-uncov { background: color-mix(in srgb, var(--text) 14%, transparent); }
+/* Control-2 doc tables: fixed layout so the two tables' columns line up */
+.ex2-tbl-fixed { table-layout: fixed; }
+.ex2-tbl-fixed th, .ex2-tbl-fixed td { overflow: hidden; text-overflow: ellipsis; }
+.ex2-tbl-fixed .exm-art, .ex2-tbl-fixed .exm-cap { white-space: normal; word-break: break-word; }
+.ex2-status { white-space: nowrap; }
 
 /* ── Exec report — Act 2 (Control 2) ────────────────────────────── */
 .ex2-agg { display: flex; gap: 1.5rem; margin: .5rem 0 1rem; flex-wrap: wrap; }

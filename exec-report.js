@@ -184,18 +184,15 @@ function renderExecScorecard(currentA, prevA) {
   </div>`;
 }
 
-// ── Act 1 · Control 1 — coverage by DORA article (spec rows 2–5) ──
-// One row per article: capability + four mini progress bars — obligations
-// covered, and covered by a policy, by a group standard, and by an implemented
-// (live) control. Reads buildDoraArticleCoverage. Sortable.
+// ── Control 1 — coverage by DORA article (spec rows 2–5) ──
+// One row per article: capability + a single stacked coverage bar over the
+// article's whole obligation universe (covered via policy · via group standard
+// only · uncovered). Reads buildDoraArticleCoverage. Sortable.
 let _exmRows = [], _exmSort = { col: null, dir: 1 };
 const EXM_FIELD = {
-  article:         r => r.article || '',
-  capability:      r => r.capability || '',
-  covered:         r => r.total ? r.covered / r.total : -1,
-  byPolicy:        r => r.total ? r.byPolicy / r.total : -1,
-  byGroupStandard: r => r.total ? r.byGroupStandard / r.total : -1,
-  byImplemented:   r => r.total ? r.byImplemented / r.total : -1,
+  article:    r => r.article || '',
+  capability: r => r.capability || '',
+  covered:    r => r.total ? r.covered / r.total : -1,
 };
 function exmSortRows() {
   if (!_exmSort.col) return _exmRows;
@@ -206,24 +203,37 @@ function exmSortRows() {
     return String(va).localeCompare(String(vb)) * dir;
   });
 }
-function exmBar(n, total) {
-  const w = total ? Math.round(100 * n / total) : 0;
-  const col = execScColor(w);
-  return `<div class="exm-bar"><span class="exm-bar-num">${n}<span class="exm-den">/${total}</span></span><span class="exm-track"><i style="width:${w}%;background:${col}"></i></span></div>`;
+// One stacked bar over the article's whole obligation universe: the covered
+// share is split into "via a policy" (includes any also under a group standard)
+// and "via a group standard only"; the grey remainder is uncovered. So the
+// segments always sum to the total — no double counting across separate bars.
+function exmStackBar(a) {
+  const total = a.total || 0, policy = a.byPolicy || 0;
+  const groupOnly = Math.max(0, a.covered - policy);
+  const both = Math.max(0, a.byPolicy + a.byGroupStandard - a.covered);   // policy ∩ group std
+  const pctP = total ? 100 * policy / total : 0;
+  const pctG = total ? 100 * groupOnly / total : 0;
+  const polTip = `Covered by a policy: ${policy}${both > 0 ? ` (of which ${both} also under a group standard)` : ''}`;
+  const grpTip = `Covered by a group standard only: ${groupOnly}`;
+  const uncov = total - a.covered;
+  return `<div class="exm-bar" title="${a.covered}/${total} obligations covered · ${uncov} uncovered">
+    <span class="exm-bar-num">${a.covered}<span class="exm-den">/${total}</span></span>
+    <span class="exm-track exm-stack">
+      <i class="exm-seg-pol" style="width:${pctP}%" title="${polTip}"></i>
+      <i class="exm-seg-grp" style="width:${pctG}%" title="${grpTip}"></i>
+    </span>
+  </div>`;
 }
 function exmHead() {
   const arrow = c => _exmSort.col === c ? `<span class="mrt-arrow">${_exmSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l) => `<th class="mrt-sort" onclick="sortExecMatrix('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'objectives covered')}${th('byPolicy', 'via Policy')}${th('byGroupStandard', 'via Group Std')}${th('byImplemented', 'via Implemented control')}</tr>`;
+  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'Coverage — policy · group std · uncovered')}</tr>`;
 }
 function exmBody(rows) {
   return rows.map(a => `<tr>
     <td class="exm-art">${escHtml(a.article)}</td>
     <td class="exm-cap">${escHtml(a.capability) || '<span class="src-zero">—</span>'}</td>
-    <td>${exmBar(a.covered, a.total)}</td>
-    <td>${exmBar(a.byPolicy, a.total)}</td>
-    <td>${exmBar(a.byGroupStandard, a.total)}</td>
-    <td>${exmBar(a.byImplemented, a.total)}</td>
+    <td>${exmStackBar(a)}</td>
   </tr>`).join('');
 }
 function sortExecMatrix(col) {
@@ -245,11 +255,17 @@ function renderExecCoverageMatrix(currentA) {
   const uncov   = cov.articles.filter(a => a.covered === 0).length;
   const partial = cov.articles.length - fully - uncov;
   const t = cov.totals;
-  const desc = `${cov.articles.length} applicable DORA articles/RTS &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} DORA Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). Bars: Objectives covered, and by a policy, a group standard, and an implemented control.`;
+  const desc = `${cov.articles.length} applicable DORA articles/RTS &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} DORA Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). One bar per article spans all its objectives, split by how each covered one is owned.`;
   _exmRows = cov.articles;
   _exmSort = { col: null, dir: 1 };
+  const legend = `<div class="exm-legend">
+    <span class="exm-leg"><i class="exm-seg-pol"></i> Covered via policy</span>
+    <span class="exm-leg"><i class="exm-seg-grp"></i> Covered via group standard only</span>
+    <span class="exm-leg"><i class="exm-leg-uncov"></i> Uncovered</span>
+  </div>`;
   return `<div class="card measure-card">
     ${head(desc)}
+    ${legend}
     <div class="rcsa-table-wrap">
       <table class="exm-tbl">
         <thead id="exm-thead">${exmHead()}</thead>
@@ -271,22 +287,70 @@ function ex2AggBar(label, o, prevO) {
     <div class="ex2-agg-track"><i style="width:${pct}%;background:${execScColor(pct)}"></i></div>
   </div>`;
 }
-function ex2DocTable(rows) {
-  if (!rows.length) return '<p class="policy-no-data" style="margin:.3rem 0">None uploaded.</p>';
-  const body = rows.map(d => {
+// The two Control-2 document tables (Group Standards / Policies). Both share a
+// fixed colgroup so corresponding columns line up under each other, and each is
+// independently sortable. A Document-status badge mirrors the main-screen card.
+let _ex2Data = { gs: [], pol: [] }, _ex2Sort = { gs: { col: null, dir: 1 }, pol: { col: null, dir: 1 } };
+const EX2_STATUS_RANK = { approved: 0, partial: 1, draft: 2 };
+const EX2_FIELD = {
+  document:       r => r.document || '',
+  capName:        r => r.capName || '',
+  total:          r => r.total || 0,
+  status:         r => EX2_STATUS_RANK[r.status] ?? 9,
+  operationalised: r => r.total ? r.operationalised / r.total : -1,
+  ctrlDraft:      r => r.ctrlDraft || 0,
+  ctrlImpl:       r => r.ctrlImpl || 0,
+};
+function ex2SortRows(which) {
+  const st = _ex2Sort[which], rows = _ex2Data[which];
+  if (!st.col) return rows;
+  const f = EX2_FIELD[st.col] || EX2_FIELD.document, dir = st.dir;
+  return rows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.document.localeCompare(b.document);
+    return String(va).localeCompare(String(vb)) * dir || a.document.localeCompare(b.document);
+  });
+}
+const EX2_COLGROUP = `<colgroup><col style="width:22%"><col style="width:16%"><col style="width:9%"><col style="width:12%"><col style="width:17%"><col style="width:12%"><col style="width:12%"></colgroup>`;
+function ex2StatusBadge(r) {
+  const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
+  const [cls, txt] = map[r.status] || map.draft;
+  return `<span class="gov-badge ${cls}" title="${r.approved} approved &middot; ${r.draft} draft (of ${r.total})">${txt}</span>`;
+}
+function ex2Head(which) {
+  const st = _ex2Sort[which];
+  const arrow = c => st.col === c ? `<span class="mrt-arrow">${st.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, l, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExec2('${which}','${k}')">${l}${arrow(k)}</th>`;
+  return `<tr>${th('document', 'Document')}${th('capName', 'Capability')}${th('total', 'Statements', 'ex2-num-h')}${th('status', 'Document status')}${th('operationalised', 'Control backed statements', 'rp-num')}${th('ctrlDraft', 'Draft', 'rp-num')}${th('ctrlImpl', 'Implemented', 'rp-num')}</tr>`;
+}
+function ex2Body(rows) {
+  return rows.map(d => {
     const totCtrl = d.ctrlDraft + d.ctrlImpl;   // a control is either draft or implemented
     return `<tr>
     <td class="exm-art">${escHtml(d.document)}</td>
     <td class="exm-cap">${escHtml(d.capName)}</td>
     <td class="ex2-num">${d.total}</td>
+    <td class="ex2-status">${ex2StatusBadge(d)}</td>
     <td class="rp-num">${rpFrac(d.operationalised, d.total)}</td>
     <td class="rp-num">${rpFrac(d.ctrlDraft, totCtrl)}</td>
     <td class="rp-num">${rpFrac(d.ctrlImpl, totCtrl, true)}</td>
   </tr>`;
   }).join('');
-  return `<table class="exm-tbl ex2-tbl">
-    <thead><tr><th>Document</th><th>Capability</th><th>Statements</th><th>Control backed statements</th><th>Draft</th><th>Implemented</th></tr></thead>
-    <tbody>${body}</tbody></table>`;
+}
+function ex2DocTable(which) {
+  const rows = _ex2Data[which];
+  if (!rows.length) return '<p class="policy-no-data" style="margin:.3rem 0">None uploaded.</p>';
+  return `<table class="exm-tbl ex2-tbl ex2-tbl-fixed">
+    ${EX2_COLGROUP}
+    <thead id="ex2-thead-${which}">${ex2Head(which)}</thead>
+    <tbody id="ex2-tbody-${which}">${ex2Body(ex2SortRows(which))}</tbody></table>`;
+}
+function sortExec2(which, col) {
+  const st = _ex2Sort[which];
+  if (st.col === col) st.dir *= -1; else { st.col = col; st.dir = 1; }
+  const tb = document.getElementById('ex2-tbody-' + which), th = document.getElementById('ex2-thead-' + which);
+  if (tb) tb.innerHTML = ex2Body(ex2SortRows(which));
+  if (th) th.innerHTML = ex2Head(which);
 }
 function renderExecControl2(currentA, prevA) {
   const ops     = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
@@ -309,6 +373,9 @@ function renderExecControl2(currentA, prevA) {
 
   const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a control (Draft or Implemented)(${ops.operationalisedPct.all}%).`;
 
+  _ex2Data = { gs: doc.groupStandard, pol: doc.policy };
+  _ex2Sort = { gs: { col: null, dir: 1 }, pol: { col: null, dir: 1 } };
+
   return `<div class="card measure-card">
     ${head(desc)}
     <div class="ex2-agg">
@@ -320,9 +387,9 @@ function renderExecControl2(currentA, prevA) {
       ${flag(stale, 'ex2-flag-bad', 'Stale / incorrect waivers', `Statements carrying a waiver that already have a live control — the waiver should be lifted.${stale ? ' — ' + staleDrill : ' None — good.'}`)}
     </div>
     <div class="ex2-section">Group Standards — approval &amp; operationalisation</div>
-    <div class="rcsa-table-wrap">${ex2DocTable(doc.groupStandard)}</div>
+    <div class="rcsa-table-wrap">${ex2DocTable('gs')}</div>
     <div class="ex2-section">Policies — approval &amp; operationalisation</div>
-    <div class="rcsa-table-wrap">${ex2DocTable(doc.policy)}</div>
+    <div class="rcsa-table-wrap">${ex2DocTable('pol')}</div>
   </div>`;
 }
 

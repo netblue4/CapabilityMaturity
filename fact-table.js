@@ -885,7 +885,7 @@ function buildExecDocDetail(policyRows, facts) {
     const key = dkey(pr.capId, doc);
     const d = docs[key] || (docs[key] = {
       key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: typeOf(pr),
-      total: 0, implementedStatus: 0, partImplemented: 0, unknown: 0, excE: 0, excWT: 0, excWP: 0,
+      total: 0, approved: 0, draft: 0, implementedStatus: 0, partImplemented: 0, unknown: 0, excE: 0, excWT: 0, excWP: 0,
       operationalised: 0, invisibleWork: 0, staleWaiver: 0, ctrlDraft: 0, ctrlImpl: 0, ctrlTested: 0, ctrlEffective: 0,
       _ctrlSeen: new Set(),
     });
@@ -893,6 +893,9 @@ function buildExecDocDetail(policyRows, facts) {
     if (seenStmt.has(sKey)) return;   // one row per distinct statement
     seenStmt.add(sKey);
     d.total++;
+    // Approval status (matches the main-screen Sources card): a statement whose
+    // status includes "approv" counts as approved, everything else as draft.
+    if (ftNorm(pr.status).includes('approv')) d.approved++; else d.draft++;
     const disp = ftDisposition(pr.exception);   // IMP | PART | UNKNOWN | E | WT | WP
     const b = cls[sKey];
     const live = b === 'Built new' || b === 'Reused pre-DORA';
@@ -929,7 +932,11 @@ function buildExecDocDetail(policyRows, facts) {
     });
   });
 
-  const rows = Object.values(docs).map(d => { delete d._ctrlSeen; return d; });
+  const rows = Object.values(docs).map(d => {
+    delete d._ctrlSeen;
+    d.status = d.approved === d.total ? 'approved' : d.approved === 0 ? 'draft' : 'partial';
+    return d;
+  });
   rows.sort((a, b) => a.type.localeCompare(b.type) || a.capName.localeCompare(b.capName) || a.document.localeCompare(b.document));
   return { rows, policy: rows.filter(r => r.type === 'policy'), groupStandard: rows.filter(r => r.type === 'groupStandard') };
 }

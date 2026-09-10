@@ -1,0 +1,14 @@
+Capability,Statement Ref,Document Type,Document,Document Status,Statement Header,Statement Detail,Owner,Exception
+ICT Asset & Configuration Management,LP-01 PS01,Local Policy,Local ICT Asset Management Policy,Approved,ICT asset inventory maintained,Anonymised statement detail for LP-01 PS01.,Control Owner 1,
+ICT Asset & Configuration Management,LP-01 PS02,Local Policy,Local ICT Asset Management Policy,Approved,Asset ownership assigned,Anonymised statement detail for LP-01 PS02.,Control Owner 1,
+ICT Asset & Configuration Management,GS-01 SR01,Group Standard,Group ICT Configuration Standard,Approved,Configuration baselines defined,Anonymised statement detail for GS-01 SR01.,Control Owner 2,
+ICT Change Management,LP-02 PS01,Local Policy,Local ICT Change Management Policy,Approved,Changes risk-assessed before deployment,Anonymised statement detail for LP-02 PS01.,Control Owner 3,
+ICT Change Management,LP-02 PS02,Local Policy,Local ICT Change Management Policy,Draft,Emergency change process defined,Anonymised statement detail for LP-02 PS02.,Control Owner 3,
+ICT Incident Management,LP-03 PS01,Local Policy,Local ICT Incident Management Policy,Approved,Incidents classified by severity,Anonymised statement detail for LP-03 PS01.,Control Owner 4,
+ICT Incident Management,GS-02 SR01,Group Standard,Group ICT Incident Standard,Approved,Major incident escalation defined,Anonymised statement detail for GS-02 SR01.,Control Owner 4,
+ICT Third-Party Risk Management,LP-04 PS01,Local Policy,Local ICT Third-Party Policy,Draft,Critical providers register maintained,Anonymised statement detail for LP-04 PS01.,Control Owner 5,
+ICT Third-Party Risk Management,LP-04 PS02,Local Policy,Local ICT Third-Party Policy,Approved,Provider exit strategies documented,Anonymised statement detail for LP-04 PS02.,Control Owner 5,IMPLEMENTED
+ICT Vulnerability Management,LP-05 PS01,Local Policy,Local ICT Vulnerability Policy,Approved,Vulnerability scans scheduled,Anonymised statement detail for LP-05 PS01.,Control Owner 6,WT
+ICT Vulnerability Management,GS-03 SR01,Group Standard,Group ICT Security Standard,Approved,Patch SLAs defined,Anonymised statement detail for GS-03 SR01.,Control Owner 6,
+ICT Access Control Management,LP-06 PS01,Local Policy,Local ICT Access Control Policy,Approved,Access reviews performed quarterly,Anonymised statement detail for LP-06 PS01.,Control Owner 7,
+ICT Access Control Management,LP-06 PS02,Local Policy,Local ICT Access Control Policy,Approved,Privileged access restricted,Anonymised statement detail for LP-06 PS02.,Control Owner 7,

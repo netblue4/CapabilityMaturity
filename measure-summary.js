@@ -13,7 +13,7 @@ function renderMeasureSummary(assessment) {
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }
 
-// ── Control 1 · Regulatory SOA completeness card ──────────────────
+// ── Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards card ──────────────────
 // The Gate-1 view: of the DORA obligations, how many have an owned policy /
 // group-standard statement. Uncovered obligations (no statement at all) are the
 // compliance gap and are listed in red. Reads buildDoraObligations.
@@ -36,7 +36,7 @@ function d1aSortRows() {
 function d1aHead() {
   const arrow = c => _d1aSort.col === c ? `<span class="mrt-arrow">${_d1aSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortDora1Art('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'DORA article')}${th('capability', 'Capability')}${th('covered', 'Obligations covered')}</tr>`;
+  return `<tr>${th('article', 'DORA article/RTS')}${th('capability', 'Capability')}${th('covered', 'Objectives covered')}</tr>`;
 }
 function d1aBody(rows) {
   return rows.map(r => {
@@ -69,7 +69,7 @@ function d1uSortRows() {
 function d1uHead() {
   const arrow = c => _d1uSort.col === c ? `<span class="mrt-arrow">${_d1uSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label) => `<th class="mrt-sort" onclick="sortDora1Unc('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'Article')}${th('capability', 'Capability')}${th('obligation', 'Obligation')}${th('requirement', 'Requirement')}</tr>`;
+  return `<tr>${th('article', 'Article/RTS')}${th('capability', 'Capability')}${th('obligation', 'Paragraph')}${th('requirement', 'Objective')}</tr>`;
 }
 function d1uBody(rows) {
   return rows.map(o => `<tr>
@@ -105,7 +105,7 @@ function renderDoraCoverageCard(assessment) {
   const total     = model.totalObligations;
   const uncovered = total - covered;
   const pct       = model.completenessPct;
-  const desc = `<b>${covered}</b> of <b>${total}</b> DORA obligations backed by an owned statement &middot; <b>${pct}%</b> complete &middot; <b class="${uncovered ? 'dora-gap-num' : ''}">${uncovered}</b> uncovered.`;
+  const desc = `<b>${covered}</b> of <b>${total}</b> DORA objectives covered by a statement &middot; <b>${pct}%</b> complete &middot; <b class="${uncovered ? 'dora-gap-num' : ''}">${uncovered}</b> uncovered.`;
 
   _d1aRows = model.articles.map(a => {
     const cov = a.obligations.filter(o => o.covered).length, tot = a.obligations.length;

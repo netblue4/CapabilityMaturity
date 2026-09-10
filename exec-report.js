@@ -467,7 +467,7 @@ function renderExecAttention(currentA) {
   const gapCtrl  = ops.gap;
 
   const items = [
-    { sev: 'high', cat: 'Uncovered DORA obligations', n: uncovObl.length,
+    { sev: 'high', cat: 'Uncovered DORA objecctives', n: uncovObl.length,
       action: 'No owned policy or group-standard statement — a Gate-1 compliance gap.',
       list: uncovObl.map(o => `${escHtml(o.obligationId)}${o.capability ? ' · ' + escHtml(o.capability) : ''}`) },
     { sev: 'high', cat: 'Stale / incorrect waivers', n: stale.reduce((s, d) => s + d.staleWaiver, 0),

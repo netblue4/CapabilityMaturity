@@ -101,8 +101,8 @@
   // ── Control 1 — Regulatory SOA completeness (flat, all columns) ──
   function evidenceControl1(model, meta) {
     const covered = model.coveredObligations, total = model.totalObligations;
-    const stat = statPill(covered, total, 'obligations backed by an owned statement', true)
-      + `<span class="ev-note">Completeness is the Gate-1 precondition: an obligation with no owned policy or group-standard statement is a compliance gap regardless of downstream control activity.</span>`;
+    const stat = statPill(covered, total, 'objectives covered by either a policy or group standard statement', true)
+      + `<span class="ev-note">Completeness is the Gate-1 precondition: an objective with no policy or group-standard statement is a compliance gap regardless of downstream control activity.</span>`;
 
     const rows = [];
     model.obligations.forEach(o => {
@@ -131,9 +131,9 @@
       }
     });
 
-    return pageHead('Control 1 · Regulatory SOA (DORA obligation completeness)', 'obligation → owned statement', meta, stat) + `
+    return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>DORA</th><th>Obligation</th><th>Requirement</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
+        <thead><tr><th>DORA Article/RTS</th><th>Paragraph</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

@@ -214,7 +214,7 @@ function exmBar(n, total) {
 function exmHead() {
   const arrow = c => _exmSort.col === c ? `<span class="mrt-arrow">${_exmSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l) => `<th class="mrt-sort" onclick="sortExecMatrix('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'DORA objectives covered')}${th('byPolicy', 'via Policy')}${th('byGroupStandard', 'via Group Std')}${th('byImplemented', 'via Implemented control')}</tr>`;
+  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'objectives covered')}${th('byPolicy', 'via Policy')}${th('byGroupStandard', 'via Group Std')}${th('byImplemented', 'via Implemented control')}</tr>`;
 }
 function exmBody(rows) {
   return rows.map(a => `<tr>
@@ -245,7 +245,7 @@ function renderExecCoverageMatrix(currentA) {
   const uncov   = cov.articles.filter(a => a.covered === 0).length;
   const partial = cov.articles.length - fully - uncov;
   const t = cov.totals;
-  const desc = `${cov.articles.length} applicable DORA articles/RTS &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} DORA Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). Bars: DORA Objectives covered, and by a policy, a group standard, and an implemented control.`;
+  const desc = `${cov.articles.length} applicable DORA articles/RTS &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} DORA Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). Bars: Objectives covered, and by a policy, a group standard, and an implemented control.`;
   _exmRows = cov.articles;
   _exmSort = { col: null, dir: 1 };
   return `<div class="card measure-card">

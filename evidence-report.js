@@ -143,7 +143,7 @@
     const stmts  = collectStatements(model);
     const backed = stmts.filter(s => s.controls.length).length;
     const stat = statPill(backed, stmts.length, 'mapped statements backed by a control', true)
-      + `<span class="ev-note">Every DORA obligation shown in Control 1 as covered is backed here by a policy or group-standard statement that at least one control cites. One row per statement × control.</span>`;
+      + `<span class="ev-note">Every DORA objective shown in Control 1 as covered is backed here by a policy or group-standard statement that at least one control cites. One row per statement × control.</span>`;
 
     const rows = [];
     stmts.forEach(s => {

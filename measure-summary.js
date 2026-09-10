@@ -89,7 +89,7 @@ function sortDora1Unc(col) {
 function renderDoraCoverageCard(assessment) {
   const model = buildDoraObligations(
     assessment.doraRows || [], assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  const title = 'Control 1 &middot; Regulatory SOA &mdash; DORA obligation completeness';
+  const title = 'Control 1 &middot; Applicable DORA articles/RTS objectives covered by Policies and Group Standards';
   const header = (icon, desc) => `
     <div class="measure-card-header">
       <span class="measure-icon">${icon}</span>
@@ -117,7 +117,7 @@ function renderDoraCoverageCard(assessment) {
 
   const uncovBlock = _d1uRows.length ? `
     <div class="dora-uncov-block collapsed">
-      <div class="dora-uncov-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> To reach 100% — obligations with no owned statement (${_d1uRows.length})</div>
+      <div class="dora-uncov-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> To reach 100% — objectives with no owned statement (${_d1uRows.length})</div>
       <div class="act-body rcsa-table-wrap">
         <table class="dora-uncov-tbl">
           <thead id="d1u-thead">${d1uHead()}</thead>

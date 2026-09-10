@@ -214,7 +214,7 @@ function exmBar(n, total) {
 function exmHead() {
   const arrow = c => _exmSort.col === c ? `<span class="mrt-arrow">${_exmSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l) => `<th class="mrt-sort" onclick="sortExecMatrix('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'Covered')}${th('byPolicy', 'via Policy')}${th('byGroupStandard', 'via Group Std')}${th('byImplemented', 'via Implemented control')}</tr>`;
+  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', 'DORA objectives covered')}${th('byPolicy', 'via Policy')}${th('byGroupStandard', 'via Group Std')}${th('byImplemented', 'via Implemented control')}</tr>`;
 }
 function exmBody(rows) {
   return rows.map(a => `<tr>

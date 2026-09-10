@@ -1,0 +1,18 @@
+DORA Article,Paragraph Reference,Digital Resilience Objective,Statement Ref,Statement Header,Document,Capability
+RTS 4 — ICT asset management,RTS-4-2-1,Maintain a complete inventory of ICT assets,LP-01 PS01,ICT asset inventory maintained,Local ICT Asset Management Policy,ICT Asset & Configuration Management
+RTS 4 — ICT asset management,RTS-4-2-2,Assign ownership for each ICT asset,LP-01 PS02,Asset ownership assigned,Local ICT Asset Management Policy,ICT Asset & Configuration Management
+RTS 4 — ICT asset management,RTS-4-2-3,Define and enforce secure configuration baselines,GS-01 SR01,Configuration baselines defined,Group ICT Configuration Standard,ICT Asset & Configuration Management
+RTS 4 — ICT asset management,RTS-4-2-4,Track asset end-of-life and supportability,No matching policy,N/A,Not Found,ICT Asset & Configuration Management
+Article 9 — Protection & prevention,ART-9-1,Risk-assess changes before deployment,LP-02 PS01,Changes risk-assessed before deployment,Local ICT Change Management Policy,ICT Change Management
+Article 9 — Protection & prevention,ART-9-2,Operate a controlled emergency-change process,LP-02 PS02,Emergency change process defined,Local ICT Change Management Policy,ICT Change Management
+Article 17 — ICT incident management,ART-17-1,Classify ICT incidents by severity,LP-03 PS01,Incidents classified by severity,Local ICT Incident Management Policy,ICT Incident Management
+Article 17 — ICT incident management,ART-17-2,Escalate major incidents on defined thresholds,GS-02 SR01,Major incident escalation defined,Group ICT Incident Standard,ICT Incident Management
+RTS 28 — Third-party risk,RTS-28-1,Maintain a register of critical ICT providers,LP-04 PS01,Critical providers register maintained,Local ICT Third-Party Policy,ICT Third-Party Risk Management
+RTS 28 — Third-party risk,RTS-28-2,Document exit strategies for critical providers,LP-04 PS02,Provider exit strategies documented,Local ICT Third-Party Policy,ICT Third-Party Risk Management
+RTS 28 — Third-party risk,RTS-28-3,Assess concentration risk across providers,No matching policy,N/A,Not Found,ICT Third-Party Risk Management
+Article 10 — Detection,ART-10-1,Schedule regular vulnerability scanning,LP-05 PS01,Vulnerability scans scheduled,Local ICT Vulnerability Policy,ICT Vulnerability Management
+Article 10 — Detection,ART-10-2,Define and meet patch-remediation SLAs,GS-03 SR01,Patch SLAs defined,Group ICT Security Standard,ICT Vulnerability Management
+Article 10 — Detection,ART-10-3,Prioritise remediation by asset criticality,LP-05 PS01,Vulnerability scans scheduled,Local ICT Vulnerability Policy,ICT Vulnerability Management
+Article 10 — Detection,ART-10-3,Prioritise remediation by asset criticality,GS-03 SR01,Patch SLAs defined,Group ICT Security Standard,ICT Vulnerability Management
+Article 20 — Access control,ART-20-1,Perform periodic access recertification,LP-06 PS01,Access reviews performed quarterly,Local ICT Access Control Policy,ICT Access Control Management
+Article 20 — Access control,ART-20-2,Restrict and monitor privileged access,LP-06 PS02,Privileged access restricted,Local ICT Access Control Policy,ICT Access Control Management

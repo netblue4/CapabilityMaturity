@@ -436,7 +436,7 @@ function renderExecControl3(currentA, prevA) {
   const prevOps = prevA ? buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🎯</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Act 3 · Control 3</div><h3 class="measure-card-title">Controls operationalised &amp; live</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Control 3</div><h3 class="measure-card-title">Control efficacy in treating risk</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!risks.length) return `<div class="card measure-card">${head('No risk data uploaded for this assessment.')}</div>`;
   const danger = risks.filter(k => ex3Zone(k).key === 'red').length;

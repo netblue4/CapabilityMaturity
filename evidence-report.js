@@ -133,7 +133,7 @@
 
     return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>DORA Article/RTS</th><th>Paragraph</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
+        <thead><tr><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
@@ -203,9 +203,9 @@
       }
     });
 
-    return pageHead('Control 3 · Controls operationalised & live', 'control → status + effectiveness + exception', meta, stat) + `
+    return pageHead('Control 3 · Control efficacy in treating risk', 'control → status + effectiveness + exception', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Exception</th><th>Obligation(s)</th></tr></thead>
+        <thead><tr><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Exception</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

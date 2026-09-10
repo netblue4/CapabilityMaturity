@@ -835,7 +835,7 @@ function renderRiskRegisterCard(assessment) {
   const risks = buildRiskProfile(assessment.riskPolicyFacts || []);
   risks.forEach(k => { k._capName = capName(k.capId); });
   const ops = buildBackingControlOps(assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  const title = 'Control 3 &middot; Controls operationalised &amp; live';
+  const title = 'Control 3 &middot; Control efficacy in treating risk';
   const elevOn = window._rpElevated !== false;
   const header = desc => `
     <div class="measure-card-header">

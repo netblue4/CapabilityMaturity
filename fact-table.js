@@ -867,18 +867,28 @@ function buildDoraArticleCoverage(doraRows, policyRows, facts) {
   const model = buildDoraObligations(doraRows, policyRows, facts);
   const articles = model.articles.map(a => {
     let covered = 0, byPolicy = 0, byGroupStandard = 0, byBacked = 0, byImplemented = 0, fullyOperationalised = 0;
+    // Distinct controls backing this article's obligations, split by status.
+    const ctrlImplSet = new Set(), ctrlDraftSet = new Set();
     a.obligations.forEach(o => {
+      const refs = o.mappedRefs;
+      refs.forEach(m => (m.controls || []).forEach(c => {
+        if (c.status === 'closed') return;
+        const cid = ftNorm(c.number) + '|' + ftNorm(c.name);
+        if (c.status === 'implemented') ctrlImplSet.add(cid); else ctrlDraftSet.add(cid);
+      }));
       if (!o.covered) return;
       covered++;
-      const refs = o.mappedRefs;
       if (refs.some(m => m.source === 'Local Policy'))    byPolicy++;
       if (refs.some(m => m.source === 'Group Standard'))  byGroupStandard++;
       if (refs.some(m => m.backing !== 'Uncovered'))      byBacked++;
       if (refs.some(m => m.status === 'implemented'))     byImplemented++;
       if (refs.some(m => m.status === 'implemented' && m.effective)) fullyOperationalised++;
     });
+    // A control counted implemented once should not also count as draft.
+    ctrlImplSet.forEach(c => ctrlDraftSet.delete(c));
     return { article: a.article, capability: a.capability || '', total: a.obligations.length,
-             covered, byPolicy, byGroupStandard, byBacked, byImplemented, fullyOperationalised };
+             covered, byPolicy, byGroupStandard, byBacked, byImplemented, fullyOperationalised,
+             ctrlImpl: ctrlImplSet.size, ctrlDraft: ctrlDraftSet.size };
   });
   const sum = k => articles.reduce((s, r) => s + r[k], 0);
   return {
@@ -887,6 +897,7 @@ function buildDoraArticleCoverage(doraRows, policyRows, facts) {
       total: sum('total'), covered: sum('covered'), byPolicy: sum('byPolicy'),
       byGroupStandard: sum('byGroupStandard'), byBacked: sum('byBacked'),
       byImplemented: sum('byImplemented'), fullyOperationalised: sum('fullyOperationalised'),
+      ctrlImpl: sum('ctrlImpl'), ctrlDraft: sum('ctrlDraft'),
     },
   };
 }

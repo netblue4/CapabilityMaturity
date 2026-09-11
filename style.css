@@ -3115,6 +3115,11 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exm-stack i { border-radius: 0; }
 .exm-seg-pol { background: var(--accent); }
 .exm-seg-grp { background: var(--clr-success); }
+.exm-seg-draft { background: var(--accent); }
+.exm-seg-impl { background: var(--clr-success); }
+.exm-leg-gap { margin-left: .4rem; padding-left: 1rem; border-left: 1px solid var(--border); }
+.exm-th-draft { color: var(--accent); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exm-th-impl { color: var(--clr-success); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .exm-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .1rem 0 .7rem; }
 .exm-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); }
 .exm-leg i { width: 14px; height: 9px; border-radius: 3px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }

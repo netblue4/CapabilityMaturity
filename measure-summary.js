@@ -9,6 +9,8 @@ function renderMeasureSummary(assessment) {
   if (srcSlot) srcSlot.innerHTML = renderSourcesCard(assessment);
   const rmSlot = document.getElementById("riskmgmt-card-row");
   if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
+  const ownSlot = document.getElementById("ownership-card-row");
+  if (ownSlot) ownSlot.innerHTML = renderOwnershipCard(assessment);
   const planSlot = document.getElementById("planning-card-row");
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }
@@ -291,6 +293,77 @@ function sortSourcesTable(col) {
   const th = document.getElementById('src-thead');
   if (tb) tb.innerHTML = srcBody(srcSortRows());
   if (th) th.innerHTML = srcHead();
+}
+
+// ── Ownership — who owns our policy statements (and their controls) ──
+// One row per accountable owner within a document: statements owned and the
+// controls operationalising them. Reads buildPolicyOwnership. Sortable.
+let _ownRows = [], _ownSort = { col: 'capName', dir: 1 };
+const OWN_FIELD = {
+  capName:    r => r.capName || '',
+  document:   r => r.document || '',
+  owner:      r => r.owner || '',
+  statements: r => r.statements || 0,
+  controls:   r => r.controls || 0,
+};
+function ownSortRows() {
+  const f = OWN_FIELD[_ownSort.col] || OWN_FIELD.capName, dir = _ownSort.dir;
+  return _ownRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.capName.localeCompare(b.capName) || a.owner.localeCompare(b.owner);
+    return String(va).localeCompare(String(vb)) * dir || a.owner.localeCompare(b.owner);
+  });
+}
+function ownHead() {
+  const arrow = c => _ownSort.col === c ? `<span class="mrt-arrow">${_ownSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortOwnershipTable('${k}')">${label}${arrow(k)}</th>`;
+  return `<tr>${th('capName', 'Capability')}${th('document', 'Document')}${th('owner', 'Owner')}${th('statements', 'Statements owned', 'own-num')}${th('controls', 'Controls owned', 'own-num')}</tr>`;
+}
+function ownBody(rows) {
+  return rows.map(r => `<tr>
+    <td class="src-cap" title="${escHtml(r.capName)}">${escHtml(shortName(r.capName))}</td>
+    <td class="src-doc"><div class="src-doc-name" title="${escHtml(r.document)}">${escHtml(r.document)}</div></td>
+    <td class="own-owner${r.owner === 'Unassigned' ? ' own-unassigned' : ''}">${escHtml(r.owner)}</td>
+    <td class="own-num">${r.statements}</td>
+    <td class="own-num">${r.controls}</td>
+  </tr>`).join('');
+}
+function sortOwnershipTable(col) {
+  if (_ownSort.col === col) _ownSort.dir *= -1;
+  else _ownSort = { col, dir: 1 };
+  const tb = document.getElementById('own-tbody');
+  const th = document.getElementById('own-thead');
+  if (tb) tb.innerHTML = ownBody(ownSortRows());
+  if (th) th.innerHTML = ownHead();
+}
+function renderOwnershipCard(assessment) {
+  const rows = buildPolicyOwnership(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const header = desc => `
+    <div class="measure-card-header">
+      <span class="measure-icon">👤</span>
+      <div style="flex:1"><h3 class="measure-card-title">Policy statement ownership</h3><p class="measure-card-desc">${desc}</p></div>
+    </div>`;
+  if (!rows.length) {
+    return `<div class="card measure-card">${header('Who is accountable for each policy and group-standard statement, and the controls behind them. Import policy data to populate this.')}<p class="policy-no-data" style="margin:.5rem 0">No policy data uploaded yet.</p></div>`;
+  }
+  const owners = new Set(rows.map(r => r.owner)); owners.delete('Unassigned');
+  const totalStmts = rows.reduce((s, r) => s + r.statements, 0);
+  const totalCtrls = rows.reduce((s, r) => s + r.controls, 0);
+  const desc = `<b>${owners.size}</b> accountable owner${owners.size === 1 ? '' : 's'} across ${rows.length} document assignment${rows.length === 1 ? '' : 's'} &middot; ${totalStmts} statements &middot; ${totalCtrls} controls.`;
+
+  _ownRows = rows;
+  _ownSort = { col: 'capName', dir: 1 };
+  return `
+    <div class="card measure-card">
+      ${header(desc)}
+      <div class="rcsa-table-wrap">
+        <table class="src-table own-table">
+          <colgroup><col class="own-c-cap"><col class="own-c-doc"><col class="own-c-owner"><col class="own-c-num"><col class="own-c-num"></colgroup>
+          <thead id="own-thead">${ownHead()}</thead>
+          <tbody id="own-tbody">${ownBody(ownSortRows())}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 // ── Control 2 action list: statements with no control ─────────────

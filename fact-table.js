@@ -357,6 +357,48 @@ function buildGovernanceRows(policyRows, facts) {
   return rows;
 }
 
+// ── Policy-statement ownership (capability × document × owner) ────────
+// One row per accountable owner within a document: how many policy/GS
+// statements they own, and how many distinct (non-closed) controls
+// operationalise those statements. Accountable owner comes from the policy
+// statement's Owner column; a blank owner is grouped as "Unassigned".
+function buildPolicyOwnership(policyRows, facts) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const map = {};
+  const gkey = (capId, doc, owner) => capId + '||' + doc + '||' + owner;
+
+  // Statements owned — one count per distinct statement.
+  const seenStmt = new Set();
+  (policyRows || []).forEach(pr => {
+    const doc   = (pr.document || '').trim() || '(no document)';
+    const owner = (pr.owner || '').trim() || 'Unassigned';
+    const key   = gkey(pr.capId, doc, owner);
+    const g = map[key] || (map[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, owner, statements: 0, controls: 0, _ctrl: new Set() });
+    const sKey = pr.capId + '||' + ftNorm(pr.statementRef);
+    if (seenStmt.has(sKey)) return;   // one row per distinct statement
+    seenStmt.add(sKey);
+    g.statements++;
+  });
+
+  // Controls owned — distinct non-closed controls mapping to a statement the
+  // owner holds, attributed to that statement's (capability × document × owner).
+  (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).forEach(f => {
+    const cid = ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const doc   = (mp.document || '').trim() || '(no document)';
+      const owner = (mp.owner || '').trim() || 'Unassigned';
+      const g = map[gkey(mp.capId, doc, owner)];
+      if (!g || g._ctrl.has(cid)) return;
+      g._ctrl.add(cid);
+      g.controls++;
+    });
+  });
+
+  const rows = Object.values(map).map(r => { delete r._ctrl; return r; });
+  rows.sort((a, b) => a.capName.localeCompare(b.capName) || a.document.localeCompare(b.document) || a.owner.localeCompare(b.owner));
+  return rows;
+}
+
 // ── Planning table — RTM → controls, flattened for export ─────────
 // One row per (policy statement × control that maps to it), repeating the
 // statement columns so it filters cleanly in Excel. Statements with no control

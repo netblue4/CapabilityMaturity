@@ -165,19 +165,19 @@ function renderExecScorecard(currentA, prevA) {
       </div>
     </div>
     <div class="exsc-row">
-      ${gauge('control1', 'Control 1', 'Applicable DORA objectives', `${cur.control1.n} DORA objectives covered by ${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements`)}
+      ${gauge('control1', 'Control 1 · Coverage', 'Applicable DORA objectives covered', `${cur.control1.n} of ${cur.control1.d} DORA objectives covered by ${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements`)}
       <div class="exsc-gauge exsc-gauge-c2">
-        <div class="exsc-gtag">Control 2</div>
-        <div class="exsc-gname">Policy and Group Standard statements covering DORA objectives</div>
+        <div class="exsc-gtag">Control 2 · Operationalisation</div>
+        <div class="exsc-gname">Policy &amp; Group Standard statements operationalised by controls</div>
         <div class="exsc-c2-donuts">${execStackDonut(c2p.impl, c2p.draft, c2p.none, { label: 'Policy', caption: `<span class="exsc-c2-imp">${c2p.impl} impl</span> · <span class="exsc-c2-drf">${c2p.draft} draft</span> · <span class="exsc-c2-non">${c2p.none} none</span>` })}${execStackDonut(c2g.impl, c2g.draft, c2g.none, { label: 'Group Standard', caption: `<span class="exsc-c2-imp">${c2g.impl} impl</span> · <span class="exsc-c2-drf">${c2g.draft} draft</span> · <span class="exsc-c2-non">${c2g.none} none</span>` })}</div>
-        <div class="exsc-gdesc">${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements are operationalised with ${bops.total} controls.</div>
+        <div class="exsc-gdesc">${sops.all.operationalised} of ${sops.all.total} statements operationalised by ${bops.total} controls (${sops.policy.total} policy · ${sops.groupStandard.total} group standard).</div>
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Implemented</span> <span class="exsc-c2-drf">■ Draft</span> <span class="exsc-c2-non">■ No control</span></div>
       </div>
       <div class="exsc-gauge exsc-gauge-c3">
-        <div class="exsc-gtag">Control 3</div>
-        <div class="exsc-gname">Controls operationalising DORA objectives</div>
+        <div class="exsc-gtag">Control 3 · Effectiveness</div>
+        <div class="exsc-gname">Control efficacy in treating risk</div>
         <div class="exsc-c2-donuts">${execStackDonut(c3.eff, c3.implNotEff, c3.draft, { centreLbl: 'controls', caption: `<span class="exsc-c2-imp">${c3.eff} effective</span> · <span class="exsc-c2-drf">${c3.implNotEff} to improve</span> · <span class="exsc-c2-non">${c3.draft} draft</span>` })}</div>
-        <div class="exsc-gdesc">${objOped} DORA objectives are operationalised with ${c3ImplCtrl} implemented controls. ${objWaiting} DORA objectives are waiting to be operationalised with ${c3.draft} draft controls.</div>
+        <div class="exsc-gdesc">${c3.eff} of ${c3ImplCtrl} implemented controls are rated effective in the RCSA${c3.implNotEff ? `; ${c3.implNotEff} still to improve` : ''}. ${c3.draft} draft control${c3.draft === 1 ? '' : 's'} not yet operational.</div>
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Effective</span> <span class="exsc-c2-drf">■ Implemented, not effective</span> <span class="exsc-c2-non">■ Draft</span></div>
       </div>
     </div>

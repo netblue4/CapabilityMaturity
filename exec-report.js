@@ -193,6 +193,7 @@ const EXM_FIELD = {
   article:    r => r.article || '',
   capability: r => r.capability || '',
   covered:    r => r.total ? r.covered / r.total : -1,
+  controls:   r => { const t = (r.ctrlImpl || 0) + (r.ctrlDraft || 0); return t ? (r.ctrlImpl || 0) / t : -1; },
 };
 function exmSortRows() {
   if (!_exmSort.col) return _exmRows;
@@ -224,17 +225,34 @@ function exmStackBar(a) {
     </span>
   </div>`;
 }
+// Stacked bar of the controls backing this article's obligations: draft (blue)
+// and implemented (green). A control is one or the other, so the two segments
+// fill the whole bar; the centre number is implemented of total controls.
+function exmCtrlBar(a) {
+  const draft = a.ctrlDraft || 0, impl = a.ctrlImpl || 0, tot = draft + impl;
+  if (!tot) return '<span class="src-zero">—</span>';
+  const pctD = 100 * draft / tot, pctI = 100 * impl / tot;
+  return `<div class="exm-bar" title="${impl} implemented · ${draft} draft (of ${tot} control${tot === 1 ? '' : 's'})">
+    <span class="exm-bar-num">${impl}<span class="exm-den">/${tot}</span></span>
+    <span class="exm-track exm-stack">
+      <i class="exm-seg-draft" style="width:${pctD}%" title="Draft controls: ${draft}"></i>
+      <i class="exm-seg-impl" style="width:${pctI}%" title="Implemented controls: ${impl}"></i>
+    </span>
+  </div>`;
+}
 function exmHead() {
   const arrow = c => _exmSort.col === c ? `<span class="mrt-arrow">${_exmSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l) => `<th class="mrt-sort" onclick="sortExecMatrix('${k}')">${l}${arrow(k)}</th>`;
-  const covLbl = 'Coverage — <span class="exm-th-pol">policy</span> · <span class="exm-th-grp">group std</span> · <span class="exm-th-uncov">uncovered</span>';
-  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', covLbl)}</tr>`;
+  const covLbl  = 'Coverage — <span class="exm-th-pol">policy</span> · <span class="exm-th-grp">group std</span> · <span class="exm-th-uncov">uncovered</span>';
+  const ctrlLbl = 'Controls — <span class="exm-th-draft">draft</span> · <span class="exm-th-impl">implemented</span>';
+  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', covLbl)}${th('controls', ctrlLbl)}</tr>`;
 }
 function exmBody(rows) {
   return rows.map(a => `<tr>
     <td class="exm-art">${escHtml(a.article)}</td>
     <td class="exm-cap">${escHtml(a.capability) || '<span class="src-zero">—</span>'}</td>
     <td>${exmStackBar(a)}</td>
+    <td>${exmCtrlBar(a)}</td>
   </tr>`).join('');
 }
 function sortExecMatrix(col) {
@@ -260,9 +278,11 @@ function renderExecCoverageMatrix(currentA) {
   _exmRows = cov.articles;
   _exmSort = { col: null, dir: 1 };
   const legend = `<div class="exm-legend">
-    <span class="exm-leg"><i class="exm-seg-pol"></i> Covered via policy</span>
-    <span class="exm-leg"><i class="exm-seg-grp"></i> Covered via group standard only</span>
+    <span class="exm-leg"><i class="exm-seg-pol"></i> Coverage · via policy</span>
+    <span class="exm-leg"><i class="exm-seg-grp"></i> Coverage · via group standard only</span>
     <span class="exm-leg"><i class="exm-leg-uncov"></i> Uncovered</span>
+    <span class="exm-leg exm-leg-gap"><i class="exm-seg-draft"></i> Controls · draft</span>
+    <span class="exm-leg"><i class="exm-seg-impl"></i> Controls · implemented</span>
   </div>`;
   return `<div class="card measure-card">
     ${head(desc)}

@@ -304,8 +304,21 @@ const OWN_FIELD = {
   document:   r => r.document || '',
   owner:      r => r.owner || '',
   statements: r => r.statements || 0,
-  controls:   r => r.controls || 0,
+  controls:   r => { const t = (r.ctrlImpl || 0) + (r.ctrlDraft || 0); return t ? (r.ctrlImpl || 0) / t : -1; },
 };
+// Stacked bar of the owner's controls: draft (blue) + implemented (green).
+function ownCtrlBar(r) {
+  const draft = r.ctrlDraft || 0, impl = r.ctrlImpl || 0, tot = draft + impl;
+  if (!tot) return '<span class="src-zero">—</span>';
+  const pctD = 100 * draft / tot, pctI = 100 * impl / tot;
+  return `<div class="exm-bar" title="${impl} implemented · ${draft} draft (of ${tot} control${tot === 1 ? '' : 's'})">
+    <span class="exm-bar-num">${impl}<span class="exm-den">/${tot}</span></span>
+    <span class="exm-track exm-stack">
+      <i class="exm-seg-draft" style="width:${pctD}%" title="Draft controls: ${draft}"></i>
+      <i class="exm-seg-impl" style="width:${pctI}%" title="Implemented controls: ${impl}"></i>
+    </span>
+  </div>`;
+}
 function ownSortRows() {
   const f = OWN_FIELD[_ownSort.col] || OWN_FIELD.capName, dir = _ownSort.dir;
   return _ownRows.slice().sort((a, b) => {
@@ -317,7 +330,8 @@ function ownSortRows() {
 function ownHead() {
   const arrow = c => _ownSort.col === c ? `<span class="mrt-arrow">${_ownSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortOwnershipTable('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('capName', 'Capability')}${th('document', 'Document')}${th('owner', 'Owner')}${th('statements', 'Statements owned', 'own-num')}${th('controls', 'Controls owned', 'own-num')}</tr>`;
+  const ctrlLbl = 'Controls owned — <span class="exm-th-draft">draft</span> · <span class="exm-th-impl">implemented</span>';
+  return `<tr>${th('capName', 'Capability')}${th('document', 'Document')}${th('owner', 'Owner')}${th('statements', 'Statements owned', 'own-num')}${th('controls', ctrlLbl)}</tr>`;
 }
 function ownBody(rows) {
   return rows.map(r => `<tr>
@@ -325,7 +339,7 @@ function ownBody(rows) {
     <td class="src-doc"><div class="src-doc-name" title="${escHtml(r.document)}">${escHtml(r.document)}</div></td>
     <td class="own-owner${r.owner === 'Unassigned' ? ' own-unassigned' : ''}">${escHtml(r.owner)}</td>
     <td class="own-num">${r.statements}</td>
-    <td class="own-num">${r.controls}</td>
+    <td>${ownCtrlBar(r)}</td>
   </tr>`).join('');
 }
 function sortOwnershipTable(col) {
@@ -358,7 +372,7 @@ function renderOwnershipCard(assessment) {
       ${header(desc)}
       <div class="rcsa-table-wrap">
         <table class="src-table own-table">
-          <colgroup><col class="own-c-cap"><col class="own-c-doc"><col class="own-c-owner"><col class="own-c-num"><col class="own-c-num"></colgroup>
+          <colgroup><col class="own-c-cap"><col class="own-c-doc"><col class="own-c-owner"><col class="own-c-num"><col class="own-c-bar"></colgroup>
           <thead id="own-thead">${ownHead()}</thead>
           <tbody id="own-tbody">${ownBody(ownSortRows())}</tbody>
         </table>

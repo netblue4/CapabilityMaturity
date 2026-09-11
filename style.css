@@ -2826,11 +2826,14 @@ col.src-c-cap { width: 10%; } col.src-c-doc { width: 22%; } col.src-c-type { wid
 .src-cap { color: var(--text); font-weight: 500; }
 .src-doc-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Ownership card */
-col.own-c-cap { width: 22%; } col.own-c-doc { width: 34%; } col.own-c-owner { width: 20%; } col.own-c-num { width: 12%; }
+col.own-c-cap { width: 20%; } col.own-c-doc { width: 30%; } col.own-c-owner { width: 18%; } col.own-c-num { width: 12%; } col.own-c-bar { width: 20%; }
 .own-table th.own-num, .own-table td.own-num { text-align: center; }
 .own-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 700; }
 .own-owner { color: var(--text); font-weight: 500; }
 .own-unassigned { color: var(--text-muted); font-style: italic; font-weight: 400; }
+/* Tighter rows + no wrapping so the table stays compact */
+.own-table tbody td { padding-top: .4rem; padding-bottom: .4rem; vertical-align: middle; }
+.own-table .src-cap, .own-table .own-owner { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .src-doc-sub { font-size: .72rem; color: var(--text-muted); margin-top: .18rem; }
 .src-rtm { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .src-status { text-align: center; }
@@ -3117,7 +3120,6 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exm-seg-grp { background: var(--clr-success); }
 .exm-seg-draft { background: var(--accent); }
 .exm-seg-impl { background: var(--clr-success); }
-.exm-leg-gap { margin-left: .4rem; padding-left: 1rem; border-left: 1px solid var(--border); }
 .exm-th-draft { color: var(--accent); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .exm-th-impl { color: var(--clr-success); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .exm-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .1rem 0 .7rem; }

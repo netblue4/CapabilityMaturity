@@ -2825,6 +2825,12 @@ col.src-c-cap { width: 10%; } col.src-c-doc { width: 22%; } col.src-c-type { wid
 .src-table tbody tr:last-child td { border-bottom: none; }
 .src-cap { color: var(--text); font-weight: 500; }
 .src-doc-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Ownership card */
+col.own-c-cap { width: 22%; } col.own-c-doc { width: 34%; } col.own-c-owner { width: 20%; } col.own-c-num { width: 12%; }
+.own-table th.own-num, .own-table td.own-num { text-align: center; }
+.own-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 700; }
+.own-owner { color: var(--text); font-weight: 500; }
+.own-unassigned { color: var(--text-muted); font-style: italic; font-weight: 400; }
 .src-doc-sub { font-size: .72rem; color: var(--text-muted); margin-top: .18rem; }
 .src-rtm { text-align: center; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
 .src-status { text-align: center; }

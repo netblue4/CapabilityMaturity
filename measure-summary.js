@@ -220,6 +220,9 @@ const SRC_FIELD = {
   document: r => r.document || '',
   type:     r => r.type || '',
   tracked:  r => r.riskTracked || 0,
+  imp:       r => r.imp || 0,
+  part:      r => r.part || 0,
+  unknown:   r => r.unknown || 0,
   excE:      r => r.excE || 0,
   excWT:     r => r.excWT || 0,
   excWP:     r => r.excWP || 0,
@@ -242,6 +245,9 @@ function srcHead() {
     ${th('document', 'Document')}
     ${th('type', 'Type')}
     ${th('tracked', 'Control backed statements', 'src-track-h')}
+    ${th('imp', 'I', 'src-disp')}
+    ${th('part', 'PI', 'src-disp')}
+    ${th('unknown', 'U', 'src-disp')}
     ${th('excE', 'E', 'src-disp')}
     ${th('excWT', 'WT', 'src-disp')}
     ${th('excWP', 'WP', 'src-disp')}
@@ -265,9 +271,12 @@ function srcBody(rows) {
     : '<span class="src-zero">—</span>';
   return rows.map(r => `<tr>
     <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
-    <td class="src-doc"><div class="src-doc-name">${r.document}</div></td>
+    <td class="src-doc"><div class="src-doc-name" title="${escHtml(r.document)}">${r.document}</div></td>
     <td class="src-type">${r.type}</td>
     <td class="src-track" title="${r.riskTracked} of ${r.total} statement(s) backed by a control">${trackCell(r)}</td>
+    ${disp(r.imp, 'src-disp-imp', `${r.imp || 0} statement(s) marked Implemented`)}
+    ${disp(r.part, 'src-disp-temp', `${r.part || 0} statement(s) marked Part-implemented`)}
+    ${disp(r.unknown, 'src-disp-perm', `${r.unknown || 0} statement(s) Unknown or blank (a blank is never treated as implemented)`)}
     ${disp(r.excE, 'src-disp-perm', `${r.excE || 0} Exemption (E): objective applies but cannot be implemented (technical)`)}
     ${disp(r.excWT, 'src-disp-temp', `${r.excWT || 0} Waiver Temporary (WT): applies but need time / a new tool`)}
     ${disp(r.excWP, 'src-disp-perm', `${r.excWP || 0} Waiver Permanent (WP): applies but we will not build it (regulatory)`)}
@@ -361,7 +370,7 @@ function renderSourcesCard(assessment) {
       ${cmProgressBar(cov.backedPct)}
       <div class="rcsa-table-wrap">
         <table class="src-table">
-          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
+          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
           <thead id="src-thead">${srcHead()}</thead>
           <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>

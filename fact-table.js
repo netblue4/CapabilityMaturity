@@ -328,7 +328,7 @@ function buildGovernanceRows(policyRows, facts) {
   (policyRows || []).forEach(pr => {
     const doc = (pr.document || '').trim() || '(no document)';
     const key = pr.capId + '||' + doc;
-    if (!map[key]) map[key] = { key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0, excE: 0, excWT: 0, excWP: 0, invisible: 0 };
+    if (!map[key]) map[key] = { key, capId: pr.capId, capName: capName(pr.capId), document: doc, type: pr.type || '', total: 0, approved: 0, draft: 0, riskTracked: 0, imp: 0, part: 0, unknown: 0, excE: 0, excWT: 0, excWP: 0, invisible: 0 };
     const r = map[key];
     r.total++;
     if (ftNorm(pr.status).includes('approv')) r.approved++;
@@ -339,6 +339,10 @@ function buildGovernanceRows(policyRows, facts) {
     // statement self-declared implemented / part-implemented but with no control.
     const e = ftException(pr.exception);
     const disp = ftDisposition(pr.exception);
+    // Self-declared disposition counts (a blank cell is UNKNOWN, never Implemented).
+    if (disp === 'IMP')       r.imp++;
+    else if (disp === 'PART') r.part++;
+    else if (disp === 'UNKNOWN') r.unknown++;
     if (e === 'E') r.excE++;
     else if (e === 'WT') r.excWT++;
     else if (e === 'WP') r.excWP++;

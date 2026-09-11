@@ -373,7 +373,7 @@ function buildPolicyOwnership(policyRows, facts) {
     const doc   = (pr.document || '').trim() || '(no document)';
     const owner = (pr.owner || '').trim() || 'Unassigned';
     const key   = gkey(pr.capId, doc, owner);
-    const g = map[key] || (map[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, owner, statements: 0, controls: 0, _ctrl: new Set() });
+    const g = map[key] || (map[key] = { capId: pr.capId, capName: capName(pr.capId), document: doc, owner, statements: 0, controls: 0, ctrlImpl: 0, ctrlDraft: 0, _ctrl: new Set() });
     const sKey = pr.capId + '||' + ftNorm(pr.statementRef);
     if (seenStmt.has(sKey)) return;   // one row per distinct statement
     seenStmt.add(sKey);
@@ -381,9 +381,11 @@ function buildPolicyOwnership(policyRows, facts) {
   });
 
   // Controls owned — distinct non-closed controls mapping to a statement the
-  // owner holds, attributed to that statement's (capability × document × owner).
+  // owner holds, attributed to that statement's (capability × document × owner)
+  // and split by status (implemented vs draft).
   (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).forEach(f => {
     const cid = ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    const impl = ftIsImplemented(f);
     (f.matchedPolicyRows || []).forEach(mp => {
       const doc   = (mp.document || '').trim() || '(no document)';
       const owner = (mp.owner || '').trim() || 'Unassigned';
@@ -391,6 +393,7 @@ function buildPolicyOwnership(policyRows, facts) {
       if (!g || g._ctrl.has(cid)) return;
       g._ctrl.add(cid);
       g.controls++;
+      if (impl) g.ctrlImpl++; else g.ctrlDraft++;
     });
   });
 
@@ -867,28 +870,18 @@ function buildDoraArticleCoverage(doraRows, policyRows, facts) {
   const model = buildDoraObligations(doraRows, policyRows, facts);
   const articles = model.articles.map(a => {
     let covered = 0, byPolicy = 0, byGroupStandard = 0, byBacked = 0, byImplemented = 0, fullyOperationalised = 0;
-    // Distinct controls backing this article's obligations, split by status.
-    const ctrlImplSet = new Set(), ctrlDraftSet = new Set();
     a.obligations.forEach(o => {
-      const refs = o.mappedRefs;
-      refs.forEach(m => (m.controls || []).forEach(c => {
-        if (c.status === 'closed') return;
-        const cid = ftNorm(c.number) + '|' + ftNorm(c.name);
-        if (c.status === 'implemented') ctrlImplSet.add(cid); else ctrlDraftSet.add(cid);
-      }));
       if (!o.covered) return;
       covered++;
+      const refs = o.mappedRefs;
       if (refs.some(m => m.source === 'Local Policy'))    byPolicy++;
       if (refs.some(m => m.source === 'Group Standard'))  byGroupStandard++;
       if (refs.some(m => m.backing !== 'Uncovered'))      byBacked++;
       if (refs.some(m => m.status === 'implemented'))     byImplemented++;
       if (refs.some(m => m.status === 'implemented' && m.effective)) fullyOperationalised++;
     });
-    // A control counted implemented once should not also count as draft.
-    ctrlImplSet.forEach(c => ctrlDraftSet.delete(c));
     return { article: a.article, capability: a.capability || '', total: a.obligations.length,
-             covered, byPolicy, byGroupStandard, byBacked, byImplemented, fullyOperationalised,
-             ctrlImpl: ctrlImplSet.size, ctrlDraft: ctrlDraftSet.size };
+             covered, byPolicy, byGroupStandard, byBacked, byImplemented, fullyOperationalised };
   });
   const sum = k => articles.reduce((s, r) => s + r[k], 0);
   return {
@@ -897,7 +890,6 @@ function buildDoraArticleCoverage(doraRows, policyRows, facts) {
       total: sum('total'), covered: sum('covered'), byPolicy: sum('byPolicy'),
       byGroupStandard: sum('byGroupStandard'), byBacked: sum('byBacked'),
       byImplemented: sum('byImplemented'), fullyOperationalised: sum('fullyOperationalised'),
-      ctrlImpl: sum('ctrlImpl'), ctrlDraft: sum('ctrlDraft'),
     },
   };
 }

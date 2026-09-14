@@ -35,7 +35,11 @@
     closeEvidenceModal();
     const model = buildDoraObligations(a.doraRows || [], a.policyRows || [], a.riskPolicyFacts || []);
     const meta  = { label: a.label, date: formatDate(a.date) };
-    const html = control === 1 ? evidenceControl1(model, meta)
+    // Per-document approval status (approved / partial / draft) for Control 1.
+    const docStatus = {};
+    (buildGovernanceRows(a.policyRows || [], a.riskPolicyFacts || []) || [])
+      .forEach(r => { docStatus[r.capId + '||' + r.document] = r.status; });
+    const html = control === 1 ? evidenceControl1(model, meta, docStatus)
                : control === 2 ? evidenceControl2(model, meta)
                :                  evidenceControl3(model, meta);
     document.getElementById('evidence-content').innerHTML = html;
@@ -81,6 +85,11 @@
   const YES = '<span class="ev-yes">Yes</span>';
   const NO  = '<span class="ev-no">No</span>';
   const DASH = '<span class="ev-dash">—</span>';
+  const GOV = { approved: ['gov-approved', 'Approved'], partial: ['gov-partial', 'Partial'], draft: ['gov-draft', 'Draft'] };
+  function docStatusCell(status) {
+    const g = GOV[status]; return g ? `<span class="gov-badge ${g[0]}">${g[1]}</span>` : DASH;
+  }
+  const ctrlStatusCell = c => c.status === 'implemented' ? '<span class="ev-yes">Implemented</span>' : '<span class="ev-mid">Draft</span>';
 
   // Deduped mapped statements across covered obligations (Control 2 & 3 unit),
   // each carrying its backing controls and the obligation(s) it covers.
@@ -99,7 +108,9 @@
   }
 
   // ── Control 1 — Regulatory SOA completeness (flat, all columns) ──
-  function evidenceControl1(model, meta) {
+  function evidenceControl1(model, meta, docStatus) {
+    docStatus = docStatus || {};
+    const dkey = m => m.capId + '||' + ((m.document || '').trim() || '(no document)');
     const covered = model.coveredObligations, total = model.totalObligations;
     const stat = statPill(covered, total, 'objectives covered by either a policy or group standard statement', true)
       + `<span class="ev-note">Completeness is the Gate-1 precondition: an objective with no policy or group-standard statement is a compliance gap regardless of downstream control activity.</span>`;
@@ -117,6 +128,7 @@
             <td><span class="ev-yes">Covered</span></td>
             <td>${esc(capName(m.capId))}</td>
             <td>${esc(m.document)}</td>
+            <td>${docStatusCell(docStatus[dkey(m)])}</td>
             <td>${esc(m.source)}</td>
             <td class="ev-ref-c"><span class="ev-ref">${esc(m.ref)}</span></td>
             <td>${esc(m.header)}</td>
@@ -129,14 +141,14 @@
             <td class="ev-obl">${esc(o.obligationId)}</td>
             <td class="ev-req">${esc(o.requirement)}</td>
             <td><span class="ev-no">Uncovered</span></td>
-            <td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td>
+            <td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td>
           </tr>`);
       }
     });
 
     return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
@@ -160,15 +172,15 @@
         <td>${esc(s.header)}</td>`;
       const obls = `<td class="ev-obls">${s.obligations.map(esc).join(', ')}</td>`;
       if (s.controls.length) {
-        s.controls.forEach(c => rows.push(`<tr>${base}<td>${YES}</td><td>${esc(ctrlLabel(c))}</td>${obls}</tr>`));
+        s.controls.forEach(c => rows.push(`<tr>${base}<td>${YES}</td><td>${esc(ctrlLabel(c))}</td><td>${ctrlStatusCell(c)}</td>${obls}</tr>`));
       } else {
-        rows.push(`<tr class="ev-row-gap">${base}<td>${NO}</td><td>${DASH}</td>${obls}</tr>`);
+        rows.push(`<tr class="ev-row-gap">${base}<td>${NO}</td><td>${DASH}</td><td>${DASH}</td>${obls}</tr>`);
       }
     });
 
     return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → control', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Status</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

@@ -414,37 +414,50 @@ function buildPillarSummary(assessment) {
   const polByKey = {};
   policyRows.forEach(pr => { polByKey[pr.capId + '||' + ftNorm(pr.statementRef)] = pr; });
 
-  const mkBucket = def => ({ ...def, hasData: false, oblTotal: 0, oblCovered: 0, uncovered: [], _stmt: {}, _ctrl: {}, capIds: new Set() });
+  const mkBucket = def => ({ ...def, hasData: false, oblTotal: 0, oblCovered: 0, uncovered: [], _stmt: {}, _ctrl: {} });
   const P = {};
   pillars.forEach(def => { P[def.id] = mkBucket(def); });
-  const other = mkBucket({ id: 'other', chapter: '', name: 'Unmapped DORA articles', short: 'Unmapped', icon: '❔', inScope: true });
+  const other = mkBucket({ id: 'other', chapter: '', name: 'Not tied to a DORA pillar', short: 'Unmapped', icon: '❔', inScope: true, outNote: '' });
 
+  // ── Coverage (Control 1): obligations grouped by article → pillar. ──
+  // Also tally, per capability, which pillar its obligations fall under, so
+  // every statement/control can be partitioned to exactly one pillar below.
+  const capVotes = {};
   model.articles.forEach(a => a.obligations.forEach(o => {
     const pid = (typeof doraPillarOf !== 'undefined') ? doraPillarOf(o.article, o.obligationId) : null;
     const b = P[pid] || other;
     b.hasData = true; b.oblTotal++;
     if (o.covered) b.oblCovered++;
     else b.uncovered.push({ id: o.obligationId, article: o.article, requirement: o.requirement });
-    (o.mappedRefs || []).forEach(m => {
-      if (m.capId) b.capIds.add(m.capId);
-      const sk = m.capId + '||' + ftNorm(m.ref);
-      if (!(sk in b._stmt)) {
-        const pr = polByKey[sk] || {};
-        const backed = m.backing !== 'Uncovered';
-        const live = m.backing === 'Built new' || m.backing === 'Reused pre-DORA';
-        b._stmt[sk] = { ref: m.ref, backed, live, disp: ftDisposition(pr.exception), approved: ftNorm(pr.status).includes('approv') };
-      }
-      (m.controls || []).forEach(c => {
-        if (c.status === 'closed') return;
-        const cid = ftNorm(c.number) + '|' + ftNorm(c.name);
-        if (!(cid in b._ctrl)) b._ctrl[cid] = { impl: c.status === 'implemented', eff: !!c.effective };
-      });
+    if (pid) (o.mappedRefs || []).forEach(m => {
+      if (!m.capId) return;
+      (capVotes[m.capId] = capVotes[m.capId] || {})[pid] = (capVotes[m.capId][pid] || 0) + 1;
     });
   }));
-
-  // capId → pillar (first-seen), to attach risks to a pillar.
+  // capId → its majority pillar (the pillar most of its obligations sit in).
   const capPillar = {};
-  Object.values(P).forEach(b => b.capIds.forEach(c => { if (!(c in capPillar)) capPillar[c] = b.id; }));
+  Object.entries(capVotes).forEach(([c, v]) => { capPillar[c] = Object.entries(v).sort((x, y) => y[1] - x[1])[0][0]; });
+  const pillarOf = capId => P[capPillar[capId]] || other;
+
+  // ── Operationalisation (Control 2): partition EVERY distinct statement by
+  // its capability's pillar, so the pillar totals sum to the hero card. ──
+  buildStatementCoverage(policyRows, facts).statements.forEach(s => {
+    const b = pillarOf(s.capId); b.hasData = true;
+    const pr = polByKey[s.key] || {};
+    b._stmt[s.key] = {
+      backed: s.hasControl,
+      live: s.backing === 'Built new' || s.backing === 'Reused pre-DORA',
+      disp: ftDisposition(pr.exception), approved: ftNorm(pr.status).includes('approv'),
+    };
+  });
+
+  // ── Effectiveness (Control 3): partition every distinct backing control by
+  // its capability's pillar (same dedup as the hero card → totals reconcile). ──
+  buildBackingControlOps(policyRows, facts).controls.forEach(c => {
+    const b = pillarOf(c.capId); b.hasData = true;
+    b._ctrl[c.capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name)] = { impl: c.implemented, eff: c.effective };
+  });
+
   const risksByPillar = {};
   buildRiskProfile(facts).forEach(k => {
     const pid = capPillar[k.capId]; if (!pid) return;
@@ -480,6 +493,7 @@ function buildPillarSummary(assessment) {
     };
     if (!b.inScope) s.rag = 'oos';
     else if (!b.hasData) s.rag = 'none';
+    else if (b.id === 'other') s.rag = 'info';   // reconciliation bucket, no DORA coverage
     else {
       const danger = gaps.dangerRisks.length > 0;
       const noOps = s.ops.total > 0 && operationalised === 0;

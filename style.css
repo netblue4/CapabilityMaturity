@@ -3122,6 +3122,61 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exm-seg-impl { background: var(--clr-success); }
 .exm-th-draft { color: var(--accent); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .exm-th-impl { color: var(--clr-success); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+/* ── Exec report — By DORA Pillar (forum cards) ─────────────────────── */
+.pil-section { margin: 1.4rem 0; }
+.pil-section-title { font-size: 1.05rem; margin: 0 0 .2rem; }
+.pil-section-desc { color: var(--text-muted); font-size: .82rem; margin: 0 0 1rem; }
+.pil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pil-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; break-inside: avoid; }
+.pil-card-muted { opacity: .72; }
+.pil-rag-b-red    { border-left: 3px solid var(--clr-danger); }
+.pil-rag-b-amber  { border-left: 3px solid var(--clr-warning); }
+.pil-rag-b-green  { border-left: 3px solid var(--clr-success); }
+/* header */
+.pil-head { display: flex; align-items: flex-start; gap: 11px; }
+.pil-ico { font-size: 1.4rem; line-height: 1; }
+.pil-head-txt { flex: 1; min-width: 0; }
+.pil-eyebrow { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.pil-title { font-size: 1.02rem; font-weight: 700; margin: .12rem 0 .16rem; }
+.pil-verdict { font-size: .78rem; color: var(--text-muted); line-height: 1.35; }
+.pil-rag { flex-shrink: 0; font-family: var(--font-mono); font-size: .62rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: .28rem .6rem; border-radius: 20px; white-space: nowrap; }
+.pil-rag-red   { background: color-mix(in srgb, var(--clr-danger) 16%, transparent);  color: var(--clr-danger);  border: 1px solid color-mix(in srgb, var(--clr-danger) 40%, transparent); }
+.pil-rag-amber { background: color-mix(in srgb, var(--clr-warning) 16%, transparent); color: var(--clr-warning); border: 1px solid color-mix(in srgb, var(--clr-warning) 40%, transparent); }
+.pil-rag-green { background: color-mix(in srgb, var(--clr-success) 16%, transparent); color: var(--clr-success); border: 1px solid color-mix(in srgb, var(--clr-success) 40%, transparent); }
+.pil-rag-none, .pil-rag-oos { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-muted); border: 1px solid var(--border); }
+/* kpis */
+.pil-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin: 13px 0; }
+.pil-kpi { background: var(--bg); border: 1px solid var(--border-subtle); border-radius: 9px; padding: 9px 10px; }
+.pil-kpi-lbl { font-family: var(--font-mono); font-size: .54rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
+.pil-kpi-val { font-size: 1.35rem; font-weight: 800; line-height: 1; margin: .2rem 0 .22rem; }
+.pil-kpi-frac { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); }
+.pil-kpi-bar { height: 5px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; margin-top: .4rem; }
+.pil-kpi-bar i { display: block; height: 100%; border-radius: 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* panels */
+.pil-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.pil-panel { background: var(--bg); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 11px 12px; }
+.pil-panel-h { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .6rem; }
+.pil-metric { margin: .5rem 0; }
+.pil-m-top { display: flex; justify-content: space-between; font-size: .74rem; margin-bottom: .28rem; gap: .5rem; }
+.pil-m-top b { font-family: var(--font-mono); }
+.pil-track { display: flex; height: 8px; border-radius: 20px; overflow: hidden; background: color-mix(in srgb, var(--text) 12%, transparent); }
+.pil-track i { display: block; height: 100%; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.pil-chip { display: inline-flex; align-items: center; gap: .3rem; font-size: .68rem; padding: .18rem .5rem; border-radius: 8px; margin: .45rem .3rem 0 0; }
+.pil-chip-gap  { background: color-mix(in srgb, var(--clr-danger) 13%, transparent);  color: var(--clr-danger);  border: 1px solid color-mix(in srgb, var(--clr-danger) 38%, transparent); }
+.pil-chip-warn { background: color-mix(in srgb, var(--clr-warning) 13%, transparent); color: var(--clr-warning); border: 1px solid color-mix(in srgb, var(--clr-warning) 38%, transparent); }
+/* next steps */
+.pil-steps { margin-top: 13px; }
+.pil-steps-h { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem; }
+.pil-step { display: flex; align-items: flex-start; gap: .55rem; padding: .42rem 0; border-top: 1px solid var(--border-subtle); font-size: .78rem; line-height: 1.4; }
+.pil-step:first-of-type { border-top: none; }
+.pil-pri { flex-shrink: 0; font-family: var(--font-mono); font-size: .56rem; font-weight: 700; padding: .16rem .42rem; border-radius: 6px; margin-top: .08rem; }
+.pil-pri-1 { background: color-mix(in srgb, var(--clr-danger) 16%, transparent);  color: var(--clr-danger); }
+.pil-pri-2 { background: color-mix(in srgb, var(--clr-warning) 16%, transparent); color: var(--clr-warning); }
+.pil-pri-3 { background: color-mix(in srgb, var(--accent) 14%, transparent);      color: var(--accent); }
+.pil-lens { flex-shrink: 0; font-family: var(--font-mono); font-size: .56rem; color: var(--text-muted); width: 52px; margin-top: .18rem; text-transform: uppercase; letter-spacing: .03em; }
+.pil-step-txt { flex: 1; }
+@media (max-width: 900px) { .pil-grid, .pil-kpis, .pil-panels { grid-template-columns: 1fr; } }
 .exm-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .1rem 0 .7rem; }
 .exm-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); }
 .exm-leg i { width: 14px; height: 9px; border-radius: 3px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }

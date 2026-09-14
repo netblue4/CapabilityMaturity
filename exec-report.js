@@ -59,6 +59,7 @@ function generateExecReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecScorecard(currentA, prevA)}
+    ${renderExecPillars(currentA)}
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
@@ -181,6 +182,136 @@ function renderExecScorecard(currentA, prevA) {
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Effective</span> <span class="exsc-c2-drf">■ Implemented, not effective</span> <span class="exsc-c2-non">■ Draft</span></div>
       </div>
     </div>
+  </div>`;
+}
+
+// ── By DORA Pillar — one management card per pillar (forum tool) ──────
+// Coverage (C1) · Operationalisation (C2) · Effectiveness (C3) per pillar,
+// plus generated high-level next steps. Reads buildPillarSummary.
+const PIL_RAG = {
+  red:   ['pil-rag-red',   '● Needs attention'],
+  amber: ['pil-rag-amber', '● In progress'],
+  green: ['pil-rag-green', '● On track'],
+  none:  ['pil-rag-none',  '○ No data yet'],
+  oos:   ['pil-rag-oos',   '○ Out of scope'],
+};
+function pilVerdict(p) {
+  if (p.rag === 'oos') return p.outNote || 'Out of scope for us.';
+  if (!p.hasData) return 'No DORA obligations mapped to this pillar yet.';
+  if (p.rag === 'green') return 'Objectives covered, operationalised and effective.';
+  if (p.rag === 'red') {
+    if (p.gaps.dangerRisks.length) return 'A control is not treating its risk — sitting in the danger zone.';
+    if (p.ops.operationalised === 0) return 'Objectives are written down, but no control is live yet.';
+    return 'Coverage is incomplete — obligations are still unowned.';
+  }
+  return 'Making progress — some gaps in operationalisation remain.';
+}
+function pilGenSteps(p) {
+  const steps = [];
+  const push = (pri, lens, text) => steps.push({ pri, lens, text });
+  // P1 · Coverage gaps (name up to 2, then summarise)
+  const u = p.gaps.uncovered;
+  u.slice(0, 2).forEach(o => push(1, 'Policy', `Write an owned statement covering <b>${escHtml(o.id)}</b>${o.requirement ? ' — ' + escHtml(o.requirement) : ''}.`));
+  if (u.length > 2) push(1, 'Policy', `Cover the remaining <b>${u.length - 2}</b> uncovered obligation(s) in this pillar.`);
+  // P1 · draft controls behind statements
+  if (p.gaps.toImplement) push(1, 'Control', `Implement <b>${p.gaps.toImplement}</b> draft control(s) so their statements go live.`);
+  // P1 · danger risks
+  p.gaps.dangerRisks.slice(0, 2).forEach(r => push(1, 'Risk', `Drive down residual on <b>${escHtml(r.title)}</b> (residual ${r.residual}) — control ineffective.`));
+  // P2 · build controls where none
+  if (p.gaps.toBuild) push(2, 'Control', `Build a control for <b>${p.gaps.toBuild}</b> statement(s) that have none.`);
+  // P2 · invisible work
+  if (p.gaps.invisibleWork) push(2, 'Control', `Create controls for <b>${p.gaps.invisibleWork}</b> self-declared statement(s) (invisible work).`);
+  // P2 · approvals
+  if (p.gaps.draftStatements) push(2, 'Policy', `Approve <b>${p.gaps.draftStatements}</b> draft statement(s).`);
+  // P3 · effectiveness
+  if (p.gaps.notEffective) push(3, 'Control', `Improve effectiveness of <b>${p.gaps.notEffective}</b> implemented control(s) at the next RCSA.`);
+  if (!steps.length) push(3, '—', 'No open actions — maintain and re-test at the next cycle.');
+  return steps.slice(0, 6);
+}
+function pilKpi(lbl, ctrl, pct, frac, rag) {
+  const col = rag === 'red' ? 'var(--clr-danger)' : rag === 'amber' ? 'var(--clr-warning)' : 'var(--clr-success)';
+  const w = Math.max(pct, 3);
+  return `<div class="pil-kpi">
+    <div class="pil-kpi-lbl">${lbl} · ${ctrl}</div>
+    <div class="pil-kpi-val" style="color:${col}">${pct}%</div>
+    <div class="pil-kpi-frac">${frac}</div>
+    <div class="pil-kpi-bar"><i style="width:${w}%;background:${col}"></i></div>
+  </div>`;
+}
+function pilStack(segs, total) {
+  const cells = segs.filter(s => s.n > 0).map(s => `<i style="width:${total ? 100 * s.n / total : 0}%;background:${s.col}" title="${s.t}"></i>`).join('');
+  return `<span class="pil-track">${cells || '<i style="width:100%;background:var(--track,color-mix(in srgb,var(--text) 12%,transparent))"></i>'}</span>`;
+}
+function renderExecPillar(p) {
+  const [ragCls, ragTxt] = PIL_RAG[p.rag] || PIL_RAG.none;
+  const head = `<div class="pil-head">
+    <div class="pil-ico">${p.icon}</div>
+    <div class="pil-head-txt">
+      <div class="pil-eyebrow">DORA Pillar · Chapter ${p.chapter} · ${escHtml(p.short)}</div>
+      <div class="pil-title">${escHtml(p.name)}</div>
+      <div class="pil-verdict">${escHtml(pilVerdict(p))}</div>
+    </div>
+    <div class="pil-rag ${ragCls}">${ragTxt}</div>
+  </div>`;
+
+  if (p.rag === 'oos' || !p.hasData) {
+    return `<div class="pil-card pil-card-muted">${head}</div>`;
+  }
+
+  const cv = p.coverage, op = p.ops, ct = p.controls;
+  const covUncov = cv.total - cv.covered;
+  const opNone = op.total - op.backed;
+  const kpis = `<div class="pil-kpis">
+    ${pilKpi('Coverage', 'Control 1', cv.pct, `${cv.covered} / ${cv.total} objectives covered`, cv.pct >= 100 ? 'green' : cv.pct >= 50 ? 'amber' : 'red')}
+    ${pilKpi('Operationalised', 'Control 2', op.pct, `${op.operationalised} / ${op.total} statements with a live control`, op.pct >= 100 ? 'green' : op.pct > 0 ? 'amber' : 'red')}
+    ${pilKpi('Effective', 'Control 3', ct.pct, `${ct.effective} / ${ct.implemented} controls effective`, ct.implemented === 0 ? 'red' : ct.pct >= 100 ? 'green' : ct.pct >= 50 ? 'amber' : 'red')}
+  </div>`;
+
+  const green = 'var(--clr-success)', amber = 'var(--clr-warning)', red = 'var(--clr-danger)', blue = 'var(--accent)';
+  const panels = `<div class="pil-panels">
+    <div class="pil-panel">
+      <div class="pil-panel-h">📘 Policy &amp; Group Standard compliance</div>
+      <div class="pil-metric"><div class="pil-m-top"><span>Objectives covered by an owned statement</span><b>${cv.covered}/${cv.total}</b></div>
+        ${pilStack([{ n: cv.covered, col: blue, t: 'Covered' }, { n: covUncov, col: 'var(--track,#333)', t: 'Uncovered' }], cv.total)}</div>
+      <div class="pil-metric"><div class="pil-m-top"><span>Statements approved</span><b>${p.approval.approved}/${p.approval.total}</b></div>
+        ${pilStack([{ n: p.approval.approved, col: green, t: 'Approved' }, { n: p.approval.total - p.approval.approved, col: amber, t: 'Draft' }], p.approval.total)}</div>
+      ${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}
+    </div>
+    <div class="pil-panel">
+      <div class="pil-panel-h">🛠 Control compliance</div>
+      <div class="pil-metric"><div class="pil-m-top"><span>Statements operationalised by a live control</span><b>${op.operationalised}/${op.total}</b></div>
+        ${pilStack([{ n: op.operationalised, col: green, t: 'Live control' }, { n: op.backed - op.operationalised, col: amber, t: 'Draft control' }, { n: opNone, col: 'var(--track,#333)', t: 'No control' }], op.total)}</div>
+      <div class="pil-metric"><div class="pil-m-top"><span>Controls rated effective (RCSA)</span><b>${ct.effective}/${ct.implemented}</b></div>
+        ${pilStack([{ n: ct.effective, col: green, t: 'Effective' }, { n: ct.implemented - ct.effective, col: amber, t: 'Not effective' }], ct.implemented)}</div>
+      ${p.gaps.dangerRisks.length ? `<span class="pil-chip pil-chip-gap">🔴 ${p.gaps.dangerRisks.length} risk(s) in the danger zone</span>` : ''}
+      ${p.gaps.invisibleWork ? `<span class="pil-chip pil-chip-warn">👻 ${p.gaps.invisibleWork} invisible-work statement(s)</span>` : ''}
+    </div>
+  </div>`;
+
+  const steps = pilGenSteps(p).map(s => `<div class="pil-step">
+    <span class="pil-pri pil-pri-${s.pri}">P${s.pri}</span>
+    <span class="pil-lens">${escHtml(s.lens)}</span>
+    <span class="pil-step-txt">${s.text}</span>
+  </div>`).join('');
+
+  return `<div class="pil-card pil-rag-b-${p.rag}">
+    ${head}${kpis}${panels}
+    <div class="pil-steps"><div class="pil-steps-h">↳ High-level next steps</div>${steps}</div>
+  </div>`;
+}
+function renderExecPillars(currentA) {
+  const pillars = buildPillarSummary(currentA);
+  if (!pillars.length) return '';
+  const inScope = pillars.filter(p => p.inScope);
+  const oos = pillars.filter(p => !p.inScope);
+  const covd = inScope.reduce((s, p) => s + p.coverage.covered, 0), covt = inScope.reduce((s, p) => s + p.coverage.total, 0);
+  const desc = `${inScope.length} pillar(s) in scope${oos.length ? ` · ${oos.length} out of scope` : ''} &middot; ${covd}/${covt} objectives covered overall. One card per pillar — coverage, operationalisation and effectiveness, with the actions to close each gap.`;
+  return `<div class="pil-section">
+    <div class="pil-section-hdr">
+      <h2 class="pil-section-title">DORA operationalisation by pillar</h2>
+      <p class="pil-section-desc">${desc}</p>
+    </div>
+    <div class="pil-grid">${pillars.map(renderExecPillar).join('')}</div>
   </div>`;
 }
 

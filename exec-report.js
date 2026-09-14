@@ -231,13 +231,14 @@ function pilGenSteps(p) {
   return steps.slice(0, 6);
 }
 function pilKpi(lbl, ctrl, pct, frac, rag) {
-  const col = rag === 'red' ? 'var(--clr-danger)' : rag === 'amber' ? 'var(--clr-warning)' : 'var(--clr-success)';
+  // KPI percentages use the default text colour (RAG lives in the card chip and
+  // the panel bars) so the tiles read calmly. The mini-bar stays neutral too.
   const w = Math.max(pct, 3);
   return `<div class="pil-kpi">
     <div class="pil-kpi-lbl">${lbl} · ${ctrl}</div>
-    <div class="pil-kpi-val" style="color:${col}">${pct}%</div>
+    <div class="pil-kpi-val">${pct}%</div>
     <div class="pil-kpi-frac">${frac}</div>
-    <div class="pil-kpi-bar"><i style="width:${w}%;background:${col}"></i></div>
+    <div class="pil-kpi-bar"><i style="width:${w}%"></i></div>
   </div>`;
 }
 function pilStack(segs, total) {

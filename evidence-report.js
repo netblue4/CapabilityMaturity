@@ -33,15 +33,33 @@
     const a = db.assessments.find(x => x.id === document.getElementById('evidence-sel').value);
     if (!a) return;
     closeEvidenceModal();
-    const model = buildDoraObligations(a.doraRows || [], a.policyRows || [], a.riskPolicyFacts || []);
+    const policyRows = a.policyRows || [], facts = a.riskPolicyFacts || [];
+    const model = buildDoraObligations(a.doraRows || [], policyRows, facts);
     const meta  = { label: a.label, date: formatDate(a.date) };
-    // Per-document approval status (approved / partial / draft) for Control 1.
+    const norm  = s => (s == null ? '' : String(s)).toLowerCase().trim();
+
+    // Shared rollups so the evidence pages reconcile EXACTLY with the exec
+    // report and the pillar cards (same populations + counting units):
+    //   Control 1 → DORA obligations (buildDoraObligations)
+    //   Control 2 → every distinct policy statement (buildStatementCoverage)
+    //   Control 3 → every distinct backing control (buildBackingControlOps)
+    const cov  = buildStatementCoverage(policyRows, facts);
+    const bops = buildBackingControlOps(policyRows, facts);
+    const capPillar = buildCapPillarFromModel(model);
     const docStatus = {};
-    (buildGovernanceRows(a.policyRows || [], a.riskPolicyFacts || []) || [])
-      .forEach(r => { docStatus[r.capId + '||' + r.document] = r.status; });
-    const html = control === 1 ? evidenceControl1(model, meta, docStatus)
-               : control === 2 ? evidenceControl2(model, meta)
-               :                  evidenceControl3(model, meta);
+    (buildGovernanceRows(policyRows, facts) || []).forEach(r => { docStatus[r.capId + '||' + r.document] = r.status; });
+    // statement (capId||ref) → the DORA obligation ids it covers
+    const oblByStmt = {};
+    model.obligations.forEach(o => (o.mappedRefs || []).forEach(m => {
+      const k = m.capId + '||' + norm(m.ref);
+      (oblByStmt[k] = oblByStmt[k] || new Set()).add(o.obligationId);
+    }));
+    const stmtObls = (capId, ref) => [...(oblByStmt[capId + '||' + norm(ref)] || [])];
+
+    const ctx = { a, model, meta, cov, bops, capPillar, docStatus, oblByStmt, stmtObls, norm };
+    const html = control === 1 ? evidenceControl1(ctx)
+               : control === 2 ? evidenceControl2(ctx)
+               :                  evidenceControl3(ctx);
     document.getElementById('evidence-content').innerHTML = html;
     showView('evidence');
     window.scrollTo(0, 0);
@@ -91,25 +109,12 @@
   }
   const ctrlStatusCell = c => c.status === 'implemented' ? '<span class="ev-yes">Implemented</span>' : '<span class="ev-mid">Draft</span>';
 
-  // Deduped mapped statements across covered obligations (Control 2 & 3 unit),
-  // each carrying its backing controls and the obligation(s) it covers.
-  function collectStatements(model) {
-    const byKey = {};
-    model.obligations.forEach(o => {
-      o.mappedRefs.forEach(m => {
-        const k = m.capId + '||' + (m.ref || '').toLowerCase();
-        if (!byKey[k]) byKey[k] = Object.assign({}, m, { obligations: new Set() });
-        byKey[k].obligations.add(o.obligationId);
-      });
-    });
-    return Object.values(byKey)
-      .map(s => Object.assign({}, s, { obligations: [...s.obligations] }))
-      .sort((a, b) => (a.source || '').localeCompare(b.source) || a.ref.localeCompare(b.ref));
-  }
+  const srcLabel = t => isLocPolType(t) ? 'Local Policy' : isGrpStdType(t) ? 'Group Standard' : ((t || '').trim() || '');
 
   // ── Control 1 — Regulatory SOA completeness (flat, all columns) ──
-  function evidenceControl1(model, meta, docStatus) {
-    docStatus = docStatus || {};
+  // One row per obligation (× mapped statement). Matches exec Control 1.
+  function evidenceControl1(ctx) {
+    const { model, meta, docStatus } = ctx;
     const dkey = m => m.capId + '||' + ((m.document || '').trim() || '(no document)');
     const covered = model.coveredObligations, total = model.totalObligations;
     const stat = statPill(covered, total, 'objectives covered by either a policy or group standard statement', true)
@@ -153,78 +158,87 @@
       </table>`;
   }
 
-  // ── Control 2 — statements backed by a control ───────────────────
-  function evidenceControl2(model, meta) {
-    const stmts  = collectStatements(model);
-    const capPillar = buildCapPillarFromModel(model);
-    const backed = stmts.filter(s => s.controls.length).length;
-    const stat = statPill(backed, stmts.length, 'mapped statements backed by a control', true)
-      + `<span class="ev-note">Every DORA objective shown in Control 1 as covered is backed here by a policy or group-standard statement that at least one control cites. One row per statement × control.</span>`;
+  // ── Control 2 — every policy/GS statement, and whether it is operationalised ──
+  // One row PER STATEMENT (not per control), over the full statement population
+  // (buildStatementCoverage), so counts reconcile with the exec Control 2 card
+  // and the pillar cards. Filter Backed = Yes + Status = Implemented to get the
+  // operationalised statements a pillar card reports.
+  function evidenceControl2(ctx) {
+    const { meta, cov, capPillar, docStatus, stmtObls } = ctx;
+    const stmts = cov.statements.slice().sort((a, b) =>
+      capName(a.capId).localeCompare(capName(b.capId)) || (a.ref || '').localeCompare(b.ref || ''));
+    const total = cov.total, backed = cov.backed;
+    const isLive = s => s.backing === 'Built new' || s.backing === 'Reused pre-DORA';
+    const operationalised = stmts.filter(isLive).length;
+    const stat = statPill(backed, total, 'statements backed by a control', true)
+      + statPill(operationalised, total, 'operationalised (statement has a live control)', true)
+      + `<span class="ev-note">One row per policy / group-standard statement. <b>Backed by control</b> = at least one control cites it; <b>Status = Implemented</b> = at least one of those controls is live (this is "operationalised"), Draft = only draft controls. Filter Backed = Yes and Status = Implemented to match a pillar card's operationalised count.</span>`;
 
-    const rows = [];
-    stmts.forEach(s => {
-      const base = `
+    const dkey = s => s.capId + '||' + ((s.document || '').trim() || '(no document)');
+    const statusCell = s => isLive(s) ? '<span class="ev-yes">Implemented</span>' : s.hasControl ? '<span class="ev-mid">Draft</span>' : DASH;
+
+    const rows = stmts.map(s => {
+      const objs = stmtObls(s.capId, s.ref);
+      const ctrls = (s.controls || []).map(ctrlLabel).map(esc).join('; ');
+      return `<tr${s.hasControl ? '' : ' class="ev-row-gap"'}>
         <td class="pil-col">${pillarTag(doraPillarShortFor('', '', s.capId, capPillar))}</td>
         <td>${esc(capName(s.capId))}</td>
         <td>${esc(s.document)}</td>
+        <td>${docStatusCell(docStatus[dkey(s)])}</td>
         <td>${esc(s.source)}</td>
         <td class="ev-ref-c"><span class="ev-ref">${esc(s.ref)}</span></td>
-        <td>${esc(s.header)}</td>`;
-      const obls = `<td class="ev-obls">${s.obligations.map(esc).join(', ')}</td>`;
-      if (s.controls.length) {
-        s.controls.forEach(c => rows.push(`<tr>${base}<td>${YES}</td><td>${esc(ctrlLabel(c))}</td><td>${ctrlStatusCell(c)}</td>${obls}</tr>`));
-      } else {
-        rows.push(`<tr class="ev-row-gap">${base}<td>${NO}</td><td>${DASH}</td><td>${DASH}</td>${obls}</tr>`);
-      }
+        <td>${esc(s.header)}</td>
+        <td>${s.hasControl ? YES : NO}</td>
+        <td>${statusCell(s)}</td>
+        <td>${s.exception ? `<span class="ev-exc">${esc(s.exception)}</span>` : DASH}</td>
+        <td>${ctrls || DASH}</td>
+        <td class="ev-obls">${objs.length ? objs.map(esc).join(', ') : DASH}</td>
+      </tr>`;
     });
 
     return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → control', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Status</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
 
-  // ── Control 3 — controls operationalised (live/effective) + exceptions ──
-  function evidenceControl3(model, meta) {
-    const stmts = collectStatements(model);
-    const capPillar = buildCapPillarFromModel(model);
-    // Flatten to control-level rows for the implemented / effective tallies.
-    const ctrlRows = stmts.flatMap(s => s.controls);
-    const impl = ctrlRows.filter(c => c.status === 'implemented').length;
-    const eff  = ctrlRows.filter(c => c.effective).length;
-    const excs = stmts.filter(s => s.exception).length;
-    const stat = statPill(impl, ctrlRows.length, 'backing controls implemented / live', true)
+  // ── Control 3 — every backing control, its status & effectiveness ──
+  // One row PER DISTINCT CONTROL (buildBackingControlOps), so counts reconcile
+  // with the exec Control 3 card and the pillar cards. Filter Status = Implemented
+  // + Effectiveness = Effective to get the live-&-effective controls a card reports.
+  function evidenceControl3(ctx) {
+    const { meta, bops, capPillar, stmtObls } = ctx;
+    const ctrls = bops.controls.slice().sort((a, b) =>
+      capName(a.capId).localeCompare(capName(b.capId)) || (a.number || '').localeCompare(b.number || '') || (a.name || '').localeCompare(b.name || ''));
+    const total = bops.total;
+    const impl = ctrls.filter(c => c.implemented).length;
+    const eff  = ctrls.filter(c => c.liveEffective).length;
+    const stat = statPill(impl, total, 'backing controls implemented / live', true)
       + statPill(eff, impl, 'of live controls rated effective', true)
-      + `<span class="ev-pill ev-pill-plain"><b>${excs}</b> <span class="ev-pill-lbl">statements with an approved exception (E / WT / WP)</span></span>`
-      + `<span class="ev-note">Control effectiveness is verified through the business-as-usual risk-and-control assessment cycle; exceptions record obligations we consciously waive or defer, with an approval on file. One row per statement × control.</span>`;
+      + `<span class="ev-note">One row per distinct backing control. <b>Status = Implemented</b> = the control is live; <b>Effectiveness = Effective</b> = it passed its RCSA design + operating test. Filter Status = Implemented and Effectiveness = Effective to match a pillar card's effective count.</span>`;
 
-    const statusCell = c => c.status === 'implemented' ? '<span class="ev-yes">Live</span>' : '<span class="ev-mid">Draft</span>';
-    const effCell = c => c.status !== 'implemented' ? DASH : c.effective ? '<span class="ev-yes">Effective</span>' : '<span class="ev-mid">Not yet</span>';
-    const excCell = s => s.exception ? `<span class="ev-exc">${esc(s.exception)}</span>` : DASH;
+    const statusCell = c => c.implemented ? '<span class="ev-yes">Implemented</span>' : '<span class="ev-mid">Draft</span>';
+    const effCell = c => !c.implemented ? DASH : c.effective ? '<span class="ev-yes">Effective</span>' : '<span class="ev-mid">Not yet</span>';
 
-    const rows = [];
-    stmts.forEach(s => {
-      const base = `
-        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', s.capId, capPillar))}</td>
-        <td>${esc(capName(s.capId))}</td>
-        <td>${esc(s.document)}</td>
-        <td>${esc(s.source)}</td>
-        <td class="ev-ref-c"><span class="ev-ref">${esc(s.ref)}</span></td>
-        <td>${esc(s.header)}</td>`;
-      const obls = `<td class="ev-obls">${s.obligations.map(esc).join(', ')}</td>`;
-      if (s.controls.length) {
-        s.controls.forEach(c => rows.push(
-          `<tr>${base}<td>${YES}</td><td>${esc(ctrlLabel(c))}</td><td>${esc(c.provenance)}</td><td>${statusCell(c)}</td><td>${effCell(c)}</td><td>${excCell(s)}</td>${obls}</tr>`));
-      } else {
-        rows.push(
-          `<tr class="ev-row-gap">${base}<td>${NO}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${excCell(s)}</td>${obls}</tr>`);
-      }
+    const rows = ctrls.map(c => {
+      const objs = [...new Set((c.refs || []).flatMap(r => stmtObls(c.capId, r)))];
+      const refs = (c.refs || []).map(r => `<span class="ev-ref">${esc(r)}</span>`).join(' ');
+      return `<tr${c.implemented ? '' : ' class="ev-row-gap"'}>
+        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', c.capId, capPillar))}</td>
+        <td>${esc(capName(c.capId))}</td>
+        <td>${esc(ctrlLabel(c))}</td>
+        <td>${esc(c.provenance)}</td>
+        <td>${statusCell(c)}</td>
+        <td>${effCell(c)}</td>
+        <td class="ev-ref-c">${refs || DASH}</td>
+        <td class="ev-obls">${objs.length ? objs.map(esc).join(', ') : DASH}</td>
+      </tr>`;
     });
 
-    return pageHead('Control 3 · Control efficacy in treating risk', 'control → status + effectiveness + exception', meta, stat) + `
+    return pageHead('Control 3 · Control efficacy in treating risk', 'control → status + effectiveness', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Exception</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Statement ref(s)</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

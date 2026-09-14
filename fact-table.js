@@ -402,6 +402,99 @@ function buildPolicyOwnership(policyRows, facts) {
   return rows;
 }
 
+// ── DORA pillar summary (one bucket per pillar, for the exec forum cards) ──
+// Groups the assessment's DORA obligations into pillars (dora-pillars.js),
+// then rolls up coverage (Control 1), operationalisation (Control 2) and
+// control effectiveness (Control 3) plus the gaps that drive "next steps".
+function buildPillarSummary(assessment) {
+  const doraRows = assessment.doraRows || [], policyRows = assessment.policyRows || [], facts = assessment.riskPolicyFacts || [];
+  const pillars = (typeof DORA_PILLARS !== 'undefined') ? DORA_PILLARS : [];
+  const model = buildDoraObligations(doraRows, policyRows, facts);
+
+  const polByKey = {};
+  policyRows.forEach(pr => { polByKey[pr.capId + '||' + ftNorm(pr.statementRef)] = pr; });
+
+  const mkBucket = def => ({ ...def, hasData: false, oblTotal: 0, oblCovered: 0, uncovered: [], _stmt: {}, _ctrl: {}, capIds: new Set() });
+  const P = {};
+  pillars.forEach(def => { P[def.id] = mkBucket(def); });
+  const other = mkBucket({ id: 'other', chapter: '', name: 'Unmapped DORA articles', short: 'Unmapped', icon: '❔', inScope: true });
+
+  model.articles.forEach(a => a.obligations.forEach(o => {
+    const pid = (typeof doraPillarOf !== 'undefined') ? doraPillarOf(o.article, o.obligationId) : null;
+    const b = P[pid] || other;
+    b.hasData = true; b.oblTotal++;
+    if (o.covered) b.oblCovered++;
+    else b.uncovered.push({ id: o.obligationId, article: o.article, requirement: o.requirement });
+    (o.mappedRefs || []).forEach(m => {
+      if (m.capId) b.capIds.add(m.capId);
+      const sk = m.capId + '||' + ftNorm(m.ref);
+      if (!(sk in b._stmt)) {
+        const pr = polByKey[sk] || {};
+        const backed = m.backing !== 'Uncovered';
+        const live = m.backing === 'Built new' || m.backing === 'Reused pre-DORA';
+        b._stmt[sk] = { ref: m.ref, backed, live, disp: ftDisposition(pr.exception), approved: ftNorm(pr.status).includes('approv') };
+      }
+      (m.controls || []).forEach(c => {
+        if (c.status === 'closed') return;
+        const cid = ftNorm(c.number) + '|' + ftNorm(c.name);
+        if (!(cid in b._ctrl)) b._ctrl[cid] = { impl: c.status === 'implemented', eff: !!c.effective };
+      });
+    });
+  }));
+
+  // capId → pillar (first-seen), to attach risks to a pillar.
+  const capPillar = {};
+  Object.values(P).forEach(b => b.capIds.forEach(c => { if (!(c in capPillar)) capPillar[c] = b.id; }));
+  const risksByPillar = {};
+  buildRiskProfile(facts).forEach(k => {
+    const pid = capPillar[k.capId]; if (!pid) return;
+    const effPct = k.active ? 100 * k.effective / k.active : 0;
+    if ((k.residual || 0) >= 20 && effPct < 50) (risksByPillar[pid] = risksByPillar[pid] || []).push({ title: k.title, residual: k.residual });
+  });
+
+  const finalize = b => {
+    const stmts = Object.values(b._stmt), ctrls = Object.values(b._ctrl);
+    const sTotal = stmts.length;
+    const operationalised = stmts.filter(s => s.live).length;
+    const backed = stmts.filter(s => s.backed).length;
+    const approved = stmts.filter(s => s.approved).length;
+    const cImpl = ctrls.filter(c => c.impl).length, cEff = ctrls.filter(c => c.eff).length;
+    const gaps = {
+      uncovered:      b.uncovered,
+      draftStatements: stmts.filter(s => !s.approved).length,
+      toImplement:    stmts.filter(s => s.backed && !s.live).length,                          // backed by a draft control
+      toBuild:        stmts.filter(s => !s.backed && s.disp === 'UNKNOWN').length,             // no control, not waived/declared
+      invisibleWork:  stmts.filter(s => !s.backed && (s.disp === 'IMP' || s.disp === 'PART')).length,
+      notEffective:   ctrls.filter(c => c.impl && !c.eff).length,
+      dangerRisks:    risksByPillar[b.id] || [],
+    };
+    const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
+    const s = {
+      id: b.id, chapter: b.chapter, name: b.name, short: b.short, icon: b.icon,
+      inScope: b.inScope, outNote: b.outNote, hasData: b.hasData,
+      coverage: { covered: b.oblCovered, total: b.oblTotal, pct: pct(b.oblCovered, b.oblTotal) },
+      ops:      { operationalised, backed, total: sTotal, pct: pct(operationalised, sTotal) },
+      approval: { approved, total: sTotal },
+      controls: { effective: cEff, implemented: cImpl, total: ctrls.length, pct: pct(cEff, cImpl) },
+      gaps,
+    };
+    if (!b.inScope) s.rag = 'oos';
+    else if (!b.hasData) s.rag = 'none';
+    else {
+      const danger = gaps.dangerRisks.length > 0;
+      const noOps = s.ops.total > 0 && operationalised === 0;
+      if (danger || noOps || s.coverage.pct < 50) s.rag = 'red';
+      else if (s.coverage.covered === s.coverage.total && operationalised === s.ops.total && gaps.notEffective === 0) s.rag = 'green';
+      else s.rag = 'amber';
+    }
+    return s;
+  };
+
+  const out = pillars.map(def => finalize(P[def.id]));
+  if (other.hasData) out.push(finalize(other));
+  return out;
+}
+
 // ── Planning table — RTM → controls, flattened for export ─────────
 // One row per (policy statement × control that maps to it), repeating the
 // statement columns so it filters cleanly in Excel. Statements with no control

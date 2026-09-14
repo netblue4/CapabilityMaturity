@@ -1,0 +1,36 @@
+DisplayOrder,DORA_Chapter,DORA_Section,DORA_URL,DORA_Article_Index,DORA_Title,Article Applicable,RTS_Title,RTS_Chapter,RTS_Section,RTS_URL,RTS_Article_Index,RTS_Article_Title,RTS Applicable
+1.00,chapter II - ICT risk management,section I,,article 5,Governance and organisation,Y,,,,,,,
+2.00,chapter II - ICT risk management,section II,,article 6,ICT risk management framework,N,,,,,,RTS 27,Format and content,
+3.00,chapter II - ICT risk management,section II,,article 7,"ICT systems, protocols and tools",N,,,,,,,
+4.00,chapter II - ICT risk management,section II,,article 8,Identification,N,,,,,,,
+5.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 2,General elements of ICT security policies,
+7.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 4,ICT asset management policy,Y
+8.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 5,ICT asset management procedure,Y
+12.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 9,Capacity and performance management,Y
+13.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 10,Vulnerability and patch management procedure,Y
+18.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 15,ICT project management,Y
+19.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 16,"ICT systems acquisition, development, and maintenance procedure",Y
+20.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 17,ICT change management,Y
+21.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 18,Physical and environmental security,Y
+24.00,chapter II - ICT risk management,section II,,article 9,Protection and prevention,N,,,,,RTS 21,Access control,Y
+25.00,chapter II - ICT risk management,section II,,article 10,Detection,N,,,,,RTS 22,ICT-related incident management policy,Y
+26.00,chapter II - ICT risk management,section II,,article 10,Detection,N,,,,,RTS 23,Anomalous activities detection,Y
+27.00,chapter II - ICT risk management,section II,,article 11,Response and recovery,N,,,,,RTS 24,Components of the ICT business continuity,Y
+28.00,chapter II - ICT risk management,section II,,article 11,Response and recovery,N,,,,,RTS 25,Testing of the ICT business continuity plans,Y
+29.00,chapter II - ICT risk management,section II,,article 11,Response and recovery,N,,,,,RTS 26,ICT response and recovery plans,Y
+30.00,chapter II - ICT risk management,section II,,article 12,"Backup policies and procedures",Y,,,,,,,
+31.00,chapter II - ICT risk management,section II,,article 13,Learning and evolving,Y,,,,,,,
+32.00,chapter II - ICT risk management,section II,,article 14,Communication,Y,,,,,,,
+35.00,"chapter III - ICT-related incident management, classification and reporting",,,article 17,ICT-related incident management process,Y,,,,,,,
+36.00,"chapter III - ICT-related incident management, classification and reporting",,,article 18,Classification of ICT-related incidents,N,,,,,MIC 1,"Clients, financial counterparts and transactions",Y
+43.00,"chapter III - ICT-related incident management, classification and reporting",,,article 18,Classification of ICT-related incidents,N,,,,,MIC 8,Major incidents,Y
+49.00,"chapter III - ICT-related incident management, classification and reporting",,,article 19,Reporting of major ICT-related incidents,N,,,,,MIR 2,General information in major incident reports,Y
+59.00,chapter IV - Digital operational resilience testing,,,article 24,General requirements for resilience testing,N,,,,,,,
+60.00,chapter IV - Digital operational resilience testing,,,article 25,Testing of ICT tools and systems,N,,,,,,,
+61.00,chapter IV - Digital operational resilience testing,,,article 26,Advanced testing based on TLPT,N,,,,,,,
+62.00,chapter IV - Digital operational resilience testing,,,article 27,Requirements for testers,N,,,,,,,
+63.00,chapter V - Managing of ICT third-party risk,section I,,Article 28,General principles,Y,,,,,,,
+64.00,chapter V - Managing of ICT third-party risk,section I,,Article 29,Preliminary assessment of ICT concentration risk,Y,,,,,,,
+65.00,chapter V - Managing of ICT third-party risk,section I,,Article 30,Key contractual provisions,Y,,,,,,,
+66.00,chapter V - Managing of ICT third-party risk,section II,,Article 31,Designation of critical ICT third-party service providers,Y,,,,,,,
+80.00,chapter VI - Information-sharing arrangements,,,article 45,Information-sharing arrangements,N,,,,,,,

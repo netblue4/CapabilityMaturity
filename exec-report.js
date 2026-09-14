@@ -194,9 +194,11 @@ const PIL_RAG = {
   green: ['pil-rag-green', '● On track'],
   none:  ['pil-rag-none',  '○ No data yet'],
   oos:   ['pil-rag-oos',   '○ Out of scope'],
+  info:  ['pil-rag-none',  '○ Not a DORA pillar'],
 };
 function pilVerdict(p) {
   if (p.rag === 'oos') return p.outNote || 'Out of scope for us.';
+  if (p.rag === 'info') return 'Policy statements and controls not tied to an applicable DORA objective — shown so the pillar totals reconcile with the scorecard.';
   if (!p.hasData) return 'No DORA obligations mapped to this pillar yet.';
   if (p.rag === 'green') return 'Objectives covered, operationalised and effective.';
   if (p.rag === 'red') {
@@ -261,8 +263,11 @@ function renderExecPillar(p) {
   const cv = p.coverage, op = p.ops, ct = p.controls;
   const covUncov = cv.total - cv.covered;
   const opNone = op.total - op.backed;
+  const covKpi = cv.total === 0
+    ? `<div class="pil-kpi"><div class="pil-kpi-lbl">Coverage · Control 1</div><div class="pil-kpi-val" style="color:var(--text-muted)">—</div><div class="pil-kpi-frac">no DORA objectives</div><div class="pil-kpi-bar"><i style="width:0%"></i></div></div>`
+    : pilKpi('Coverage', 'Control 1', cv.pct, `${cv.covered} / ${cv.total} objectives covered`, cv.pct >= 100 ? 'green' : cv.pct >= 50 ? 'amber' : 'red');
   const kpis = `<div class="pil-kpis">
-    ${pilKpi('Coverage', 'Control 1', cv.pct, `${cv.covered} / ${cv.total} objectives covered`, cv.pct >= 100 ? 'green' : cv.pct >= 50 ? 'amber' : 'red')}
+    ${covKpi}
     ${pilKpi('Operationalised', 'Control 2', op.pct, `${op.operationalised} / ${op.total} statements with a live control`, op.pct >= 100 ? 'green' : op.pct > 0 ? 'amber' : 'red')}
     ${pilKpi('Effective', 'Control 3', ct.pct, `${ct.effective} / ${ct.implemented} controls effective`, ct.implemented === 0 ? 'red' : ct.pct >= 100 ? 'green' : ct.pct >= 50 ? 'amber' : 'red')}
   </div>`;
@@ -302,7 +307,7 @@ function renderExecPillar(p) {
 function renderExecPillars(currentA) {
   const pillars = buildPillarSummary(currentA);
   if (!pillars.length) return '';
-  const inScope = pillars.filter(p => p.inScope);
+  const inScope = pillars.filter(p => p.inScope && p.id !== 'other');
   const oos = pillars.filter(p => !p.inScope);
   const covd = inScope.reduce((s, p) => s + p.coverage.covered, 0), covt = inScope.reduce((s, p) => s + p.coverage.total, 0);
   const desc = `${inScope.length} pillar(s) in scope${oos.length ? ` · ${oos.length} out of scope` : ''} &middot; ${covd}/${covt} objectives covered overall. One card per pillar — coverage, operationalisation and effectiveness, with the actions to close each gap.`;

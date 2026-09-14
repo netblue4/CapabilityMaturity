@@ -25,7 +25,7 @@ function renderMeasureSummary(assessment) {
 
 // ── Table A: per-article coverage ──
 let _d1aRows = [], _d1aSort = { col: null, dir: 1 };
-const D1A_FIELD = { article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
+const D1A_FIELD = { pillar: r => doraPillarShortFor(r.article, '', null, null), article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
 function d1aSortRows() {
   if (!_d1aSort.col) return _d1aRows;
   const f = D1A_FIELD[_d1aSort.col] || D1A_FIELD.article, dir = _d1aSort.dir;
@@ -38,12 +38,13 @@ function d1aSortRows() {
 function d1aHead() {
   const arrow = c => _d1aSort.col === c ? `<span class="mrt-arrow">${_d1aSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortDora1Art('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'DORA article/RTS')}${th('capability', 'Capability')}${th('covered', 'Objectives covered')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('article', 'DORA article/RTS')}${th('capability', 'Capability')}${th('covered', 'Objectives covered')}</tr>`;
 }
 function d1aBody(rows) {
   return rows.map(r => {
     const full = r.covered === r.total;
     return `<tr>
+      <td class="pil-col">${pillarTag(doraPillarShortFor(r.article, '', null, null))}</td>
       <td class="dora-art-c">${escHtml(r.article)}</td>
       <td class="dora-cap-c">${escHtml(r.capability) || '<span class="src-zero">—</span>'}</td>
       <td class="dora-artcov-c">
@@ -62,7 +63,7 @@ function sortDora1Art(col) {
 
 // ── Table B: uncovered obligations (action list) ──
 let _d1uRows = [], _d1uSort = { col: null, dir: 1 };
-const D1U_FIELD = { article: r => r.article || '', capability: r => r.capability || '', obligation: r => r.obligationId || '', requirement: r => r.requirement || '' };
+const D1U_FIELD = { pillar: r => doraPillarShortFor(r.article, r.obligationId, null, null), article: r => r.article || '', capability: r => r.capability || '', obligation: r => r.obligationId || '', requirement: r => r.requirement || '' };
 function d1uSortRows() {
   if (!_d1uSort.col) return _d1uRows;
   const f = D1U_FIELD[_d1uSort.col] || D1U_FIELD.article, dir = _d1uSort.dir;
@@ -71,10 +72,11 @@ function d1uSortRows() {
 function d1uHead() {
   const arrow = c => _d1uSort.col === c ? `<span class="mrt-arrow">${_d1uSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label) => `<th class="mrt-sort" onclick="sortDora1Unc('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('article', 'Article/RTS')}${th('capability', 'Capability')}${th('obligation', 'Paragraph')}${th('requirement', 'Objective')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('article', 'Article/RTS')}${th('capability', 'Capability')}${th('obligation', 'Paragraph')}${th('requirement', 'Objective')}</tr>`;
 }
 function d1uBody(rows) {
   return rows.map(o => `<tr>
+    <td class="pil-col">${pillarTag(doraPillarShortFor(o.article, o.obligationId, null, null))}</td>
     <td class="dora-uncov-art">${escHtml(o.article)}</td>
     <td class="dora-uncov-cap">${escHtml(o.capability) || '—'}</td>
     <td class="dora-uncov-obl">${escHtml(o.obligationId)}</td>
@@ -218,6 +220,7 @@ let _srcRows = [];
 let _srcSort = { col: 'capName', dir: 1 };
 const SRC_STATUS_RANK = { approved: 0, partial: 1, draft: 2 };
 const SRC_FIELD = {
+  pillar:   r => r.pillarShort || '',
   capName:  r => r.capName || '',
   document: r => r.document || '',
   type:     r => r.type || '',
@@ -243,6 +246,7 @@ function srcHead() {
   const arrow = c => _srcSort.col === c ? `<span class="mrt-arrow">${_srcSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortSourcesTable('${k}')">${label}${arrow(k)}</th>`;
   return `<tr>
+    ${th('pillar', 'DORA Pillar')}
     ${th('capName', 'Capability')}
     ${th('document', 'Document')}
     ${th('type', 'Type')}
@@ -272,6 +276,7 @@ function srcBody(rows) {
     ? r.risks.map(k => `<div class="src-risk-item" title="${escHtml(k.title)}">${escHtml(k.title)}</div>`).join('')
     : '<span class="src-zero">—</span>';
   return rows.map(r => `<tr>
+    <td class="pil-col">${pillarTag(r.pillarShort)}</td>
     <td class="src-cap" title="${r.capName}">${shortName(r.capName)}</td>
     <td class="src-doc"><div class="src-doc-name" title="${escHtml(r.document)}">${r.document}</div></td>
     <td class="src-type">${r.type}</td>
@@ -384,6 +389,7 @@ function renderOwnershipCard(assessment) {
 let _c2gapRows = [], _c2gapSort = { col: null, dir: 1 };
 const EXC_RANK = { '': 0, WT: 1, E: 2, WP: 3 };
 const C2GAP_FIELD = {
+  pillar: r => r.pillarShort || '',
   capName: r => r.capName || '', document: r => r.document || '', source: r => r.source || '',
   ref: r => r.ref || '', header: r => r.header || '', owner: r => r.owner || '',
   exception: r => EXC_RANK[r.exception] ?? 0,
@@ -400,10 +406,11 @@ function c2gapSortRows() {
 function c2gapHead() {
   const arrow = c => _c2gapSort.col === c ? `<span class="mrt-arrow">${_c2gapSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label) => `<th class="mrt-sort" onclick="sortC2Gap('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('capName', 'Capability')}${th('document', 'Document')}${th('source', 'Source')}${th('ref', 'Statement ref')}${th('header', 'Statement header')}${th('owner', 'Owner')}${th('exception', 'Exception')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('capName', 'Capability')}${th('document', 'Document')}${th('source', 'Source')}${th('ref', 'Statement ref')}${th('header', 'Statement header')}${th('owner', 'Owner')}${th('exception', 'Exception')}</tr>`;
 }
 function c2gapBody(rows) {
   return rows.map(r => `<tr>
+    <td class="pil-col">${pillarTag(r.pillarShort)}</td>
     <td class="act-cap" title="${escHtml(r.capName)}">${escHtml(shortName(r.capName))}</td>
     <td>${escHtml(r.document)}</td>
     <td>${escHtml(r.source)}</td>
@@ -435,6 +442,9 @@ function renderSourcesCard(assessment) {
   const gap = cov.total - cov.backed;
   const desc = `<b>${cov.backed}</b> of <b>${cov.total}</b> policy &amp; group-standard statements backed by a control &middot; <b>${cov.backedPct}%</b> &middot; <b class="${gap ? 'dora-gap-num' : ''}">${gap}</b> with no control.`;
 
+  const capPillar = buildCapPillar(assessment.doraRows || [], assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  rows.forEach(r => { r.pillarShort = doraPillarShortFor('', '', r.capId, capPillar); });
+  cov.uncovered.forEach(r => { r.pillarShort = doraPillarShortFor('', '', r.capId, capPillar); });
   _srcRows = rows;
   _srcSort = { col: 'capName', dir: 1 };
   _c2gapRows = cov.uncovered;
@@ -457,7 +467,7 @@ function renderSourcesCard(assessment) {
       ${cmProgressBar(cov.backedPct)}
       <div class="rcsa-table-wrap">
         <table class="src-table">
-          <colgroup><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
+          <colgroup><col class="src-c-pillar"><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
           <thead id="src-thead">${srcHead()}</thead>
           <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
         </table>
@@ -814,8 +824,10 @@ function renderGovernanceCard(assessment) {
 // (Local Policy / Group Standards / pre-DORA).
 let _rrRows = [];
 let _rrSort = { col: null, dir: 1 };
+let _rrCapPillar = {};
 const RR_CONF_RANK = { na: 0, low: 1, med: 2, high: 3 };
 const RR_FIELD = {
+  pillar:      r => doraPillarShort(_rrCapPillar[r.capId]),
   capName:     r => r._capName || '',
   title:       r => r.title || '',
   residual:    r => r.residual || 0,
@@ -841,6 +853,7 @@ function rrHead() {
   const arrow = c => _rrSort.col === c ? `<span class="mrt-arrow">${_rrSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortRiskRegister('${k}')">${label}${arrow(k)}</th>`;
   return `<tr>
+    ${th('pillar', 'DORA Pillar')}
     ${th('capName', 'Capability')}
     ${th('title', 'Risk')}
     ${th('residual', 'Residual', 'rp-num')}
@@ -859,6 +872,7 @@ function rrBody(rows) {
     const cls = 'rp-row' + (k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : ''));
     const owner = (k.owner || '').trim();
     return `<tr class="${cls}">
+      <td class="pil-col">${pillarTag(doraPillarShort(_rrCapPillar[k.capId]))}</td>
       <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
       <td><div class="rp-title">${escHtml(k.title)}</div>${owner ? `<div class="rp-owner">Risk owner &middot; ${escHtml(owner)}</div>` : ''}</td>
       <td class="rp-num">${rpResCell(k)}</td>
@@ -885,6 +899,7 @@ function sortRiskRegister(col) {
 let _c3gapRows = [], _c3gapSort = { col: null, dir: 1 };
 const C3_STATUS_RANK = { draft: 0, implemented: 1 };
 const C3GAP_FIELD = {
+  pillar:     r => r.pillarShort || '',
   capName:    r => r.capName || '',
   control:    r => (r.number ? r.number + ' ' : '') + (r.name || ''),
   provenance: r => r.provenance || '',
@@ -903,13 +918,14 @@ function c3gapSortRows() {
 function c3gapHead() {
   const arrow = c => _c3gapSort.col === c ? `<span class="mrt-arrow">${_c3gapSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label) => `<th class="mrt-sort" onclick="sortC3Gap('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('capName', 'Capability')}${th('control', 'Control Number &amp; Name')}${th('provenance', 'Provenance')}${th('status', 'Status')}${th('effective', 'Effective')}<th>Statement ref(s)</th><th>Risk(s)</th></tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('capName', 'Capability')}${th('control', 'Control Number &amp; Name')}${th('provenance', 'Provenance')}${th('status', 'Status')}${th('effective', 'Effective')}<th>Statement ref(s)</th><th>Risk(s)</th></tr>`;
 }
 function c3gapBody(rows) {
   const ctrl = r => (r.number ? r.number + ' — ' : '') + r.name;
   const statusCell = r => r.status === 'implemented' ? '<span class="ev-yes">Live</span>' : '<span class="act-todo">Not live</span>';
   const effCell = r => r.status !== 'implemented' ? '<span class="src-zero">—</span>' : (r.effective ? '<span class="ev-yes">Effective</span>' : '<span class="act-todo">Not effective</span>');
   return rows.map(r => `<tr>
+    <td class="pil-col">${pillarTag(r.pillarShort)}</td>
     <td class="act-cap" title="${escHtml(r.capName)}">${escHtml(shortName(r.capName))}</td>
     <td>${escHtml(ctrl(r))}</td>
     <td>${escHtml(r.provenance)}</td>
@@ -945,6 +961,8 @@ function renderRiskRegisterCard(assessment) {
   const opsGap = ops.total - ops.liveEffective;
   const desc = `<b>${ops.liveEffective}</b> of <b>${ops.total}</b> backing controls live &amp; effective &middot; <b>${ops.pct}%</b> &middot; <b class="${opsGap ? 'dora-gap-num' : ''}">${opsGap}</b> to operationalise.`;
 
+  _rrCapPillar = buildCapPillar(assessment.doraRows || [], assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  ops.gap.forEach(r => { r.pillarShort = doraPillarShortFor('', '', r.capId, _rrCapPillar); });
   _rrRows = risks;
   _rrSort = { col: null, dir: 1 };
   _c3gapRows = ops.gap;

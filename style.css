@@ -2806,7 +2806,7 @@ details[open] .profile-card-chevron {
 .src-table { width: 100%; border-collapse: collapse; font-size: .82rem; table-layout: fixed; }
 .src-table > thead th { text-align: left; font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border); }
 .src-table th.src-rtm, .src-table th.src-status { text-align: center; }
-col.src-c-cap { width: 10%; } col.src-c-doc { width: 22%; } col.src-c-type { width: 8%; } col.src-c-track { width: 12%; } col.src-c-disp { width: 3.6%; } col.src-c-status { width: 9%; } col.src-c-risks { width: 17.4%; }
+col.src-c-pillar { width: 10%; } col.src-c-cap { width: 9%; } col.src-c-doc { width: 18%; } col.src-c-type { width: 7%; } col.src-c-track { width: 11%; } col.src-c-disp { width: 3.5%; } col.src-c-status { width: 8%; } col.src-c-risks { width: 16%; }
 .src-type { color: var(--text-muted); font-size: .78rem; }
 .src-table th.src-track-h, .src-table th.src-risks-h { text-align: left; }
 .src-track { vertical-align: middle; }
@@ -3152,7 +3152,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .pil-kpi-val { font-size: 1.35rem; font-weight: 800; line-height: 1; margin: .2rem 0 .22rem; }
 .pil-kpi-frac { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); }
 .pil-kpi-bar { height: 5px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; margin-top: .4rem; }
-.pil-kpi-bar i { display: block; height: 100%; border-radius: 20px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.pil-kpi-bar i { display: block; height: 100%; border-radius: 20px; background: color-mix(in srgb, var(--text) 42%, transparent); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 /* panels */
 .pil-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 .pil-panel { background: var(--bg); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 11px 12px; }
@@ -3177,6 +3177,15 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .pil-lens { flex-shrink: 0; font-family: var(--font-mono); font-size: .56rem; color: var(--text-muted); width: 52px; margin-top: .18rem; text-transform: uppercase; letter-spacing: .03em; }
 .pil-step-txt { flex: 1; }
 @media (max-width: 900px) { .pil-grid, .pil-kpis, .pil-panels { grid-template-columns: 1fr; } }
+/* Compact "DORA Pillar" cell tag used as the first column across the tables */
+.pil-tag { display: inline-block; font-size: .68rem; font-weight: 600; line-height: 1.2; padding: .14rem .5rem; border-radius: 7px; white-space: nowrap;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent); }
+.pil-tag-riskmanagement    { background: color-mix(in srgb, var(--accent) 13%, transparent);      color: var(--accent);      border-color: color-mix(in srgb, var(--accent) 34%, transparent); }
+.pil-tag-incidentmanagement{ background: color-mix(in srgb, var(--clr-danger) 13%, transparent);  color: var(--clr-danger);  border-color: color-mix(in srgb, var(--clr-danger) 34%, transparent); }
+.pil-tag-resiliencetesting { background: color-mix(in srgb, var(--text) 10%, transparent);        color: var(--text-muted);  border-color: var(--border); }
+.pil-tag-thirdpartyrisk    { background: color-mix(in srgb, var(--clr-warning) 14%, transparent); color: var(--clr-warning); border-color: color-mix(in srgb, var(--clr-warning) 36%, transparent); }
+.pil-tag-informationsharing{ background: color-mix(in srgb, var(--text) 10%, transparent);        color: var(--text-muted);  border-color: var(--border); }
+.pil-col { white-space: nowrap; }
 .exm-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .1rem 0 .7rem; }
 .exm-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); }
 .exm-leg i { width: 14px; height: 9px; border-radius: 3px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }

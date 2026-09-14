@@ -326,6 +326,7 @@ function renderExecPillars(currentA) {
 // only · uncovered). Reads buildDoraArticleCoverage. Sortable.
 let _exmRows = [], _exmSort = { col: null, dir: 1 };
 const EXM_FIELD = {
+  pillar:     r => doraPillarShortFor(r.article, '', null, null),
   article:    r => r.article || '',
   capability: r => r.capability || '',
   covered:    r => r.total ? r.covered / r.total : -1,
@@ -364,10 +365,11 @@ function exmHead() {
   const arrow = c => _exmSort.col === c ? `<span class="mrt-arrow">${_exmSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l) => `<th class="mrt-sort" onclick="sortExecMatrix('${k}')">${l}${arrow(k)}</th>`;
   const covLbl  = 'Coverage — <span class="exm-th-pol">policy</span> · <span class="exm-th-grp">group std</span> · <span class="exm-th-uncov">uncovered</span>';
-  return `<tr>${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', covLbl)}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('article', 'DORA Article/RTS')}${th('capability', 'Capability')}${th('covered', covLbl)}</tr>`;
 }
 function exmBody(rows) {
   return rows.map(a => `<tr>
+    <td class="pil-col">${pillarTag(doraPillarShortFor(a.article, '', null, null))}</td>
     <td class="exm-art">${escHtml(a.article)}</td>
     <td class="exm-cap">${escHtml(a.capability) || '<span class="src-zero">—</span>'}</td>
     <td>${exmStackBar(a)}</td>
@@ -430,6 +432,7 @@ function ex2AggBar(label, o, prevO) {
 let _ex2Data = { gs: [], pol: [] }, _ex2Sort = { gs: { col: null, dir: 1 }, pol: { col: null, dir: 1 } };
 const EX2_STATUS_RANK = { approved: 0, partial: 1, draft: 2 };
 const EX2_FIELD = {
+  pillar:         r => r.pillarShort || '',
   document:       r => r.document || '',
   capName:        r => r.capName || '',
   total:          r => r.total || 0,
@@ -448,7 +451,7 @@ function ex2SortRows(which) {
     return String(va).localeCompare(String(vb)) * dir || a.document.localeCompare(b.document);
   });
 }
-const EX2_COLGROUP = `<colgroup><col style="width:22%"><col style="width:16%"><col style="width:9%"><col style="width:12%"><col style="width:17%"><col style="width:12%"><col style="width:12%"></colgroup>`;
+const EX2_COLGROUP = `<colgroup><col style="width:13%"><col style="width:19%"><col style="width:13%"><col style="width:8%"><col style="width:11%"><col style="width:16%"><col style="width:10%"><col style="width:10%"></colgroup>`;
 function ex2StatusBadge(r) {
   const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
   const [cls, txt] = map[r.status] || map.draft;
@@ -458,12 +461,13 @@ function ex2Head(which) {
   const st = _ex2Sort[which];
   const arrow = c => st.col === c ? `<span class="mrt-arrow">${st.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExec2('${which}','${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('document', 'Document')}${th('capName', 'Capability')}${th('total', 'Statements', 'ex2-num-h')}${th('status', 'Document status')}${th('operationalised', 'Control backed statements', 'rp-num')}${th('ctrlDraft', 'Draft', 'rp-num')}${th('ctrlImpl', 'Implemented', 'rp-num')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('document', 'Document')}${th('capName', 'Capability')}${th('total', 'Statements', 'ex2-num-h')}${th('status', 'Document status')}${th('operationalised', 'Control backed statements', 'rp-num')}${th('ctrlDraft', 'Draft', 'rp-num')}${th('ctrlImpl', 'Implemented', 'rp-num')}</tr>`;
 }
 function ex2Body(rows) {
   return rows.map(d => {
     const totCtrl = d.ctrlDraft + d.ctrlImpl;   // a control is either draft or implemented
     return `<tr>
+    <td class="pil-col">${pillarTag(d.pillarShort)}</td>
     <td class="exm-art">${escHtml(d.document)}</td>
     <td class="exm-cap">${escHtml(d.capName)}</td>
     <td class="ex2-num">${d.total}</td>
@@ -510,7 +514,9 @@ function renderExecControl2(currentA, prevA) {
 
   const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a control (Draft or Implemented)(${ops.operationalisedPct.all}%).`;
 
-  _ex2Data = { gs: doc.groupStandard, pol: doc.policy };
+  const capPillar = buildCapPillar(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const withPillar = r => Object.assign({}, r, { pillarShort: doraPillarShortFor('', '', r.capId, capPillar) });
+  _ex2Data = { gs: doc.groupStandard.map(withPillar), pol: doc.policy.map(withPillar) };
   _ex2Sort = { gs: { col: null, dir: 1 }, pol: { col: null, dir: 1 } };
 
   return `<div class="card measure-card">
@@ -578,10 +584,11 @@ function execQuadrant(risks) {
   </div>`;
 }
 // ── Sortable risk-assurance table (with Zone column) ──
-let _ex3Rows = [], _ex3Sort = { col: null, dir: 1 };
+let _ex3Rows = [], _ex3Sort = { col: null, dir: 1 }, _ex3CapPillar = {};
 const EX3_CONF_RANK = { na: 0, low: 1, med: 2, high: 3 };
 const EX3_ZONE_RANK = { na: 0, green: 1, amber: 2, red: 3 };
 const EX3_FIELD = {
+  pillar: k => doraPillarShort(_ex3CapPillar[k.capId]),
   capName: k => k._capName || '', title: k => k.title || '', residual: k => k.residual || 0,
   implemented: k => k.active ? k.implemented / k.active : -1,
   tested: k => k.active ? k.tested / k.active : -1,
@@ -601,12 +608,13 @@ function ex3SortRows() {
 function ex3Head() {
   const arrow = c => _ex3Sort.col === c ? `<span class="mrt-arrow">${_ex3Sort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExec3('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('capName', 'Capability')}${th('title', 'Risk')}${th('residual', 'Residual', 'rp-num')}${th('implemented', 'Implemented', 'rp-num')}${th('tested', 'Tested', 'rp-num')}${th('effective', 'Effective', 'rp-num')}${th('conf', 'Confidence', 'rp-num')}${th('zone', 'Zone')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('capName', 'Capability')}${th('title', 'Risk')}${th('residual', 'Residual', 'rp-num')}${th('implemented', 'Implemented', 'rp-num')}${th('tested', 'Tested', 'rp-num')}${th('effective', 'Effective', 'rp-num')}${th('conf', 'Confidence', 'rp-num')}${th('zone', 'Zone')}</tr>`;
 }
 function ex3Body(rows) {
   return rows.map(k => {
     const z = ex3Zone(k);
     return `<tr class="rp-row${k.isAct ? ' rp-act' : (k.elevated ? ' rp-elev' : '')}">
+      <td class="pil-col">${pillarTag(doraPillarShort(_ex3CapPillar[k.capId]))}</td>
       <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
       <td><div class="rp-title">${escHtml(k.title)}</div></td>
       <td class="rp-num">${rpResCell(k)}</td>
@@ -636,6 +644,7 @@ function renderExecControl3(currentA, prevA) {
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
   const risks   = buildRiskProfile(facts);
   risks.forEach(k => { k._capName = capName(k.capId); });
+  _ex3CapPillar = buildCapPillar(currentA.doraRows || [], currentA.policyRows || [], facts);
   const ops     = buildBackingControlOps(currentA.policyRows || [], facts);
   const prevOps = prevA ? buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
   const head = desc => `<div class="measure-card-header">

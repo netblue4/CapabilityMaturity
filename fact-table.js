@@ -402,6 +402,38 @@ function buildPolicyOwnership(policyRows, facts) {
   return rows;
 }
 
+// ── DORA pillar helpers (for the "DORA Pillar" column across the tables) ──
+function doraPillarShort(pid) {
+  if (!pid) return '';
+  const p = (typeof DORA_PILLARS !== 'undefined' ? DORA_PILLARS : []).find(x => x.id === pid);
+  return p ? p.short : '';
+}
+function pillarTag(short) {
+  return short ? `<span class="pil-tag pil-tag-${short.replace(/[^a-z0-9]+/gi, '').toLowerCase()}">${escHtml(short)}</span>` : '<span class="src-zero">—</span>';
+}
+// capId → its majority pillar, from an already-built obligation model.
+function buildCapPillarFromModel(model) {
+  const votes = {};
+  (model.obligations || []).forEach(o => {
+    const pid = (typeof doraPillarOf !== 'undefined') ? doraPillarOf(o.article, o.obligationId) : null;
+    if (!pid) return;
+    (o.mappedRefs || []).forEach(m => { if (!m.capId) return; (votes[m.capId] = votes[m.capId] || {})[pid] = (votes[m.capId][pid] || 0) + 1; });
+  });
+  const out = {};
+  Object.entries(votes).forEach(([c, v]) => { out[c] = Object.entries(v).sort((x, y) => y[1] - x[1])[0][0]; });
+  return out;
+}
+function buildCapPillar(doraRows, policyRows, facts) {
+  return buildCapPillarFromModel(buildDoraObligations(doraRows || [], policyRows || [], facts || []));
+}
+// Resolve a row's pillar short-name from an article/obligation and/or capability.
+function doraPillarShortFor(article, obligationId, capId, capPillar) {
+  let pid = null;
+  if (article || obligationId) pid = (typeof doraPillarOf !== 'undefined') ? doraPillarOf(article || '', obligationId || '') : null;
+  if (!pid && capId && capPillar) pid = capPillar[capId];
+  return doraPillarShort(pid);
+}
+
 // ── DORA pillar summary (one bucket per pillar, for the exec forum cards) ──
 // Groups the assessment's DORA obligations into pillars (dora-pillars.js),
 // then rolls up coverage (Control 1), operationalisation (Control 2) and

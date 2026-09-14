@@ -106,9 +106,11 @@
 
     const rows = [];
     model.obligations.forEach(o => {
+      const pill = `<td class="pil-col">${pillarTag(doraPillarShortFor(o.article, o.obligationId, null, null))}</td>`;
       if (o.covered) {
         o.mappedRefs.forEach(m => rows.push(`
           <tr>
+            ${pill}
             <td>${esc(o.article)}</td>
             <td class="ev-obl">${esc(o.obligationId)}</td>
             <td class="ev-req">${esc(o.requirement)}</td>
@@ -122,6 +124,7 @@
       } else {
         rows.push(`
           <tr class="ev-row-gap">
+            ${pill}
             <td>${esc(o.article)}</td>
             <td class="ev-obl">${esc(o.obligationId)}</td>
             <td class="ev-req">${esc(o.requirement)}</td>
@@ -133,7 +136,7 @@
 
     return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
@@ -141,6 +144,7 @@
   // ── Control 2 — statements backed by a control ───────────────────
   function evidenceControl2(model, meta) {
     const stmts  = collectStatements(model);
+    const capPillar = buildCapPillarFromModel(model);
     const backed = stmts.filter(s => s.controls.length).length;
     const stat = statPill(backed, stmts.length, 'mapped statements backed by a control', true)
       + `<span class="ev-note">Every DORA objective shown in Control 1 as covered is backed here by a policy or group-standard statement that at least one control cites. One row per statement × control.</span>`;
@@ -148,6 +152,7 @@
     const rows = [];
     stmts.forEach(s => {
       const base = `
+        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', s.capId, capPillar))}</td>
         <td>${esc(capName(s.capId))}</td>
         <td>${esc(s.document)}</td>
         <td>${esc(s.source)}</td>
@@ -163,7 +168,7 @@
 
     return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → control', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
@@ -171,6 +176,7 @@
   // ── Control 3 — controls operationalised (live/effective) + exceptions ──
   function evidenceControl3(model, meta) {
     const stmts = collectStatements(model);
+    const capPillar = buildCapPillarFromModel(model);
     // Flatten to control-level rows for the implemented / effective tallies.
     const ctrlRows = stmts.flatMap(s => s.controls);
     const impl = ctrlRows.filter(c => c.status === 'implemented').length;
@@ -188,6 +194,7 @@
     const rows = [];
     stmts.forEach(s => {
       const base = `
+        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', s.capId, capPillar))}</td>
         <td>${esc(capName(s.capId))}</td>
         <td>${esc(s.document)}</td>
         <td>${esc(s.source)}</td>
@@ -205,7 +212,7 @@
 
     return pageHead('Control 3 · Control efficacy in treating risk', 'control → status + effectiveness + exception', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide">
-        <thead><tr><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Exception</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Exception</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

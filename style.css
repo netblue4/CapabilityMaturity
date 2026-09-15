@@ -3186,6 +3186,18 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .pil-tag-thirdpartyrisk    { background: color-mix(in srgb, var(--clr-warning) 14%, transparent); color: var(--clr-warning); border-color: color-mix(in srgb, var(--clr-warning) 36%, transparent); }
 .pil-tag-informationsharing{ background: color-mix(in srgb, var(--text) 10%, transparent);        color: var(--text-muted);  border-color: var(--border); }
 .pil-col { white-space: nowrap; }
+
+/* Full DORA → Control traceability export table */
+.trace-wrap { max-height: 560px; overflow: auto; }
+.trace-tbl { border-collapse: collapse; font-size: .78rem; white-space: nowrap; }
+.trace-tbl thead th { position: sticky; top: 0; z-index: 1; background: var(--bg2); text-align: left; font-family: var(--font-mono); font-size: .58rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--border); }
+.trace-tbl tbody td { padding: .4rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.trace-tbl tbody tr:hover td { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.trace-tbl .tr-c { text-align: center; }
+.trace-tbl .tr-req { white-space: normal; min-width: 220px; max-width: 340px; color: var(--text-muted); }
+.trace-tbl .tr-art { white-space: normal; min-width: 120px; }
+.trace-tbl .tr-obl { font-family: var(--font-mono); }
+.trace-tbl .tr-flag { color: var(--clr-success); font-weight: 700; }
 .exm-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .1rem 0 .7rem; }
 .exm-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); }
 .exm-leg i { width: 14px; height: 9px; border-radius: 3px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }

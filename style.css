@@ -3261,6 +3261,14 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ex3-axt  { fill: var(--text-muted); font-family: var(--font-mono); font-size: 9px; letter-spacing: .05em; }
 .ex3-dz   { fill: var(--clr-danger); font-family: var(--font-mono); font-size: 9px; opacity: .7; letter-spacing: .08em; }
 .ex3-quad-note { font-size: .7rem; color: var(--text-muted); margin-top: .3rem; }
+.ex3-legend { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-top: .5rem; }
+.ex3-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); }
+.ex3-leg b { color: var(--text); font-weight: 600; }
+.ex3-leg em { font-style: italic; }
+.ex3-leg i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.ex3-leg-green { background: var(--clr-success); }
+.ex3-leg-amber { background: var(--clr-warning); }
+.ex3-leg-red   { background: var(--clr-danger); }
 .ex3-zchip { font-family: var(--font-mono); font-size: .66rem; font-weight: 700; padding: .12rem .55rem; border-radius: 20px; white-space: nowrap; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .ex3-z-green { background: color-mix(in srgb, var(--clr-success) 20%, transparent); color: var(--clr-success); }
 .ex3-z-amber { background: color-mix(in srgb, var(--clr-warning) 22%, transparent); color: var(--clr-warning); }

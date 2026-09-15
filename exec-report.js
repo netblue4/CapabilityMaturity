@@ -579,9 +579,15 @@ function execQuadrant(risks) {
   const titles = `<text x="${((pL + pR) / 2).toFixed(0)}" y="${H - 2}" class="ex3-axt" text-anchor="middle">Residual risk →</text>` +
     `<text x="11" y="${((pT + pB) / 2).toFixed(0)}" class="ex3-axt" text-anchor="middle" transform="rotate(-90 11 ${((pT + pB) / 2).toFixed(0)})">Control effectiveness →</text>`;
   const dzLabel = `<text x="${pR - 6}" y="${pB - 6}" class="ex3-dz" text-anchor="end">DANGER ZONE</text>`;
+  const legend = `<div class="ex3-legend">
+    <span class="ex3-leg"><i class="ex3-leg-green"></i> <b>Controlled</b> — within appetite (effective controls, or low residual)</span>
+    <span class="ex3-leg"><i class="ex3-leg-amber"></i> <b>Watch</b> — high residual, or controls only partly effective</span>
+    <span class="ex3-leg"><i class="ex3-leg-red"></i> <b>Danger</b> — severe residual <em>and</em> controls under 50% effective</span>
+  </div>`;
   return `<div class="ex3-quad-wrap">
     <svg viewBox="0 0 ${W} ${H}" class="ex3-quad" preserveAspectRatio="xMidYMid meet">${zones}${grid}${axes}${bubbles}${xlabels}${ylabels}${titles}${dzLabel}</svg>
-    ${notAssessed ? `<div class="ex3-quad-note">${notAssessed} risk(s) not yet assessed (no residual) — excluded from the plot.</div>` : ''}
+    ${legend}
+    <div class="ex3-quad-note">Each dot is a risk, placed by residual severity (→) against how effective its controls are (↑).${notAssessed ? ` ${notAssessed} risk(s) not yet assessed (no residual) — excluded from the plot.` : ''}</div>
   </div>`;
 }
 // ── Sortable risk-assurance table (with Zone column) ──

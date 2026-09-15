@@ -553,7 +553,21 @@ function buildPillarSummary(assessment) {
 // controls with a single filter, so the totals reconcile with the cards.
 function buildTraceabilityRows(assessment) {
   const doraRows = assessment.doraRows || [], policyRows = assessment.policyRows || [], facts = assessment.riskPolicyFacts || [];
-  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const caps = CONFIG.capabilities || [];
+  const capName = id => caps.find(c => c.id === id)?.name || id;
+  // Resolve an obligation's free-text capability (from the DORA upload) to the
+  // app's canonical capability name, so an uncovered objective filters under the
+  // same Capability value as that capability's policy statements.
+  const normCap = s => (s || '').toLowerCase().replace(/\bict\b/g, '').replace(/\bmgmt\b/g, 'management').replace(/[^a-z0-9]+/g, ' ').trim();
+  const capByNorm = {}; caps.forEach(c => { capByNorm[normCap(c.name)] = c.name; });
+  const resolveCap = txt => {
+    if (!txt) return '';
+    const n = normCap(txt); if (capByNorm[n]) return capByNorm[n];
+    const w = new Set(n.split(' ').filter(x => x.length > 2));
+    let best = '', score = 0;
+    caps.forEach(c => { const s = normCap(c.name).split(' ').filter(x => x.length > 2).filter(x => w.has(x)).length; if (s > score) { score = s; best = c.name; } });
+    return score > 0 ? best : txt;
+  };
   const model = buildDoraObligations(doraRows, policyRows, facts);
   const cov   = buildStatementCoverage(policyRows, facts);
   const bops  = buildBackingControlOps(policyRows, facts);
@@ -586,7 +600,7 @@ function buildTraceabilityRows(assessment) {
       objectiveId:     oid,
       objective:       o ? o.requirement : '',
       covered:         o ? (o.covered ? 'Yes' : 'Uncovered') : '',
-      capability:      s ? capName(s.capId) : (o ? (o.capability || '') : ''),
+      capability:      s ? capName(s.capId) : (o ? resolveCap(o.capability) : ''),
       document:        s ? (s.document || '') : '',
       docStatus:       s ? docStatusOf(s.capId, s.document) : '',
       source:          s ? (s.source || '') : '',

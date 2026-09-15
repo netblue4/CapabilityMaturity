@@ -327,7 +327,7 @@ function renderExecPillars(currentA) {
 // only · uncovered). Reads buildDoraArticleCoverage. Sortable.
 let _exmRows = [], _exmSort = { col: null, dir: 1 };
 const EXM_FIELD = {
-  pillar:     r => doraPillarShortFor(r.article, '', null, null),
+  pillar:     r => doraPillarShortForCap(r.capability),
   article:    r => r.article || '',
   capability: r => r.capability || '',
   covered:    r => r.total ? r.covered / r.total : -1,
@@ -370,7 +370,7 @@ function exmHead() {
 }
 function exmBody(rows) {
   return rows.map(a => `<tr>
-    <td class="pil-col">${pillarTag(doraPillarShortFor(a.article, '', null, null))}</td>
+    <td class="pil-col">${pillarTag(doraPillarShortForCap(a.capability))}</td>
     <td class="exm-art">${escHtml(a.article)}</td>
     <td class="exm-cap">${escHtml(a.capability) || '<span class="src-zero">—</span>'}</td>
     <td>${exmStackBar(a)}</td>

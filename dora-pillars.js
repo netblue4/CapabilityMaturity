@@ -1,15 +1,16 @@
-// ── DORA pillar reference + obligation→pillar resolver ────────────────
-// Derived from the firm's DORA article/RTS applicability mapping (the
-// DORA_Chapter column is the pillar; the two "applicable" flags mark scope).
-// Kept as bundled reference data so the pillar cards work from the existing
-// Policy / DORA / Risk uploads with no extra import.
+// ── DORA pillar reference + capability→pillar resolver ────────────────
+// The AUTHORITATIVE pillar rule is by OWNING CAPABILITY (see
+// doraPillarForCapabilityName at the bottom): everything the app groups into a
+// pillar — the pillar cards, every table's DORA Pillar column and the full
+// traceability table — uses that one rule, so their numbers reconcile exactly.
+//   · capability name contains "incident"    → Incident Management (Ch III)
+//   · capability name contains "third party" → Third-Party Risk (Ch V)
+//   · everything else                         → ICT Risk Management (Ch II)
+// No capability maps to Resilience Testing or Information-Sharing, so those
+// pillars stay out of scope.
 //
-// Mapping rules (per the applicability CSV):
-//   · Every RTS (RTS 2–27) sits under Chapter II — ICT risk management.
-//   · MIC / MIR technical standards sit under Chapter III — incident mgmt.
-//   · Articles map to their chapter by number range.
-//   · Chapters IV (testing) and VI (information-sharing) have no applicable
-//     article/RTS for us → rendered as out-of-scope.
+// The article/RTS resolver below (doraPillarOf) is retained for reference only
+// and is no longer used to assign pillars.
 const DORA_PILLARS = [
   { id: 'riskmgmt',    chapter: 'II',  name: 'ICT Risk Management',                                   short: 'Risk Management',    icon: '🛡️', inScope: true },
   { id: 'incident',    chapter: 'III', name: 'ICT Incident Management, Classification & Reporting',    short: 'Incident Management', icon: '🚨', inScope: true },
@@ -39,8 +40,25 @@ function doraPillarOf(articleText, obligationId) {
   return null;
 }
 
+// ── Capability → pillar (the authoritative mapping) ──────────────────
+// The forum groups everything by the OWNING CAPABILITY, not the DORA article:
+//   · capability name contains "incident"     → Incident Management (Ch III)
+//   · capability name contains "third party"  → Third-Party Risk (Ch V)
+//   · everything else                          → ICT Risk Management (Ch II)
+// (No capability maps to Resilience Testing or Information-Sharing, so those
+// pillars stay out of scope.) This is the single source of truth for the
+// pillar cards, every table's DORA Pillar column, and the traceability table,
+// so their numbers reconcile exactly.
+function doraPillarForCapabilityName(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('incident')) return 'incident';
+  if (n.replace(/[^a-z]/g, '').includes('thirdparty')) return 'thirdparty';
+  return 'riskmgmt';
+}
+
 if (typeof window !== 'undefined') {
   window.DORA_PILLARS = DORA_PILLARS;
   window.doraPillarForArticle = doraPillarForArticle;
   window.doraPillarOf = doraPillarOf;
+  window.doraPillarForCapabilityName = doraPillarForCapabilityName;
 }

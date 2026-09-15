@@ -541,6 +541,102 @@ function buildPillarSummary(assessment) {
   return out;
 }
 
+// ── Full DORA → Control traceability (one flat, Excel-filterable table) ──
+// Merges Control 1/2/3 into one spine: one row per obligation × statement ×
+// control, LEFT-JOINED so gaps still show —
+//   · uncovered objective     → objective filled, statement/control blank
+//   · statement with no control→ control columns blank
+//   · unmapped statement       → objective columns blank (a statement tied to
+//                                 no DORA objective; included so a document
+//                                 filter shows ALL its statements)
+// Three "first row" flags let Excel count distinct objectives / statements /
+// controls with a single filter, so the totals reconcile with the cards.
+function buildTraceabilityRows(assessment) {
+  const doraRows = assessment.doraRows || [], policyRows = assessment.policyRows || [], facts = assessment.riskPolicyFacts || [];
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const model = buildDoraObligations(doraRows, policyRows, facts);
+  const cov   = buildStatementCoverage(policyRows, facts);
+  const bops  = buildBackingControlOps(policyRows, facts);
+  const capPillar = buildCapPillarFromModel(model);
+
+  const docStatus = {};
+  (buildGovernanceRows(policyRows, facts) || []).forEach(r => { docStatus[r.capId + '||' + r.document] = r.status; });
+  const docStatusOf = (capId, doc) => docStatus[capId + '||' + ((doc || '').trim() || '(no document)')] || '';
+
+  const polByKey = {};
+  policyRows.forEach(pr => { const k = pr.capId + '||' + ftNorm(pr.statementRef); if (!(k in polByKey)) polByKey[k] = pr; });
+  const DISP = { IMP: 'Implemented', PART: 'Part-implemented', UNKNOWN: 'Unknown', E: 'E — Exemption', WT: 'WT — Waiver (temp)', WP: 'WP — Waiver (perm)' };
+  const dispOf = (capId, ref) => { const pr = polByKey[capId + '||' + ftNorm(ref)]; return pr ? (DISP[ftDisposition(pr.exception)] || '') : ''; };
+
+  // Authoritative per-control status/effectiveness/provenance (matches Control 3).
+  const ctrlIdx = {};
+  bops.controls.forEach(c => { ctrlIdx[c.capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name)] = c; });
+  const ctrlInfo = (capId, c) => ctrlIdx[capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name)]
+    || { implemented: c.status === 'implemented', effective: !!c.effective, provenance: c.provenance || '' };
+
+  const rows = [];
+  const pushRow = (o, s, c) => {
+    const capId = s ? s.capId : null;
+    const article = o ? o.article : '';
+    const oid = o ? o.obligationId : '';
+    const ci = (c && capId != null) ? ctrlInfo(capId, c) : null;
+    rows.push({
+      pillar:          doraPillarShortFor(article, oid, capId, capPillar),
+      article,
+      objectiveId:     oid,
+      objective:       o ? o.requirement : '',
+      covered:         o ? (o.covered ? 'Yes' : 'Uncovered') : '',
+      capability:      s ? capName(s.capId) : (o ? (o.capability || '') : ''),
+      document:        s ? (s.document || '') : '',
+      docStatus:       s ? docStatusOf(s.capId, s.document) : '',
+      source:          s ? (s.source || '') : '',
+      statementRef:    s ? (s.ref || '') : '',
+      statementHeader: s ? (s.header || '') : '',
+      disposition:     s ? dispOf(s.capId, s.ref) : '',
+      backed:          s ? (s.hasCtrl ? 'Yes' : 'No') : '',
+      control:         c ? ((c.number ? c.number + ' — ' : '') + c.name) : '',
+      provenance:      ci ? ci.provenance : '',
+      controlStatus:   ci ? (ci.implemented ? 'Implemented' : 'Draft') : '',
+      effectiveness:   ci ? (ci.implemented ? (ci.effective ? 'Effective' : 'Not yet') : '—') : '',
+      _oKey: oid,
+      _sKey: capId != null ? capId + '||' + ftNorm(s.ref) : '',
+      _cKey: (c && capId != null) ? capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name) : '',
+    });
+  };
+
+  const mkStmt = x => ({ capId: x.capId, ref: x.ref, header: x.header, document: x.document, source: x.source, controls: x.controls || [], hasCtrl: (x.controls || []).length > 0 });
+  const mappedKeys = new Set();
+  model.obligations.forEach(o => (o.mappedRefs || []).forEach(m => mappedKeys.add(m.capId + '||' + ftNorm(m.ref))));
+
+  // 1) The DORA spine: obligation → statement → control (and the gap rows).
+  model.obligations.forEach(o => {
+    if (!o.covered) { pushRow(o, null, null); return; }
+    (o.mappedRefs || []).forEach(m => {
+      const st = mkStmt(m);
+      if (st.controls.length) st.controls.forEach(c => pushRow(o, st, c));
+      else pushRow(o, st, null);
+    });
+  });
+  // 2) Left-over statements not tied to any DORA objective (so a document
+  //    filter shows every statement it holds, covered or not).
+  cov.statements.forEach(s => {
+    if (mappedKeys.has(s.capId + '||' + ftNorm(s.ref))) return;
+    const st = mkStmt(s); st.hasCtrl = s.hasControl;
+    if (st.controls.length) st.controls.forEach(c => pushRow(null, st, c));
+    else pushRow(null, st, null);
+  });
+
+  // First-row-of flags for one-filter distinct counts.
+  const seenO = new Set(), seenS = new Set(), seenC = new Set();
+  rows.forEach(r => {
+    r.firstObj  = r._oKey && !seenO.has(r._oKey) ? 'Yes' : ''; if (r._oKey) seenO.add(r._oKey);
+    r.firstStmt = r._sKey && !seenS.has(r._sKey) ? 'Yes' : ''; if (r._sKey) seenS.add(r._sKey);
+    r.firstCtrl = r._cKey && !seenC.has(r._cKey) ? 'Yes' : ''; if (r._cKey) seenC.add(r._cKey);
+  });
+
+  return { rows, totals: { rows: rows.length, objectives: seenO.size, statements: seenS.size, controls: seenC.size, covered: model.coveredObligations, obligations: model.totalObligations } };
+}
+
 // ── Planning table — RTM → controls, flattened for export ─────────
 // One row per (policy statement × control that maps to it), repeating the
 // statement columns so it filters cleanly in Excel. Statements with no control

@@ -11,6 +11,8 @@ function renderMeasureSummary(assessment) {
   if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
   const ownSlot = document.getElementById("ownership-card-row");
   if (ownSlot) ownSlot.innerHTML = renderOwnershipCard(assessment);
+  const traceSlot = document.getElementById("trace-card-row");
+  if (traceSlot) traceSlot.innerHTML = renderTraceabilityCard(assessment);
   const planSlot = document.getElementById("planning-card-row");
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }
@@ -380,6 +382,80 @@ function renderOwnershipCard(assessment) {
           <colgroup><col class="own-c-cap"><col class="own-c-doc"><col class="own-c-owner"><col class="own-c-num"><col class="own-c-bar"></colgroup>
           <thead id="own-thead">${ownHead()}</thead>
           <tbody id="own-tbody">${ownBody(ownSortRows())}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Full DORA → Control traceability (one flat, Excel-filterable table) ──
+function copyTraceTable(btn) {
+  const table = btn.closest('.card').querySelector('table.trace-tbl');
+  if (!table) return;
+  const tsv = [...table.querySelectorAll('tr')].map(tr =>
+    [...tr.querySelectorAll('th,td')].map(c => (c.innerText || '').trim().replace(/\s+/g, ' ')).join('\t')
+  ).join('\n');
+  navigator.clipboard.writeText(tsv).then(() => {
+    const o = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = o; }, 1500);
+  }).catch(() => { btn.textContent = 'Copy failed'; });
+}
+function renderTraceabilityCard(assessment) {
+  const t = buildTraceabilityRows(assessment);
+  const title = 'DORA &rarr; Control traceability (full export)';
+  const header = desc => `
+    <div class="measure-card-header">
+      <span class="measure-icon">🧬</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+      ${t.rows.length ? '<button class="btn btn-outline" onclick="copyTraceTable(this)">⧉ Copy for Excel</button>' : ''}
+    </div>`;
+  if (!t.rows.length) {
+    return `<div class="card measure-card">${header('One row per DORA objective &times; statement &times; control — the full traceability spine. Import DORA, policy and risk data to populate.')}<p class="policy-no-data" style="margin:.5rem 0">No data yet.</p></div>`;
+  }
+  const T = t.totals;
+  const desc = `${T.rows} rows &middot; <b>${T.objectives}</b> objectives (${T.covered} covered) &middot; <b>${T.statements}</b> statements &middot; <b>${T.controls}</b> controls. One row per objective &times; statement &times; control (left-joined — gaps and unmapped statements show as blank cells). Copy to Excel and filter; the ⚑ First-row flags let you count distinct objectives / statements / controls with one filter.`;
+
+  const yn = v => v === 'Yes' ? '<span class="ev-yes">Yes</span>' : (v === 'No' || v === 'Uncovered') ? `<span class="ev-no">${v}</span>` : (v || '');
+  const docBadge = st => { const m = { approved: ['gov-approved', 'Approved'], partial: ['gov-partial', 'Partial'], draft: ['gov-draft', 'Draft'] }; const g = m[st]; return g ? `<span class="gov-badge ${g[0]}">${g[1]}</span>` : ''; };
+  const stCell = v => v === 'Implemented' ? '<span class="ev-yes">Implemented</span>' : v === 'Draft' ? '<span class="ev-mid">Draft</span>' : (v || '');
+  const effCell = v => v === 'Effective' ? '<span class="ev-yes">Effective</span>' : v === 'Not yet' ? '<span class="ev-mid">Not yet</span>' : (v || '');
+  const flag = v => v === 'Yes' ? '<span class="tr-flag">✓</span>' : '';
+
+  const body = t.rows.map(r => `<tr>
+    <td>${pillarTag(r.pillar)}</td>
+    <td class="tr-art">${escHtml(r.article)}</td>
+    <td class="tr-obl">${escHtml(r.objectiveId)}</td>
+    <td class="tr-req">${escHtml(r.objective)}</td>
+    <td class="tr-c">${yn(r.covered)}</td>
+    <td>${escHtml(r.capability)}</td>
+    <td>${escHtml(r.document)}</td>
+    <td class="tr-c">${docBadge(r.docStatus)}</td>
+    <td>${escHtml(r.source)}</td>
+    <td class="tr-ref"><span class="dora-ref">${escHtml(r.statementRef)}</span></td>
+    <td>${escHtml(r.statementHeader)}</td>
+    <td>${escHtml(r.disposition)}</td>
+    <td class="tr-c">${yn(r.backed)}</td>
+    <td>${escHtml(r.control)}</td>
+    <td>${escHtml(r.provenance)}</td>
+    <td class="tr-c">${stCell(r.controlStatus)}</td>
+    <td class="tr-c">${effCell(r.effectiveness)}</td>
+    <td class="tr-c">${flag(r.firstObj)}</td>
+    <td class="tr-c">${flag(r.firstStmt)}</td>
+    <td class="tr-c">${flag(r.firstCtrl)}</td>
+  </tr>`).join('');
+
+  const th = `<tr>
+    <th>DORA Pillar</th><th>Article/RTS</th><th>Objective</th><th>Objective text</th><th class="tr-c">Objective covered</th>
+    <th>Capability</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Disposition</th><th class="tr-c">Backed by control</th>
+    <th>Control No. &amp; Name</th><th>Provenance</th><th class="tr-c">Control status</th><th class="tr-c">Effectiveness</th>
+    <th class="tr-c" title="First row for this objective">⚑ First obj</th><th class="tr-c" title="First row for this statement">⚑ First stmt</th><th class="tr-c" title="First row for this control">⚑ First ctrl</th>
+  </tr>`;
+
+  return `
+    <div class="card measure-card">
+      ${header(desc)}
+      <div class="rcsa-table-wrap trace-wrap">
+        <table class="trace-tbl">
+          <thead>${th}</thead>
+          <tbody>${body}</tbody>
         </table>
       </div>
     </div>`;

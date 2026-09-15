@@ -27,7 +27,7 @@ function renderMeasureSummary(assessment) {
 
 // ── Table A: per-article coverage ──
 let _d1aRows = [], _d1aSort = { col: null, dir: 1 };
-const D1A_FIELD = { pillar: r => doraPillarShortFor(r.article, '', null, null), article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
+const D1A_FIELD = { pillar: r => doraPillarShortForCap(r.capability), article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
 function d1aSortRows() {
   if (!_d1aSort.col) return _d1aRows;
   const f = D1A_FIELD[_d1aSort.col] || D1A_FIELD.article, dir = _d1aSort.dir;
@@ -46,7 +46,7 @@ function d1aBody(rows) {
   return rows.map(r => {
     const full = r.covered === r.total;
     return `<tr>
-      <td class="pil-col">${pillarTag(doraPillarShortFor(r.article, '', null, null))}</td>
+      <td class="pil-col">${pillarTag(doraPillarShortForCap(r.capability))}</td>
       <td class="dora-art-c">${escHtml(r.article)}</td>
       <td class="dora-cap-c">${escHtml(r.capability) || '<span class="src-zero">—</span>'}</td>
       <td class="dora-artcov-c">
@@ -65,7 +65,7 @@ function sortDora1Art(col) {
 
 // ── Table B: uncovered obligations (action list) ──
 let _d1uRows = [], _d1uSort = { col: null, dir: 1 };
-const D1U_FIELD = { pillar: r => doraPillarShortFor(r.article, r.obligationId, null, null), article: r => r.article || '', capability: r => r.capability || '', obligation: r => r.obligationId || '', requirement: r => r.requirement || '' };
+const D1U_FIELD = { pillar: r => doraPillarShortForCap(r.capability), article: r => r.article || '', capability: r => r.capability || '', obligation: r => r.obligationId || '', requirement: r => r.requirement || '' };
 function d1uSortRows() {
   if (!_d1uSort.col) return _d1uRows;
   const f = D1U_FIELD[_d1uSort.col] || D1U_FIELD.article, dir = _d1uSort.dir;
@@ -78,7 +78,7 @@ function d1uHead() {
 }
 function d1uBody(rows) {
   return rows.map(o => `<tr>
-    <td class="pil-col">${pillarTag(doraPillarShortFor(o.article, o.obligationId, null, null))}</td>
+    <td class="pil-col">${pillarTag(doraPillarShortForCap(o.capability))}</td>
     <td class="dora-uncov-art">${escHtml(o.article)}</td>
     <td class="dora-uncov-cap">${escHtml(o.capability) || '—'}</td>
     <td class="dora-uncov-obl">${escHtml(o.obligationId)}</td>

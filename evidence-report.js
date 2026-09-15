@@ -122,11 +122,10 @@
 
     const rows = [];
     model.obligations.forEach(o => {
-      const pill = `<td class="pil-col">${pillarTag(doraPillarShortFor(o.article, o.obligationId, null, null))}</td>`;
       if (o.covered) {
         o.mappedRefs.forEach(m => rows.push(`
           <tr>
-            ${pill}
+            <td class="pil-col">${pillarTag(doraPillarShortForCap(capName(m.capId)))}</td>
             <td>${esc(o.article)}</td>
             <td class="ev-obl">${esc(o.obligationId)}</td>
             <td class="ev-req">${esc(o.requirement)}</td>
@@ -141,12 +140,13 @@
       } else {
         rows.push(`
           <tr class="ev-row-gap">
-            ${pill}
+            <td class="pil-col">${pillarTag(doraPillarShortForCap(o.capability))}</td>
             <td>${esc(o.article)}</td>
             <td class="ev-obl">${esc(o.obligationId)}</td>
             <td class="ev-req">${esc(o.requirement)}</td>
             <td><span class="ev-no">Uncovered</span></td>
-            <td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td>
+            <td>${esc(o.capability) || DASH}</td>
+            <td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td>
           </tr>`);
       }
     });

@@ -411,27 +411,20 @@ function doraPillarShort(pid) {
 function pillarTag(short) {
   return short ? `<span class="pil-tag pil-tag-${short.replace(/[^a-z0-9]+/gi, '').toLowerCase()}">${escHtml(short)}</span>` : '<span class="src-zero">—</span>';
 }
-// capId → its majority pillar, from an already-built obligation model.
-function buildCapPillarFromModel(model) {
-  const votes = {};
-  (model.obligations || []).forEach(o => {
-    const pid = (typeof doraPillarOf !== 'undefined') ? doraPillarOf(o.article, o.obligationId) : null;
-    if (!pid) return;
-    (o.mappedRefs || []).forEach(m => { if (!m.capId) return; (votes[m.capId] = votes[m.capId] || {})[pid] = (votes[m.capId][pid] || 0) + 1; });
-  });
+// capId → pillar id, derived from the capability NAME (the authoritative rule).
+function buildCapPillar() {
   const out = {};
-  Object.entries(votes).forEach(([c, v]) => { out[c] = Object.entries(v).sort((x, y) => y[1] - x[1])[0][0]; });
+  (CONFIG.capabilities || []).forEach(c => { out[c.id] = doraPillarForCapabilityName(c.name); });
   return out;
 }
-function buildCapPillar(doraRows, policyRows, facts) {
-  return buildCapPillarFromModel(buildDoraObligations(doraRows || [], policyRows || [], facts || []));
-}
-// Resolve a row's pillar short-name from an article/obligation and/or capability.
+function buildCapPillarFromModel() { return buildCapPillar(); }
+// Pillar short-name for a capability name (the one rule used everywhere).
+function doraPillarShortForCap(name) { return doraPillarShort(doraPillarForCapabilityName(name)); }
+// Row helper: prefer the capability (capId → capPillar), else a capability name
+// string passed as `article` (kept for call-site compatibility).
 function doraPillarShortFor(article, obligationId, capId, capPillar) {
-  let pid = null;
-  if (article || obligationId) pid = (typeof doraPillarOf !== 'undefined') ? doraPillarOf(article || '', obligationId || '') : null;
-  if (!pid && capId && capPillar) pid = capPillar[capId];
-  return doraPillarShort(pid);
+  if (capId && capPillar && capPillar[capId]) return doraPillarShort(capPillar[capId]);
+  return doraPillarShortForCap(article || '');
 }
 
 // ── DORA pillar summary (one bucket per pillar, for the exec forum cards) ──
@@ -451,25 +444,22 @@ function buildPillarSummary(assessment) {
   pillars.forEach(def => { P[def.id] = mkBucket(def); });
   const other = mkBucket({ id: 'other', chapter: '', name: 'Not tied to a DORA pillar', short: 'Unmapped', icon: '❔', inScope: true, outNote: '' });
 
-  // ── Coverage (Control 1): obligations grouped by article → pillar. ──
-  // Also tally, per capability, which pillar its obligations fall under, so
-  // every statement/control can be partitioned to exactly one pillar below.
-  const capVotes = {};
+  // Pillar comes from the OWNING CAPABILITY (dora-pillars.js): capId → pillar.
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const capPillar = buildCapPillar();                                   // capId → pillar id
+  const pillarOf = capId => P[capPillar[capId]] || other;
+
+  // ── Coverage (Control 1): obligations grouped by their capability → pillar. ──
   model.articles.forEach(a => a.obligations.forEach(o => {
-    const pid = (typeof doraPillarOf !== 'undefined') ? doraPillarOf(o.article, o.obligationId) : null;
+    // covered → the covering statement's capability; uncovered → the obligation's
+    // (DORA-upload) capability, resolved by the same name rule.
+    const capId = o.covered && (o.mappedRefs || []).length ? o.mappedRefs[0].capId : null;
+    const pid = capId != null ? capPillar[capId] : doraPillarForCapabilityName(o.capability);
     const b = P[pid] || other;
     b.hasData = true; b.oblTotal++;
     if (o.covered) b.oblCovered++;
     else b.uncovered.push({ id: o.obligationId, article: o.article, requirement: o.requirement });
-    if (pid) (o.mappedRefs || []).forEach(m => {
-      if (!m.capId) return;
-      (capVotes[m.capId] = capVotes[m.capId] || {})[pid] = (capVotes[m.capId][pid] || 0) + 1;
-    });
   }));
-  // capId → its majority pillar (the pillar most of its obligations sit in).
-  const capPillar = {};
-  Object.entries(capVotes).forEach(([c, v]) => { capPillar[c] = Object.entries(v).sort((x, y) => y[1] - x[1])[0][0]; });
-  const pillarOf = capId => P[capPillar[capId]] || other;
 
   // ── Operationalisation (Control 2): partition EVERY distinct statement by
   // its capability's pillar, so the pillar totals sum to the hero card. ──
@@ -594,13 +584,14 @@ function buildTraceabilityRows(assessment) {
     const article = o ? o.article : '';
     const oid = o ? o.obligationId : '';
     const ci = (c && capId != null) ? ctrlInfo(capId, c) : null;
+    const rowCap = s ? capName(s.capId) : (o ? resolveCap(o.capability) : '');
     rows.push({
-      pillar:          doraPillarShortFor(article, oid, capId, capPillar),
+      pillar:          doraPillarShortForCap(rowCap),
       article,
       objectiveId:     oid,
       objective:       o ? o.requirement : '',
       covered:         o ? (o.covered ? 'Yes' : 'Uncovered') : '',
-      capability:      s ? capName(s.capId) : (o ? resolveCap(o.capability) : ''),
+      capability:      rowCap,
       document:        s ? (s.document || '') : '',
       docStatus:       s ? docStatusOf(s.capId, s.document) : '',
       source:          s ? (s.source || '') : '',

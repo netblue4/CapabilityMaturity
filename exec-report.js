@@ -119,6 +119,26 @@ function execStackDonut(green, amber, grey, opts) {
     <div class="exsc-c2-sub">${opts.caption || ''}</div>
   </div>`;
 }
+// Pillar segment colours (match the DORA Pillar tags used across the tables).
+const PIL_MIX_COL = {
+  riskmgmt:    'var(--accent)',
+  incident:    'var(--clr-danger)',
+  thirdparty:  'var(--clr-warning)',
+  testing:     'color-mix(in srgb, var(--text) 34%, transparent)',
+  infosharing: 'color-mix(in srgb, var(--text) 20%, transparent)',
+};
+// A "by pillar" mix bar for a hero card: one segment per pillar, sized by that
+// pillar's share of the metric, with an inline legend. Contextualises the
+// per-pillar cards that follow.
+function execPillarMix(pil, metric, unit) {
+  const val = p => metric === 'objectives' ? p.coverage.total : metric === 'statements' ? p.ops.total : p.controls.total;
+  const segs = pil.filter(p => val(p) > 0).map(p => ({ short: p.short, n: val(p), col: PIL_MIX_COL[p.id] || 'var(--accent)' }));
+  const total = segs.reduce((s, x) => s + x.n, 0);
+  if (!total) return '';
+  const bar = `<span class="exsc-mix-track">${segs.map(s => `<i style="width:${100 * s.n / total}%;background:${s.col}" title="${escHtml(s.short)}: ${s.n}"></i>`).join('')}</span>`;
+  const legend = `<div class="exsc-mix-legend">${segs.map(s => `<span class="exsc-mix-leg"><i style="background:${s.col}"></i>${escHtml(s.short)} <b>${s.n}</b></span>`).join('')}</div>`;
+  return `<div class="exsc-mix"><div class="exsc-mix-lbl">${total} ${unit} by pillar</div>${bar}${legend}</div>`;
+}
 function renderExecScorecard(currentA, prevA) {
   const cur  = buildExecScorecard(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const prev = prevA ? buildExecScorecard(prevA.doraRows || [], prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
@@ -136,8 +156,9 @@ function renderExecScorecard(currentA, prevA) {
   const objOped    = art.totals.byImplemented;                        // objectives with an implemented control
   const objWaiting = art.totals.byBacked - art.totals.byImplemented;  // objectives backed only by draft controls
   const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
+  const pil  = buildPillarSummary(currentA);   // per-pillar totals for the mix bars
 
-  const gauge = (key, tag, name, desc, sub) => {
+  const gauge = (key, tag, name, desc, sub, extra) => {
     const c = cur[key], p = prev ? prev[key] : null;
     return `<div class="exsc-gauge">
       <div class="exsc-gtag">${tag}</div>
@@ -146,6 +167,7 @@ function renderExecScorecard(currentA, prevA) {
       <div class="exsc-qoq">${execScDelta(c.pct, p ? p.pct : null)}</div>
       ${sub ? `<div class="exsc-bridge">${sub}</div>` : ''}
       <div class="exsc-gdesc">${desc}</div>
+      ${extra || ''}
     </div>`;
   };
 
@@ -166,13 +188,14 @@ function renderExecScorecard(currentA, prevA) {
       </div>
     </div>
     <div class="exsc-row">
-      ${gauge('control1', 'Control 1 · Coverage', 'Applicable DORA objectives covered', `${cur.control1.n} of ${cur.control1.d} DORA objectives covered by ${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements`)}
+      ${gauge('control1', 'Control 1 · Coverage', 'Applicable DORA objectives covered', `${cur.control1.n} of ${cur.control1.d} DORA objectives covered by ${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements`, null, execPillarMix(pil, 'objectives', 'objectives'))}
       <div class="exsc-gauge exsc-gauge-c2">
         <div class="exsc-gtag">Control 2 · Operationalisation</div>
         <div class="exsc-gname">Policy &amp; Group Standard statements operationalised by controls</div>
         <div class="exsc-c2-donuts">${execStackDonut(c2p.impl, c2p.draft, c2p.none, { label: 'Policy', caption: `<span class="exsc-c2-imp">${c2p.impl} impl</span> · <span class="exsc-c2-drf">${c2p.draft} draft</span> · <span class="exsc-c2-non">${c2p.none} none</span>` })}${execStackDonut(c2g.impl, c2g.draft, c2g.none, { label: 'Group Standard', caption: `<span class="exsc-c2-imp">${c2g.impl} impl</span> · <span class="exsc-c2-drf">${c2g.draft} draft</span> · <span class="exsc-c2-non">${c2g.none} none</span>` })}</div>
         <div class="exsc-gdesc">${sops.all.operationalised} of ${sops.all.total} statements operationalised by ${bops.total} controls (${sops.policy.total} policy · ${sops.groupStandard.total} group standard).</div>
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Implemented</span> <span class="exsc-c2-drf">■ Draft</span> <span class="exsc-c2-non">■ No control</span></div>
+        ${execPillarMix(pil, 'statements', 'statements')}
       </div>
       <div class="exsc-gauge exsc-gauge-c3">
         <div class="exsc-gtag">Control 3 · Effectiveness</div>
@@ -180,6 +203,7 @@ function renderExecScorecard(currentA, prevA) {
         <div class="exsc-c2-donuts">${execStackDonut(c3.eff, c3.implNotEff, c3.draft, { centreLbl: 'controls', caption: `<span class="exsc-c2-imp">${c3.eff} effective</span> · <span class="exsc-c2-drf">${c3.implNotEff} to improve</span> · <span class="exsc-c2-non">${c3.draft} draft</span>` })}</div>
         <div class="exsc-gdesc">${c3.eff} of ${c3ImplCtrl} implemented controls are rated effective in the RCSA${c3.implNotEff ? `; ${c3.implNotEff} still to improve` : ''}. ${c3.draft} draft control${c3.draft === 1 ? '' : 's'} not yet operational.</div>
         <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Effective</span> <span class="exsc-c2-drf">■ Implemented, not effective</span> <span class="exsc-c2-non">■ Draft</span></div>
+        ${execPillarMix(pil, 'controls', 'controls')}
       </div>
     </div>
   </div>`;
@@ -275,6 +299,7 @@ function renderExecPillar(p) {
   const covUncov = cv.total - cv.covered;
   const opDraft = op.backed - op.operationalised;      // statements backed only by draft controls
   const ctNotEff = ct.implemented - ct.effective;      // implemented controls not yet effective
+  const ctDraft = ct.total - ct.implemented;           // draft (not-implemented) controls
 
   // Each KPI tile carries its own coloured bar(s): Coverage = the covered/
   // uncovered objectives stack; Operationalised = Live/Draft statements;
@@ -292,7 +317,8 @@ function renderExecPillar(p) {
   const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with controls`,
     pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) + pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue));
   const effTile = kpiTile('Effective · Control 3', `${ct.pct}%`, `${ct.effective} / ${ct.implemented} IMPLEMENTED controls effective`,
-    pilSubBar('Effective', ct.effective, ct.implemented, green) + pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber));
+    pilSubBar('Effective', ct.effective, ct.implemented, green) + pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber) +
+    `<div class="pil-kpi-note">+ ${ctDraft} draft control${ctDraft === 1 ? '' : 's'} not yet implemented (excluded from effectiveness)</div>`);
   const kpis = `<div class="pil-kpis">${covTile}${opsTile}${effTile}</div>`;
 
   const chips = `${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}` +

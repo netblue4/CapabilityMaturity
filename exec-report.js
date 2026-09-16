@@ -319,9 +319,11 @@ function renderExecPillar(p) {
     pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) +
     pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue) +
     pilSubBar('No control (statements with none)', opNone, op.total, track));
-  const effTile = kpiTile('Effective · Control 3', `${ct.pct}%`, `${ct.implemented} / ${ct.total} controls are IMPLEMENTED and ${ct.effective} / ${ct.implemented} IMPLEMENTED controls are effective`,
-    pilSubBar('Effective', ct.effective, ct.implemented, green) + pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber) +
-    `<div class="pil-kpi-note">+ ${ctDraft} draft control${ctDraft === 1 ? '' : 's'} not yet implemented (excluded from effectiveness)</div>`);
+  const effPctTotal = ct.total ? Math.round((ct.effective / ct.total) * 100) : 0;   // effective of ALL controls
+  const effTile = kpiTile('Effective · Control 3', `${effPctTotal}%`, `${ct.implemented} / ${ct.total} controls are IMPLEMENTED (${ct.effective} effective and ${ctNotEff} not yet)`,
+    pilSubBar('Effective', ct.effective, ct.total, green) +
+    pilSubBar('Not yet effective', ctNotEff, ct.total, amber) +
+    pilSubBar('Draft', ctDraft, ct.total, blue));
   const kpis = `<div class="pil-kpis">${covTile}${opsTile}${effTile}</div>`;
 
   const chips = `${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}` +

@@ -3153,6 +3153,13 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .pil-kpi-frac { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); }
 .pil-kpi-bar { height: 5px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; margin-top: .4rem; }
 .pil-kpi-bar i { display: block; height: 100%; border-radius: 20px; background: color-mix(in srgb, var(--text) 42%, transparent); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.pil-kpi-bars { margin-top: .5rem; }
+.pil-kpi-bars .pil-sub { margin: .22rem 0; }
+.pil-kpi-bars .pil-sub:first-child { margin-top: 0; }
+/* Residual strip below the KPIs: statement-approved bar + flag chips */
+.pil-extra { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .6rem 1.4rem; margin-top: 13px; }
+.pil-extra-metric { flex: 1; min-width: 260px; max-width: 460px; }
+.pil-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
 /* panels */
 .pil-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 .pil-panel { background: var(--bg); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 11px 12px; }

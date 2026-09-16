@@ -290,7 +290,7 @@ function renderExecPillar(p) {
     : kpiTile('Coverage · Control 1', `${cv.pct}%`, `${cv.covered} / ${cv.total} DORA objectives covered by Policy or Group STD statements`,
         pilStack([{ n: cv.covered, col: blue, t: 'Covered' }, { n: covUncov, col: track, t: 'Uncovered' }], cv.total));
   const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with controls`,
-    pilSubBar('Live (implemented)', op.operationalised, op.total, green) + pilSubBar('Draft', opDraft, op.total, blue));
+    pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) + pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue));
   const effTile = kpiTile('Effective · Control 3', `${ct.pct}%`, `${ct.effective} / ${ct.implemented} IMPLEMENTED controls effective`,
     pilSubBar('Effective', ct.effective, ct.implemented, green) + pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber));
   const kpis = `<div class="pil-kpis">${covTile}${opsTile}${effTile}</div>`;

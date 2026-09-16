@@ -599,6 +599,9 @@ function buildTraceabilityRows(assessment) {
       statementHeader: s ? (s.header || '') : '',
       disposition:     s ? dispOf(s.capId, s.ref) : '',
       backed:          s ? (s.hasCtrl ? 'Yes' : 'No') : '',
+      // Statement-level operationalisation (same for every row of the statement):
+      // Live = has a live control, Draft = only draft controls, else No control.
+      stmtOperationalised: s ? (s.backing === 'Built new' || s.backing === 'Reused pre-DORA' ? 'Live' : s.hasCtrl ? 'Draft' : 'No control') : '',
       control:         c ? ((c.number ? c.number + ' — ' : '') + c.name) : '',
       provenance:      ci ? ci.provenance : '',
       controlStatus:   ci ? (ci.implemented ? 'Implemented' : 'Draft') : '',
@@ -609,7 +612,7 @@ function buildTraceabilityRows(assessment) {
     });
   };
 
-  const mkStmt = x => ({ capId: x.capId, ref: x.ref, header: x.header, document: x.document, source: x.source, controls: x.controls || [], hasCtrl: (x.controls || []).length > 0 });
+  const mkStmt = x => ({ capId: x.capId, ref: x.ref, header: x.header, document: x.document, source: x.source, backing: x.backing, controls: x.controls || [], hasCtrl: (x.controls || []).length > 0 });
   const mappedKeys = new Set();
   model.obligations.forEach(o => (o.mappedRefs || []).forEach(m => mappedKeys.add(m.capId + '||' + ftNorm(m.ref))));
 

@@ -417,6 +417,7 @@ function renderTraceabilityCard(assessment) {
   const docBadge = st => { const m = { approved: ['gov-approved', 'Approved'], partial: ['gov-partial', 'Partial'], draft: ['gov-draft', 'Draft'] }; const g = m[st]; return g ? `<span class="gov-badge ${g[0]}">${g[1]}</span>` : ''; };
   const stCell = v => v === 'Implemented' ? '<span class="ev-yes">Implemented</span>' : v === 'Draft' ? '<span class="ev-mid">Draft</span>' : (v || '');
   const effCell = v => v === 'Effective' ? '<span class="ev-yes">Effective</span>' : v === 'Not yet' ? '<span class="ev-mid">Not yet</span>' : (v || '');
+  const opCell = v => v === 'Live' ? '<span class="ev-yes">Live</span>' : v === 'Draft' ? '<span class="ev-mid">Draft</span>' : (v || '');
   const flag = v => v === 'Yes' ? '<span class="tr-flag">✓</span>' : '';
 
   const body = t.rows.map(r => `<tr>
@@ -433,6 +434,7 @@ function renderTraceabilityCard(assessment) {
     <td>${escHtml(r.statementHeader)}</td>
     <td>${escHtml(r.disposition)}</td>
     <td class="tr-c">${yn(r.backed)}</td>
+    <td class="tr-c">${opCell(r.stmtOperationalised)}</td>
     <td>${escHtml(r.control)}</td>
     <td>${escHtml(r.provenance)}</td>
     <td class="tr-c">${stCell(r.controlStatus)}</td>
@@ -444,7 +446,7 @@ function renderTraceabilityCard(assessment) {
 
   const th = `<tr>
     <th>DORA Pillar</th><th>Article/RTS</th><th>Objective</th><th>Objective text</th><th class="tr-c">Objective covered</th>
-    <th>Capability</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Disposition</th><th class="tr-c">Backed by control</th>
+    <th>Capability</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Disposition</th><th class="tr-c">Backed by control</th><th class="tr-c" title="Statement-level: Live = has a live control, Draft = only draft controls">Statement operationalised</th>
     <th>Control No. &amp; Name</th><th>Provenance</th><th class="tr-c">Control status</th><th class="tr-c">Effectiveness</th>
     <th class="tr-c" title="First row for this objective">⚑ First obj</th><th class="tr-c" title="First row for this statement">⚑ First stmt</th><th class="tr-c" title="First row for this control">⚑ First ctrl</th>
   </tr>`;

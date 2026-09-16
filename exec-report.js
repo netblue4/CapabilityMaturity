@@ -314,7 +314,7 @@ function renderExecPillar(p) {
   const covTile = cv.total === 0
     ? kpiTile('Coverage · Control 1', '<span style="color:var(--text-muted)">—</span>', 'no DORA objectives', '')
     : kpiTile('Coverage · Control 1', `${cv.pct}%`, `${cv.covered} / ${cv.total} DORA objectives covered by ${op.total} Policy or Group STD statements`,
-        pilStack([{ n: cv.covered, col: blue, t: 'Covered' }, { n: covUncov, col: track, t: 'Uncovered' }], cv.total));
+        pilSubBar('Covered', cv.covered, cv.total, green));
   const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with ${ct.total} controls (${ct.implemented} IMPLEMENTED and ${ctDraft} DRAFT)`,
     pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) +
     pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue) +
@@ -322,8 +322,8 @@ function renderExecPillar(p) {
   const effPctTotal = ct.total ? Math.round((ct.effective / ct.total) * 100) : 0;   // effective of ALL controls
   const effTile = kpiTile('Effective · Control 3', `${effPctTotal}%`, `${ct.implemented} / ${ct.total} controls are IMPLEMENTED (${ct.effective} effective and ${ctNotEff} not yet)`,
     pilSubBar('Effective', ct.effective, ct.total, green) +
-    pilSubBar('Not yet effective', ctNotEff, ct.total, amber) +
-    pilSubBar('Draft', ctDraft, ct.total, blue));
+    pilSubBar('Not yet effective', ctNotEff, ct.total, blue) +
+    pilSubBar('Draft', ctDraft, ct.total, track));
   const kpis = `<div class="pil-kpis">${covTile}${opsTile}${effTile}</div>`;
 
   const chips = `${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}` +

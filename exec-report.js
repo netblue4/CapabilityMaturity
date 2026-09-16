@@ -282,7 +282,7 @@ function renderExecPillar(p) {
   </div>`;
 
   const green = 'var(--clr-success)', amber = 'var(--clr-warning)', red = 'var(--clr-danger)', blue = 'var(--accent)';
-  const opDraft = op.backed - op.operationalised;      // statements backed only by draft controls
+  const ctDraft = ct.total - ct.implemented;           // distinct DRAFT controls
   const ctNotEff = ct.implemented - ct.effective;      // implemented controls not yet effective
   const panels = `<div class="pil-panels">
     <div class="pil-panel">
@@ -295,9 +295,9 @@ function renderExecPillar(p) {
     </div>
     <div class="pil-panel">
       <div class="pil-panel-h">🛠 Control compliance</div>
-      <div class="pil-metric"><div class="pil-m-lead">Policy or Group Std statements operationalised by controls</div>
-        ${pilSubBar('Live (implemented)', op.operationalised, op.total, green)}
-        ${pilSubBar('Draft', opDraft, op.total, blue)}</div>
+      <div class="pil-metric"><div class="pil-m-lead">Controls operationalising Policy or Group Std statements</div>
+        ${pilSubBar('Live (implemented) controls', ct.implemented, ct.total, green)}
+        ${pilSubBar('Draft controls', ctDraft, ct.total, blue)}</div>
       <div class="pil-metric"><div class="pil-m-lead">Controls rated effective (RCSA)</div>
         ${pilSubBar('Effective', ct.effective, ct.implemented, green)}
         ${pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber)}</div>

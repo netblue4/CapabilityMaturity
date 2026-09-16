@@ -427,59 +427,36 @@ function doraPillarShortFor(article, obligationId, capId, capPillar) {
   return doraPillarShortForCap(article || '');
 }
 
-// ── DORA pillar summary (one bucket per pillar, for the exec forum cards) ──
-// Groups the assessment's DORA obligations into pillars (dora-pillars.js),
-// then rolls up coverage (Control 1), operationalisation (Control 2) and
-// control effectiveness (Control 3) plus the gaps that drive "next steps".
+// ── DORA pillar summary — ALL numbers aggregated from the traceability rows ──
+// buildTraceabilityRows is the single source of truth: every pillar-card figure
+// here is a count of those rows (via the first-obj / first-stmt / first-ctrl
+// flags), so the cards can never diverge from the export. Risks/danger are the
+// only thing not in the row grain — they come from buildRiskProfile.
 function buildPillarSummary(assessment) {
-  const doraRows = assessment.doraRows || [], policyRows = assessment.policyRows || [], facts = assessment.riskPolicyFacts || [];
+  const facts = assessment.riskPolicyFacts || [];
   const pillars = (typeof DORA_PILLARS !== 'undefined') ? DORA_PILLARS : [];
-  const model = buildDoraObligations(doraRows, policyRows, facts);
+  const trace = buildTraceabilityRows(assessment);
 
-  const polByKey = {};
-  policyRows.forEach(pr => { polByKey[pr.capId + '||' + ftNorm(pr.statementRef)] = pr; });
-
-  const mkBucket = def => ({ ...def, hasData: false, oblTotal: 0, oblCovered: 0, uncovered: [], _stmt: {}, _ctrl: {} });
-  const P = {};
-  pillars.forEach(def => { P[def.id] = mkBucket(def); });
-  const other = mkBucket({ id: 'other', chapter: '', name: 'Not tied to a DORA pillar', short: 'Unmapped', icon: '❔', inScope: true, outNote: '' });
-
-  // Pillar comes from the OWNING CAPABILITY (dora-pillars.js): capId → pillar.
-  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
-  const capPillar = buildCapPillar();                                   // capId → pillar id
-  const pillarOf = capId => P[capPillar[capId]] || other;
-
-  // ── Coverage (Control 1): obligations grouped by their capability → pillar. ──
-  model.articles.forEach(a => a.obligations.forEach(o => {
-    // covered → the covering statement's capability; uncovered → the obligation's
-    // (DORA-upload) capability, resolved by the same name rule.
-    const capId = o.covered && (o.mappedRefs || []).length ? o.mappedRefs[0].capId : null;
-    const pid = capId != null ? capPillar[capId] : doraPillarForCapabilityName(o.capability);
-    const b = P[pid] || other;
-    b.hasData = true; b.oblTotal++;
-    if (o.covered) b.oblCovered++;
-    else b.uncovered.push({ id: o.obligationId, article: o.article, requirement: o.requirement });
-  }));
-
-  // ── Operationalisation (Control 2): partition EVERY distinct statement by
-  // its capability's pillar, so the pillar totals sum to the hero card. ──
-  buildStatementCoverage(policyRows, facts).statements.forEach(s => {
-    const b = pillarOf(s.capId); b.hasData = true;
-    const pr = polByKey[s.key] || {};
-    b._stmt[s.key] = {
-      backed: s.hasControl,
-      live: s.backing === 'Built new' || s.backing === 'Reused pre-DORA',
-      disp: ftDisposition(pr.exception), approved: ftNorm(pr.status).includes('approv'),
-    };
+  // Aggregate the trace rows per pillar, exactly as filtering the export would.
+  const A = {};
+  const bucket = pid => A[pid] || (A[pid] = { oblTotal: 0, oblCovered: 0, uncovered: [],
+    sTotal: 0, sLive: 0, sDraft: 0, sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0,
+    cTotal: 0, cImpl: 0, cEff: 0 });
+  trace.rows.forEach(r => {
+    const a = bucket(r._pillarId);
+    if (r.firstObj === 'Yes') { a.oblTotal++; if (r.covered === 'Yes') a.oblCovered++; else a.uncovered.push({ id: r.objectiveId, article: r.article, requirement: r.objective }); }
+    if (r.firstStmt === 'Yes') {
+      a.sTotal++;
+      if (r.stmtOperationalised === 'Live') a.sLive++;
+      else if (r.stmtOperationalised === 'Draft') a.sDraft++;
+      else { a.sNone++; if (r.disposition === 'Implemented' || r.disposition === 'Part-implemented') a.invisibleWork++; else if (r.disposition === 'Unknown' || r.disposition === '') a.toBuild++; }
+      if (r._approved) a.approved++;
+    }
+    if (r.firstCtrl === 'Yes') { a.cTotal++; if (r.controlStatus === 'Implemented') { a.cImpl++; if (r.effectiveness === 'Effective') a.cEff++; } }
   });
 
-  // ── Effectiveness (Control 3): partition every distinct backing control by
-  // its capability's pillar (same dedup as the hero card → totals reconcile). ──
-  buildBackingControlOps(policyRows, facts).controls.forEach(c => {
-    const b = pillarOf(c.capId); b.hasData = true;
-    b._ctrl[c.capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name)] = { impl: c.implemented, eff: c.effective };
-  });
-
+  // Danger-zone risks per pillar (not part of the trace grain).
+  const capPillar = buildCapPillar();
   const risksByPillar = {};
   buildRiskProfile(facts).forEach(k => {
     const pid = capPillar[k.capId]; if (!pid) return;
@@ -487,48 +464,41 @@ function buildPillarSummary(assessment) {
     if ((k.residual || 0) >= 20 && effPct < 50) (risksByPillar[pid] = risksByPillar[pid] || []).push({ title: k.title, residual: k.residual });
   });
 
-  const finalize = b => {
-    const stmts = Object.values(b._stmt), ctrls = Object.values(b._ctrl);
-    const sTotal = stmts.length;
-    const operationalised = stmts.filter(s => s.live).length;
-    const backed = stmts.filter(s => s.backed).length;
-    const approved = stmts.filter(s => s.approved).length;
-    const cImpl = ctrls.filter(c => c.impl).length, cEff = ctrls.filter(c => c.eff).length;
+  const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
+  const finalize = def => {
+    const a = A[def.id] || { oblTotal: 0, oblCovered: 0, uncovered: [], sTotal: 0, sLive: 0, sDraft: 0, sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0, cTotal: 0, cImpl: 0, cEff: 0 };
+    const hasData = a.oblTotal + a.sTotal + a.cTotal > 0;
     const gaps = {
-      uncovered:      b.uncovered,
-      draftStatements: stmts.filter(s => !s.approved).length,
-      toImplement:    stmts.filter(s => s.backed && !s.live).length,                          // backed by a draft control
-      toBuild:        stmts.filter(s => !s.backed && s.disp === 'UNKNOWN').length,             // no control, not waived/declared
-      invisibleWork:  stmts.filter(s => !s.backed && (s.disp === 'IMP' || s.disp === 'PART')).length,
-      notEffective:   ctrls.filter(c => c.impl && !c.eff).length,
-      dangerRisks:    risksByPillar[b.id] || [],
+      uncovered:       a.uncovered,
+      draftStatements: a.sTotal - a.approved,
+      toImplement:     a.sDraft,                 // statements backed only by draft controls
+      toBuild:         a.toBuild,                 // statements with no control, not waived/declared
+      invisibleWork:   a.invisibleWork,          // self-declared, no control
+      notEffective:    a.cImpl - a.cEff,
+      dangerRisks:     risksByPillar[def.id] || [],
     };
-    const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
     const s = {
-      id: b.id, chapter: b.chapter, name: b.name, short: b.short, icon: b.icon,
-      inScope: b.inScope, outNote: b.outNote, hasData: b.hasData,
-      coverage: { covered: b.oblCovered, total: b.oblTotal, pct: pct(b.oblCovered, b.oblTotal) },
-      ops:      { operationalised, backed, total: sTotal, pct: pct(operationalised, sTotal) },
-      approval: { approved, total: sTotal },
-      controls: { effective: cEff, implemented: cImpl, total: ctrls.length, pct: pct(cEff, cImpl) },
+      id: def.id, chapter: def.chapter, name: def.name, short: def.short, icon: def.icon,
+      inScope: def.inScope, outNote: def.outNote, hasData,
+      coverage: { covered: a.oblCovered, total: a.oblTotal, pct: pct(a.oblCovered, a.oblTotal) },
+      ops:      { operationalised: a.sLive, backed: a.sLive + a.sDraft, total: a.sTotal, pct: pct(a.sLive, a.sTotal) },
+      approval: { approved: a.approved, total: a.sTotal },
+      controls: { effective: a.cEff, implemented: a.cImpl, total: a.cTotal, pct: pct(a.cEff, a.cImpl) },
       gaps,
     };
-    if (!b.inScope) s.rag = 'oos';
-    else if (!b.hasData) s.rag = 'none';
-    else if (b.id === 'other') s.rag = 'info';   // reconciliation bucket, no DORA coverage
+    if (!def.inScope) s.rag = 'oos';
+    else if (!hasData) s.rag = 'none';
     else {
       const danger = gaps.dangerRisks.length > 0;
-      const noOps = s.ops.total > 0 && operationalised === 0;
+      const noOps = s.ops.total > 0 && s.ops.operationalised === 0;
       if (danger || noOps || s.coverage.pct < 50) s.rag = 'red';
-      else if (s.coverage.covered === s.coverage.total && operationalised === s.ops.total && gaps.notEffective === 0) s.rag = 'green';
+      else if (s.coverage.covered === s.coverage.total && s.ops.operationalised === s.ops.total && gaps.notEffective === 0) s.rag = 'green';
       else s.rag = 'amber';
     }
     return s;
   };
 
-  const out = pillars.map(def => finalize(P[def.id]));
-  if (other.hasData) out.push(finalize(other));
-  return out;
+  return pillars.map(finalize);
 }
 
 // ── Full DORA → Control traceability (one flat, Excel-filterable table) ──
@@ -585,8 +555,11 @@ function buildTraceabilityRows(assessment) {
     const oid = o ? o.obligationId : '';
     const ci = (c && capId != null) ? ctrlInfo(capId, c) : null;
     const rowCap = s ? capName(s.capId) : (o ? resolveCap(o.capability) : '');
+    const pid = doraPillarForCapabilityName(rowCap);
     rows.push({
-      pillar:          doraPillarShortForCap(rowCap),
+      pillar:          doraPillarShort(pid),
+      _pillarId:       pid,
+      _approved:       s ? ftNorm((polByKey[s.capId + '||' + ftNorm(s.ref)] || {}).status).includes('approv') : false,
       article,
       objectiveId:     oid,
       objective:       o ? o.requirement : '',

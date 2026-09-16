@@ -298,6 +298,7 @@ function renderExecPillar(p) {
   const track = 'var(--track,color-mix(in srgb,var(--text) 14%,transparent))';
   const covUncov = cv.total - cv.covered;
   const opDraft = op.backed - op.operationalised;      // statements backed only by draft controls
+  const opNone = op.total - op.backed;                 // statements with no control at all
   const ctNotEff = ct.implemented - ct.effective;      // implemented controls not yet effective
   const ctDraft = ct.total - ct.implemented;           // draft (not-implemented) controls
 
@@ -315,7 +316,9 @@ function renderExecPillar(p) {
     : kpiTile('Coverage · Control 1', `${cv.pct}%`, `${cv.covered} / ${cv.total} DORA objectives covered by Policy or Group STD statements`,
         pilStack([{ n: cv.covered, col: blue, t: 'Covered' }, { n: covUncov, col: track, t: 'Uncovered' }], cv.total));
   const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with controls`,
-    pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) + pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue));
+    pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) +
+    pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue) +
+    pilSubBar('No control (statements with none)', opNone, op.total, track));
   const effTile = kpiTile('Effective · Control 3', `${ct.pct}%`, `${ct.effective} / ${ct.implemented} IMPLEMENTED controls effective`,
     pilSubBar('Effective', ct.effective, ct.implemented, green) + pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber) +
     `<div class="pil-kpi-note">+ ${ctDraft} draft control${ctDraft === 1 ? '' : 's'} not yet implemented (excluded from effectiveness)</div>`);
@@ -324,11 +327,7 @@ function renderExecPillar(p) {
   const chips = `${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}` +
     `${p.gaps.dangerRisks.length ? `<span class="pil-chip pil-chip-gap">🔴 ${p.gaps.dangerRisks.length} risk(s) in the danger zone</span>` : ''}` +
     `${p.gaps.invisibleWork ? `<span class="pil-chip pil-chip-warn">👻 ${p.gaps.invisibleWork} invisible-work statement(s)</span>` : ''}`;
-  const panels = `<div class="pil-extra">
-    <div class="pil-extra-metric"><div class="pil-sub-top"><span>Policy or Group Std statement approved</span><b>${p.approval.approved}/${p.approval.total}</b></div>
-      ${pilStack([{ n: p.approval.approved, col: green, t: 'Approved' }, { n: p.approval.total - p.approval.approved, col: amber, t: 'Draft' }], p.approval.total)}</div>
-    ${chips ? `<div class="pil-chips">${chips}</div>` : ''}
-  </div>`;
+  const panels = chips ? `<div class="pil-extra"><div class="pil-chips">${chips}</div></div>` : '';
 
   const steps = pilGenSteps(p).map(s => `<div class="pil-step">
     <span class="pil-pri pil-pri-${s.pri}">P${s.pri}</span>

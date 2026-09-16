@@ -3161,7 +3161,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .pil-kpi { background: var(--bg); border: 1px solid var(--border-subtle); border-radius: 9px; padding: 9px 10px; }
 .pil-kpi-lbl { font-family: var(--font-mono); font-size: .54rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
 .pil-kpi-val { font-size: 1.35rem; font-weight: 800; line-height: 1; margin: .2rem 0 .22rem; }
-.pil-kpi-frac { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); }
+.pil-kpi-frac { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); min-height: 2.6em; }
 .pil-kpi-bar { height: 5px; border-radius: 20px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; margin-top: .4rem; }
 .pil-kpi-bar i { display: block; height: 100%; border-radius: 20px; background: color-mix(in srgb, var(--text) 42%, transparent); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .pil-kpi-bars { margin-top: .5rem; }

@@ -270,40 +270,38 @@ function renderExecPillar(p) {
   }
 
   const cv = p.coverage, op = p.ops, ct = p.controls;
-  const covUncov = cv.total - cv.covered;
-  const opNone = op.total - op.backed;
-  const covKpi = cv.total === 0
-    ? `<div class="pil-kpi"><div class="pil-kpi-lbl">Coverage · Control 1</div><div class="pil-kpi-val" style="color:var(--text-muted)">—</div><div class="pil-kpi-frac">no DORA objectives</div><div class="pil-kpi-bar"><i style="width:0%"></i></div></div>`
-    : pilKpi('Coverage', 'Control 1', cv.pct, `${cv.covered} / ${cv.total} DORA objectives covered by Policy or Group STD statements`, cv.pct >= 100 ? 'green' : cv.pct >= 50 ? 'amber' : 'red');
-  const kpis = `<div class="pil-kpis">
-    ${covKpi}
-    ${pilKpi('Operationalised', 'Control 2', op.pct, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with controls`, op.pct >= 100 ? 'green' : op.pct > 0 ? 'amber' : 'red')}
-    ${pilKpi('Effective', 'Control 3', ct.pct, `${ct.effective} / ${ct.implemented} IMPLEMENTED controls effective`, ct.implemented === 0 ? 'red' : ct.pct >= 100 ? 'green' : ct.pct >= 50 ? 'amber' : 'red')}
-  </div>`;
-
   const green = 'var(--clr-success)', amber = 'var(--clr-warning)', red = 'var(--clr-danger)', blue = 'var(--accent)';
+  const track = 'var(--track,color-mix(in srgb,var(--text) 14%,transparent))';
+  const covUncov = cv.total - cv.covered;
   const opDraft = op.backed - op.operationalised;      // statements backed only by draft controls
   const ctNotEff = ct.implemented - ct.effective;      // implemented controls not yet effective
-  const panels = `<div class="pil-panels">
-    <div class="pil-panel">
-      <div class="pil-panel-h">📘 Policy &amp; Group Std alignment with DORA objectives</div>
-      <div class="pil-metric"><div class="pil-m-top"><span>DORA Objectives covered by a Policy or Group Std statement</span><b>${cv.covered}/${cv.total}</b></div>
-        ${pilStack([{ n: cv.covered, col: blue, t: 'Covered' }, { n: covUncov, col: 'var(--track,#333)', t: 'Uncovered' }], cv.total)}</div>
-      <div class="pil-metric"><div class="pil-m-top"><span>Policy or Group Std statement approved</span><b>${p.approval.approved}/${p.approval.total}</b></div>
-        ${pilStack([{ n: p.approval.approved, col: green, t: 'Approved' }, { n: p.approval.total - p.approval.approved, col: amber, t: 'Draft' }], p.approval.total)}</div>
-      ${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}
-    </div>
-    <div class="pil-panel">
-      <div class="pil-panel-h">🛠 Control compliance</div>
-      <div class="pil-metric"><div class="pil-m-lead">Policy or Group Std statements operationalised by controls</div>
-        ${pilSubBar('Live (implemented)', op.operationalised, op.total, green)}
-        ${pilSubBar('Draft', opDraft, op.total, blue)}</div>
-      <div class="pil-metric"><div class="pil-m-lead">Controls rated effective (RCSA)</div>
-        ${pilSubBar('Effective', ct.effective, ct.implemented, green)}
-        ${pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber)}</div>
-      ${p.gaps.dangerRisks.length ? `<span class="pil-chip pil-chip-gap">🔴 ${p.gaps.dangerRisks.length} risk(s) in the danger zone</span>` : ''}
-      ${p.gaps.invisibleWork ? `<span class="pil-chip pil-chip-warn">👻 ${p.gaps.invisibleWork} invisible-work statement(s)</span>` : ''}
-    </div>
+
+  // Each KPI tile carries its own coloured bar(s): Coverage = the covered/
+  // uncovered objectives stack; Operationalised = Live/Draft statements;
+  // Effective = Effective/Not-yet-effective controls.
+  const kpiTile = (lbl, pct, frac, bars) => `<div class="pil-kpi">
+    <div class="pil-kpi-lbl">${lbl}</div>
+    <div class="pil-kpi-val">${pct}</div>
+    <div class="pil-kpi-frac">${frac}</div>
+    <div class="pil-kpi-bars">${bars}</div>
+  </div>`;
+  const covTile = cv.total === 0
+    ? kpiTile('Coverage · Control 1', '<span style="color:var(--text-muted)">—</span>', 'no DORA objectives', '')
+    : kpiTile('Coverage · Control 1', `${cv.pct}%`, `${cv.covered} / ${cv.total} DORA objectives covered by Policy or Group STD statements`,
+        pilStack([{ n: cv.covered, col: blue, t: 'Covered' }, { n: covUncov, col: track, t: 'Uncovered' }], cv.total));
+  const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with controls`,
+    pilSubBar('Live (implemented)', op.operationalised, op.total, green) + pilSubBar('Draft', opDraft, op.total, blue));
+  const effTile = kpiTile('Effective · Control 3', `${ct.pct}%`, `${ct.effective} / ${ct.implemented} IMPLEMENTED controls effective`,
+    pilSubBar('Effective', ct.effective, ct.implemented, green) + pilSubBar('Not yet effective', ctNotEff, ct.implemented, amber));
+  const kpis = `<div class="pil-kpis">${covTile}${opsTile}${effTile}</div>`;
+
+  const chips = `${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}` +
+    `${p.gaps.dangerRisks.length ? `<span class="pil-chip pil-chip-gap">🔴 ${p.gaps.dangerRisks.length} risk(s) in the danger zone</span>` : ''}` +
+    `${p.gaps.invisibleWork ? `<span class="pil-chip pil-chip-warn">👻 ${p.gaps.invisibleWork} invisible-work statement(s)</span>` : ''}`;
+  const panels = `<div class="pil-extra">
+    <div class="pil-extra-metric"><div class="pil-sub-top"><span>Policy or Group Std statement approved</span><b>${p.approval.approved}/${p.approval.total}</b></div>
+      ${pilStack([{ n: p.approval.approved, col: green, t: 'Approved' }, { n: p.approval.total - p.approval.approved, col: amber, t: 'Draft' }], p.approval.total)}</div>
+    ${chips ? `<div class="pil-chips">${chips}</div>` : ''}
   </div>`;
 
   const steps = pilGenSteps(p).map(s => `<div class="pil-step">

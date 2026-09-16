@@ -315,7 +315,7 @@ function renderExecPillar(p) {
     ? kpiTile('Coverage · Control 1', '<span style="color:var(--text-muted)">—</span>', 'no DORA objectives', '')
     : kpiTile('Coverage · Control 1', `${cv.pct}%`, `${cv.covered} / ${cv.total} DORA objectives covered by ${op.total} Policy or Group STD statements`,
         pilStack([{ n: cv.covered, col: blue, t: 'Covered' }, { n: covUncov, col: track, t: 'Uncovered' }], cv.total));
-  const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with ${ct.implemented} IMPLEMENTED and ${ctDraft} DRAFT controls`,
+  const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with ${ct.total} controls (${ct.implemented} IMPLEMENTED and ${ctDraft} DRAFT)`,
     pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) +
     pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue) +
     pilSubBar('No control (statements with none)', opNone, op.total, track));

@@ -3100,6 +3100,17 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsc-c2-imp { color: var(--clr-success); }
 .exsc-c2-drf { color: var(--clr-warning); }
 .exsc-c2-non { color: var(--text-muted); }
+/* "By pillar" mix bar inside a hero scorecard card */
+.exsc-mix { margin-top: .7rem; border-top: 1px solid var(--border-subtle); padding-top: .55rem; }
+.exsc-mix-lbl { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .35rem; }
+.exsc-mix-track { display: flex; height: 8px; border-radius: 20px; overflow: hidden; background: color-mix(in srgb, var(--text) 12%, transparent); }
+.exsc-mix-track i { display: block; height: 100%; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exsc-mix-legend { display: flex; flex-wrap: wrap; gap: .3rem .7rem; margin-top: .4rem; }
+.exsc-mix-leg { display: inline-flex; align-items: center; gap: .3rem; font-size: .62rem; color: var(--text-muted); }
+.exsc-mix-leg i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exsc-mix-leg b { color: var(--text); font-family: var(--font-mono); }
+/* Small note under a pillar-card KPI tile (e.g. draft controls) */
+.pil-kpi-note { font-size: .66rem; color: var(--text-muted); margin-top: .4rem; }
 
 /* ── Exec report — Act 1 coverage matrix ────────────────────────── */
 .exm-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }

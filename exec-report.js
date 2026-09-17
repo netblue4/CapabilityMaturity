@@ -435,6 +435,7 @@ function renderExecCoverageMatrix(currentA) {
   const desc = `${cov.articles.length} applicable DORA articles/RTS &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} DORA Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). One bar per article spans all its objectives, split by how each covered one is owned.`;
   _exmRows = cov.articles;
   _exmSort = { col: null, dir: 1 };
+  const covPct = t.total ? Math.round(100 * t.covered / t.total) : 0;
   const legend = `<div class="exm-legend">
     <span class="exm-leg"><i class="exm-seg-pol"></i> Covered via policy</span>
     <span class="exm-leg"><i class="exm-seg-grp"></i> Covered via group standard only</span>
@@ -442,6 +443,7 @@ function renderExecCoverageMatrix(currentA) {
   </div>`;
   return `<div class="card measure-card">
     ${head(desc)}
+    ${cmProgressBar(covPct)}
     ${legend}
     <div class="rcsa-table-wrap">
       <table class="exm-tbl">
@@ -456,12 +458,23 @@ function renderExecCoverageMatrix(currentA) {
 // Aggregate operationalisation (rows 8–9), per-document disposition +
 // control-status detail (rows 12–16, 19–21), and the two compliance-hygiene
 // callouts (rows 13, 14). Reads buildStatementOps + buildExecDocDetail.
+// Stacked operationalisation bar: green = statements with a LIVE control,
+// blue = statements backed by a DRAFT control only. The delta tracks the
+// combined (backed) coverage vs the previous assessment.
 function ex2AggBar(label, o, prevO) {
-  const pct = o.total ? Math.round(100 * o.operationalised / o.total) : 0;
-  const prevPct = prevO && prevO.total ? Math.round(100 * prevO.operationalised / prevO.total) : null;
+  const live      = o.operationalised;
+  const draftOnly = Math.max(0, o.backed - o.operationalised);
+  const livePct   = o.total ? Math.round(100 * live / o.total) : 0;
+  const draftPct  = o.total ? Math.round(100 * draftOnly / o.total) : 0;
+  const backedPct = o.total ? Math.round(100 * o.backed / o.total) : 0;
+  const prevPct   = prevO && prevO.total ? Math.round(100 * prevO.backed / prevO.total) : null;
+  const green = 'var(--clr-success)', blue = 'var(--accent)';
   return `<div class="ex2-agg-item">
-    <div class="ex2-agg-top"><span class="ex2-agg-lbl">${label}</span><span class="ex2-agg-val"><b>${o.operationalised}</b>/<span class="exm-den">${o.total}</span> &middot; ${pct}% ${execScDelta(pct, prevPct)}</span></div>
-    <div class="ex2-agg-track"><i style="width:${pct}%;background:${execScColor(pct)}"></i></div>
+    <div class="ex2-agg-top"><span class="ex2-agg-lbl">${label}</span><span class="ex2-agg-val"><b>${live}</b> live + <b>${draftOnly}</b> draft / <span class="exm-den">${o.total}</span> &middot; ${backedPct}% ${execScDelta(backedPct, prevPct)}</span></div>
+    <div class="ex2-agg-track">
+      <i style="width:${livePct}%;background:${green}" title="${live} statement(s) with a live control"></i>
+      <i style="width:${draftPct}%;background:${blue}" title="${draftOnly} statement(s) backed by a draft control only"></i>
+    </div>
   </div>`;
 }
 // The two Control-2 document tables (Group Standards / Policies). Both share a
@@ -572,6 +585,10 @@ function renderExecControl2(currentA, prevA) {
 
   return `<div class="card measure-card">
     ${head(desc)}
+    <div class="exm-legend">
+      <span class="exm-leg"><i style="background:var(--clr-success)"></i> Statement with a live control</span>
+      <span class="exm-leg"><i style="background:var(--accent)"></i> Statement with a draft control only</span>
+    </div>
     <div class="ex2-agg">
       ${ex2AggBar('Policy statements operationalised', ops.policy, prevOps ? prevOps.policy : null)}
       ${ex2AggBar('Group-standard statements operationalised', ops.groupStandard, prevOps ? prevOps.groupStandard : null)}
@@ -720,6 +737,7 @@ function renderExecControl3(currentA, prevA) {
   const desc = `<b>${ops.liveEffective}</b>/${ops.total} backing controls live &amp; effective (${ops.pct}% ${execScDelta(ops.pct, prevOps ? prevOps.pct : null)}). Risks plotted by residual severity vs how effective their controls are — the red zone is high residual with weak controls${danger ? ` (<b class="dora-gap-num">${danger}</b> there)` : ''}.`;
   return `<div class="card measure-card">
     ${head(desc)}
+    ${cmProgressBar(ops.pct)}
     ${execQuadrant(risks)}
     <div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div>
   </div>`;

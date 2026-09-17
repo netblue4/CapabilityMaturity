@@ -439,27 +439,46 @@ function renderCapabilityTree(assessment, capId) {
   if (!arts.length) return wrap('<div class="mm-empty">No DORA articles mapped to this capability yet.</div>');
 
   const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
-  const opBadge  = op => op === 'Live' ? badge('mm-b-green', 'Live') : op === 'Draft' ? badge('mm-b-blue', 'Draft') : badge('mm-b-grey', 'No control');
-  const covBadge = c  => c === 'Yes' ? badge('mm-b-green', 'covered') : badge('mm-b-red', 'uncovered');
+  // Roll the worst status up the tree so a collapsed parent still flags work
+  // below it. Severity: 0 effective · 1 live-but-not-effective · 2 draft (not
+  // live) · 3 gap (no control / uncovered). A node is green only at level 0.
+  const LVL_CLS = ['mm-b-green', 'mm-b-amber', 'mm-b-blue', 'mm-b-red'];
+  const cLevel = c => c.status === 'Implemented' ? (c.effectiveness === 'Effective' ? 0 : 1) : 2;
+  const sLevel = s => s.controls.length ? Math.max(...s.controls.map(cLevel)) : 3;
+  const oLevel = o => o.covered !== 'Yes' ? 3 : (o.statements.length ? Math.max(...o.statements.map(sLevel)) : 3);
+  const aLevel = a => { const L = a.noArt ? a.objectives.flatMap(o => o.statements).map(sLevel) : a.objectives.map(oLevel); return L.length ? Math.max(...L) : 3; };
+  const roll = (lvl, labels) => badge(LVL_CLS[lvl], labels[lvl]);
+  const stmtBadge = s => roll(sLevel(s), ['✓ effective', '● not yet effective', '● draft — not live', '▲ no control']);
+  const objBadge  = o => o.covered !== 'Yes'
+    ? badge('mm-b-red', '▲ uncovered — no statement')
+    : roll(oLevel(o), ['✓ all effective', '● effectiveness gap below', '● draft control below', '▲ no control below']);
+  const artBadge  = a => roll(aLevel(a), ['✓ all effective', '● effectiveness gaps below', '● draft controls below', '▲ coverage gaps below']);
   const ctrlBadge = c => {
     const st = c.status === 'Implemented' ? badge('mm-b-green', 'Implemented') : badge('mm-b-blue', 'Draft');
     const eff = c.status === 'Implemented'
       ? (c.effectiveness === 'Effective' ? badge('mm-b-green', 'Effective') : badge('mm-b-amber', 'Not yet effective')) : '';
     return st + eff;
   };
+  const legend = `<div class="mm-legend">
+    <span class="mm-leg"><i class="mm-dot mm-b-green"></i>all effective</span>
+    <span class="mm-leg"><i class="mm-dot mm-b-amber"></i>live, not yet effective</span>
+    <span class="mm-leg"><i class="mm-dot mm-b-blue"></i>control still draft</span>
+    <span class="mm-leg"><i class="mm-dot mm-b-red"></i>coverage gap</span>
+    <span class="mm-leg-note">— a node is green only when every control beneath it is effective</span>
+  </div>`;
   const leaf = (ic, cls, html) => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">${ic}</span><span class="mm-lbl ${cls || ''}">${html}</span></div></li>`;
-  const node = (ic, lbl, right, kids) => `<li class="mm-node"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">${ic}</span><span class="mm-lbl">${lbl}</span>${right || ''}</div><ul class="mm-children">${kids}</ul></li>`;
+  const node = (ic, lbl, right, kids, lvl) => `<li class="mm-node mm-lvl-${lvl}"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">${ic}</span><span class="mm-lbl">${lbl}</span>${right || ''}</div><ul class="mm-children">${kids}</ul></li>`;
 
   const renderCtrl = c => leaf('🛠', '', `${escHtml(c.name)} ${ctrlBadge(c)}${c.provenance ? `<span class="mm-ref"> · ${escHtml(c.provenance)}</span>` : ''}`);
   const renderStmt = s => {
     const kids = s.controls.length ? s.controls.map(renderCtrl).join('') : leaf('∅', 'mm-muted', 'No control operationalising this statement');
     const lbl  = `${escHtml(s.header || s.ref)}${s.ref ? ` <span class="mm-ref">${escHtml(s.ref)}</span>` : ''}`;
-    return node('📄', lbl, opBadge(s.operationalised), kids);
+    return node('📄', lbl, stmtBadge(s), kids, sLevel(s));
   };
   const renderObj = o => {
     const kids = o.statements.length ? o.statements.map(renderStmt).join('') : leaf('⚠', 'mm-muted', 'No owned statement — coverage gap');
     const lbl  = `${escHtml(o.id || '')}${o.text ? ` — ${escHtml(o.text)}` : ''}`;
-    return node('🎯', lbl, covBadge(o.covered), kids);
+    return node('🎯', lbl, objBadge(o), kids, oLevel(o));
   };
   const renderArt = a => {
     let kids, meta;
@@ -472,9 +491,9 @@ function renderCapabilityTree(assessment, capId) {
       kids = objs.map(renderObj).join('');
       meta = `<span class="mm-meta">${cov}/${objs.length} objectives covered</span>`;
     }
-    return node(a.noArt ? '🗂️' : '📘', `<b>${escHtml(a.article)}</b>`, meta, kids);
+    return node(a.noArt ? '🗂️' : '📘', `<b>${escHtml(a.article)}</b>`, `${meta}${artBadge(a)}`, kids, aLevel(a));
   };
-  return wrap(`<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
+  return wrap(legend + `<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
 }
 function renderTraceabilityCard(assessment) {
   const t = buildTraceabilityRows(assessment);

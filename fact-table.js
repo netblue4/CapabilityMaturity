@@ -501,6 +501,68 @@ function buildPillarSummary(assessment) {
   return pillars.map(finalize);
 }
 
+// ── Capability-scoped summary (same shape as a pillar summary) ────────
+// Aggregates the traceability rows for ONE capability exactly as
+// buildPillarSummary does per pillar, so renderExecPillar draws the identical
+// coverage / operationalisation / effectiveness card, scoped to the capability.
+// The header identity (chapter / short / icon) is borrowed from the DORA pillar
+// the capability rolls up to, so the card still relates it back to DORA.
+function buildCapabilitySummary(assessment, capId) {
+  const caps  = CONFIG.capabilities || [];
+  const cap   = caps.find(c => c.id === capId);
+  const capNm = cap ? cap.name : capId;
+  const trace = buildTraceabilityRows(assessment);
+
+  const a = { oblTotal: 0, oblCovered: 0, uncovered: [], sTotal: 0, sLive: 0, sDraft: 0,
+    sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0, cTotal: 0, cImpl: 0, cEff: 0 };
+  trace.rows.forEach(r => {
+    if (r.capability !== capNm) return;
+    if (r.firstObj === 'Yes') { a.oblTotal++; if (r.covered === 'Yes') a.oblCovered++; else a.uncovered.push({ id: r.objectiveId, article: r.article, requirement: r.objective }); }
+    if (r.firstStmt === 'Yes') {
+      a.sTotal++;
+      if (r.stmtOperationalised === 'Live') a.sLive++;
+      else if (r.stmtOperationalised === 'Draft') a.sDraft++;
+      else { a.sNone++; if (r.disposition === 'Implemented' || r.disposition === 'Part-implemented') a.invisibleWork++; else if (r.disposition === 'Unknown' || r.disposition === '') a.toBuild++; }
+      if (r._approved) a.approved++;
+    }
+    if (r.firstCtrl === 'Yes') { a.cTotal++; if (r.controlStatus === 'Implemented') { a.cImpl++; if (r.effectiveness === 'Effective') a.cEff++; } }
+  });
+
+  // Danger-zone risks for this capability (residual ≥ 20 with controls < 50% effective).
+  const dangerRisks = [];
+  buildRiskProfile(assessment.riskPolicyFacts || []).forEach(k => {
+    if (k.capId !== capId) return;
+    const effPct = k.active ? 100 * k.effective / k.active : 0;
+    if ((k.residual || 0) >= 20 && effPct < 50) dangerRisks.push({ title: k.title, residual: k.residual });
+  });
+
+  const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
+  const hasData = a.oblTotal + a.sTotal + a.cTotal > 0;
+  const gaps = {
+    uncovered: a.uncovered, draftStatements: a.sTotal - a.approved, toImplement: a.sDraft,
+    toBuild: a.toBuild, invisibleWork: a.invisibleWork, notEffective: a.cImpl - a.cEff, dangerRisks,
+  };
+  const pid  = (typeof doraPillarForCapabilityName === 'function') ? doraPillarForCapabilityName(capNm) : null;
+  const pdef = ((typeof DORA_PILLARS !== 'undefined' && DORA_PILLARS) || []).find(p => p.id === pid) || {};
+  const s = {
+    id: 'cap:' + capId, chapter: pdef.chapter, name: capNm, short: pdef.short || 'Capability',
+    icon: pdef.icon || '🧩', inScope: true, hasData,
+    coverage: { covered: a.oblCovered, total: a.oblTotal, pct: pct(a.oblCovered, a.oblTotal) },
+    ops:      { operationalised: a.sLive, backed: a.sLive + a.sDraft, total: a.sTotal, pct: pct(a.sLive, a.sTotal) },
+    approval: { approved: a.approved, total: a.sTotal },
+    controls: { effective: a.cEff, implemented: a.cImpl, total: a.cTotal, pct: pct(a.cEff, a.cImpl) },
+    gaps,
+  };
+  if (!hasData) s.rag = 'none';
+  else {
+    const danger = dangerRisks.length > 0, noOps = s.ops.total > 0 && s.ops.operationalised === 0;
+    if (danger || noOps || s.coverage.pct < 50) s.rag = 'red';
+    else if (s.coverage.covered === s.coverage.total && s.ops.operationalised === s.ops.total && gaps.notEffective === 0) s.rag = 'green';
+    else s.rag = 'amber';
+  }
+  return s;
+}
+
 // ── Full DORA → Control traceability (one flat, Excel-filterable table) ──
 // Merges Control 1/2/3 into one spine: one row per obligation × statement ×
 // control, LEFT-JOINED so gaps still show —

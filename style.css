@@ -3141,6 +3141,18 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .mm-b-grey  { background: color-mix(in srgb, var(--text) 12%, transparent); color: var(--text-muted); }
 .mm-b-red   { background: color-mix(in srgb, var(--clr-danger) 18%, transparent); color: var(--clr-danger); }
 .mm-empty { color: var(--text-muted); font-size: .82rem; padding: .3rem 0; }
+/* Rollup cues: coloured caret when a node hides work below (green stays calm) */
+.mm-lvl-1 > .mm-row > .mm-caret { color: var(--clr-warning); }
+.mm-lvl-2 > .mm-row > .mm-caret { color: var(--accent); }
+.mm-lvl-3 > .mm-row > .mm-caret { color: var(--clr-danger); }
+.mm-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .9rem; margin: -.1rem 0 .7rem; font-size: .68rem; color: var(--text-muted); }
+.mm-leg { display: inline-flex; align-items: center; gap: .35rem; }
+.mm-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.mm-dot.mm-b-green { background: var(--clr-success); }
+.mm-dot.mm-b-amber { background: var(--clr-warning); }
+.mm-dot.mm-b-blue  { background: var(--accent); }
+.mm-dot.mm-b-red   { background: var(--clr-danger); }
+.mm-leg-note { font-style: italic; }
 
 /* ── Exec report — Act 1 coverage matrix ────────────────────────── */
 .exm-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }

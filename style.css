@@ -3111,6 +3111,11 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsc-mix-leg b { color: var(--text); font-family: var(--font-mono); }
 /* Small note under a pillar-card KPI tile (e.g. draft controls) */
 .pil-kpi-note { font-size: .66rem; color: var(--text-muted); margin-top: .4rem; }
+/* Capability lens (main screen) — dropdown + the exec pillar card, scoped */
+.caplens-sel-lbl { display: inline-flex; flex-direction: column; gap: .25rem; font-family: var(--font-mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+.caplens-sel { font-family: inherit; font-size: .85rem; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .6rem; min-width: 240px; cursor: pointer; }
+.caplens-sel:focus { outline: none; border-color: var(--accent); }
+.caplens-card #caplens-body { margin-top: .3rem; }
 
 /* ── Exec report — Act 1 coverage matrix ────────────────────────── */
 .exm-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }

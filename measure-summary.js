@@ -11,6 +11,8 @@ function renderMeasureSummary(assessment) {
   if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
   const ownSlot = document.getElementById("ownership-card-row");
   if (ownSlot) ownSlot.innerHTML = renderOwnershipCard(assessment);
+  const capLensSlot = document.getElementById("caplens-card-row");
+  if (capLensSlot) capLensSlot.innerHTML = renderCapabilityLensCard(assessment);
   const traceSlot = document.getElementById("trace-card-row");
   if (traceSlot) traceSlot.innerHTML = renderTraceabilityCard(assessment);
   const planSlot = document.getElementById("planning-card-row");
@@ -391,6 +393,38 @@ function copyTraceTable(btn) {
   navigator.clipboard.writeText(tsv).then(() => {
     const o = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = o; }, 1500);
   }).catch(() => { btn.textContent = 'Copy failed'; });
+}
+// ── Capability lens — the exec DORA-pillar card, scoped to one capability ──
+// A meeting aid: pick a capability and see its coverage / operationalisation /
+// effectiveness rendered as the exact same card the executive report draws per
+// DORA pillar (renderExecPillar), so the discussion ties back to DORA.
+let _capLensA = null;
+function renderCapabilityLensCard(assessment) {
+  _capLensA = assessment;
+  const caps = CONFIG.capabilities || [];
+  if (!caps.length) return '';
+  const trace   = buildTraceabilityRows(assessment);
+  const present = new Set(trace.rows.map(r => r.capability).filter(Boolean));
+  const firstCap = caps.find(c => present.has(c.name)) || caps[0];
+  const opts = caps.map(c => `<option value="${escHtml(c.id)}"${c.id === firstCap.id ? ' selected' : ''}>${escHtml(c.name)}</option>`).join('');
+  return `
+    <div class="card measure-card caplens-card">
+      <div class="measure-card-header">
+        <span class="measure-icon">🔎</span>
+        <div style="flex:1">
+          <h3 class="measure-card-title">Capability lens &mdash; relate a capability to its DORA objectives</h3>
+          <p class="measure-card-desc">Pick a capability to see its coverage, operationalisation and effectiveness as a DORA-pillar card &mdash; the same view as the executive report, scoped to that capability.</p>
+        </div>
+        <label class="caplens-sel-lbl">Capability
+          <select id="caplens-sel" class="caplens-sel" onchange="updateCapabilityLens(this.value)">${opts}</select>
+        </label>
+      </div>
+      <div id="caplens-body">${renderExecPillar(buildCapabilitySummary(assessment, firstCap.id))}</div>
+    </div>`;
+}
+function updateCapabilityLens(capId) {
+  const body = document.getElementById('caplens-body');
+  if (body && _capLensA) body.innerHTML = renderExecPillar(buildCapabilitySummary(_capLensA, capId));
 }
 function renderTraceabilityCard(assessment) {
   const t = buildTraceabilityRows(assessment);

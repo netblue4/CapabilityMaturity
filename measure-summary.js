@@ -419,12 +419,62 @@ function renderCapabilityLensCard(assessment) {
           <select id="caplens-sel" class="caplens-sel" onchange="updateCapabilityLens(this.value)">${opts}</select>
         </label>
       </div>
-      <div id="caplens-body">${renderExecPillar(buildCapabilitySummary(assessment, firstCap.id))}</div>
+      <div id="caplens-body">${capLensBody(assessment, firstCap.id)}</div>
     </div>`;
+}
+function capLensBody(a, capId) {
+  return renderExecPillar(buildCapabilitySummary(a, capId)) + renderCapabilityTree(a, capId);
 }
 function updateCapabilityLens(capId) {
   const body = document.getElementById('caplens-body');
-  if (body && _capLensA) body.innerHTML = renderExecPillar(buildCapabilitySummary(_capLensA, capId));
+  if (body && _capLensA) body.innerHTML = capLensBody(_capLensA, capId);
+}
+// Expand / collapse a mind-map node (article / objective / statement).
+function mmToggle(el) { const li = el.closest('.mm-node'); if (li) li.classList.toggle('mm-open'); }
+// Clickable hierarchy: DORA article → objective → policy statement → control.
+function renderCapabilityTree(assessment, capId) {
+  const arts = buildCapabilityTree(assessment, capId);
+  const wrap = inner => `<div class="mm-wrap">
+    <div class="mm-title">↳ DORA article → objective → statement → control &middot; click a node to expand</div>${inner}</div>`;
+  if (!arts.length) return wrap('<div class="mm-empty">No DORA articles mapped to this capability yet.</div>');
+
+  const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
+  const opBadge  = op => op === 'Live' ? badge('mm-b-green', 'Live') : op === 'Draft' ? badge('mm-b-blue', 'Draft') : badge('mm-b-grey', 'No control');
+  const covBadge = c  => c === 'Yes' ? badge('mm-b-green', 'covered') : badge('mm-b-red', 'uncovered');
+  const ctrlBadge = c => {
+    const st = c.status === 'Implemented' ? badge('mm-b-green', 'Implemented') : badge('mm-b-blue', 'Draft');
+    const eff = c.status === 'Implemented'
+      ? (c.effectiveness === 'Effective' ? badge('mm-b-green', 'Effective') : badge('mm-b-amber', 'Not yet effective')) : '';
+    return st + eff;
+  };
+  const leaf = (ic, cls, html) => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">${ic}</span><span class="mm-lbl ${cls || ''}">${html}</span></div></li>`;
+  const node = (ic, lbl, right, kids) => `<li class="mm-node"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">${ic}</span><span class="mm-lbl">${lbl}</span>${right || ''}</div><ul class="mm-children">${kids}</ul></li>`;
+
+  const renderCtrl = c => leaf('🛠', '', `${escHtml(c.name)} ${ctrlBadge(c)}${c.provenance ? `<span class="mm-ref"> · ${escHtml(c.provenance)}</span>` : ''}`);
+  const renderStmt = s => {
+    const kids = s.controls.length ? s.controls.map(renderCtrl).join('') : leaf('∅', 'mm-muted', 'No control operationalising this statement');
+    const lbl  = `${escHtml(s.header || s.ref)}${s.ref ? ` <span class="mm-ref">${escHtml(s.ref)}</span>` : ''}`;
+    return node('📄', lbl, opBadge(s.operationalised), kids);
+  };
+  const renderObj = o => {
+    const kids = o.statements.length ? o.statements.map(renderStmt).join('') : leaf('⚠', 'mm-muted', 'No owned statement — coverage gap');
+    const lbl  = `${escHtml(o.id || '')}${o.text ? ` — ${escHtml(o.text)}` : ''}`;
+    return node('🎯', lbl, covBadge(o.covered), kids);
+  };
+  const renderArt = a => {
+    let kids, meta;
+    if (a.noArt) {
+      const stmts = a.objectives.flatMap(o => o.statements);
+      kids = stmts.length ? stmts.map(renderStmt).join('') : leaf('·', 'mm-muted', 'No statements');
+      meta = `<span class="mm-meta">${stmts.length} statement(s)</span>`;
+    } else {
+      const objs = a.objectives, cov = objs.filter(o => o.covered === 'Yes').length;
+      kids = objs.map(renderObj).join('');
+      meta = `<span class="mm-meta">${cov}/${objs.length} objectives covered</span>`;
+    }
+    return node(a.noArt ? '🗂️' : '📘', `<b>${escHtml(a.article)}</b>`, meta, kids);
+  };
+  return wrap(`<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
 }
 function renderTraceabilityCard(assessment) {
   const t = buildTraceabilityRows(assessment);

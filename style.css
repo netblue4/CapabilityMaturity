@@ -3116,6 +3116,31 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .caplens-sel { font-family: inherit; font-size: .85rem; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .6rem; min-width: 240px; cursor: pointer; }
 .caplens-sel:focus { outline: none; border-color: var(--accent); }
 .caplens-card #caplens-body { margin-top: .3rem; }
+/* Capability drill-down mind map (article → objective → statement → control) */
+.mm-wrap { margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: .8rem; }
+.mm-title { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem; }
+.mm-tree, .mm-children { list-style: none; margin: 0; padding: 0; }
+.mm-children { margin-left: 1rem; border-left: 1px solid var(--border-subtle); padding-left: .35rem; }
+.mm-node > .mm-children { display: none; }
+.mm-node.mm-open > .mm-children { display: block; }
+.mm-row { display: flex; align-items: center; gap: .5rem; padding: .34rem .45rem; border-radius: 6px; cursor: pointer; }
+.mm-row:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.mm-row-leaf, .mm-row-leaf:hover { cursor: default; background: transparent; }
+.mm-caret { flex: none; width: .8rem; font-size: .7rem; color: var(--text-muted); transition: transform .12s ease; }
+.mm-node.mm-open > .mm-row > .mm-caret { transform: rotate(90deg); }
+.mm-caret-none { visibility: hidden; }
+.mm-ic { flex: none; font-size: .82rem; }
+.mm-lbl { flex: 1; font-size: .82rem; line-height: 1.3; }
+.mm-lbl.mm-muted { color: var(--text-muted); font-style: italic; }
+.mm-ref { font-family: var(--font-mono); font-size: .7rem; color: var(--text-muted); }
+.mm-meta { flex: none; font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); }
+.mm-badge { flex: none; font-family: var(--font-mono); font-size: .6rem; font-weight: 700; padding: .1rem .42rem; border-radius: 10px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.mm-b-green { background: color-mix(in srgb, var(--clr-success) 20%, transparent); color: var(--clr-success); }
+.mm-b-blue  { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.mm-b-amber { background: color-mix(in srgb, var(--clr-warning) 22%, transparent); color: var(--clr-warning); }
+.mm-b-grey  { background: color-mix(in srgb, var(--text) 12%, transparent); color: var(--text-muted); }
+.mm-b-red   { background: color-mix(in srgb, var(--clr-danger) 18%, transparent); color: var(--clr-danger); }
+.mm-empty { color: var(--text-muted); font-size: .82rem; padding: .3rem 0; }
 
 /* ── Exec report — Act 1 coverage matrix ────────────────────────── */
 .exm-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }

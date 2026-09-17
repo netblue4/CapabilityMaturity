@@ -563,6 +563,46 @@ function buildCapabilitySummary(assessment, capId) {
   return s;
 }
 
+// ── Capability drill-down tree: article → objective → statement → control ──
+// Nests the traceability rows for ONE capability into the clickable hierarchy.
+// Left-over statements (tied to no DORA objective) are grouped under a
+// separate node so nothing is hidden.
+function buildCapabilityTree(assessment, capId) {
+  const caps  = CONFIG.capabilities || [];
+  const capNm = (caps.find(c => c.id === capId) || {}).name || capId;
+  const rows  = buildTraceabilityRows(assessment).rows.filter(r => r.capability === capNm);
+  const NO_ART = 'Statements not mapped to a DORA objective';
+  const arts = new Map();
+  rows.forEach(r => {
+    const artKey = r.article || NO_ART;
+    let art = arts.get(artKey);
+    if (!art) { art = { article: artKey, noArt: !r.article, objectives: new Map() }; arts.set(artKey, art); }
+    const objKey = r.objectiveId || (r.article ? '__art__' : '__none__');
+    let obj = art.objectives.get(objKey);
+    if (!obj) { obj = { id: r.objectiveId, text: r.objective, covered: r.covered, statements: new Map() }; art.objectives.set(objKey, obj); }
+    if (r.statementRef || r.statementHeader) {
+      const sKey = r._sKey || r.statementRef;
+      let st = obj.statements.get(sKey);
+      if (!st) { st = { ref: r.statementRef, header: r.statementHeader || r.statementRef, document: r.document,
+        operationalised: r.stmtOperationalised, disposition: r.disposition, controls: new Map() }; obj.statements.set(sKey, st); }
+      if (r.control) {
+        const cKey = r._cKey || r.control;
+        if (!st.controls.has(cKey)) st.controls.set(cKey, { name: r.control, status: r.controlStatus, effectiveness: r.effectiveness, provenance: r.provenance });
+      }
+    }
+  });
+  return [...arts.values()].map(a => ({
+    article: a.article, noArt: a.noArt,
+    objectives: [...a.objectives.values()].map(o => ({
+      id: o.id, text: o.text, covered: o.covered,
+      statements: [...o.statements.values()].map(s => ({
+        ref: s.ref, header: s.header, document: s.document, operationalised: s.operationalised,
+        disposition: s.disposition, controls: [...s.controls.values()],
+      })),
+    })),
+  }));
+}
+
 // ── Full DORA → Control traceability (one flat, Excel-filterable table) ──
 // Merges Control 1/2/3 into one spine: one row per obligation × statement ×
 // control, LEFT-JOINED so gaps still show —

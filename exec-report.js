@@ -475,6 +475,12 @@ const EX2_FIELD = {
   capName:        r => r.capName || '',
   total:          r => r.total || 0,
   status:         r => EX2_STATUS_RANK[r.status] ?? 9,
+  dispI:          r => r.implementedStatus || 0,
+  dispPI:         r => r.partImplemented || 0,
+  dispU:          r => r.unknown || 0,
+  dispE:          r => r.excE || 0,
+  dispWT:         r => r.excWT || 0,
+  dispWP:         r => r.excWP || 0,
   operationalised: r => r.total ? r.operationalised / r.total : -1,
   ctrlDraft:      r => r.ctrlDraft || 0,
   ctrlImpl:       r => r.ctrlImpl || 0,
@@ -489,7 +495,7 @@ function ex2SortRows(which) {
     return String(va).localeCompare(String(vb)) * dir || a.document.localeCompare(b.document);
   });
 }
-const EX2_COLGROUP = `<colgroup><col style="width:13%"><col style="width:19%"><col style="width:13%"><col style="width:8%"><col style="width:11%"><col style="width:16%"><col style="width:10%"><col style="width:10%"></colgroup>`;
+const EX2_COLGROUP = `<colgroup><col style="width:9%"><col style="width:14%"><col style="width:10%"><col style="width:5%"><col style="width:8%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:11%"><col style="width:7%"><col style="width:8%"></colgroup>`;
 function ex2StatusBadge(r) {
   const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
   const [cls, txt] = map[r.status] || map.draft;
@@ -498,10 +504,11 @@ function ex2StatusBadge(r) {
 function ex2Head(which) {
   const st = _ex2Sort[which];
   const arrow = c => st.col === c ? `<span class="mrt-arrow">${st.dir === 1 ? '▲' : '▼'}</span>` : '';
-  const th = (k, l, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExec2('${which}','${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('pillar', 'DORA Pillar')}${th('document', 'Document')}${th('capName', 'Capability')}${th('total', 'Statements', 'ex2-num-h')}${th('status', 'Document status')}${th('operationalised', 'Control backed statements', 'rp-num')}${th('ctrlDraft', 'Draft', 'rp-num')}${th('ctrlImpl', 'Implemented', 'rp-num')}</tr>`;
+  const th = (k, l, cls, title) => `<th class="mrt-sort${cls ? ' ' + cls : ''}"${title ? ` title="${title}"` : ''} onclick="sortExec2('${which}','${k}')">${l}${arrow(k)}</th>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('document', 'Document')}${th('capName', 'Capability')}${th('total', 'Statements', 'ex2-num-h')}${th('status', 'Document status')}${th('dispI', 'I', 'ex2-dc', 'Self-declared Implemented')}${th('dispPI', 'PI', 'ex2-dc', 'Self-declared Part-implemented')}${th('dispU', 'U', 'ex2-dc', 'Unknown / not declared')}${th('dispE', 'E', 'ex2-dc', 'Exemption (E): applies but cannot be implemented')}${th('dispWT', 'WT', 'ex2-dc', 'Waiver Temporary (WT): applies, need time / a new tool')}${th('dispWP', 'WP', 'ex2-dc', 'Waiver Permanent (WP): applies but will not build')}${th('operationalised', 'Control backed statements', 'rp-num')}${th('ctrlDraft', 'Draft', 'rp-num')}${th('ctrlImpl', 'Implemented', 'rp-num')}</tr>`;
 }
 function ex2Body(rows) {
+  const disp = (n, cls, tip) => `<td class="ex2-dc ${n ? cls : ''}" title="${tip}">${n ? n : '<span class="src-zero">·</span>'}</td>`;
   return rows.map(d => {
     const totCtrl = d.ctrlDraft + d.ctrlImpl;   // a control is either draft or implemented
     return `<tr>
@@ -510,6 +517,12 @@ function ex2Body(rows) {
     <td class="exm-cap">${escHtml(d.capName)}</td>
     <td class="ex2-num">${d.total}</td>
     <td class="ex2-status">${ex2StatusBadge(d)}</td>
+    ${disp(d.implementedStatus, 'src-disp-imp', `${d.implementedStatus || 0} statement(s) self-declared Implemented`)}
+    ${disp(d.partImplemented, 'src-disp-temp', `${d.partImplemented || 0} statement(s) self-declared Part-implemented`)}
+    ${disp(d.unknown, 'src-disp-perm', `${d.unknown || 0} statement(s) Unknown or blank (a blank is never treated as implemented)`)}
+    ${disp(d.excE, 'src-disp-perm', `${d.excE || 0} Exemption (E): objective applies but cannot be implemented (technical)`)}
+    ${disp(d.excWT, 'src-disp-temp', `${d.excWT || 0} Waiver Temporary (WT): applies but need time / a new tool`)}
+    ${disp(d.excWP, 'src-disp-perm', `${d.excWP || 0} Waiver Permanent (WP): applies but we will not build it (regulatory)`)}
     <td class="rp-num">${rpFrac(d.operationalised, d.total)}</td>
     <td class="rp-num">${rpFrac(d.ctrlDraft, totCtrl)}</td>
     <td class="rp-num">${rpFrac(d.ctrlImpl, totCtrl, true)}</td>
@@ -638,6 +651,9 @@ const EX3_FIELD = {
   tested: k => k.active ? k.tested / k.active : -1,
   effective: k => k.active ? k.effective / k.active : -1,
   conf: k => EX3_CONF_RANK[k.conf] ?? 0,
+  srcLoc: k => k.srcLoc || 0,
+  srcGrp: k => k.srcGrp || 0,
+  srcPre: k => k.srcPre || 0,
   zone: k => EX3_ZONE_RANK[ex3Zone(k).key],
 };
 function ex3SortRows() {
@@ -652,8 +668,9 @@ function ex3SortRows() {
 function ex3Head() {
   const arrow = c => _ex3Sort.col === c ? `<span class="mrt-arrow">${_ex3Sort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExec3('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('pillar', 'DORA Pillar')}${th('capName', 'Capability')}${th('title', 'Risk')}${th('residual', 'Residual', 'rp-num')}${th('implemented', 'Implemented', 'rp-num')}${th('tested', 'Tested', 'rp-num')}${th('effective', 'Effective', 'rp-num')}${th('conf', 'Confidence', 'rp-num')}${th('zone', 'Zone')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('capName', 'Capability')}${th('title', 'Risk')}${th('residual', 'Residual', 'rp-num')}${th('implemented', 'Implemented', 'rp-num')}${th('tested', 'Tested', 'rp-num')}${th('effective', 'Effective', 'rp-num')}${th('conf', 'Confidence', 'rp-num')}${th('srcLoc', 'Local Policy', 'rp-num rr-src')}${th('srcGrp', 'Group Std', 'rp-num rr-src')}${th('srcPre', 'Pre-DORA', 'rp-num rr-src')}${th('zone', 'Zone')}</tr>`;
 }
+function ex3SrcCell(n) { return n ? `<b>${n}</b>` : '<span class="src-zero">·</span>'; }
 function ex3Body(rows) {
   return rows.map(k => {
     const z = ex3Zone(k);
@@ -666,6 +683,9 @@ function ex3Body(rows) {
       <td class="rp-num">${rpFrac(k.tested, k.active)}</td>
       <td class="rp-num">${rpFrac(k.effective, k.active, true)}</td>
       <td class="rp-num">${rpConfCell(k)}</td>
+      <td class="rp-num rr-src" title="${k.srcLoc || 0} treating control(s) from Local Policy">${ex3SrcCell(k.srcLoc)}</td>
+      <td class="rp-num rr-src" title="${k.srcGrp || 0} treating control(s) from Group Standards">${ex3SrcCell(k.srcGrp)}</td>
+      <td class="rp-num rr-src" title="${k.srcPre || 0} treating pre-DORA control(s)">${ex3SrcCell(k.srcPre)}</td>
       <td><span class="ex3-zchip ex3-z-${z.key}">${z.label}</span></td>
     </tr>`;
   }).join('');

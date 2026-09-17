@@ -136,12 +136,6 @@ function renderDoraCoverageCard(assessment) {
     <div class="card measure-card">
       ${header('⚖️', desc)}
       ${cmProgressBar(pct)}
-      <div class="rcsa-table-wrap">
-        <table class="dora-art-tbl">
-          <thead id="d1a-thead">${d1aHead()}</thead>
-          <tbody id="d1a-tbody">${d1aBody(d1aSortRows())}</tbody>
-        </table>
-      </div>
       ${uncovBlock}
     </div>`;
 }
@@ -543,13 +537,6 @@ function renderSourcesCard(assessment) {
     <div class="card measure-card">
       ${header(desc)}
       ${cmProgressBar(cov.backedPct)}
-      <div class="rcsa-table-wrap">
-        <table class="src-table">
-          <colgroup><col class="src-c-pillar"><col class="src-c-cap"><col class="src-c-doc"><col class="src-c-type"><col class="src-c-track"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-disp"><col class="src-c-status"><col class="src-c-risks"></colgroup>
-          <thead id="src-thead">${srcHead()}</thead>
-          <tbody id="src-tbody">${srcBody(srcSortRows())}</tbody>
-        </table>
-      </div>
       ${gapBlock}
     </div>`;
 }
@@ -1061,12 +1048,6 @@ function renderRiskRegisterCard(assessment) {
     <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
       ${header(desc)}
       ${cmProgressBar(ops.pct)}
-      <div class="rcsa-table-wrap">
-        <table class="rp-table rr-table">
-          <thead id="rr-thead">${rrHead()}</thead>
-          <tbody id="rr-tbody">${rrBody(rrSortRows())}</tbody>
-        </table>
-      </div>
       ${gapBlock}
     </div>`;
 }

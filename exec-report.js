@@ -279,6 +279,15 @@ function pilSubBar(label, n, d, col) {
 }
 function renderExecPillar(p) {
   const [ragCls, ragTxt] = PIL_RAG[p.rag] || PIL_RAG.none;
+  // Overall status (top-right) = average of the three control %s:
+  // Coverage (covered/total objectives), Operationalised (live/total statements)
+  // and Effective (effective/total controls). Coloured by the card's RAG.
+  const covPct = p.coverage.pct, opsPct = p.ops.pct;
+  const effPct = p.controls.total ? Math.round(100 * p.controls.effective / p.controls.total) : 0;
+  const overall = Math.round((covPct + opsPct + effPct) / 3);
+  const corner = (p.rag === 'oos' || !p.hasData)
+    ? `<div class="pil-rag ${ragCls}">${ragTxt}</div>`
+    : `<div class="pil-overall pil-ov-${p.rag}" title="Overall = average of Coverage ${covPct}%, Operationalised ${opsPct}% and Effective ${effPct}%"><div class="pil-ov-pct">${overall}%</div><div class="pil-ov-lbl">overall</div></div>`;
   const head = `<div class="pil-head">
     <div class="pil-ico">${p.icon}</div>
     <div class="pil-head-txt">
@@ -286,7 +295,7 @@ function renderExecPillar(p) {
       <div class="pil-title">${escHtml(p.name)}</div>
       <div class="pil-verdict">${escHtml(pilVerdict(p))}</div>
     </div>
-    <div class="pil-rag ${ragCls}">${ragTxt}</div>
+    ${corner}
   </div>`;
 
   if (p.rag === 'oos' || !p.hasData) {
@@ -319,8 +328,7 @@ function renderExecPillar(p) {
     pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) +
     pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue) +
     pilSubBar('No control (statements with none)', opNone, op.total, track));
-  const effPctTotal = ct.total ? Math.round((ct.effective / ct.total) * 100) : 0;   // effective of ALL controls
-  const effTile = kpiTile('Effective · Control 3', `${effPctTotal}%`, `${ct.implemented} / ${ct.total} controls are IMPLEMENTED (${ct.effective} effective and ${ctNotEff} not yet)`,
+  const effTile = kpiTile('Effective · Control 3', `${effPct}%`, `${ct.effective} / ${ct.total} controls are EFFECTIVE (${ctNotEff} NOT YET and ${ctDraft} DRAFT)`,
     pilSubBar('Effective', ct.effective, ct.total, green) +
     pilSubBar('Not yet effective', ctNotEff, ct.total, blue) +
     pilSubBar('Draft', ctDraft, ct.total, track));

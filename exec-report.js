@@ -158,6 +158,20 @@ function renderExecScorecard(currentA, prevA) {
   const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
   const pil  = buildPillarSummary(currentA);   // per-pillar totals for the mix bars
 
+  // Overall = average of the three control %s, using the SAME definitions as the
+  // pillar / capability cards: Coverage (covered/total objectives), Operationalised
+  // (live/total statements) and Effective (effective/total controls). Keeps every
+  // "overall" figure on one method. The strict "fully operationalised" count stays
+  // as a sub-stat.
+  const avg3 = (sc, so, bo) => {
+    const c1 = sc.control1.pct;
+    const c2 = so.all.total ? Math.round(100 * so.all.operationalised / so.all.total) : 0;
+    const c3 = bo.total ? Math.round(100 * bo.liveEffective / bo.total) : 0;
+    return Math.round((c1 + c2 + c3) / 3);
+  };
+  const overallAvg = avg3(cur, sops, bops);
+  const prevAvg = (prev && prevA) ? avg3(prev, buildStatementOps(prevA.policyRows || [], prevA.riskPolicyFacts || []), buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || [])) : null;
+
   const gauge = (key, tag, name, desc, sub, extra) => {
     const c = cur[key], p = prev ? prev[key] : null;
     return `<div class="exsc-gauge">
@@ -182,9 +196,10 @@ function renderExecScorecard(currentA, prevA) {
         <div class="exsc-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)}${subVs}</div>
       </div>
       <div class="exsc-composite">
-        <div class="exsc-big" style="color:${execScColor(cur.composite.pct)}">${cur.composite.pct}%</div>
-        <div class="exsc-big-lbl">DORA objectives fully operationalised</div>
-        <div class="exsc-qoq">${execScDelta(cur.composite.pct, prev ? prev.composite.pct : null)}</div>
+        <div class="exsc-big" style="color:${execScColor(overallAvg)}">${overallAvg}%</div>
+        <div class="exsc-big-lbl">overall &middot; avg of the three controls</div>
+        <div class="exsc-qoq">${execScDelta(overallAvg, prevAvg)}</div>
+        <div class="exsc-substat">${cur.composite.pct}% of objectives fully operationalised (covered · live · effective)</div>
       </div>
     </div>
     <div class="exsc-row">

@@ -3071,6 +3071,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsc-pct { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; }
 .exsc-frac { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); margin-top: 2px; }
 .exsc-qoq { margin-top: .6rem; font-family: var(--font-mono); font-size: .66rem; min-height: 1em; }
+.exsc-substat { margin-top: .35rem; font-family: var(--font-mono); font-size: .58rem; color: var(--text-muted); line-height: 1.35; max-width: 22rem; margin-left: auto; }
 .exsc-up { color: var(--clr-success); }
 .exsc-dn { color: var(--clr-danger); }
 .exsc-flat { color: var(--text-muted); }

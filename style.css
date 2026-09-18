@@ -3153,6 +3153,11 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .mm-dot.mm-b-blue  { background: var(--accent); }
 .mm-dot.mm-b-red   { background: var(--clr-danger); }
 .mm-leg-note { font-style: italic; }
+/* Per-article compact trio (Coverage / Operationalised / Effective %) */
+.mm-trio { flex: none; display: inline-flex; gap: .3rem; align-items: center; }
+.mm-tri { font-family: var(--font-mono); font-size: .62rem; font-weight: 600; padding: .1rem .38rem; border-radius: 8px; white-space: nowrap; }
+.mm-tri b { font-weight: 800; opacity: .85; margin-right: .1rem; }
+.mm-tri.mm-tri-na { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-muted); }
 
 /* ── Exec report — Act 1 coverage matrix ────────────────────────── */
 .exm-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }
@@ -3198,6 +3203,16 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .pil-rag-amber { background: color-mix(in srgb, var(--clr-warning) 16%, transparent); color: var(--clr-warning); border: 1px solid color-mix(in srgb, var(--clr-warning) 40%, transparent); }
 .pil-rag-green { background: color-mix(in srgb, var(--clr-success) 16%, transparent); color: var(--clr-success); border: 1px solid color-mix(in srgb, var(--clr-success) 40%, transparent); }
 .pil-rag-none, .pil-rag-oos { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-muted); border: 1px solid var(--border); }
+/* Overall status badge (top-right) — average of the three control %s */
+.pil-overall { flex-shrink: 0; text-align: center; padding: .3rem .7rem; border-radius: 12px; border: 1px solid var(--border); line-height: 1; }
+.pil-ov-pct { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; }
+.pil-ov-lbl { font-family: var(--font-mono); font-size: .5rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-top: .18rem; }
+.pil-ov-red   { background: color-mix(in srgb, var(--clr-danger) 14%, transparent);  border-color: color-mix(in srgb, var(--clr-danger) 40%, transparent); }
+.pil-ov-red   .pil-ov-pct { color: var(--clr-danger); }
+.pil-ov-amber { background: color-mix(in srgb, var(--clr-warning) 14%, transparent); border-color: color-mix(in srgb, var(--clr-warning) 40%, transparent); }
+.pil-ov-amber .pil-ov-pct { color: var(--clr-warning); }
+.pil-ov-green { background: color-mix(in srgb, var(--clr-success) 14%, transparent); border-color: color-mix(in srgb, var(--clr-success) 40%, transparent); }
+.pil-ov-green .pil-ov-pct { color: var(--clr-success); }
 /* kpis */
 .pil-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin: 13px 0; }
 .pil-kpi { background: var(--bg); border: 1px solid var(--border-subtle); border-radius: 9px; padding: 9px 10px; }

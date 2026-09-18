@@ -452,7 +452,26 @@ function renderCapabilityTree(assessment, capId) {
   const objBadge  = o => o.covered !== 'Yes'
     ? badge('mm-b-red', '▲ uncovered — no statement')
     : roll(oLevel(o), ['✓ all effective', '● effectiveness gap below', '● draft control below', '▲ no control below']);
-  const artBadge  = a => roll(aLevel(a), ['✓ all effective', '● effectiveness gaps below', '● draft controls below', '▲ coverage gaps below']);
+  // Per-article compact trio: Coverage (C1) · Operationalised (C2) · Effective (C3).
+  const pctCls = p => p >= 100 ? 'mm-b-green' : p > 0 ? 'mm-b-amber' : 'mm-b-red';
+  const triCell = (lbl, n, d, tip) => {
+    const p = d ? Math.round(100 * n / d) : null;
+    const cls = p === null ? 'mm-tri-na' : pctCls(p);
+    return `<span class="mm-tri ${cls}" title="${tip}: ${p === null ? 'n/a' : p + '% (' + n + '/' + d + ')'}"><b>${lbl}</b> ${p === null ? '—' : p + '%'}</span>`;
+  };
+  const artTrio = a => {
+    const objT = a.noArt ? 0 : a.objectives.length;
+    const objC = a.noArt ? 0 : a.objectives.filter(o => o.covered === 'Yes').length;
+    const stmts = a.objectives.flatMap(o => o.statements);
+    const sSeen = new Map(), cSeen = new Map();
+    stmts.forEach(s => {
+      const sk = s.ref || s.header; if (!sSeen.has(sk)) sSeen.set(sk, s.operationalised);
+      s.controls.forEach(c => { if (!cSeen.has(c.name)) cSeen.set(c.name, c); });
+    });
+    const sT = sSeen.size, sLive = [...sSeen.values()].filter(v => v === 'Live').length;
+    const cT = cSeen.size, cEff = [...cSeen.values()].filter(c => c.status === 'Implemented' && c.effectiveness === 'Effective').length;
+    return `<span class="mm-trio">${triCell('C1', objC, objT, 'Coverage · Control 1')}${triCell('C2', sLive, sT, 'Operationalised · Control 2')}${triCell('C3', cEff, cT, 'Effective · Control 3')}</span>`;
+  };
   const ctrlBadge = c => {
     const st = c.status === 'Implemented' ? badge('mm-b-green', 'Implemented') : badge('mm-b-blue', 'Draft');
     const eff = c.status === 'Implemented'
@@ -481,17 +500,10 @@ function renderCapabilityTree(assessment, capId) {
     return node('🎯', lbl, objBadge(o), kids, oLevel(o));
   };
   const renderArt = a => {
-    let kids, meta;
-    if (a.noArt) {
-      const stmts = a.objectives.flatMap(o => o.statements);
-      kids = stmts.length ? stmts.map(renderStmt).join('') : leaf('·', 'mm-muted', 'No statements');
-      meta = `<span class="mm-meta">${stmts.length} statement(s)</span>`;
-    } else {
-      const objs = a.objectives, cov = objs.filter(o => o.covered === 'Yes').length;
-      kids = objs.map(renderObj).join('');
-      meta = `<span class="mm-meta">${cov}/${objs.length} objectives covered</span>`;
-    }
-    return node(a.noArt ? '🗂️' : '📘', `<b>${escHtml(a.article)}</b>`, `${meta}${artBadge(a)}`, kids, aLevel(a));
+    const kids = a.noArt
+      ? (a.objectives.flatMap(o => o.statements).length ? a.objectives.flatMap(o => o.statements).map(renderStmt).join('') : leaf('·', 'mm-muted', 'No statements'))
+      : a.objectives.map(renderObj).join('');
+    return node(a.noArt ? '🗂️' : '📘', `<b>${escHtml(a.article)}</b>`, artTrio(a), kids, aLevel(a));
   };
   return wrap(legend + `<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
 }

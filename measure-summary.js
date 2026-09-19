@@ -729,13 +729,14 @@ function renderPlanningCard(assessment) {
 const PLAN_SHARED_COLS = `Capability | Control Name | Statement Ref | Control Objective | Expected Evidence | Verdict | Matched Existing Control | Existing Statement Ref | Confidence | Why | Description | Control Status | Control Reason | Ready-To-Adapt Description`;
 
 const PLAN_PROMPT_1 = `ROLE
-You are an IT risk & control analyst integrating newly generated controls into an existing
-DORA control framework without creating duplicates.
+You are an IT risk & control analyst integrating newly generated risk-treatment-controls into an
+existing DORA control framework without creating duplicates. This is step 2a of Governance-Control 2
+(Operationalisation).
 
 TASK
-Build the SHARED WORKING TABLE. For each NEW CANDIDATE control, extract its objective and
-expected evidence, then decide whether an EXISTING control already achieves the same control
-objective. Compare on OBJECTIVE / INTENT — what the control is trying to achieve — NOT on
+Build the SHARED WORKING TABLE. For each NEW CANDIDATE risk-treatment-control, extract its objective
+and expected evidence, then decide whether an EXISTING risk-treatment-control already achieves the
+same objective. Compare on OBJECTIVE / INTENT — what the control is trying to achieve — NOT on
 wording, control name, or format.
 
 THE SHARED WORKING TABLE (14 columns — every later prompt reuses this exact table)
@@ -783,7 +784,8 @@ NEW ones). Keep all 14 columns present even where empty, so it pastes straight i
 <PASTE HERE>`;
 
 const PLAN_PROMPT_2 = `ROLE
-You are an IT risk & control analyst resolving each row of the shared working table.
+You are an IT risk & control analyst resolving each row of the shared working table (step 2a of
+Governance-Control 2, Operationalisation).
 
 CONTEXT
 This is the SAME table Prompt 1 produced. Since then a human has reviewed and corrected
@@ -820,8 +822,8 @@ Return ONLY the full shared working table as TAB-SEPARATED values inside a code 
 <PASTE HERE>`;
 
 const PLAN_PROMPT_3 = `ROLE
-You are an IT risk & control analyst preparing genuinely-new controls for the operational
-team to implement.
+You are an IT risk & control analyst preparing genuinely-new risk-treatment-controls for the
+operational team to implement (step 2a of Governance-Control 2, Operationalisation).
 
 CONTEXT
 This is the SAME table, now carrying Prompt 2's resolution columns. For each NEW row (Verdict
@@ -852,7 +854,116 @@ Return ONLY the full shared working table as TAB-SEPARATED values inside a code 
 === SHARED WORKING TABLE (paste your Prompt 2 table) ===
 <PASTE HERE>`;
 
-// Upstream mapping prompt (Control 1): DORA articles → policy statements.
+// ── Coverage · Governance-Control 1 prompts (1a → 1d) ────────────
+// 1a · Define the applicable DORA articles/RTS — the Statement of Applicability.
+const PLAN_PROMPT_SOA = `ROLE
+You are an IT compliance analyst building a DORA Statement of Applicability (SOA) — the baseline
+list of every DORA article and Regulatory Technical Standard (RTS/ITS) that applies to us. This
+is step 1a of Governance-Control 1 (Coverage).
+
+TASK
+From the DORA source index, list every article and RTS/ITS and decide whether it is in scope for
+our entity, with a one-line rationale. The in-scope rows are our completeness baseline.
+
+HOW TO READ THE INPUTS
+- DORA SOURCE INDEX: DORA articles and RTS/ITS with their titles (and a short summary where available).
+- SCOPE NOTES: what applies to us — entity type, services, anything owned by a group function or
+  another entity, and voluntary regimes we have or have not adopted (e.g. Article 45 information-sharing).
+
+RULES
+1. One row per article or RTS/ITS.
+2. In-Scope = Yes unless a scope note clearly excludes it (out of scope, owned elsewhere, or
+   voluntary-not-adopted) — then No, with the reason.
+3. Never invent article numbers or RTS not present in the source index.
+4. Keep the rationale to one line.
+
+OUTPUT
+Return ONLY a table as TAB-SEPARATED values in a code block, header row first:
+DORA Ref | Title | Chapter | In-Scope | Rationale
+Order by DORA Ref. In-scope rows are the SOA baseline; out-of-scope rows are your documented exclusions.
+
+=== DORA SOURCE INDEX ===
+<PASTE HERE>
+
+=== SCOPE NOTES (what applies to us) ===
+<PASTE HERE>`;
+
+// 1b · Decompose the SOA into explicit, actionable digital-resilience objectives.
+const PLAN_PROMPT_OBJECTIVES = `ROLE
+You are an IT risk analyst translating dense DORA regulatory text into explicit, actionable
+digital-resilience objectives our operational teams can execute rather than interpret. This is
+step 1b of Governance-Control 1 (Coverage).
+
+TASK
+For each in-scope DORA article/RTS, decompose its requirement text into one or more digital-
+resilience objectives. Each objective is a single, testable outcome in plain operational language
+(what must be true) — not a restatement of the legal text.
+
+HOW TO READ THE INPUTS
+- SOA (from step 1a, tab-separated): DORA Ref | Title | Chapter | In-Scope | Rationale
+- REQUIREMENT TEXT: the article/RTS wording for each in-scope ref, keyed by DORA Ref.
+
+RULES
+1. Only decompose In-Scope = Yes rows.
+2. A dense article usually yields several objectives — split them; never merge unrelated requirements.
+3. Each objective is a concrete outcome ("X is maintained / tested / performed"), specific enough
+   to later attach a risk-treatment-control and an evidence test.
+4. Preserve traceability: every objective carries its source DORA Ref.
+5. Invent no requirements not present in the text.
+
+OUTPUT
+Return ONLY a table as TAB-SEPARATED values in a code block, header row first:
+DORA Ref | Objective ID | Digital-Resilience Objective | Source Note
+Objective ID = «DORA Ref»-1, -2, … Order grouped by DORA Ref.
+
+=== SOA (paste step 1a output, in-scope rows) ===
+<PASTE HERE>
+
+=== REQUIREMENT TEXT (article/RTS wording, keyed by DORA Ref) ===
+<PASTE HERE>`;
+
+// 1c · Map objectives to capabilities and draft the policy / group-standard statements.
+const PLAN_PROMPT_STATEMENTS = `ROLE
+You are an IT policy author integrating DORA into our IT landscape by writing digital-resilience
+objectives into our ICT risk policy and group-standard statements. This is step 1c of
+Governance-Control 1 (Coverage).
+
+TASK
+For each objective, (a) identify the owning IT capability and the policy or group standard it
+belongs in, and (b) draft the policy/group-standard statement that writes the objective into that
+document. Match on meaning, using the capability list as a guide.
+
+HOW TO READ THE INPUTS
+- OBJECTIVES (from step 1b, tab-separated): DORA Ref | Objective ID | Digital-Resilience Objective
+- CAPABILITIES: our IT capability list (and, where available, the document each maps to).
+- EXISTING DOCUMENTS: our current policies and group standards (name + type Local Policy / Group Standard).
+
+RULES
+1. Route each objective to exactly one owning capability and one target document; if it spans
+   several, pick the best home and name the others in a note.
+2. Draft a POLICY REQUIREMENT (what we require), not a control (how we do it) — the risk-treatment-
+   control comes later, in Operationalisation (Governance-Control 2).
+3. Local Policy statements are full and descriptive; Group Standard statements are shorter and
+   principle-level.
+4. Propose a statement ref in our house format if one isn't obvious (e.g. «doc code»-«n») and flag
+   it as proposed.
+5. One output row per objective. Invent no capabilities or documents not provided.
+
+OUTPUT
+Return ONLY a table as TAB-SEPARATED values in a code block, header row first:
+DORA Ref | Objective ID | Capability | Target Document | Type | Proposed Statement Ref | Draft Statement Header | Draft Statement Text
+Order grouped by Capability then Target Document.
+
+=== OBJECTIVES (paste step 1b output) ===
+<PASTE HERE>
+
+=== CAPABILITIES (our IT capability list) ===
+<PASTE HERE>
+
+=== EXISTING DOCUMENTS (policies & group standards) ===
+<PASTE HERE>`;
+
+// 1d · Record the mapping as coverage evidence (Governance-Control 1): statements ↔ DORA, gaps.
 const PLAN_PROMPT_DORA = `ROLE
 You are an IT compliance analyst mapping DORA (Regulation (EU) 2022/2554, its RTS/ITS, and the
 major-incident criteria (MIC) and reporting (MIR) standards) to an organisation's policy
@@ -914,26 +1025,38 @@ function showPlanningGuide() {
       <pre>${escHtml(text)}</pre>
     </div>`;
   const body = `
-    <p class="guide-intro">Turn new source statements into live, non-duplicated controls. The three prompts all work on <b>one shared 14-column table</b> — each prompt fills its own columns and re-emits the whole table, so it round-trips cleanly between Excel and your AI tool. Filter this card to one capability, <b>Copy for Excel</b>, then run the prompts in order.</p>
-    <h4 class="guide-h">The shared table</h4>
-    <p class="guide-intro" style="margin-top:0"><code>Capability · Control Name · Statement Ref · Control Objective · Expected Evidence · Verdict · Matched Existing Control · Existing Statement Ref · Confidence · Why · Description · Control Status · Control Reason · Ready-To-Adapt Description</code></p>
-    <h4 class="guide-h">The process</h4>
+    <p class="guide-intro">This is the governance workflow that moves DORA from regulatory text to operational reality: <b>DORA article/RTS → digital-resilience objective → policy/group-standard statement → risk-treatment-control</b>. It is delivered as two governance processes — <b>Coverage (Governance-Control 1)</b> and <b>Operationalisation (Governance-Control 2)</b> — with an AI prompt for each step. <span class="guide-do">Effectiveness (Governance-Control 3) is inherited from the business-as-usual RCSA and is handled outside this tool, so it isn't covered here.</span></p>
+
+    <h3 class="guide-proc-h">1 · Coverage — Governance-Control 1</h3>
+    <p class="guide-intro" style="margin-top:0">DORA article/RTS → objective → policy/group-standard statement. Prove every applicable DORA objective is covered by an owned policy or group-standard statement.</p>
     <ol class="guide-steps">
-      <li><b>Prep the sources</b> — add the new document's statements to the policy upload file, re-import, and <b>Generate</b> (your existing prompt) a draft risk + draft control per new RTM (objective, description &amp; expected evidence held in the control description).</li>
-      <li><b>Prompt 1</b> — <i>What it does:</i> for each new candidate control it extracts the objective and expected evidence, then decides whether an existing control already achieves the same objective. <i>How you see it:</i> it marks each candidate <b>Duplicate</b> or <b>New</b> and fills columns 1–10. <span class="guide-do">Do: Copy for Excel (filtered to the capability) as the existing inventory, then run Prompt 1.</span></li>
-      <li><b>Review in Excel.</b> Paste Prompt 1's table into Excel and human-check the judgement columns — <b>Verdict, Matched Existing Control, Existing Statement Ref, Confidence</b> — correcting anything the AI got wrong.</li>
-      <li><b>Prompt 2</b> — <i>What it does:</i> for each duplicate it links the existing control to the new statement and closes the duplicate; for each new control it marks it ready to implement. <i>How you see it:</i> it fills <b>Description</b> (the standard link line), <b>Control Status</b> (Proposed Close / Implemented) and <b>Control Reason</b>. <span class="guide-do">Do: paste your reviewed table, then run Prompt 2.</span></li>
-      <li><b>Prompt 3</b> — <i>What it does:</i> for each genuinely-new control it writes the description the operational team will adopt so the control evidences its objective. <i>How you see it:</i> it fills <b>Ready-To-Adapt Description</b> — the standard link line followed by a plain-English operational paragraph. <span class="guide-do">Do: paste Prompt 2's table, then run Prompt 3.</span></li>
-      <li><b>Update Riskonnect.</b> Take Prompt 3's finished table and apply it: close the duplicates, adopt the new descriptions, then re-import the risk data — the funnel and framework cards reflect the integration; anything still Draft or Uncovered is your backlog.</li>
+      <li><b>1a · Define the applicable DORA articles &amp; RTS</b> — extract every in-scope article and RTS/ITS to set the completeness baseline (the DORA Statement of Applicability). <span class="guide-do">Prompt 1a builds the SOA from your DORA source index + scope notes.</span></li>
+      <li><b>1b · Decompose the SOA into digital-resilience objectives</b> — translate dense regulatory text into explicit, actionable objectives so teams execute instructions rather than interpret law. <span class="guide-do">Prompt 1b turns each in-scope article/RTS into testable objectives.</span></li>
+      <li><b>1c · Map to capabilities &amp; write the policy statements</b> — route each objective to its owning capability/policy and draft the policy/group-standard statement that writes it in (executive approval of the policy provides the mandate). <span class="guide-do">Prompt 1c maps objectives to capabilities and drafts the statements.</span></li>
+      <li><b>1d · Record the mapping as coverage evidence</b> — map the owned statements back to the DORA requirements, with a gap flag for anything uncovered (your exception evidence). <span class="guide-do">Prompt 1d produces the coverage matrix + gaps.</span></li>
     </ol>
-    <h4 class="guide-h">Upstream — align policy to DORA (Control 1)</h4>
-    <p class="guide-intro" style="margin-top:0">Map DORA articles/RTS to your policy statements to prove regulatory coverage. Paste your <b>DORA-to-capability map</b> and your <b>policy-statement export</b>; the output lists each requirement, its matched statement ref(s), a confidence, and a gap flag for anything uncovered (your exception evidence). Match is on meaning, not capability labels — strong for Local Policy (full statement text), weaker for Group Standards (blank text, matched on header/control name).</p>
-    ${promptBlock('DORA mapping — map DORA articles to policy statements', PLAN_PROMPT_DORA)}
-    <h4 class="guide-h">Prompts</h4>
-    ${promptBlock('Prompt 1 — Build the table &amp; find duplicates (step 2)', PLAN_PROMPT_1)}
-    ${promptBlock('Prompt 2 — Resolve (Description / Status / Reason) (step 4)', PLAN_PROMPT_2)}
-    ${promptBlock('Prompt 3 — Ready-to-adapt description (step 5)', PLAN_PROMPT_3)}`;
-  document.getElementById('modal-title').textContent = 'Planning — process & AI prompts';
+    ${promptBlock('Prompt 1a — Define applicable DORA articles &amp; RTS (the SOA)', PLAN_PROMPT_SOA)}
+    ${promptBlock('Prompt 1b — Decompose into digital-resilience objectives', PLAN_PROMPT_OBJECTIVES)}
+    ${promptBlock('Prompt 1c — Map to capabilities &amp; draft policy statements', PLAN_PROMPT_STATEMENTS)}
+    ${promptBlock('Prompt 1d — Coverage evidence: statements ↔ DORA, with gaps', PLAN_PROMPT_DORA)}
+
+    <h3 class="guide-proc-h">2 · Operationalisation — Governance-Control 2</h3>
+    <p class="guide-intro" style="margin-top:0">… → risk-treatment-controls. Operationalise every statement with a risk-treatment-control (new or adopted), rationalising duplicates and logging exceptions. Steps 2a–2c below run on <b>one shared 14-column table</b> — each prompt fills its own columns and re-emits the whole table, so it round-trips cleanly between Excel and your AI tool. Filter this card to one capability, <b>Copy for Excel</b>, then run the prompts in order.</p>
+    <p class="guide-intro" style="margin-top:.2rem"><code>Capability · Control Name · Statement Ref · Control Objective · Expected Evidence · Verdict · Matched Existing Control · Existing Statement Ref · Confidence · Why · Description · Control Status · Control Reason · Ready-To-Adapt Description</code></p>
+    <ol class="guide-steps">
+      <li><b>Prep the sources</b> — add the new document's statements to the policy upload file, re-import, and <b>Generate</b> a draft risk + draft risk-treatment-control per new statement (objective, description &amp; expected evidence held in the control description).</li>
+      <li><b>2a · Find duplicates (Prompt 1)</b> — for each new candidate risk-treatment-control it extracts the objective and expected evidence, then decides whether an existing control already achieves the same objective, marking each <b>Duplicate</b> or <b>New</b> and filling columns 1–10. <span class="guide-do">Do: Copy for Excel (filtered to the capability) as the existing inventory, then run Prompt 1.</span></li>
+      <li><b>Review in Excel</b> — paste Prompt 1's table and human-check the judgement columns (<b>Verdict, Matched Existing Control, Existing Statement Ref, Confidence</b>), correcting anything the AI got wrong.</li>
+      <li><b>2a · Resolve (Prompt 2)</b> — for each duplicate it links the existing control to the new statement and closes the duplicate; for each new control it marks it ready to implement, filling <b>Description</b> (the house link line), <b>Control Status</b> and <b>Control Reason</b>. <span class="guide-do">Do: paste your reviewed table, then run Prompt 2.</span></li>
+      <li><b>2a · Ready-to-adapt description (Prompt 3)</b> — for each genuinely-new control it writes the operational description the team will adopt, filling <b>Ready-To-Adapt Description</b> (house link line + a plain-English operational paragraph). <span class="guide-do">Do: paste Prompt 2's table, then run Prompt 3.</span></li>
+      <li><b>2b · Record &amp; apply</b> — take the finished table and apply it in Riskonnect (close duplicates, adopt the new descriptions, capture owner + implementation status), then re-import the risk data. This is the statement → risk-treatment-control mapping evidence for Governance-Control 2; anything still Draft or Uncovered is your backlog.</li>
+    </ol>
+    ${promptBlock('Prompt 1 — Build the table &amp; find duplicates (step 2a)', PLAN_PROMPT_1)}
+    ${promptBlock('Prompt 2 — Resolve (Description / Status / Reason) (step 2a)', PLAN_PROMPT_2)}
+    ${promptBlock('Prompt 3 — Ready-to-adapt description (step 2a)', PLAN_PROMPT_3)}
+
+    <p class="guide-intro" style="margin-top:1rem">All three governance processes feed a single tracked risk, <b>“Non-compliance with ICT regulation (DORA)”</b>, so the programme is governed like every other material exposure.</p>`;
+  document.getElementById('modal-title').textContent = 'Governance workflow — Coverage & Operationalisation (AI prompts)';
   document.getElementById('modal-body').innerHTML = body;
   const m = document.getElementById('ratings-modal');
   const box = m.querySelector('.modal-box');

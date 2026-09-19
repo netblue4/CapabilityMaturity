@@ -2776,6 +2776,8 @@ details[open] .profile-card-chevron {
 .plan-ps-uncovered { background: color-mix(in srgb, var(--clr-danger) 20%, transparent); color: var(--clr-danger); }
 .plan-ps-predora { background: var(--track); color: var(--text-muted); }
 .guide-h { font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text); margin: 1.2rem 0 .55rem; }
+.guide-proc-h { font-size: 1.02rem; font-weight: 800; color: var(--text); margin: 1.6rem 0 .35rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); }
+.guide-proc-h:first-of-type { border-top: none; padding-top: 0; }
 .guide-steps { margin: 0; padding-left: 1.2rem; font-size: .84rem; line-height: 1.5; }
 .guide-steps li { margin: .35rem 0; }
 .guide-steps b { color: var(--text); }

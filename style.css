@@ -3046,6 +3046,38 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ev-row-gap td { background: color-mix(in srgb, var(--clr-danger) 7%, transparent); }
 .ev-empty { color: var(--text-muted); font-style: italic; margin-top: 1rem; }
 
+/* Sortable evidence headers */
+.ev-sortable thead th { cursor: pointer; user-select: none; }
+.ev-sortable thead th:hover { color: var(--text); }
+.ev-sort-arr { color: var(--accent); font-size: .6rem; }
+
+/* Section heading between the SOA and the detail table */
+.ev-sect-h { font-size: 1rem; font-weight: 800; color: var(--text); margin: 1.6rem 0 .5rem; }
+
+/* DORA Statement of Applicability (SOA) — separate completeness display */
+.ev-soa { margin-bottom: 1.6rem; }
+.ev-soa-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.ev-soa-hd .ev-sect-h { margin-top: 0; }
+.ev-soa-sub { font-size: .78rem; color: var(--text-muted); line-height: 1.45; margin: .1rem 0 .6rem; max-width: 60rem; }
+.ev-soa-tbl { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.ev-soa-tbl thead th { text-align: left; font-family: var(--font-mono); font-size: .58rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .45rem .6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.ev-soa-tbl tbody td { padding: .45rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.ev-soa-tbl tbody tr:last-child td { border-bottom: none; }
+.soa-ref { font-weight: 600; }
+.soa-ch { font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; }
+.soa-why { color: var(--text-muted); }
+.soa-row-app td { background: color-mix(in srgb, var(--clr-success) 8%, transparent); }
+.soa-row-app .soa-ref { border-left: 3px solid var(--clr-success); padding-left: .45rem; }
+.soa-row-na td { color: var(--text-muted); }
+.soa-app { font-family: var(--font-mono); font-size: .62rem; font-weight: 700; padding: .1rem .45rem; border-radius: 20px; white-space: nowrap; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.soa-app-yes { background: color-mix(in srgb, var(--clr-success) 18%, transparent); color: var(--clr-success); }
+.soa-app-no  { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text-muted); }
+.soa-cov { font-family: var(--font-mono); font-size: .62rem; font-weight: 700; padding: .1rem .45rem; border-radius: 20px; white-space: nowrap; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.soa-cov-full { background: color-mix(in srgb, var(--clr-success) 18%, transparent); color: var(--clr-success); }
+.soa-cov-part { background: color-mix(in srgb, var(--clr-warning) 20%, transparent); color: var(--clr-warning); }
+.soa-cov-gap  { background: color-mix(in srgb, var(--clr-danger) 16%, transparent); color: var(--clr-danger); }
+.soa-cov-none { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+
 .ev-modal-desc { font-size: .78rem; color: var(--text-muted); margin: .3rem 0 .9rem; line-height: 1.45; }
 .ev-modal-btns { display: flex; flex-direction: column; gap: .55rem; }
 .ev-modal-btns .btn { text-align: left; }

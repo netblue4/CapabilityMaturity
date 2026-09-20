@@ -65,9 +65,8 @@
     window.scrollTo(0, 0);
   }
 
-  // Copy the evidence table into the clipboard as TSV (paste straight into Excel).
-  function copyEvidenceTable(btn) {
-    const table = document.querySelector('#evidence-content table.ev-tbl');
+  // Copy a table into the clipboard as TSV (paste straight into Excel).
+  function copyTableTsv(table, btn) {
     if (!table) return;
     const tsv = [...table.querySelectorAll('tr')].map(tr =>
       [...tr.querySelectorAll('th,td')].map(c => (c.innerText || '').trim().replace(/\s+/g, ' ')).join('\t')
@@ -77,6 +76,38 @@
       setTimeout(() => { btn.textContent = old; }, 1500);
     }).catch(() => { btn.textContent = 'Copy failed'; });
   }
+  // The page's detail table (Control 1/2/3) — the top "Copy for Excel" button.
+  function copyEvidenceTable(btn) { copyTableTsv(document.querySelector('#evidence-content table.ev-tbl'), btn); }
+  // The DORA SOA table (Control 1 only).
+  function copySoaTable(btn) { copyTableTsv(document.querySelector('#evidence-content table.ev-soa-tbl'), btn); }
+
+  // Click-to-sort for any evidence table tagged .ev-sortable. DOM-based: sorts
+  // the existing rows by the clicked column's text (numeric-aware), toggling
+  // asc/desc, with an arrow indicator. Delegated so it covers re-rendered tables.
+  function sortEvTable(th) {
+    const table = th.closest('table'), tbody = table.tBodies[0];
+    if (!tbody) return;
+    const ths = [...th.parentNode.children], idx = ths.indexOf(th);
+    const dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
+    ths.forEach(h => { h.removeAttribute('data-dir'); const a = h.querySelector('.ev-sort-arr'); if (a) a.remove(); });
+    th.setAttribute('data-dir', dir);
+    const arr = document.createElement('span'); arr.className = 'ev-sort-arr'; arr.textContent = dir === 'asc' ? ' ▲' : ' ▼';
+    th.appendChild(arr);
+    const cellText = tr => (tr.children[idx] ? tr.children[idx].innerText : '').trim();
+    const toNum = s => { const m = s.replace(/[%,]/g, '').match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : null; };
+    const rows = [...tbody.rows];
+    const numeric = rows.every(r => { const v = cellText(r); return v === '' || v === '—' || toNum(v) !== null; });
+    rows.sort((a, b) => {
+      const va = cellText(a), vb = cellText(b);
+      let c = numeric ? ((toNum(va) ?? -Infinity) - (toNum(vb) ?? -Infinity)) : va.localeCompare(vb);
+      return dir === 'asc' ? c : -c;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+  document.addEventListener('click', e => {
+    const th = e.target.closest('#evidence-content .ev-sortable thead th');
+    if (th) sortEvTable(th);
+  });
 
   // ── Shared page chrome ───────────────────────────────────────────
   function pageHead(controlName, subtitle, meta, stat) {
@@ -151,11 +182,64 @@
       }
     });
 
-    return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta, stat) + `
-      <table class="ev-tbl ev-tbl-wide">
+    return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta, stat)
+      + soaSection(ctx)
+      + `<h3 class="ev-sect-h">Coverage detail — objective → owned statement</h3>
+      <table class="ev-tbl ev-tbl-wide ev-sortable">
         <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
+  }
+
+  // ── DORA Statement of Applicability (SOA) — separate completeness display ──
+  // Lists the full DORA universe (from the seeded DORA_SOA catalogue, or an
+  // uploaded assessment.doraSoa) with each item's applicability decision.
+  // Applicable items are highlighted; for those, coverage status joins to the
+  // mapping model so an auditor confirms completeness before the detail below.
+  function soaSection(ctx) {
+    const soa = (ctx.a.doraSoa && ctx.a.doraSoa.length) ? ctx.a.doraSoa
+              : (typeof DORA_SOA !== 'undefined' ? DORA_SOA : []);
+    if (!soa.length) return '';
+    const artCov = {};
+    (ctx.model.articles || []).forEach(a => {
+      artCov[a.article] = { cov: a.obligations.filter(o => o.covered).length, tot: a.obligations.length };
+    });
+    const total = soa.length, applicable = soa.filter(r => r.applicable);
+    const mapped = applicable.filter(r => artCov[r.ref]).length;
+    const notMapped = applicable.length - mapped;
+    const appCell = r => r.applicable
+      ? '<span class="soa-app soa-app-yes">Applicable</span>'
+      : '<span class="soa-app soa-app-no">Out of scope</span>';
+    const covCell = r => {
+      if (!r.applicable) return DASH;
+      const c = artCov[r.ref];
+      if (!c) return '<span class="soa-cov soa-cov-none">Not yet mapped</span>';
+      if (c.tot > 0 && c.cov === c.tot) return '<span class="soa-cov soa-cov-full">Covered</span>';
+      if (c.cov > 0) return `<span class="soa-cov soa-cov-part">Partial ${c.cov}/${c.tot}</span>`;
+      return '<span class="soa-cov soa-cov-gap">Uncovered</span>';
+    };
+    const rows = soa.map(r => `<tr class="${r.applicable ? 'soa-row-app' : 'soa-row-na'}">
+        <td class="soa-ref">${esc(r.ref)}</td>
+        <td class="soa-ch">${esc(r.chapter)}</td>
+        <td>${appCell(r)}</td>
+        <td>${covCell(r)}</td>
+        <td class="soa-why">${esc(r.rationale)}</td>
+      </tr>`).join('');
+    return `
+      <div class="ev-soa">
+        <div class="ev-soa-hd">
+          <div>
+            <h3 class="ev-sect-h">DORA Statement of Applicability (SOA)</h3>
+            <p class="ev-soa-sub">Every DORA article/RTS with its applicability decision — the completeness baseline. <b>Applicable</b> items are highlighted; for those, coverage status joins to the detail below. Review this first to confirm the whole of DORA was considered.</p>
+          </div>
+          <button class="btn btn-outline no-print" onclick="copySoaTable(this)">⧉ Copy for Excel</button>
+        </div>
+        <div class="ev-stat">${statPill(applicable.length, total, 'DORA articles/RTS applicable', false)}<span class="ev-note"><b>${mapped}</b> applicable item(s) mapped this cycle · <b class="${notMapped ? 'dora-gap-num' : ''}">${notMapped}</b> applicable but not yet mapped. Out-of-scope items carry a rationale.</span></div>
+        <table class="ev-soa-tbl ev-sortable">
+          <thead><tr><th>DORA Article / RTS</th><th>Chapter</th><th>Applicable</th><th>Coverage</th><th>Applicability rationale</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
   }
 
   // ── Control 2 — every policy/GS statement, and whether it is operationalised ──
@@ -197,7 +281,7 @@
     });
 
     return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → control', meta, stat) + `
-      <table class="ev-tbl ev-tbl-wide">
+      <table class="ev-tbl ev-tbl-wide ev-sortable">
         <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
@@ -237,7 +321,7 @@
     });
 
     return pageHead('Control 3 · Control efficacy in treating risk', 'control → status + effectiveness', meta, stat) + `
-      <table class="ev-tbl ev-tbl-wide">
+      <table class="ev-tbl ev-tbl-wide ev-sortable">
         <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Statement ref(s)</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
@@ -248,4 +332,5 @@
   window.closeEvidenceModal = closeEvidenceModal;
   window.generateEvidence   = generateEvidence;
   window.copyEvidenceTable  = copyEvidenceTable;
+  window.copySoaTable       = copySoaTable;
 })();

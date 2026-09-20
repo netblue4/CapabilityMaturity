@@ -124,7 +124,7 @@
       <div class="ev-top print-only" style="display:none">
         <h2 class="ev-title">${title}</h2><p class="ev-sub">${sub}</p>
       </div>
-      <div class="ev-stat">${stat}</div>`;
+      ${stat ? `<div class="ev-stat">${stat}</div>` : ''}`;
   }
   function statPill(n, d, label, warnWhenShort) {
     const pct = d > 0 ? Math.round(100 * n / d) : 0;
@@ -182,9 +182,10 @@
       }
     });
 
-    return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta, stat)
+    return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta)
       + soaSection(ctx)
       + `<h3 class="ev-sect-h">Coverage detail — objective → owned statement</h3>
+      <div class="ev-stat">${stat}</div>
       <table class="ev-tbl ev-tbl-wide ev-sortable">
         <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
         <tbody>${rows.join('')}</tbody>

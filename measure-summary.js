@@ -9,8 +9,6 @@ function renderMeasureSummary(assessment) {
   if (srcSlot) srcSlot.innerHTML = renderSourcesCard(assessment);
   const rmSlot = document.getElementById("riskmgmt-card-row");
   if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
-  const ownSlot = document.getElementById("ownership-card-row");
-  if (ownSlot) ownSlot.innerHTML = renderOwnershipCard(assessment);
   const capLensSlot = document.getElementById("caplens-card-row");
   if (capLensSlot) capLensSlot.innerHTML = renderCapabilityLensCard(assessment);
   const traceSlot = document.getElementById("trace-card-row");

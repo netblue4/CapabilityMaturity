@@ -201,30 +201,36 @@
     const soa = (ctx.a.doraSoa && ctx.a.doraSoa.length) ? ctx.a.doraSoa
               : (typeof DORA_SOA !== 'undefined' ? DORA_SOA : []);
     if (!soa.length) return '';
+    // Coverage joins by article/RTS INDEX (RTS4 / ARTICLE17 …) so SOA titles need
+    // not match the mapping's titles exactly.
+    const idxOf = s => (typeof soaIndexKey === 'function') ? soaIndexKey(s) : String(s || '').toUpperCase();
     const artCov = {};
     (ctx.model.articles || []).forEach(a => {
-      artCov[a.article] = { cov: a.obligations.filter(o => o.covered).length, tot: a.obligations.length };
+      artCov[idxOf(a.article)] = { cov: a.obligations.filter(o => o.covered).length, tot: a.obligations.length };
     });
     const total = soa.length, applicable = soa.filter(r => r.applicable);
-    const mapped = applicable.filter(r => artCov[r.ref]).length;
+    const mapped = applicable.filter(r => artCov[r.idx]).length;
     const notMapped = applicable.length - mapped;
     const appCell = r => r.applicable
       ? '<span class="soa-app soa-app-yes">Applicable</span>'
       : '<span class="soa-app soa-app-no">Out of scope</span>';
     const covCell = r => {
       if (!r.applicable) return DASH;
-      const c = artCov[r.ref];
+      const c = artCov[r.idx];
       if (!c) return '<span class="soa-cov soa-cov-none">Not yet mapped</span>';
       if (c.tot > 0 && c.cov === c.tot) return '<span class="soa-cov soa-cov-full">Covered</span>';
       if (c.cov > 0) return `<span class="soa-cov soa-cov-part">Partial ${c.cov}/${c.tot}</span>`;
       return '<span class="soa-cov soa-cov-gap">Uncovered</span>';
     };
+    const refCell = r => r.url
+      ? `<a class="soa-link" href="${esc(r.url)}" target="_blank" rel="noopener">EUR-Lex ↗</a>`
+      : DASH;
     const rows = soa.map(r => `<tr class="${r.applicable ? 'soa-row-app' : 'soa-row-na'}">
         <td class="soa-ref">${esc(r.ref)}</td>
         <td class="soa-ch">${esc(r.chapter)}</td>
         <td>${appCell(r)}</td>
         <td>${covCell(r)}</td>
-        <td class="soa-why">${esc(r.rationale)}</td>
+        <td class="soa-why">${refCell(r)}</td>
       </tr>`).join('');
     return `
       <div class="ev-soa">
@@ -235,9 +241,9 @@
           </div>
           <button class="btn btn-outline no-print" onclick="copySoaTable(this)">⧉ Copy for Excel</button>
         </div>
-        <div class="ev-stat">${statPill(applicable.length, total, 'DORA articles/RTS applicable', false)}<span class="ev-note"><b>${mapped}</b> applicable item(s) mapped this cycle · <b class="${notMapped ? 'dora-gap-num' : ''}">${notMapped}</b> applicable but not yet mapped. Out-of-scope items carry a rationale.</span></div>
+        <div class="ev-stat">${statPill(applicable.length, total, 'DORA articles/RTS applicable', false)}<span class="ev-note"><b>${mapped}</b> applicable item(s) mapped this cycle · <b class="${notMapped ? 'dora-gap-num' : ''}">${notMapped}</b> applicable but not yet mapped. The Reference column links to the EUR-Lex text.</span></div>
         <table class="ev-soa-tbl ev-sortable">
-          <thead><tr><th>DORA Article / RTS</th><th>Chapter</th><th>Applicable</th><th>Coverage</th><th>Applicability rationale</th></tr></thead>
+          <thead><tr><th>DORA Article / RTS</th><th>Chapter</th><th>Applicable</th><th>Coverage</th><th>Reference</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;

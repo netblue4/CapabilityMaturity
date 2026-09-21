@@ -345,6 +345,14 @@ function refreshPolicyCards() {
       : 'No DORA mapping uploaded';
   }
 
+  const soaSummary = document.getElementById('dora-soa-import-summary');
+  if (soaSummary) {
+    const sm = assessment?.doraSoaMeta;
+    soaSummary.textContent = sm
+      ? `${sm.total} articles/RTS · ${sm.applicable} applicable · Uploaded ${sm.uploadDate}`
+      : 'No DORA SOA uploaded';
+  }
+
   const rkSummary = document.getElementById('rk-data-summary');
   if (rkSummary) {
     const riskRows = assessment?.riskRows || [];

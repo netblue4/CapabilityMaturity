@@ -893,16 +893,12 @@ digital-resilience objectives our operational teams can execute rather than inte
 step 1b of Governance-Control 1 (Coverage).
 
 TASK
-For each in-scope DORA article/RTS, decompose its requirement text into one or more digital-
+For the DORA article/RTS, decompose its requirement text into one or more digital-
 resilience objectives. Each objective is a single, testable outcome in plain operational language
 (what must be true) — not a restatement of the legal text.
 
-HOW TO READ THE INPUTS
-- SOA (from step 1a, tab-separated): DORA Ref | Title | Chapter | In-Scope | Rationale
-- REQUIREMENT TEXT: the article/RTS wording for each in-scope ref, keyed by DORA Ref.
-
 RULES
-1. Only decompose In-Scope = Yes rows.
+1. Only decompose the provided article or RTS.
 2. A dense article usually yields several objectives — split them; never merge unrelated requirements.
 3. Each objective is a concrete outcome ("X is maintained / tested / performed"), specific enough
    to later attach a risk-treatment-control and an evidence test.
@@ -911,13 +907,10 @@ RULES
 
 OUTPUT
 Return ONLY a table as TAB-SEPARATED values in a code block, header row first:
-DORA Ref | Objective ID | Digital-Resilience Objective | Source Note
+DORA Article/RTS Name | DORA Ref | Digital-Resilience Objective | Source Note
 Objective ID = «DORA Ref»-1, -2, … Order grouped by DORA Ref.
 
-=== SOA (paste step 1a output, in-scope rows) ===
-<PASTE HERE>
-
-=== REQUIREMENT TEXT (article/RTS wording, keyed by DORA Ref) ===
+=== DORA Article/RTS (paste step 1a output, in-scope rows) ===
 <PASTE HERE>`;
 
 // 1c · Map objectives to capabilities and draft the policy / group-standard statements.

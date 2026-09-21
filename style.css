@@ -2786,7 +2786,7 @@ details[open] .profile-card-chevron {
 .guide-copy { white-space: nowrap; }
 .guide-prompt pre { margin: 0; padding: .7rem .8rem; background: var(--bg); font-family: var(--font-mono); font-size: .7rem; line-height: 1.45; white-space: pre-wrap; word-break: break-word; color: var(--text); }
 .plan-table { width: 100%; border-collapse: collapse; font-size: .8rem; min-width: 1340px; }
-.plan-table thead th { text-align: left; font-family: var(--font-mono); font-size: .6rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.plan-table thead th { position: sticky; top: 0; z-index: 1; background: var(--bg2); text-align: left; font-family: var(--font-mono); font-size: .6rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .plan-table tbody td { padding: .5rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
 .plan-table tbody tr:last-child td { border-bottom: none; }
 .plan-cap { color: var(--text); font-weight: 500; white-space: nowrap; }

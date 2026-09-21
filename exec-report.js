@@ -63,6 +63,7 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
+    <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecAttention(currentA)}</div>
   `;
   showView('exec-report');

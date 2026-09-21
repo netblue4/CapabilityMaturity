@@ -1,51 +1,1230 @@
-// ── DORA Statement of Applicability (SOA) — seeded catalogue ──────────
-// The DORA universe (articles + RTS/ITS) with an applicability decision and a
-// one-line rationale. This is the completeness baseline for Governance-Control 1:
-// auditors read it to confirm every part of DORA was considered and see which
-// parts we deemed applicable, before diving into the coverage detail.
+// ── DORA Statement of Applicability (SOA) — data + transform ──────────
+// The DORA universe (articles + RTS/MIC/MIR) with an applicability decision.
+// Completeness baseline for Governance-Control 1.
 //
-// SEEDED SAMPLE DATA — replace with your authoritative SOA. A future upload will
-// populate assessment.doraSoa with this same shape, which then overrides this
-// default (see evidenceControl1: a.doraSoa || DORA_SOA).
+// Provides BOTH the shared transform (buildSoaEntries: raw CSV rows -> SOA
+// entries) used by the Import DORA SOA wizard, AND a seeded default snapshot
+// (DORA_SOA) produced by running that transform over docs/sample-data/demo-soa.csv.
+// The evidence page uses assessment.doraSoa || DORA_SOA, so an upload overrides
+// the seed. Regenerate with scratchpad/gen-soa.mjs after editing the CSV.
 //
-// Shape: { ref, chapter, applicable, rationale }
-//   ref        — the DORA article/RTS label. For applicable items that are mapped
-//                in the DORA upload, this MUST match the "DORA Article" value in
-//                that upload so coverage joins to buildDoraObligations.
-//   chapter    — DORA chapter (roman numeral) for grouping/sorting.
-//   applicable — true = in scope for us; false = out of scope (with rationale).
-//   rationale  — one line: why it is / isn't applicable to us.
+// Entry shape: { order, ref, idx, kind, chapter, section, applicable, url, article, rationale }
+//   ref  - "RTS 4 - ICT asset management policy" / "Article 5 - Governance and organisation"
+//   idx  - normalised join key ("RTS4","ARTICLE17","MIC1") matching the DORA mapping's article
+//   applicable - RTS-level flag when an RTS is present, else article-level (blank = false)
+//   url  - EUR-Lex link (RTS_URL, else DORA_URL)
+//   rationale - reserved; the display shows the EUR-Lex link in its place for now
+
+function _soaNorm(s){ return (s==null?'':String(s)).trim(); }
+function soaChapterRoman(d){ var m=/chapter\s+([ivxlc]+)/i.exec(d||''); return m?m[1].toUpperCase():''; }
+function soaIndexKey(label){ var m=/(RTS|MIC|MIR|ITS|Article)\s*0*(\d+)/i.exec(label||''); return m?(m[1].toUpperCase()+m[2]):((label||'').toUpperCase().replace(/[^A-Z0-9]/g,'')); }
+function _soaTitleIndex(idx){ var m=/^(rts|mic|mir|its|article)\s*(\d+)/i.exec((idx||'').trim()); if(!m) return (idx||'').trim(); var t=m[1].toUpperCase()==='ARTICLE'?'Article':m[1].toUpperCase(); return t+' '+m[2]; }
+function soaEntryFromRow(row){
+  var rtsIdx=_soaNorm(row['RTS_Article_Index']); var hasRts=!!rtsIdx;
+  var artIdx=_soaNorm(row['DORA_Article_Index']); var artTitle=_soaNorm(row['DORA_Title']);
+  var idxLabel=hasRts?rtsIdx:artIdx; var title=hasRts?_soaNorm(row['RTS_Article_Title']):artTitle;
+  var ref=_soaTitleIndex(idxLabel)+(title?' — '+title:'');
+  var applyRaw=hasRts?_soaNorm(row['RTS Applicable']):_soaNorm(row['Article Applicable']);
+  var kind=hasRts?(/^rts/i.test(rtsIdx)?'RTS':/^mic/i.test(rtsIdx)?'MIC':/^mir/i.test(rtsIdx)?'MIR':'RTS'):'Article';
+  return { order: parseFloat(_soaNorm(row['DisplayOrder']))||0, ref:ref, idx:soaIndexKey(idxLabel), kind:kind,
+    chapter:soaChapterRoman(row['DORA_Chapter']),
+    section:hasRts?(_soaNorm(row['RTS_Section'])||_soaNorm(row['DORA_Section'])):_soaNorm(row['DORA_Section']),
+    applicable:/^y/i.test(applyRaw),
+    url:hasRts?(_soaNorm(row['RTS_URL'])||_soaNorm(row['DORA_URL'])):_soaNorm(row['DORA_URL']),
+    article:_soaTitleIndex(artIdx)+(artTitle?' — '+artTitle:''),
+    rationale:'' };
+}
+function buildSoaEntries(rows){ return (rows||[]).map(soaEntryFromRow).filter(function(e){return e.ref;}).sort(function(a,b){return a.order-b.order;}); }
+
 const DORA_SOA = [
-  // Chapter I — General provisions
-  { ref: 'Articles 1–4 — Subject matter, scope & definitions', chapter: 'I', applicable: false, rationale: 'General provisions, scope and definitions — no operational control objective to own.' },
-
-  // Chapter II — ICT Risk Management
-  { ref: 'Article 5 — ICT governance & organisation',           chapter: 'II', applicable: true,  rationale: 'Management-body accountability for ICT risk applies to us.' },
-  { ref: 'Article 6 — ICT risk management framework',           chapter: 'II', applicable: true,  rationale: 'We must maintain a documented ICT risk management framework.' },
-  { ref: 'RTS 4 — ICT asset management policy',                 chapter: 'II', applicable: true,  rationale: 'ICT asset & configuration management applies.' },
-  { ref: 'RTS 10 — Vulnerability and patch management',         chapter: 'II', applicable: true,  rationale: 'Vulnerability & patch management applies.' },
-  { ref: 'RTS 17 — ICT change management',                      chapter: 'II', applicable: true,  rationale: 'ICT change management applies.' },
-  { ref: 'RTS 21 — Access control',                             chapter: 'II', applicable: true,  rationale: 'Logical access control applies.' },
-
-  // Chapter III — ICT-related Incident Management
-  { ref: 'Article 17 — ICT incident management process',        chapter: 'III', applicable: true,  rationale: 'Incident detection, handling & classification applies.' },
-  { ref: 'Article 19 — Reporting of major ICT-related incidents', chapter: 'III', applicable: true, rationale: 'Major-incident reporting to the competent authority applies.' },
-
-  // Chapter IV — Digital Operational Resilience Testing
-  { ref: 'Articles 24–26 — Resilience testing programme',       chapter: 'IV', applicable: false, rationale: 'Testing programme owned by InfoSec and evidenced there — out of scope for this SOA.' },
-  { ref: 'Article 27 & TLPT RTS — Threat-led penetration testing', chapter: 'IV', applicable: false, rationale: 'Entity not designated for mandatory threat-led penetration testing.' },
-
-  // Chapter V — ICT Third-Party Risk
-  { ref: 'Article 28 — ICT third-party general principles',     chapter: 'V', applicable: true,  rationale: 'Use of ICT third-party providers applies.' },
-  { ref: 'Article 29 — Concentration risk',                     chapter: 'V', applicable: true,  rationale: 'Provider concentration risk must be assessed.' },
-  { ref: 'Article 30 — Key contractual provisions',             chapter: 'V', applicable: true,  rationale: 'Mandatory contractual terms with ICT providers apply.' },
-  { ref: 'Articles 31–44 — Oversight of critical ICT third-party providers', chapter: 'V', applicable: false, rationale: 'Oversight framework addressed to the ESAs and designated critical TPPs, not to us as a financial entity.' },
-
-  // Chapter VI — Information-sharing arrangements
-  { ref: 'Article 45 — Information-sharing arrangements',       chapter: 'VI', applicable: false, rationale: 'Voluntary under Article 45; not adopted.' },
-
-  // Chapters VII–IX — Competent authorities, supervision & final provisions
-  { ref: 'Articles 46–64 — Competent authorities & final provisions', chapter: 'VII–IX', applicable: false, rationale: 'Supervisory, administrative and final provisions — no entity-level control objective.' },
+  {
+    "order": 1,
+    "ref": "Article 5 — Governance and organisation",
+    "idx": "ARTICLE5",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section I",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_5",
+    "article": "Article 5 — Governance and organisation",
+    "rationale": ""
+  },
+  {
+    "order": 2,
+    "ref": "RTS 27 — Format and content",
+    "idx": "RTS27",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_27",
+    "article": "Article 6 — ICT risk management framework",
+    "rationale": ""
+  },
+  {
+    "order": 3,
+    "ref": "Article 7 — ICT systems, protocols and tools",
+    "idx": "ARTICLE7",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_7",
+    "article": "Article 7 — ICT systems, protocols and tools",
+    "rationale": ""
+  },
+  {
+    "order": 4,
+    "ref": "Article 8 — Identification",
+    "idx": "ARTICLE8",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_8",
+    "article": "Article 8 — Identification",
+    "rationale": ""
+  },
+  {
+    "order": 5,
+    "ref": "RTS 2 — General elements of ICT security policies",
+    "idx": "RTS2",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION I",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_2",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 6,
+    "ref": "RTS 3 — ICT risk management",
+    "idx": "RTS3",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_3",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 7,
+    "ref": "RTS 4 — ICT asset management policy",
+    "idx": "RTS4",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION III - ICT ASSET MANAGEMENT",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_4",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 8,
+    "ref": "RTS 5 — ICT asset management procedure",
+    "idx": "RTS5",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION III - ICT ASSET MANAGEMENT",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_5",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 9,
+    "ref": "RTS 6 — Encryption and cryptographic controls",
+    "idx": "RTS6",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION IV - ENCRYPTION AND CRYPTOGRAPHY",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_6",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 10,
+    "ref": "RTS 7 — Cryptographic key management",
+    "idx": "RTS7",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION IV - ENCRYPTION AND CRYPTOGRAPHY",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_7",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 11,
+    "ref": "RTS 8 — Policies and procedures for ICT operations",
+    "idx": "RTS8",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION V - ICT OPERATIONS SECURITY",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_8",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 12,
+    "ref": "RTS 9 — Capacity and performance management",
+    "idx": "RTS9",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION V - ICT OPERATIONS SECURITY",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_9",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 13,
+    "ref": "RTS 10 — Vulnerability and patch management procedure",
+    "idx": "RTS10",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION V - ICT OPERATIONS SECURITY",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_10",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 14,
+    "ref": "RTS 11 — Data and system security procedure",
+    "idx": "RTS11",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION V - ICT OPERATIONS SECURITY",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_11",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 15,
+    "ref": "RTS 12 — Logging",
+    "idx": "RTS12",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION V - ICT OPERATIONS SECURITY",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_12",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 16,
+    "ref": "RTS 13 — Network security management",
+    "idx": "RTS13",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION VI - NETWORK SECURITY",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_13",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 17,
+    "ref": "RTS 14 — Securing information in transit",
+    "idx": "RTS14",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION VI - NETWORK SECURITY",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_14",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 18,
+    "ref": "RTS 15 — ICT project management",
+    "idx": "RTS15",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION VII - ICT PROJECT AND CHANGE MANAGEMENT",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_15",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 19,
+    "ref": "RTS 16 — ICT systems acquisition, development, and maintenance procedure",
+    "idx": "RTS16",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION VII - ICT PROJECT AND CHANGE MANAGEMENT",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_16",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 20,
+    "ref": "RTS 17 — ICT change management",
+    "idx": "RTS17",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION VII - ICT PROJECT AND CHANGE MANAGEMENT",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_17",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 21,
+    "ref": "RTS 18 — Physical and environmental security",
+    "idx": "RTS18",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "SECTION VIII",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_18",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 22,
+    "ref": "RTS 19 — Human resources",
+    "idx": "RTS19",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_19",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 23,
+    "ref": "RTS 20 — Identity management",
+    "idx": "RTS20",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_20",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 24,
+    "ref": "RTS 21 — Access control",
+    "idx": "RTS21",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_21",
+    "article": "Article 9 — Protection and prevention",
+    "rationale": ""
+  },
+  {
+    "order": 25,
+    "ref": "RTS 22 — ICT-related incident management policy",
+    "idx": "RTS22",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_22",
+    "article": "Article 10 — Detection",
+    "rationale": ""
+  },
+  {
+    "order": 26,
+    "ref": "RTS 23 — Anomalous activities’ detection and criteria for ICT-related incidents’ detection and response",
+    "idx": "RTS23",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_23",
+    "article": "Article 10 — Detection",
+    "rationale": ""
+  },
+  {
+    "order": 27,
+    "ref": "RTS 24 — Components of the ICT business continuity",
+    "idx": "RTS24",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_24",
+    "article": "Article 11 — Response and recovery",
+    "rationale": ""
+  },
+  {
+    "order": 28,
+    "ref": "RTS 25 — Testing of the ICT business continuity plans",
+    "idx": "RTS25",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_25",
+    "article": "Article 11 — Response and recovery",
+    "rationale": ""
+  },
+  {
+    "order": 29,
+    "ref": "RTS 26 — ICT response and recovery plans",
+    "idx": "RTS26",
+    "kind": "RTS",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401774#art_26",
+    "article": "Article 11 — Response and recovery",
+    "rationale": ""
+  },
+  {
+    "order": 30,
+    "ref": "Article 12 — Backup policies and procedures, restoration and recovery procedures and methods",
+    "idx": "ARTICLE12",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_12",
+    "article": "Article 12 — Backup policies and procedures, restoration and recovery procedures and methods",
+    "rationale": ""
+  },
+  {
+    "order": 31,
+    "ref": "Article 13 — Learning and evolving",
+    "idx": "ARTICLE13",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_13",
+    "article": "Article 13 — Learning and evolving",
+    "rationale": ""
+  },
+  {
+    "order": 32,
+    "ref": "Article 14 — Communication",
+    "idx": "ARTICLE14",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_14",
+    "article": "Article 14 — Communication",
+    "rationale": ""
+  },
+  {
+    "order": 33,
+    "ref": "Article 15 — Further harmonisation of ICT risk management tools, methods, processes and policies",
+    "idx": "ARTICLE15",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_15",
+    "article": "Article 15 — Further harmonisation of ICT risk management tools, methods, processes and policies",
+    "rationale": ""
+  },
+  {
+    "order": 34,
+    "ref": "Article 16 — Simplified ICT risk management framework",
+    "idx": "ARTICLE16",
+    "kind": "Article",
+    "chapter": "II",
+    "section": "section II",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_16",
+    "article": "Article 16 — Simplified ICT risk management framework",
+    "rationale": ""
+  },
+  {
+    "order": 35,
+    "ref": "Article 17 — ICT-related incident management process",
+    "idx": "ARTICLE17",
+    "kind": "Article",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_17",
+    "article": "Article 17 — ICT-related incident management process",
+    "rationale": ""
+  },
+  {
+    "order": 36,
+    "ref": "MIC 1 — Clients, financial counterparts and transactions",
+    "idx": "MIC1",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_1",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 37,
+    "ref": "MIC 2 — Reputational impact",
+    "idx": "MIC2",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_2",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 38,
+    "ref": "MIC 3 — Duration and service downtime",
+    "idx": "MIC3",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_3",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 39,
+    "ref": "MIC 4 — Geographical spread",
+    "idx": "MIC4",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_4",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 40,
+    "ref": "MIC 5 — Data loss",
+    "idx": "MIC5",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_5",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 41,
+    "ref": "MIC 6 — Criticality of services affected",
+    "idx": "MIC6",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_6",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 42,
+    "ref": "MIC 7 — Economic impact",
+    "idx": "MIC7",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_7",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 43,
+    "ref": "MIC 8 — Major incidents",
+    "idx": "MIC8",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_8",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 44,
+    "ref": "MIC 9 — Materiality thresholds for determining major incidents",
+    "idx": "MIC9",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_9",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 45,
+    "ref": "MIC 10 — High materiality thresholds for determining significant cyber threats",
+    "idx": "MIC10",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_10",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 46,
+    "ref": "MIC 11 — Relevance of major incidents to competent authorities in other Member States",
+    "idx": "MIC11",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_11",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 47,
+    "ref": "MIC 12 — Details of major incidents to be shared with other competent authorities",
+    "idx": "MIC12",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_12",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 48,
+    "ref": "MIC 13 — Entry into force",
+    "idx": "MIC13",
+    "kind": "MIC",
+    "chapter": "III",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202401772#art_13",
+    "article": "Article 18 — Classification of ICT-related incidents and cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 49,
+    "ref": "MIR 2 — General information to be provided in the major incident initial notification, intermediate and final reports",
+    "idx": "MIR2",
+    "kind": "MIR",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_19",
+    "article": "Article 19 — Reporting of major ICT-related incidents and voluntary notification of significant cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 50,
+    "ref": "MIR 3 — Content of initial notifications",
+    "idx": "MIR3",
+    "kind": "MIR",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_19",
+    "article": "Article 19 — Reporting of major ICT-related incidents and voluntary notification of significant cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 51,
+    "ref": "MIR 4 — Content of intermediate reports",
+    "idx": "MIR4",
+    "kind": "MIR",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_19",
+    "article": "Article 19 — Reporting of major ICT-related incidents and voluntary notification of significant cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 52,
+    "ref": "MIR 5 — Content of final reports",
+    "idx": "MIR5",
+    "kind": "MIR",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_19",
+    "article": "Article 19 — Reporting of major ICT-related incidents and voluntary notification of significant cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 53,
+    "ref": "MIR 6 — Time limits for the initial notification and intermediate report and final reports referred to in Article 19(4) of Regulation (EU)2022/2554",
+    "idx": "MIR6",
+    "kind": "MIR",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_19",
+    "article": "Article 19 — Reporting of major ICT-related incidents and voluntary notification of significant cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 54,
+    "ref": "MIR 7 — Content of the voluntary notification of significant cyber threat",
+    "idx": "MIR7",
+    "kind": "MIR",
+    "chapter": "III",
+    "section": "",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_19",
+    "article": "Article 19 — Reporting of major ICT-related incidents and voluntary notification of significant cyber threats",
+    "rationale": ""
+  },
+  {
+    "order": 55,
+    "ref": "Article 20 — Harmonisation of reporting content and templates",
+    "idx": "ARTICLE20",
+    "kind": "Article",
+    "chapter": "III",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_20",
+    "article": "Article 20 — Harmonisation of reporting content and templates",
+    "rationale": ""
+  },
+  {
+    "order": 56,
+    "ref": "Article 21 — Centralisation of reporting of major ICT-related incidents",
+    "idx": "ARTICLE21",
+    "kind": "Article",
+    "chapter": "III",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_21",
+    "article": "Article 21 — Centralisation of reporting of major ICT-related incidents",
+    "rationale": ""
+  },
+  {
+    "order": 57,
+    "ref": "Article 22 — Supervisory feedback",
+    "idx": "ARTICLE22",
+    "kind": "Article",
+    "chapter": "III",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_22",
+    "article": "Article 22 — Supervisory feedback",
+    "rationale": ""
+  },
+  {
+    "order": 58,
+    "ref": "Article 23 — Operational or security payment-related incidents concerning credit institutions, payment institutions, account information service providers, and electronic money institutions",
+    "idx": "ARTICLE23",
+    "kind": "Article",
+    "chapter": "III",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_23",
+    "article": "Article 23 — Operational or security payment-related incidents concerning credit institutions, payment institutions, account information service providers, and electronic money institutions",
+    "rationale": ""
+  },
+  {
+    "order": 59,
+    "ref": "Article 24 — General requirements for the performance of digital operational resilience testing",
+    "idx": "ARTICLE24",
+    "kind": "Article",
+    "chapter": "IV",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_24",
+    "article": "Article 24 — General requirements for the performance of digital operational resilience testing",
+    "rationale": ""
+  },
+  {
+    "order": 60,
+    "ref": "Article 25 — Testing of ICT tools and systems",
+    "idx": "ARTICLE25",
+    "kind": "Article",
+    "chapter": "IV",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_25",
+    "article": "Article 25 — Testing of ICT tools and systems",
+    "rationale": ""
+  },
+  {
+    "order": 61,
+    "ref": "Article 26 — Advanced testing of ICT tools, systems and processes based on TLPT",
+    "idx": "ARTICLE26",
+    "kind": "Article",
+    "chapter": "IV",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_26",
+    "article": "Article 26 — Advanced testing of ICT tools, systems and processes based on TLPT",
+    "rationale": ""
+  },
+  {
+    "order": 62,
+    "ref": "Article 27 — Requirements for testers for the carrying out of TLPT",
+    "idx": "ARTICLE27",
+    "kind": "Article",
+    "chapter": "IV",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_27",
+    "article": "Article 27 — Requirements for testers for the carrying out of TLPT",
+    "rationale": ""
+  },
+  {
+    "order": 63,
+    "ref": "Article 28 — General principles",
+    "idx": "ARTICLE28",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section I - Key principles for a sound management of ICT third-party risk",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_28",
+    "article": "Article 28 — General principles",
+    "rationale": ""
+  },
+  {
+    "order": 64,
+    "ref": "Article 29 — Preliminary assessment of ICT concentration risk at entity level",
+    "idx": "ARTICLE29",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section I - Key principles for a sound management of ICT third-party risk",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_29",
+    "article": "Article 29 — Preliminary assessment of ICT concentration risk at entity level",
+    "rationale": ""
+  },
+  {
+    "order": 65,
+    "ref": "Article 30 — Key contractual provisions",
+    "idx": "ARTICLE30",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section I - Key principles for a sound management of ICT third-party risk",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_30",
+    "article": "Article 30 — Key contractual provisions",
+    "rationale": ""
+  },
+  {
+    "order": 66,
+    "ref": "Article 31 — Designation of critical ICT third-party service providers",
+    "idx": "ARTICLE31",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": true,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_31",
+    "article": "Article 31 — Designation of critical ICT third-party service providers",
+    "rationale": ""
+  },
+  {
+    "order": 67,
+    "ref": "Article 32 — Structure of the Oversight Framework",
+    "idx": "ARTICLE32",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_32",
+    "article": "Article 32 — Structure of the Oversight Framework",
+    "rationale": ""
+  },
+  {
+    "order": 68,
+    "ref": "Article 33 — Tasks of the Lead Overseer",
+    "idx": "ARTICLE33",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_33",
+    "article": "Article 33 — Tasks of the Lead Overseer",
+    "rationale": ""
+  },
+  {
+    "order": 69,
+    "ref": "Article 34 — Operational coordination between Lead Overseers",
+    "idx": "ARTICLE34",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_34",
+    "article": "Article 34 — Operational coordination between Lead Overseers",
+    "rationale": ""
+  },
+  {
+    "order": 70,
+    "ref": "Article 35 — Powers of the Lead Overseer",
+    "idx": "ARTICLE35",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_35",
+    "article": "Article 35 — Powers of the Lead Overseer",
+    "rationale": ""
+  },
+  {
+    "order": 71,
+    "ref": "Article 36 — Exercise of the powers of the Lead Overseer outside the Union",
+    "idx": "ARTICLE36",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_36",
+    "article": "Article 36 — Exercise of the powers of the Lead Overseer outside the Union",
+    "rationale": ""
+  },
+  {
+    "order": 72,
+    "ref": "Article 37 — Request for information",
+    "idx": "ARTICLE37",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_37",
+    "article": "Article 37 — Request for information",
+    "rationale": ""
+  },
+  {
+    "order": 73,
+    "ref": "Article 38 — General investigations",
+    "idx": "ARTICLE38",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_38",
+    "article": "Article 38 — General investigations",
+    "rationale": ""
+  },
+  {
+    "order": 74,
+    "ref": "Article 39 — Inspections",
+    "idx": "ARTICLE39",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_39",
+    "article": "Article 39 — Inspections",
+    "rationale": ""
+  },
+  {
+    "order": 75,
+    "ref": "Article 40 — Ongoing oversight",
+    "idx": "ARTICLE40",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_40",
+    "article": "Article 40 — Ongoing oversight",
+    "rationale": ""
+  },
+  {
+    "order": 76,
+    "ref": "Article 41 — Harmonisation of conditions enabling the conduct of the oversight activities",
+    "idx": "ARTICLE41",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_41",
+    "article": "Article 41 — Harmonisation of conditions enabling the conduct of the oversight activities",
+    "rationale": ""
+  },
+  {
+    "order": 77,
+    "ref": "Article 42 — Follow-up by competent authorities",
+    "idx": "ARTICLE42",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_42",
+    "article": "Article 42 — Follow-up by competent authorities",
+    "rationale": ""
+  },
+  {
+    "order": 78,
+    "ref": "Article 43 — Oversight fees",
+    "idx": "ARTICLE43",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_43",
+    "article": "Article 43 — Oversight fees",
+    "rationale": ""
+  },
+  {
+    "order": 79,
+    "ref": "Article 44 — International cooperation",
+    "idx": "ARTICLE44",
+    "kind": "Article",
+    "chapter": "V",
+    "section": "section II - Oversight Framework of critical ICT third-party service providers",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_44",
+    "article": "Article 44 — International cooperation",
+    "rationale": ""
+  },
+  {
+    "order": 80,
+    "ref": "Article 45 — Information-sharing arrangements on cyber threat information and intelligence",
+    "idx": "ARTICLE45",
+    "kind": "Article",
+    "chapter": "VI",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_45",
+    "article": "Article 45 — Information-sharing arrangements on cyber threat information and intelligence",
+    "rationale": ""
+  },
+  {
+    "order": 81,
+    "ref": "Article 46 — Competent authorities",
+    "idx": "ARTICLE46",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_46",
+    "article": "Article 46 — Competent authorities",
+    "rationale": ""
+  },
+  {
+    "order": 82,
+    "ref": "Article 47 — Cooperation with structures and authorities established by Directive (EU) 2022/2555",
+    "idx": "ARTICLE47",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_47",
+    "article": "Article 47 — Cooperation with structures and authorities established by Directive (EU) 2022/2555",
+    "rationale": ""
+  },
+  {
+    "order": 83,
+    "ref": "Article 48 — Cooperation between authorities",
+    "idx": "ARTICLE48",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_48",
+    "article": "Article 48 — Cooperation between authorities",
+    "rationale": ""
+  },
+  {
+    "order": 84,
+    "ref": "Article 49 — Financial cross-sector exercises",
+    "idx": "ARTICLE49",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_49",
+    "article": "Article 49 — Financial cross-sector exercises",
+    "rationale": ""
+  },
+  {
+    "order": 85,
+    "ref": "Article 50 — Administrative penalties and remedial measures",
+    "idx": "ARTICLE50",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_50",
+    "article": "Article 50 — Administrative penalties and remedial measures",
+    "rationale": ""
+  },
+  {
+    "order": 86,
+    "ref": "Article 51 — Exercise of the power to impose administrative penalties and remedial measures",
+    "idx": "ARTICLE51",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_51",
+    "article": "Article 51 — Exercise of the power to impose administrative penalties and remedial measures",
+    "rationale": ""
+  },
+  {
+    "order": 87,
+    "ref": "Article 52 — Criminal penalties",
+    "idx": "ARTICLE52",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_52",
+    "article": "Article 52 — Criminal penalties",
+    "rationale": ""
+  },
+  {
+    "order": 88,
+    "ref": "Article 53 — Notification duties",
+    "idx": "ARTICLE53",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_53",
+    "article": "Article 53 — Notification duties",
+    "rationale": ""
+  },
+  {
+    "order": 89,
+    "ref": "Article 54 — Publication of administrative penalties",
+    "idx": "ARTICLE54",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_54",
+    "article": "Article 54 — Publication of administrative penalties",
+    "rationale": ""
+  },
+  {
+    "order": 90,
+    "ref": "Article 55 — Professional secrecy",
+    "idx": "ARTICLE55",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_55",
+    "article": "Article 55 — Professional secrecy",
+    "rationale": ""
+  },
+  {
+    "order": 91,
+    "ref": "Article 56 — Data Protection",
+    "idx": "ARTICLE56",
+    "kind": "Article",
+    "chapter": "VII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_56",
+    "article": "Article 56 — Data Protection",
+    "rationale": ""
+  },
+  {
+    "order": 92,
+    "ref": "Article 57 — Exercise of the delegation",
+    "idx": "ARTICLE57",
+    "kind": "Article",
+    "chapter": "VIII",
+    "section": "",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_57",
+    "article": "Article 57 — Exercise of the delegation",
+    "rationale": ""
+  },
+  {
+    "order": 93,
+    "ref": "Article 58 — Review clause",
+    "idx": "ARTICLE58",
+    "kind": "Article",
+    "chapter": "IX",
+    "section": "Section I",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_58",
+    "article": "Article 58 — Review clause",
+    "rationale": ""
+  },
+  {
+    "order": 94,
+    "ref": "Article 59 — Amendments to Regulation (EC) No 1060/2009",
+    "idx": "ARTICLE59",
+    "kind": "Article",
+    "chapter": "IX",
+    "section": "Section II, Amendments",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_59",
+    "article": "Article 59 — Amendments to Regulation (EC) No 1060/2009",
+    "rationale": ""
+  },
+  {
+    "order": 95,
+    "ref": "Article 60 — Amendments to Regulation (EU) No 648/2012",
+    "idx": "ARTICLE60",
+    "kind": "Article",
+    "chapter": "IX",
+    "section": "Section II, Amendments",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_60",
+    "article": "Article 60 — Amendments to Regulation (EU) No 648/2012",
+    "rationale": ""
+  },
+  {
+    "order": 96,
+    "ref": "Article 61 — Amendments to Regulation (EU) No 909/2014",
+    "idx": "ARTICLE61",
+    "kind": "Article",
+    "chapter": "IX",
+    "section": "Section II, Amendments",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_61",
+    "article": "Article 61 — Amendments to Regulation (EU) No 909/2014",
+    "rationale": ""
+  },
+  {
+    "order": 97,
+    "ref": "Article 62 — Amendments to Regulation (EU) No 600/2014",
+    "idx": "ARTICLE62",
+    "kind": "Article",
+    "chapter": "IX",
+    "section": "Section II, Amendments",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_62",
+    "article": "Article 62 — Amendments to Regulation (EU) No 600/2014",
+    "rationale": ""
+  },
+  {
+    "order": 98,
+    "ref": "Article 63 — Amendment to Regulation (EU) 2016/1011",
+    "idx": "ARTICLE63",
+    "kind": "Article",
+    "chapter": "IX",
+    "section": "Section II, Amendments",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_63",
+    "article": "Article 63 — Amendment to Regulation (EU) 2016/1011",
+    "rationale": ""
+  },
+  {
+    "order": 99,
+    "ref": "Article 64 — Entry into force and application",
+    "idx": "ARTICLE64",
+    "kind": "Article",
+    "chapter": "IX",
+    "section": "Section II, Amendments",
+    "applicable": false,
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2554#art_64",
+    "article": "Article 64 — Entry into force and application",
+    "rationale": ""
+  }
 ];
 
-if (typeof window !== 'undefined') window.DORA_SOA = DORA_SOA;
+if (typeof window !== 'undefined') { window.DORA_SOA = DORA_SOA; window.buildSoaEntries = buildSoaEntries; window.soaIndexKey = soaIndexKey; }

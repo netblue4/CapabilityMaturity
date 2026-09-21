@@ -205,6 +205,11 @@ function buildCapabilityFields() {
           onclick="showView('dora-import');initDoraImport()">📥 Import DORA Mapping</button>
         <span id="dora-import-summary" class="import-data-summary">No DORA mapping uploaded</span>
       </div>
+      <div class="import-btn-item">
+        <button type="button" class="btn btn-outline"
+          onclick="showView('dora-soa-import');initDoraSoaImport()">📥 Import DORA SOA</button>
+        <span id="dora-soa-import-summary" class="import-data-summary">No DORA SOA uploaded</span>
+      </div>
     </div>`;
 
   container.innerHTML = importBtnsRow + capFilterCard + CONFIG.capabilities.map(cap => `
@@ -425,6 +430,8 @@ function saveAssessment(e) {
     if (prevData.factSummary)      assessment.factSummary      = prevData.factSummary;
     if (prevData.doraRows)         assessment.doraRows         = prevData.doraRows;
     if (prevData.doraMeta)         assessment.doraMeta         = prevData.doraMeta;
+    if (prevData.doraSoa)          assessment.doraSoa          = prevData.doraSoa;
+    if (prevData.doraSoaMeta)      assessment.doraSoaMeta      = prevData.doraSoaMeta;
   }
 
   if (editingId) {

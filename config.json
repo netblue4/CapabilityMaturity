@@ -169,6 +169,11 @@
   ],
   "capabilities": [
     {
+      "id": "risk_mgmt",
+      "name": "ICT Risk Management",
+      "description": "Overarching ICT risk management framework, governance and oversight of ICT risk (DORA Chapter II)."
+    },
+    {
       "id": "asset_mgmt",
       "name": "ICT Asset & Configuration Management",
       "description": "Lifecycle management of ICT hardware, software, and cloud assets from procurement through to decommissioning."

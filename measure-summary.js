@@ -707,7 +707,7 @@ function renderPlanningCard(assessment) {
   return `
     <div class="card measure-card">
       ${header}
-      <div class="rcsa-table-wrap">
+      <div class="rcsa-table-wrap trace-wrap">
         <table class="plan-table">
           <thead><tr>
             <th>Capability</th><th>Document</th><th>RTM Source</th><th>Statement Ref</th><th>Statement Header</th>

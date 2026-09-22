@@ -539,10 +539,12 @@ function renderTraceabilityCard(assessment) {
     <td>${escHtml(r.source)}</td>
     <td class="tr-ref"><span class="dora-ref">${escHtml(r.statementRef)}</span></td>
     <td>${escHtml(r.statementHeader)}</td>
+    <td class="tr-detail">${escHtml(r.statementDetail)}</td>
     <td>${escHtml(r.disposition)}</td>
     <td class="tr-c">${yn(r.backed)}</td>
     <td class="tr-c">${opCell(r.stmtOperationalised)}</td>
     <td>${escHtml(r.control)}</td>
+    <td class="tr-detail">${escHtml(r.controlDescription)}</td>
     <td>${escHtml(r.provenance)}</td>
     <td class="tr-c">${stCell(r.controlStatus)}</td>
     <td class="tr-c">${effCell(r.effectiveness)}</td>
@@ -553,8 +555,8 @@ function renderTraceabilityCard(assessment) {
 
   const th = `<tr>
     <th>DORA Pillar</th><th>Article/RTS</th><th>Objective</th><th>Objective text</th><th class="tr-c">Objective covered</th>
-    <th>Capability</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Disposition</th><th class="tr-c">Backed by control</th><th class="tr-c" title="Statement-level: Live = has a live control, Draft = only draft controls">Statement operationalised</th>
-    <th>Control No. &amp; Name</th><th>Provenance</th><th class="tr-c">Control status</th><th class="tr-c">Effectiveness</th>
+    <th>Capability</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Statement detail</th><th>Disposition</th><th class="tr-c">Backed by control</th><th class="tr-c" title="Statement-level: Live = has a live control, Draft = only draft controls">Statement operationalised</th>
+    <th>Control No. &amp; Name</th><th>Control description</th><th>Provenance</th><th class="tr-c">Control status</th><th class="tr-c">Effectiveness</th>
     <th class="tr-c" title="First row for this objective">⚑ First obj</th><th class="tr-c" title="First row for this statement">⚑ First stmt</th><th class="tr-c" title="First row for this control">⚑ First ctrl</th>
   </tr>`;
 

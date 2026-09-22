@@ -3311,6 +3311,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .trace-tbl tbody tr:hover td { background: color-mix(in srgb, var(--text) 4%, transparent); }
 .trace-tbl .tr-c { text-align: center; }
 .trace-tbl .tr-req { white-space: normal; min-width: 220px; max-width: 340px; color: var(--text-muted); }
+.trace-tbl .tr-detail { white-space: normal; min-width: 200px; max-width: 340px; color: var(--text-muted); }
 .trace-tbl .tr-art { white-space: normal; min-width: 120px; }
 .trace-tbl .tr-obl { font-family: var(--font-mono); }
 .trace-tbl .tr-flag { color: var(--clr-success); font-weight: 700; }

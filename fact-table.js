@@ -649,6 +649,15 @@ function buildTraceabilityRows(assessment) {
   bops.controls.forEach(c => { ctrlIdx[c.capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name)] = c; });
   const ctrlInfo = (capId, c) => ctrlIdx[capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name)]
     || { implemented: c.status === 'implemented', effective: !!c.effective, provenance: c.provenance || '' };
+  // Control description (from the Risk upload's "Control: Description"), keyed the
+  // same way as _cKey so each control row can carry its full description text.
+  const ctrlDescIdx = {};
+  (facts || []).forEach(f => {
+    const nm = (f.controlName || '').trim(); if (!nm) return;
+    const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(nm);
+    const d = (f.controlDesc || '').trim();
+    if (d && !ctrlDescIdx[ck]) ctrlDescIdx[ck] = d;
+  });
 
   const rows = [];
   const pushRow = (o, s, c) => {
@@ -672,12 +681,14 @@ function buildTraceabilityRows(assessment) {
       source:          s ? (s.source || '') : '',
       statementRef:    s ? (s.ref || '') : '',
       statementHeader: s ? (s.header || '') : '',
+      statementDetail: s ? ((polByKey[s.capId + '||' + ftNorm(s.ref)] || {}).statementDetail || '') : '',
       disposition:     s ? dispOf(s.capId, s.ref) : '',
       backed:          s ? (s.hasCtrl ? 'Yes' : 'No') : '',
       // Statement-level operationalisation (same for every row of the statement):
       // Live = has a live control, Draft = only draft controls, else No control.
       stmtOperationalised: s ? (s.backing === 'Built new' || s.backing === 'Reused pre-DORA' ? 'Live' : s.hasCtrl ? 'Draft' : 'No control') : '',
       control:         c ? ((c.number ? c.number + ' — ' : '') + c.name) : '',
+      controlDescription: (c && capId != null) ? (ctrlDescIdx[capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name)] || '') : '',
       provenance:      ci ? ci.provenance : '',
       controlStatus:   ci ? (ci.implemented ? 'Implemented' : 'Draft') : '',
       effectiveness:   ci ? (ci.implemented ? (ci.effective ? 'Effective' : 'Not yet') : '—') : '',

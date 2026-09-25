@@ -3103,13 +3103,22 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsum-mini i { display: block; height: 100%; border-radius: 20px; background-image: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0)); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .exsum-frac { font-family: var(--font-mono); font-size: .74rem; color: var(--text-muted); }
 .exsum-desc { font-size: .78rem; color: var(--text-muted); line-height: 1.45; margin-top: .5rem; }
-/* Exec pillar cards — segmented metric bars (Documented / Implemented / Effective) */
-.exbars { display: flex; flex-direction: column; gap: .7rem; margin: 1rem 0 .5rem; }
-.exbar-top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; margin-bottom: .28rem; }
-.exbar-lbl { font-family: var(--font-mono); font-size: .64rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text); font-weight: 600; }
-.exbar-ratio { font-family: var(--font-mono); font-size: .74rem; color: var(--text); }
-.exbar-track { display: flex; height: 13px; border-radius: 20px; overflow: hidden; background: color-mix(in srgb, var(--text) 10%, transparent); box-shadow: inset 0 1px 2px rgba(0,0,0,.10); }
-.exbar-track i { display: block; height: 100%; background-image: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0)); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Exec pillar cards — coverage funnel (Applicable → Documented → Implemented →
+   Effective). Shared by the exec report (static) and the capability lens
+   (interactive: lower stages filter the drill-down). */
+.exfun { display: flex; flex-direction: column; gap: .5rem; margin: 1rem 0 .5rem; }
+.exfun-row { display: grid; grid-template-columns: 132px 1fr; align-items: center; gap: .8rem; }
+.exfun-name { font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text); font-weight: 700; }
+.exfun-name small { display: block; font-family: var(--font-body); text-transform: none; letter-spacing: 0; color: var(--text-muted); font-size: .66rem; margin-top: .12rem; font-weight: 400; }
+.exfun-barwrap { position: relative; }
+.exfun-bar { height: 32px; border-radius: 8px; display: flex; align-items: center; padding: 0 .7rem; color: #fff; font-family: var(--font-mono); font-weight: 700; font-size: .8rem; min-width: 44px; box-shadow: inset 0 1px 0 rgba(255,255,255,.16); background-image: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0)); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.exfun-n { font-variant-numeric: tabular-nums; }
+.exfun-drop { margin-left: auto; font-weight: 400; font-size: .64rem; opacity: .92; white-space: nowrap; }
+.exfun-bar-click { cursor: pointer; transition: filter .12s ease, transform .12s ease, box-shadow .12s ease; }
+.exfun-bar-click:hover { filter: brightness(1.07); transform: translateX(1px); }
+.exfun-bar-on { box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 0 0 2px var(--bg2), 0 0 0 4px var(--accent); }
+.exfun-hint { font-size: .68rem; color: var(--text-muted); font-style: italic; margin: .15rem 0 .35rem; }
+@media (max-width: 560px) { .exfun-row { grid-template-columns: 90px 1fr; } }
 .exbars-legend { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin: .1rem 0 .3rem; font-size: .66rem; color: var(--text-muted); }
 .exbars-legend span { display: inline-flex; align-items: center; gap: .35rem; }
 .exbars-legend .exl { width: 11px; height: 9px; border-radius: 3px; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -3121,11 +3130,6 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .caplens-sel { font-family: inherit; font-size: .85rem; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .6rem; min-width: 240px; cursor: pointer; }
 .caplens-sel:focus { outline: none; border-color: var(--accent); }
 .caplens-card #caplens-body { margin-top: .3rem; }
-/* Capability drill-down — Documented | Implemented | Effective toggle */
-.cl-toggle { display: inline-flex; gap: 2px; margin-top: 1rem; padding: 3px; background: color-mix(in srgb, var(--text) 8%, transparent); border-radius: 10px; }
-.cl-tab { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; color: var(--text-muted); background: transparent; border: none; padding: .38rem .8rem; border-radius: 8px; cursor: pointer; transition: background .12s ease, color .12s ease; }
-.cl-tab:hover { color: var(--text); }
-.cl-tab-on { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 /* Capability drill-down mind map (article → objective → statement → control) */
 .mm-wrap { margin-top: .8rem; border-top: 1px solid var(--border-subtle); padding-top: .8rem; }
 .mm-title { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem; }

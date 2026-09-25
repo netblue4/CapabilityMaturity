@@ -180,21 +180,44 @@ function pilGenSteps(p) {
   if (!steps.length) push(3, '—', 'No open actions — maintain and re-test at the next cycle.');
   return steps.slice(0, 6);
 }
-// One horizontal segmented bar (label · segments · numeric ratio). Segments are
-// {n, col, t}; total sets the bar's 100% width. Used for the Documented /
-// Implemented / Effective metrics on every pillar card (exec report AND the
-// main-screen capability lens — one shared implementation).
-function execSegBar(label, segs, total, ratio) {
-  const w = n => total ? 100 * n / total : 0;
-  const cells = segs.filter(s => s.n > 0)
-    .map(s => `<i style="width:${w(s.n)}%;background:${s.col}" title="${s.t}: ${s.n}"></i>`).join('');
-  const empty = '<i style="width:100%;background:var(--track,color-mix(in srgb,var(--text) 12%,transparent))"></i>';
-  return `<div class="exbar">
-    <div class="exbar-top"><span class="exbar-lbl">${label}</span><b class="exbar-ratio">${ratio}</b></div>
-    <span class="exbar-track">${cells || empty}</span>
-  </div>`;
+// Coverage funnel — the shared pillar-card visual. Four nested stages
+// (Applicable → Documented → Implemented → Effective), each bar's width the
+// stage's share of the applicable total, with a "▼ N lost" marker on the drop
+// from the stage above. Used by the exec report (static) AND the main-screen
+// capability lens, where opts.interactive makes each of the three lower stages a
+// button that filters the drill-down below (opts.activeView highlights the
+// selected one). Reads p.funnel from build{Pillar,Capability}Summary.
+function execFunnel(f, opts) {
+  opts = opts || {};
+  f = f || { applicable: 0, documented: 0, implemented: 0, effective: 0 };
+  const grey = 'color-mix(in srgb, var(--text) 30%, transparent)';
+  const rows = [
+    { view: null,          label: 'Applicable',  sub: 'in-scope objectives',           n: f.applicable  || 0, col: grey },
+    { view: 'documented',  label: 'Documented',  sub: 'covered by an owned statement',  n: f.documented  || 0, col: 'var(--accent)' },
+    { view: 'implemented', label: 'Implemented', sub: 'objective has a live control',   n: f.implemented || 0, col: 'var(--clr-warning)' },
+    { view: 'effective',   label: 'Effective',   sub: 'control rated effective',        n: f.effective   || 0, col: 'var(--clr-success)' },
+  ];
+  const max = (f.applicable || 0) || 1;
+  const cells = rows.map((r, i) => {
+    const w = Math.max(8, Math.round(100 * r.n / max));
+    const drop = i > 0 ? (rows[i - 1].n - r.n) : 0;
+    const clickable = !!(opts.interactive && r.view);
+    const active = clickable && r.view === opts.activeView;
+    const attrs = clickable
+      ? ` role="button" tabindex="0" onclick="capLensSetView('${r.view}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();capLensSetView('${r.view}');}"`
+      : '';
+    return `<div class="exfun-row">
+      <div class="exfun-name">${r.label}<small>${r.sub}</small></div>
+      <div class="exfun-barwrap"><div class="exfun-bar${clickable ? ' exfun-bar-click' : ''}${active ? ' exfun-bar-on' : ''}" style="width:${w}%;background:${r.col}"${attrs}>
+        <span class="exfun-n">${r.n}</span>${drop > 0 ? `<span class="exfun-drop">&#9660; ${drop} lost</span>` : ''}
+      </div></div>
+    </div>`;
+  }).join('');
+  const hint = opts.interactive ? `<div class="exfun-hint">Click a stage to filter the drill-down below.</div>` : '';
+  return `<div class="exfun">${cells}</div>${hint}`;
 }
-function renderExecPillar(p) {
+function renderExecPillar(p, opts) {
+  opts = opts || {};
   const [ragCls, ragTxt] = PIL_RAG[p.rag] || PIL_RAG.none;
   const head = `<div class="pil-head">
     <div class="pil-ico">${p.icon}</div>
@@ -210,38 +233,16 @@ function renderExecPillar(p) {
     return `<div class="pil-card pil-card-muted">${head}</div>`;
   }
 
-  const cv = p.coverage, op = p.ops, ct = p.controls;
-  const green = 'var(--clr-success)', amber = 'var(--clr-warning)', red = 'var(--clr-danger)';
-  const grey = 'var(--track,color-mix(in srgb,var(--text) 14%,transparent))';
-  const uncov   = cv.total - cv.covered;               // objectives with no owned statement
-  const opDraft = op.backed - op.operationalised;      // statements backed only by draft controls
-  const opNone  = op.total - op.backed;                // statements with no control (incl. invisible work)
-  const notEff  = ct.implemented - ct.effective;       // implemented controls not yet effective
-
-  // Three segmented bars — Documented / Implemented / Effective. Flags are folded
-  // into the grey segments (uncovered → Documented grey; no-control → Implemented
-  // grey). Effective is measured over IMPLEMENTED controls only.
-  const bars = `<div class="exbars">
-    ${execSegBar('Documented', [
-      { n: cv.covered, col: green, t: 'Covered' },
-      { n: uncov,      col: grey,  t: 'Uncovered' },
-    ], cv.total, `${cv.covered}/${cv.total}`)}
-    ${execSegBar('Implemented', [
-      { n: op.operationalised, col: green, t: 'Live control' },
-      { n: opDraft,            col: amber, t: 'Draft control only' },
-      { n: opNone,             col: grey,  t: 'No control' },
-    ], op.total, `${op.operationalised}/${op.total}`)}
-    ${execSegBar('Effective', [
-      { n: ct.effective, col: green, t: 'Effective' },
-      { n: notEff,       col: red,   t: 'Not yet effective' },
-    ], ct.implemented, `${ct.effective}/${ct.implemented}`)}
-  </div>`;
+  // Coverage funnel — Applicable → Documented → Implemented → Effective, all at
+  // the DORA-objective grain so each stage is a subset of the one above. On the
+  // main-screen capability lens the lower three stages filter the drill-down.
+  const funnel = execFunnel(p.funnel, opts);
 
   const legend = `<div class="exbars-legend">
-    <span><i class="exl" style="background:var(--clr-success)"></i>Done</span>
-    <span><i class="exl" style="background:var(--clr-warning)"></i>Draft / in progress</span>
-    <span><i class="exl" style="background:var(--clr-danger)"></i>Not effective</span>
-    <span><i class="exl" style="background:color-mix(in srgb,var(--text) 20%,transparent)"></i>None / uncovered</span>
+    <span><i class="exl" style="background:var(--accent)"></i>Documented</span>
+    <span><i class="exl" style="background:var(--clr-warning)"></i>Implemented</span>
+    <span><i class="exl" style="background:var(--clr-success)"></i>Effective</span>
+    <span><i class="exl" style="background:color-mix(in srgb,var(--text) 30%,transparent)"></i>Applicable</span>
   </div>`;
 
   const steps = pilGenSteps(p).map(s => `<div class="pil-step">
@@ -251,7 +252,7 @@ function renderExecPillar(p) {
   </div>`).join('');
 
   return `<div class="pil-card pil-rag-b-${p.rag}">
-    ${head}${bars}${legend}
+    ${head}${funnel}${legend}
     <div class="pil-steps"><div class="pil-steps-h">↳ High-level next steps</div>${steps}</div>
   </div>`;
 }
@@ -267,7 +268,7 @@ function renderExecPillars(currentA) {
       <h2 class="pil-section-title">DORA operationalisation by pillar</h2>
       <p class="pil-section-desc">${desc}</p>
     </div>
-    <div class="pil-grid">${pillars.map(renderExecPillar).join('')}</div>
+    <div class="pil-grid">${pillars.map(p => renderExecPillar(p)).join('')}</div>
   </div>`;
 }
 

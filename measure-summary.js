@@ -420,14 +420,70 @@ function renderCapabilityLensCard(assessment) {
       <div id="caplens-body">${capLensBody(assessment, firstCap.id)}</div>
     </div>`;
 }
+let _capLensView = 'implemented';
+let _capLensCapId = null;
 function capLensBody(a, capId) {
-  return renderExecPillar(buildCapabilitySummary(a, capId)) + renderCapabilityTree(a, capId);
+  _capLensCapId = capId;
+  return renderExecPillar(buildCapabilitySummary(a, capId))
+    + `<div id="caplens-tree">${renderCapLensTree(a, capId, _capLensView)}</div>`;
 }
 function updateCapabilityLens(capId) {
   const body = document.getElementById('caplens-body');
   if (body && _capLensA) body.innerHTML = capLensBody(_capLensA, capId);
 }
-// Expand / collapse a mind-map node (article / objective / statement).
+function setCapLensView(view) {
+  _capLensView = view;
+  const el = document.getElementById('caplens-tree');
+  if (el && _capLensA) el.innerHTML = renderCapLensTree(_capLensA, _capLensCapId, view);
+}
+// Segmented Documented | Implemented | Effective drill-down. Documented &
+// Implemented root at the DORA Article (the regulatory lineage — "what must
+// exist"); Effective re-roots at Risk (the risk lineage — "does it work"). Both
+// resolve to the same control records; effectiveness is a per-risk property.
+function renderCapLensTree(a, capId, view) {
+  const tabs = [['documented', 'Documented'], ['implemented', 'Implemented'], ['effective', 'Effective']];
+  const toggle = `<div class="cl-toggle" role="tablist">${tabs.map(([v, l]) =>
+    `<button type="button" class="cl-tab${v === view ? ' cl-tab-on' : ''}" role="tab" aria-selected="${v === view}" onclick="setCapLensView('${v}')">${l}</button>`).join('')}</div>`;
+  const body = view === 'documented' ? renderDocumentedTree(a, capId)
+             : view === 'effective'  ? renderEffectiveTree(a, capId)
+             :                          renderCapabilityTree(a, capId);
+  return toggle + body;
+}
+// Documented view — DORA article → objective, coverage completeness only.
+function renderDocumentedTree(a, capId) {
+  const arts = buildCapabilityTree(a, capId).filter(x => !x.noArt);
+  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ DORA article → objective &middot; is every applicable objective covered by an owned statement?</div>${inner}</div>`;
+  if (!arts.length) return wrap('<div class="mm-empty">No DORA articles mapped to this capability yet.</div>');
+  const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
+  const objRow = o => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">🎯</span><span class="mm-lbl">${escHtml(o.id || '')}${o.text ? ` — ${escHtml(o.text)}` : ''}</span>${o.covered === 'Yes' ? badge('mm-b-green', '✓ covered') : badge('mm-b-red', '▲ uncovered')}</div></li>`;
+  const renderArt = x => {
+    const cov = x.objectives.filter(o => o.covered === 'Yes').length, tot = x.objectives.length;
+    const lvl = cov === tot ? 0 : cov > 0 ? 1 : 3;
+    const cls = ['mm-b-green', 'mm-b-amber', 'mm-b-blue', 'mm-b-red'][lvl];
+    return `<li class="mm-node mm-lvl-${lvl}"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">📘</span><span class="mm-lbl"><b>${escHtml(x.article)}</b></span><span class="mm-badge ${cls}">${cov}/${tot} covered</span></div><ul class="mm-children">${x.objectives.map(objRow).join('')}</ul></li>`;
+  };
+  const legend = `<div class="mm-legend"><span class="mm-leg"><i class="mm-dot mm-b-green"></i>covered</span><span class="mm-leg"><i class="mm-dot mm-b-red"></i>uncovered — needs an owned statement</span></div>`;
+  return wrap(legend + `<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
+}
+// Effective view — Risk → control, effectiveness badges (per risk, from the RCSA).
+function renderEffectiveTree(a, capId) {
+  const risks = buildRiskControlTree(a, capId);
+  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ Risk → control &middot; do the controls treating each risk actually work? (RCSA)</div>${inner}</div>`;
+  if (!risks.length) return wrap('<div class="mm-empty">No risks with controls mapped to this capability yet.</div>');
+  const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
+  const ctrlBadge = c => !c.implemented ? badge('mm-b-amber', 'Draft') : c.effective ? badge('mm-b-green', 'Effective') : badge('mm-b-red', 'Not effective');
+  const cLevel = c => !c.implemented ? 1 : c.effective ? 0 : 3;   // draft=amber, effective=green, not-effective=red
+  const leaf = c => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">🛠</span><span class="mm-lbl">${escHtml((c.number ? c.number + ' — ' : '') + c.name)} ${ctrlBadge(c)}</span></div></li>`;
+  const renderRisk = r => {
+    const worst = r.controls.length ? Math.max(...r.controls.map(cLevel)) : 3;
+    const cls = ['mm-b-green', 'mm-b-amber', 'mm-b-blue', 'mm-b-red'][worst];
+    const eff = r.controls.filter(c => c.implemented && c.effective).length;
+    return `<li class="mm-node mm-lvl-${worst}"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">⚠️</span><span class="mm-lbl">${escHtml(r.risk)}</span><span class="mm-badge ${cls}">${eff}/${r.controls.length} effective</span></div><ul class="mm-children">${r.controls.map(leaf).join('')}</ul></li>`;
+  };
+  const legend = `<div class="mm-legend"><span class="mm-leg"><i class="mm-dot mm-b-green"></i>effective</span><span class="mm-leg"><i class="mm-dot mm-b-red"></i>not effective</span><span class="mm-leg"><i class="mm-dot mm-b-amber"></i>draft (not implemented)</span><span class="mm-leg-note">— effectiveness is judged per risk, from the RCSA</span></div>`;
+  return wrap(legend + `<ul class="mm-tree">${risks.map(renderRisk).join('')}</ul>`);
+}
+// Expand / collapse a mind-map node (article / objective / statement / risk).
 function mmToggle(el) { const li = el.closest('.mm-node'); if (li) li.classList.toggle('mm-open'); }
 // Clickable hierarchy: DORA article → objective → policy statement → control.
 function renderCapabilityTree(assessment, capId) {

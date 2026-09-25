@@ -424,30 +424,32 @@ let _capLensView = 'implemented';
 let _capLensCapId = null;
 function capLensBody(a, capId) {
   _capLensCapId = capId;
-  return renderExecPillar(buildCapabilitySummary(a, capId))
+  // The pillar card's coverage funnel is the view selector here: its lower three
+  // stages (Documented / Implemented / Effective) are clickable and filter the
+  // drill-down below — opts.activeView marks the current one.
+  return renderExecPillar(buildCapabilitySummary(a, capId), { interactive: true, capId, activeView: _capLensView })
     + `<div id="caplens-tree">${renderCapLensTree(a, capId, _capLensView)}</div>`;
 }
 function updateCapabilityLens(capId) {
   const body = document.getElementById('caplens-body');
   if (body && _capLensA) body.innerHTML = capLensBody(_capLensA, capId);
 }
-function setCapLensView(view) {
+// Clicking a funnel stage selects the drill-down view. Re-render the whole body
+// so the funnel highlight (active stage) and the tree below update together.
+function capLensSetView(view) {
   _capLensView = view;
-  const el = document.getElementById('caplens-tree');
-  if (el && _capLensA) el.innerHTML = renderCapLensTree(_capLensA, _capLensCapId, view);
+  if (!_capLensA || _capLensCapId == null) return;
+  const body = document.getElementById('caplens-body');
+  if (body) body.innerHTML = capLensBody(_capLensA, _capLensCapId);
 }
-// Segmented Documented | Implemented | Effective drill-down. Documented &
-// Implemented root at the DORA Article (the regulatory lineage — "what must
-// exist"); Effective re-roots at Risk (the risk lineage — "does it work"). Both
-// resolve to the same control records; effectiveness is a per-risk property.
+// Drill-down for the current funnel stage. Documented roots at the DORA Article
+// (the regulatory lineage — "what must exist"); Implemented shows the full
+// article → objective → statement → control tree; Effective re-roots at Risk
+// (the risk lineage — "does it work"). All resolve to the same control records.
 function renderCapLensTree(a, capId, view) {
-  const tabs = [['documented', 'Documented'], ['implemented', 'Implemented'], ['effective', 'Effective']];
-  const toggle = `<div class="cl-toggle" role="tablist">${tabs.map(([v, l]) =>
-    `<button type="button" class="cl-tab${v === view ? ' cl-tab-on' : ''}" role="tab" aria-selected="${v === view}" onclick="setCapLensView('${v}')">${l}</button>`).join('')}</div>`;
-  const body = view === 'documented' ? renderDocumentedTree(a, capId)
-             : view === 'effective'  ? renderEffectiveTree(a, capId)
-             :                          renderCapabilityTree(a, capId);
-  return toggle + body;
+  return view === 'documented' ? renderDocumentedTree(a, capId)
+       : view === 'effective'  ? renderEffectiveTree(a, capId)
+       :                          renderCapabilityTree(a, capId);
 }
 // Documented view — DORA article → objective, coverage completeness only.
 function renderDocumentedTree(a, capId) {

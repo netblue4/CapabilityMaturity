@@ -432,6 +432,20 @@ function doraPillarShortFor(article, obligationId, capId, capPillar) {
 // here is a count of those rows (via the first-obj / first-stmt / first-ctrl
 // flags), so the cards can never diverge from the export. Risks/danger are the
 // only thing not in the row grain — they come from buildRiskProfile.
+// Coverage funnel counts (DORA-objective grain) from an aggregation bucket.
+// Four nested stages — each a strict subset of the one above:
+//   applicable  = every in-scope objective
+//   documented  = objectives covered by an owned statement
+//   implemented = objectives with a live control behind at least one statement
+//   effective   = objectives whose control is rated effective
+// Clamped monotonically so the funnel can never widen going down.
+function coverageFunnel(a) {
+  const app  = a.oblTotal || 0;
+  const doc  = Math.min(a.oblCovered || 0, app);
+  const impl = Math.min(a.oblImpl ? a.oblImpl.size : 0, doc);
+  const eff  = Math.min(a.oblEff ? a.oblEff.size : 0, impl);
+  return { applicable: app, documented: doc, implemented: impl, effective: eff };
+}
 function buildPillarSummary(assessment) {
   const facts = assessment.riskPolicyFacts || [];
   const pillars = (typeof DORA_PILLARS !== 'undefined') ? DORA_PILLARS : [];
@@ -441,7 +455,7 @@ function buildPillarSummary(assessment) {
   const A = {};
   const bucket = pid => A[pid] || (A[pid] = { oblTotal: 0, oblCovered: 0, uncovered: [],
     sTotal: 0, sLive: 0, sDraft: 0, sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0,
-    cTotal: 0, cImpl: 0, cEff: 0 });
+    cTotal: 0, cImpl: 0, cEff: 0, oblImpl: new Set(), oblEff: new Set() });
   trace.rows.forEach(r => {
     const a = bucket(r._pillarId);
     if (r.firstObj === 'Yes') { a.oblTotal++; if (r.covered === 'Yes') a.oblCovered++; else a.uncovered.push({ id: r.objectiveId, article: r.article, requirement: r.objective }); }
@@ -453,6 +467,14 @@ function buildPillarSummary(assessment) {
       if (r._approved) a.approved++;
     }
     if (r.firstCtrl === 'Yes') { a.cTotal++; if (r.controlStatus === 'Implemented') { a.cImpl++; if (r.effectiveness === 'Effective') a.cEff++; } }
+    // Coverage-funnel rollup at the DORA-objective grain: an objective counts as
+    // implemented if ANY of its statements is backed by a live control, and as
+    // effective if ANY has a control rated effective. Same population as coverage
+    // (applicable / documented) so each funnel stage nests inside the one above.
+    if (r._oKey) {
+      if (r.stmtOperationalised === 'Live') a.oblImpl.add(r._oKey);
+      if (r.effectiveness === 'Effective') a.oblEff.add(r._oKey);
+    }
   });
 
   // Danger-zone risks per pillar (not part of the trace grain).
@@ -466,7 +488,7 @@ function buildPillarSummary(assessment) {
 
   const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
   const finalize = def => {
-    const a = A[def.id] || { oblTotal: 0, oblCovered: 0, uncovered: [], sTotal: 0, sLive: 0, sDraft: 0, sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0, cTotal: 0, cImpl: 0, cEff: 0 };
+    const a = A[def.id] || { oblTotal: 0, oblCovered: 0, uncovered: [], sTotal: 0, sLive: 0, sDraft: 0, sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0, cTotal: 0, cImpl: 0, cEff: 0, oblImpl: new Set(), oblEff: new Set() };
     const hasData = a.oblTotal + a.sTotal + a.cTotal > 0;
     const gaps = {
       uncovered:       a.uncovered,
@@ -484,6 +506,7 @@ function buildPillarSummary(assessment) {
       ops:      { operationalised: a.sLive, backed: a.sLive + a.sDraft, total: a.sTotal, pct: pct(a.sLive, a.sTotal) },
       approval: { approved: a.approved, total: a.sTotal },
       controls: { effective: a.cEff, implemented: a.cImpl, total: a.cTotal, pct: pct(a.cEff, a.cImpl) },
+      funnel: coverageFunnel(a),
       gaps,
     };
     if (!def.inScope) s.rag = 'oos';
@@ -514,7 +537,8 @@ function buildCapabilitySummary(assessment, capId) {
   const trace = buildTraceabilityRows(assessment);
 
   const a = { oblTotal: 0, oblCovered: 0, uncovered: [], sTotal: 0, sLive: 0, sDraft: 0,
-    sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0, cTotal: 0, cImpl: 0, cEff: 0 };
+    sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0, cTotal: 0, cImpl: 0, cEff: 0,
+    oblImpl: new Set(), oblEff: new Set() };
   trace.rows.forEach(r => {
     if (r.capability !== capNm) return;
     if (r.firstObj === 'Yes') { a.oblTotal++; if (r.covered === 'Yes') a.oblCovered++; else a.uncovered.push({ id: r.objectiveId, article: r.article, requirement: r.objective }); }
@@ -526,6 +550,10 @@ function buildCapabilitySummary(assessment, capId) {
       if (r._approved) a.approved++;
     }
     if (r.firstCtrl === 'Yes') { a.cTotal++; if (r.controlStatus === 'Implemented') { a.cImpl++; if (r.effectiveness === 'Effective') a.cEff++; } }
+    if (r._oKey) {
+      if (r.stmtOperationalised === 'Live') a.oblImpl.add(r._oKey);
+      if (r.effectiveness === 'Effective') a.oblEff.add(r._oKey);
+    }
   });
 
   // Danger-zone risks for this capability (residual ≥ 20 with controls < 50% effective).
@@ -551,6 +579,7 @@ function buildCapabilitySummary(assessment, capId) {
     ops:      { operationalised: a.sLive, backed: a.sLive + a.sDraft, total: a.sTotal, pct: pct(a.sLive, a.sTotal) },
     approval: { approved: a.approved, total: a.sTotal },
     controls: { effective: a.cEff, implemented: a.cImpl, total: a.cTotal, pct: pct(a.cEff, a.cImpl) },
+    funnel: coverageFunnel(a),
     gaps,
   };
   if (!hasData) s.rag = 'none';

@@ -82,64 +82,6 @@ function execScDelta(cur, prev) {
   const up = d > 0;
   return `<span class="exsc-${up ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${up ? '+' : ''}${d}%</span>`;
 }
-function execScGauge(pct, n, d) {
-  const col = execScColor(pct);
-  const C = 2 * Math.PI * 52;
-  const dash = Math.max(0, Math.min(100, pct)) / 100 * C;
-  return `<div class="exsc-ring">
-    <svg viewBox="0 0 132 132" width="118" height="118">
-      <circle class="exsc-track" cx="66" cy="66" r="52"></circle>
-      <circle class="exsc-arc" cx="66" cy="66" r="52" stroke="${col}" stroke-dasharray="${dash.toFixed(1)} ${C.toFixed(1)}"></circle>
-    </svg>
-    <div class="exsc-ctr"><div class="exsc-pct" style="color:${col}">${pct}%</div><div class="exsc-frac">${n} / ${d}</div></div>
-  </div>`;
-}
-// Stacked donut for the Control-2 hero split: of a source's statements, how many
-// are implemented (green), draft-only (amber), or have no control (grey).
-function execStackDonut(green, amber, grey, opts) {
-  opts = opts || {};
-  const segs = [
-    { v: green, c: 'var(--clr-success)' },
-    { v: amber, c: 'var(--clr-warning)' },
-    { v: grey,  c: 'color-mix(in srgb, var(--text) 16%, transparent)' },
-  ];
-  const total = green + amber + grey, R = 46, C = 2 * Math.PI * R, SW = 12;
-  let start = 0;
-  const arcs = total
-    ? segs.filter(s => s.v > 0).map(s => {
-        const len = s.v / total * C, off = -start; start += len;
-        return `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${s.c}" stroke-width="${SW}" stroke-dasharray="${len.toFixed(1)} ${(C - len).toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 60 60)"></circle>`;
-      }).join('')
-    : `<circle cx="60" cy="60" r="${R}" fill="none" stroke="color-mix(in srgb, var(--text) 16%, transparent)" stroke-width="${SW}"></circle>`;
-  return `<div class="exsc-c2-one">
-    <div class="exsc-c2-ring">
-      <svg viewBox="0 0 120 120" width="106" height="106" class="exsc-c2-svg">${arcs}</svg>
-      <div class="exsc-c2-ctr"><div class="exsc-c2-tot">${total}</div><div class="exsc-c2-totlbl">${opts.centreLbl || 'statements'}</div></div>
-    </div>
-    ${opts.label ? `<div class="exsc-c2-lbl">${opts.label}</div>` : ''}
-    <div class="exsc-c2-sub">${opts.caption || ''}</div>
-  </div>`;
-}
-// Pillar segment colours (match the DORA Pillar tags used across the tables).
-const PIL_MIX_COL = {
-  riskmgmt:    'var(--accent)',
-  incident:    'var(--clr-danger)',
-  thirdparty:  'var(--clr-warning)',
-  testing:     'color-mix(in srgb, var(--text) 34%, transparent)',
-  infosharing: 'color-mix(in srgb, var(--text) 20%, transparent)',
-};
-// A "by pillar" mix bar for a hero card: one segment per pillar, sized by that
-// pillar's share of the metric, with an inline legend. Contextualises the
-// per-pillar cards that follow.
-function execPillarMix(pil, metric, unit) {
-  const val = p => metric === 'objectives' ? p.coverage.total : metric === 'statements' ? p.ops.total : p.controls.total;
-  const segs = pil.filter(p => val(p) > 0).map(p => ({ short: p.short, n: val(p), col: PIL_MIX_COL[p.id] || 'var(--accent)' }));
-  const total = segs.reduce((s, x) => s + x.n, 0);
-  if (!total) return '';
-  const bar = `<span class="exsc-mix-track">${segs.map(s => `<i style="width:${100 * s.n / total}%;background:${s.col}" title="${escHtml(s.short)}: ${s.n}"></i>`).join('')}</span>`;
-  const legend = `<div class="exsc-mix-legend">${segs.map(s => `<span class="exsc-mix-leg"><i style="background:${s.col}"></i>${escHtml(s.short)} <b>${s.n}</b></span>`).join('')}</div>`;
-  return `<div class="exsc-mix"><div class="exsc-mix-lbl">${total} ${unit} by pillar</div>${bar}${legend}</div>`;
-}
 function renderExecScorecard(currentA, prevA) {
   const cur  = buildExecScorecard(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const sops = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
@@ -171,6 +113,7 @@ function renderExecScorecard(currentA, prevA) {
   const cell = (m, label, desc, prevPct) => `<div class="exsum-cell">
     <div class="exsum-lbl">${label}</div>
     <div class="exsum-pct" style="color:${execScColor(m.pct)}">${m.pct}%</div>
+    <div class="exsum-mini"><i style="width:${Math.max(m.pct, 2)}%;background:${execScColor(m.pct)}"></i></div>
     <div class="exsum-frac">${m.n} / ${m.d}${prevPct != null ? ' ' + execScDelta(m.pct, prevPct) : ''}</div>
     <div class="exsum-desc">${desc}</div>
   </div>`;
@@ -236,29 +179,6 @@ function pilGenSteps(p) {
   if (p.gaps.notEffective) push(3, 'Control', `Improve effectiveness of <b>${p.gaps.notEffective}</b> implemented control(s) at the next RCSA.`);
   if (!steps.length) push(3, '—', 'No open actions — maintain and re-test at the next cycle.');
   return steps.slice(0, 6);
-}
-function pilKpi(lbl, ctrl, pct, frac, rag) {
-  // KPI percentages use the default text colour (RAG lives in the card chip and
-  // the panel bars) so the tiles read calmly. The mini-bar stays neutral too.
-  const w = Math.max(pct, 3);
-  return `<div class="pil-kpi">
-    <div class="pil-kpi-lbl">${lbl} · ${ctrl}</div>
-    <div class="pil-kpi-val">${pct}%</div>
-    <div class="pil-kpi-frac">${frac}</div>
-    <div class="pil-kpi-bar"><i style="width:${w}%"></i></div>
-  </div>`;
-}
-function pilStack(segs, total) {
-  const cells = segs.filter(s => s.n > 0).map(s => `<i style="width:${total ? 100 * s.n / total : 0}%;background:${s.col}" title="${s.t}"></i>`).join('');
-  return `<span class="pil-track">${cells || '<i style="width:100%;background:var(--track,color-mix(in srgb,var(--text) 12%,transparent))"></i>'}</span>`;
-}
-// A labelled sub-bar (label · n/d · single-colour fill), for the split metrics.
-function pilSubBar(label, n, d, col) {
-  const w = d ? 100 * n / d : 0;
-  return `<div class="pil-sub">
-    <div class="pil-sub-top"><span>${label}</span><b>${n}/${d}</b></div>
-    <span class="pil-track"><i style="width:${w}%;background:${col}"></i></span>
-  </div>`;
 }
 // One horizontal segmented bar (label · segments · numeric ratio). Segments are
 // {n, col, t}; total sets the bar's 100% width. Used for the Documented /

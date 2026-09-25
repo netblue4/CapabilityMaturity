@@ -142,51 +142,38 @@ function execPillarMix(pil, metric, unit) {
 }
 function renderExecScorecard(currentA, prevA) {
   const cur  = buildExecScorecard(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
-  const prev = prevA ? buildExecScorecard(prevA.doraRows || [], prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
   const sops = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
-  const c2 = src => ({ impl: src.operationalised, draft: src.backed - src.operationalised, none: src.total - src.backed });
-  const c2p = c2(sops.policy), c2g = c2(sops.groupStandard);
   const bops = buildBackingControlOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
-  const c3 = {
-    eff: bops.controls.filter(c => c.liveEffective).length,
-    implNotEff: bops.controls.filter(c => c.implemented && !c.effective).length,
-    draft: bops.controls.filter(c => !c.implemented).length,
-  };
-  const c3ImplCtrl = c3.eff + c3.implNotEff;   // controls that are implemented (effective or not)
-  const art = buildDoraArticleCoverage(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
-  const objOped    = art.totals.byImplemented;                        // objectives with an implemented control
-  const objWaiting = art.totals.byBacked - art.totals.byImplemented;  // objectives backed only by draft controls
   const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
-  const pil  = buildPillarSummary(currentA);   // per-pillar totals for the mix bars
-
-  // Overall = average of the three control %s, using the SAME definitions as the
-  // pillar / capability cards: Coverage (covered/total objectives), Operationalised
-  // (live/total statements) and Effective (effective/total controls). Keeps every
-  // "overall" figure on one method. The strict "fully operationalised" count stays
-  // as a sub-stat.
-  const avg3 = (sc, so, bo) => {
-    const c1 = sc.control1.pct;
-    const c2 = so.all.total ? Math.round(100 * so.all.operationalised / so.all.total) : 0;
-    const c3 = bo.total ? Math.round(100 * bo.liveEffective / bo.total) : 0;
-    return Math.round((c1 + c2 + c3) / 3);
-  };
-  const overallAvg = avg3(cur, sops, bops);
-  const prevAvg = (prev && prevA) ? avg3(prev, buildStatementOps(prevA.policyRows || [], prevA.riskPolicyFacts || []), buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || [])) : null;
-
-  const gauge = (key, tag, name, desc, sub, extra) => {
-    const c = cur[key], p = prev ? prev[key] : null;
-    return `<div class="exsc-gauge">
-      <div class="exsc-gtag">${tag}</div>
-      <div class="exsc-gname">${name}</div>
-      ${execScGauge(c.pct, c.n, c.d)}
-      <div class="exsc-qoq">${execScDelta(c.pct, p ? p.pct : null)}</div>
-      ${sub ? `<div class="exsc-bridge">${sub}</div>` : ''}
-      <div class="exsc-gdesc">${desc}</div>
-      ${extra || ''}
-    </div>`;
-  };
-
   const subVs = prevA ? ` &nbsp;·&nbsp; vs ${escHtml(prevA.label)}` : '';
+
+  // Three independent percentages — no averaging, no combined status.
+  //   Documented  = covered objectives / total applicable objectives   (Control 1)
+  //   Implemented = statements with a live control / total statements   (Control 2)
+  //   Effective   = effective controls / IMPLEMENTED controls only      (Control 3)
+  const implCount   = bops.controls.filter(c => c.implemented).length;
+  const documented  = { n: cur.control1.n, d: cur.control1.d, pct: cur.control1.pct };
+  const implemented = { n: sops.all.operationalised, d: sops.all.total, pct: sops.all.total ? Math.round(100 * sops.all.operationalised / sops.all.total) : 0 };
+  const effective   = { n: bops.liveEffective, d: implCount, pct: implCount ? Math.round(100 * bops.liveEffective / implCount) : 0 };
+
+  // Previous-quarter % per metric (same definitions) for the delta arrow.
+  let pDoc = null, pImpl = null, pEff = null;
+  if (prevA) {
+    const pc = buildExecScorecard(prevA.doraRows || [], prevA.policyRows || [], prevA.riskPolicyFacts || []);
+    const ps = buildStatementOps(prevA.policyRows || [], prevA.riskPolicyFacts || []);
+    const pb = buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || []);
+    const pic = pb.controls.filter(c => c.implemented).length;
+    pDoc  = pc.control1.pct;
+    pImpl = ps.all.total ? Math.round(100 * ps.all.operationalised / ps.all.total) : 0;
+    pEff  = pic ? Math.round(100 * pb.liveEffective / pic) : 0;
+  }
+
+  const cell = (m, label, desc, prevPct) => `<div class="exsum-cell">
+    <div class="exsum-lbl">${label}</div>
+    <div class="exsum-pct" style="color:${execScColor(m.pct)}">${m.pct}%</div>
+    <div class="exsum-frac">${m.n} / ${m.d}${prevPct != null ? ' ' + execScDelta(m.pct, prevPct) : ''}</div>
+    <div class="exsum-desc">${desc}</div>
+  </div>`;
 
   return `
   <div class="exsc">
@@ -196,31 +183,11 @@ function renderExecScorecard(currentA, prevA) {
         <h2 class="exsc-title">DORA Operationalisation Scorecard</h2>
         <div class="exsc-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)}${subVs}</div>
       </div>
-      <div class="exsc-composite">
-        <div class="exsc-big" style="color:${execScColor(overallAvg)}">${overallAvg}%</div>
-        <div class="exsc-big-lbl">overall &middot; avg of the three controls</div>
-        <div class="exsc-qoq">${execScDelta(overallAvg, prevAvg)}</div>
-        <div class="exsc-substat">${cur.composite.pct}% of objectives fully operationalised (covered · live · effective)</div>
-      </div>
     </div>
-    <div class="exsc-row">
-      ${gauge('control1', 'Control 1 · Coverage', 'Applicable DORA objectives covered', `${cur.control1.n} of ${cur.control1.d} DORA objectives covered by ${sops.policy.total} policy and ${sops.groupStandard.total} group standard statements`, null, execPillarMix(pil, 'objectives', 'objectives'))}
-      <div class="exsc-gauge exsc-gauge-c2">
-        <div class="exsc-gtag">Control 2 · Operationalisation</div>
-        <div class="exsc-gname">Policy &amp; Group Standard statements operationalised by controls</div>
-        <div class="exsc-c2-donuts">${execStackDonut(c2p.impl, c2p.draft, c2p.none, { label: 'Policy', caption: `<span class="exsc-c2-imp">${c2p.impl} impl</span> · <span class="exsc-c2-drf">${c2p.draft} draft</span> · <span class="exsc-c2-non">${c2p.none} none</span>` })}${execStackDonut(c2g.impl, c2g.draft, c2g.none, { label: 'Group Standard', caption: `<span class="exsc-c2-imp">${c2g.impl} impl</span> · <span class="exsc-c2-drf">${c2g.draft} draft</span> · <span class="exsc-c2-non">${c2g.none} none</span>` })}</div>
-        <div class="exsc-gdesc">${sops.all.operationalised} of ${sops.all.total} statements operationalised by ${bops.total} controls (${sops.policy.total} policy · ${sops.groupStandard.total} group standard).</div>
-        <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Implemented</span> <span class="exsc-c2-drf">■ Draft</span> <span class="exsc-c2-non">■ No control</span></div>
-        ${execPillarMix(pil, 'statements', 'statements')}
-      </div>
-      <div class="exsc-gauge exsc-gauge-c3">
-        <div class="exsc-gtag">Control 3 · Effectiveness</div>
-        <div class="exsc-gname">Control efficacy in treating risk</div>
-        <div class="exsc-c2-donuts">${execStackDonut(c3.eff, c3.implNotEff, c3.draft, { centreLbl: 'controls', caption: `<span class="exsc-c2-imp">${c3.eff} effective</span> · <span class="exsc-c2-drf">${c3.implNotEff} to improve</span> · <span class="exsc-c2-non">${c3.draft} draft</span>` })}</div>
-        <div class="exsc-gdesc">${c3.eff} of ${c3ImplCtrl} implemented controls are rated effective in the RCSA${c3.implNotEff ? `; ${c3.implNotEff} still to improve` : ''}. ${c3.draft} draft control${c3.draft === 1 ? '' : 's'} not yet operational.</div>
-        <div class="exsc-c2-legend"><span class="exsc-c2-imp">■ Effective</span> <span class="exsc-c2-drf">■ Implemented, not effective</span> <span class="exsc-c2-non">■ Draft</span></div>
-        ${execPillarMix(pil, 'controls', 'controls')}
-      </div>
+    <div class="exsum-row">
+      ${cell(documented,  'Documented',  'Applicable DORA objectives covered by an owned policy or group-standard statement.', pDoc)}
+      ${cell(implemented, 'Implemented', 'Policy / group-standard statements operationalised by a live control.',              pImpl)}
+      ${cell(effective,   'Effective',   'Implemented controls rated effective in the RCSA (of implemented controls only).',    pEff)}
     </div>
   </div>`;
 }
@@ -293,17 +260,22 @@ function pilSubBar(label, n, d, col) {
     <span class="pil-track"><i style="width:${w}%;background:${col}"></i></span>
   </div>`;
 }
+// One horizontal segmented bar (label · segments · numeric ratio). Segments are
+// {n, col, t}; total sets the bar's 100% width. Used for the Documented /
+// Implemented / Effective metrics on every pillar card (exec report AND the
+// main-screen capability lens — one shared implementation).
+function execSegBar(label, segs, total, ratio) {
+  const w = n => total ? 100 * n / total : 0;
+  const cells = segs.filter(s => s.n > 0)
+    .map(s => `<i style="width:${w(s.n)}%;background:${s.col}" title="${s.t}: ${s.n}"></i>`).join('');
+  const empty = '<i style="width:100%;background:var(--track,color-mix(in srgb,var(--text) 12%,transparent))"></i>';
+  return `<div class="exbar">
+    <div class="exbar-top"><span class="exbar-lbl">${label}</span><b class="exbar-ratio">${ratio}</b></div>
+    <span class="exbar-track">${cells || empty}</span>
+  </div>`;
+}
 function renderExecPillar(p) {
   const [ragCls, ragTxt] = PIL_RAG[p.rag] || PIL_RAG.none;
-  // Overall status (top-right) = average of the three control %s:
-  // Coverage (covered/total objectives), Operationalised (live/total statements)
-  // and Effective (effective/total controls). Coloured by the card's RAG.
-  const covPct = p.coverage.pct, opsPct = p.ops.pct;
-  const effPct = p.controls.total ? Math.round(100 * p.controls.effective / p.controls.total) : 0;
-  const overall = Math.round((covPct + opsPct + effPct) / 3);
-  const corner = (p.rag === 'oos' || !p.hasData)
-    ? `<div class="pil-rag ${ragCls}">${ragTxt}</div>`
-    : `<div class="pil-overall pil-ov-${p.rag}" title="Overall = average of Coverage ${covPct}%, Operationalised ${opsPct}% and Effective ${effPct}%"><div class="pil-ov-pct">${overall}%</div><div class="pil-ov-lbl">overall</div></div>`;
   const head = `<div class="pil-head">
     <div class="pil-ico">${p.icon}</div>
     <div class="pil-head-txt">
@@ -311,7 +283,7 @@ function renderExecPillar(p) {
       <div class="pil-title">${escHtml(p.name)}</div>
       <div class="pil-verdict">${escHtml(pilVerdict(p))}</div>
     </div>
-    ${corner}
+    <div class="pil-rag ${ragCls}">${ragTxt}</div>
   </div>`;
 
   if (p.rag === 'oos' || !p.hasData) {
@@ -319,41 +291,38 @@ function renderExecPillar(p) {
   }
 
   const cv = p.coverage, op = p.ops, ct = p.controls;
-  const green = 'var(--clr-success)', amber = 'var(--clr-warning)', red = 'var(--clr-danger)', blue = 'var(--accent)';
-  const track = 'var(--track,color-mix(in srgb,var(--text) 14%,transparent))';
-  const covUncov = cv.total - cv.covered;
+  const green = 'var(--clr-success)', amber = 'var(--clr-warning)', red = 'var(--clr-danger)';
+  const grey = 'var(--track,color-mix(in srgb,var(--text) 14%,transparent))';
+  const uncov   = cv.total - cv.covered;               // objectives with no owned statement
   const opDraft = op.backed - op.operationalised;      // statements backed only by draft controls
-  const opNone = op.total - op.backed;                 // statements with no control at all
-  const ctNotEff = ct.implemented - ct.effective;      // implemented controls not yet effective
-  const ctDraft = ct.total - ct.implemented;           // draft (not-implemented) controls
+  const opNone  = op.total - op.backed;                // statements with no control (incl. invisible work)
+  const notEff  = ct.implemented - ct.effective;       // implemented controls not yet effective
 
-  // Each KPI tile carries its own coloured bar(s): Coverage = the covered/
-  // uncovered objectives stack; Operationalised = Live/Draft statements;
-  // Effective = Effective/Not-yet-effective controls.
-  const kpiTile = (lbl, pct, frac, bars) => `<div class="pil-kpi">
-    <div class="pil-kpi-lbl">${lbl}</div>
-    <div class="pil-kpi-val">${pct}</div>
-    <div class="pil-kpi-frac">${frac}</div>
-    <div class="pil-kpi-bars">${bars}</div>
+  // Three segmented bars — Documented / Implemented / Effective. Flags are folded
+  // into the grey segments (uncovered → Documented grey; no-control → Implemented
+  // grey). Effective is measured over IMPLEMENTED controls only.
+  const bars = `<div class="exbars">
+    ${execSegBar('Documented', [
+      { n: cv.covered, col: green, t: 'Covered' },
+      { n: uncov,      col: grey,  t: 'Uncovered' },
+    ], cv.total, `${cv.covered}/${cv.total}`)}
+    ${execSegBar('Implemented', [
+      { n: op.operationalised, col: green, t: 'Live control' },
+      { n: opDraft,            col: amber, t: 'Draft control only' },
+      { n: opNone,             col: grey,  t: 'No control' },
+    ], op.total, `${op.operationalised}/${op.total}`)}
+    ${execSegBar('Effective', [
+      { n: ct.effective, col: green, t: 'Effective' },
+      { n: notEff,       col: red,   t: 'Not yet effective' },
+    ], ct.implemented, `${ct.effective}/${ct.implemented}`)}
   </div>`;
-  const covTile = cv.total === 0
-    ? kpiTile('Coverage · Control 1', '<span style="color:var(--text-muted)">—</span>', 'no DORA objectives', '')
-    : kpiTile('Coverage · Control 1', `${cv.pct}%`, `${cv.covered} / ${cv.total} DORA objectives covered by ${op.total} Policy or Group STD statements`,
-        pilSubBar('Covered', cv.covered, cv.total, green));
-  const opsTile = kpiTile('Operationalised · Control 2', `${op.pct}%`, `${op.operationalised} / ${op.total} Policy or Group STD statements operationalised with ${ct.total} controls (${ct.implemented} IMPLEMENTED and ${ctDraft} DRAFT)`,
-    pilSubBar('Live (statements w/ a live control)', op.operationalised, op.total, green) +
-    pilSubBar('Draft (statements w/ draft only)', opDraft, op.total, blue) +
-    pilSubBar('No control (statements with none)', opNone, op.total, track));
-  const effTile = kpiTile('Effective · Control 3', `${effPct}%`, `${ct.effective} / ${ct.total} controls are EFFECTIVE (${ctNotEff} NOT YET and ${ctDraft} DRAFT)`,
-    pilSubBar('Effective', ct.effective, ct.total, green) +
-    pilSubBar('Not yet effective', ctNotEff, ct.total, blue) +
-    pilSubBar('Draft', ctDraft, ct.total, track));
-  const kpis = `<div class="pil-kpis">${covTile}${opsTile}${effTile}</div>`;
 
-  const chips = `${covUncov ? `<span class="pil-chip pil-chip-gap">⚠ ${covUncov} uncovered objective${covUncov === 1 ? '' : 's'}</span>` : ''}` +
-    `${p.gaps.dangerRisks.length ? `<span class="pil-chip pil-chip-gap">🔴 ${p.gaps.dangerRisks.length} risk(s) in the danger zone</span>` : ''}` +
-    `${p.gaps.invisibleWork ? `<span class="pil-chip pil-chip-warn">👻 ${p.gaps.invisibleWork} invisible-work statement(s)</span>` : ''}`;
-  const panels = chips ? `<div class="pil-extra"><div class="pil-chips">${chips}</div></div>` : '';
+  const legend = `<div class="exbars-legend">
+    <span><i class="exl" style="background:var(--clr-success)"></i>Done</span>
+    <span><i class="exl" style="background:var(--clr-warning)"></i>Draft / in progress</span>
+    <span><i class="exl" style="background:var(--clr-danger)"></i>Not effective</span>
+    <span><i class="exl" style="background:color-mix(in srgb,var(--text) 20%,transparent)"></i>None / uncovered</span>
+  </div>`;
 
   const steps = pilGenSteps(p).map(s => `<div class="pil-step">
     <span class="pil-pri pil-pri-${s.pri}">P${s.pri}</span>
@@ -362,7 +331,7 @@ function renderExecPillar(p) {
   </div>`).join('');
 
   return `<div class="pil-card pil-rag-b-${p.rag}">
-    ${head}${kpis}${panels}
+    ${head}${bars}${legend}
     <div class="pil-steps"><div class="pil-steps-h">↳ High-level next steps</div>${steps}</div>
   </div>`;
 }
@@ -447,7 +416,7 @@ function renderExecCoverageMatrix(currentA) {
   const cov = buildDoraArticleCoverage(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">⚖️</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Control 1</div><h3 class="measure-card-title">Applicable DORA articles/RTS objectives covered by Policies and Group Standards</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Documented</div><h3 class="measure-card-title">Applicable DORA articles/RTS objectives covered by Policies and Group Standards</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!cov.articles.length) {
     return `<div class="card measure-card">${head('No DORA mapping uploaded for this assessment.')}</div>`;
@@ -587,7 +556,7 @@ function renderExecControl2(currentA, prevA) {
   const doc     = buildExecDocDetail(currentA.policyRows || [], currentA.riskPolicyFacts || []);
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🗂️</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Control 2</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by controls</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Implemented</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by controls</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!doc.rows.length) return `<div class="card measure-card">${head('No policy data uploaded for this assessment.')}</div>`;
 
@@ -754,7 +723,7 @@ function renderExecControl3(currentA, prevA) {
   const prevOps = prevA ? buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🎯</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Control 3</div><h3 class="measure-card-title">Control efficacy in treating risk</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Effective</div><h3 class="measure-card-title">Control efficacy in treating risk</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!risks.length) return `<div class="card measure-card">${head('No risk data uploaded for this assessment.')}</div>`;
   const danger = risks.filter(k => ex3Zone(k).key === 'red').length;

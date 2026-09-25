@@ -603,6 +603,32 @@ function buildCapabilityTree(assessment, capId) {
   }));
 }
 
+// ── Risk-rooted drill-down: Risk → Control (the effectiveness lineage) ──────
+// The "does it work" axis for the capability lens. Groups the assessment's
+// facts (each fact = one control × one risk, from the RCSA) by risk, then lists
+// the distinct controls treating that risk with their per-risk status. Controls
+// are keyed capId|number|name — the SAME identity used by the regulation-rooted
+// tree — so the two lineages reference one shared control record. Effectiveness
+// is taken at the risk × control grain (a control can be effective for one risk
+// and not another), which is exactly what the fact holds.
+function buildRiskControlTree(assessment, capId) {
+  const facts = (assessment.riskPolicyFacts || [])
+    .filter(f => f.capId === capId && !ftIsClosedControl(f) && (f.controlName || '').trim());
+  const risks = new Map();
+  facts.forEach(f => {
+    const rt = (f.riskTitle || '').trim() || '(no risk title)';
+    let r = risks.get(rt);
+    if (!r) { r = { risk: rt, controls: new Map() }; risks.set(rt, r); }
+    const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    let c = r.controls.get(ck);
+    if (!c) { c = { key: ck, name: (f.controlName || '').trim(), number: (f.controlNumber || '').trim(),
+      implemented: false, effective: false, desc: (f.controlDesc || '').trim() }; r.controls.set(ck, c); }
+    if (ftIsImplemented(f)) c.implemented = true;
+    if (ftIsEffective(f))   c.effective = true;
+  });
+  return [...risks.values()].map(r => ({ risk: r.risk, controls: [...r.controls.values()] }));
+}
+
 // ── Full DORA → Control traceability (one flat, Excel-filterable table) ──
 // Merges Control 1/2/3 into one spine: one row per obligation × statement ×
 // control, LEFT-JOINED so gaps still show —

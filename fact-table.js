@@ -530,31 +530,53 @@ function buildPillarSummary(assessment) {
 // coverage / operationalisation / effectiveness card, scoped to the capability.
 // The header identity (chapter / short / icon) is borrowed from the DORA pillar
 // the capability rolls up to, so the card still relates it back to DORA.
-function buildCapabilitySummary(assessment, capId) {
+// source ∈ {'all','policy','group'}: 'all' is the DORA view (every source
+// combined); 'policy' / 'group' re-scope the bars so only objectives reached
+// through a Local Policy / Group Standard statement count toward documented /
+// implemented / effective. The Applicable universe stays source-independent.
+const CAP_SRC_LABEL = { policy: 'Local Policy', group: 'Group Standard' };
+function buildCapabilitySummary(assessment, capId, source) {
+  source = source || 'all';
+  const srcMatch = r => source === 'all' || r.source === CAP_SRC_LABEL[source];
   const caps  = CONFIG.capabilities || [];
   const cap   = caps.find(c => c.id === capId);
   const capNm = cap ? cap.name : capId;
   const trace = buildTraceabilityRows(assessment);
 
-  const a = { oblTotal: 0, oblCovered: 0, uncovered: [], sTotal: 0, sLive: 0, sDraft: 0,
-    sNone: 0, approved: 0, toBuild: 0, invisibleWork: 0, cTotal: 0, cImpl: 0, cEff: 0,
-    oblImpl: new Set(), oblEff: new Set() };
+  const objMeta = new Map();                      // _oKey → {id, article, requirement} — all applicable objectives
+  const objCov = new Set(), objImpl = new Set(), objEff = new Set();  // objectives reached via the selected source
+  const ctrlSeen = new Map();                     // _cKey → {impl, eff} — controls behind a matching-source statement
+  let sTotal = 0, sLive = 0, sDraft = 0, sNone = 0, approved = 0, toBuild = 0, invisibleWork = 0;
   trace.rows.forEach(r => {
     if (r.capability !== capNm) return;
-    if (r.firstObj === 'Yes') { a.oblTotal++; if (r.covered === 'Yes') a.oblCovered++; else a.uncovered.push({ id: r.objectiveId, article: r.article, requirement: r.objective }); }
-    if (r.firstStmt === 'Yes') {
-      a.sTotal++;
-      if (r.stmtOperationalised === 'Live') a.sLive++;
-      else if (r.stmtOperationalised === 'Draft') a.sDraft++;
-      else { a.sNone++; if (r.disposition === 'Implemented' || r.disposition === 'Part-implemented') a.invisibleWork++; else if (r.disposition === 'Unknown' || r.disposition === '') a.toBuild++; }
-      if (r._approved) a.approved++;
-    }
-    if (r.firstCtrl === 'Yes') { a.cTotal++; if (r.controlStatus === 'Implemented') { a.cImpl++; if (r.effectiveness === 'Effective') a.cEff++; } }
+    // Applicable universe — every in-scope objective, regardless of source.
+    if (r.firstObj === 'Yes' && r._oKey) objMeta.set(r._oKey, { id: r.objectiveId, article: r.article, requirement: r.objective });
+    if (!srcMatch(r)) return;
     if (r._oKey) {
-      if (r.stmtOperationalised === 'Live') a.oblImpl.add(r._oKey);
-      if (r.effectiveness === 'Effective') a.oblEff.add(r._oKey);
+      if (r.statementRef && r.covered === 'Yes') objCov.add(r._oKey);
+      if (r.stmtOperationalised === 'Live') objImpl.add(r._oKey);
+      if (r.effectiveness === 'Effective') objEff.add(r._oKey);
+    }
+    if (r.firstStmt === 'Yes') {
+      sTotal++;
+      if (r.stmtOperationalised === 'Live') sLive++;
+      else if (r.stmtOperationalised === 'Draft') sDraft++;
+      else { sNone++; if (r.disposition === 'Implemented' || r.disposition === 'Part-implemented') invisibleWork++; else if (r.disposition === 'Unknown' || r.disposition === '') toBuild++; }
+      if (r._approved) approved++;
+    }
+    // Controls via a local set (not the global firstCtrl flag) so a control that
+    // also backs another source's statement is still counted here when reached
+    // through a matching-source statement.
+    if (r._cKey && !ctrlSeen.has(r._cKey)) {
+      const impl = r.controlStatus === 'Implemented';
+      ctrlSeen.set(r._cKey, { impl, eff: impl && r.effectiveness === 'Effective' });
     }
   });
+
+  const oblTotal = objMeta.size, oblCovered = objCov.size, cTotal = ctrlSeen.size;
+  let cImpl = 0, cEff = 0;
+  ctrlSeen.forEach(c => { if (c.impl) { cImpl++; if (c.eff) cEff++; } });
+  const uncovered = [...objMeta].filter(([k]) => !objCov.has(k)).map(([, v]) => v);
 
   // Danger-zone risks for this capability (residual ≥ 20 with controls < 50% effective).
   const dangerRisks = [];
@@ -565,21 +587,21 @@ function buildCapabilitySummary(assessment, capId) {
   });
 
   const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
-  const hasData = a.oblTotal + a.sTotal + a.cTotal > 0;
+  const hasData = oblTotal + sTotal + cTotal > 0;
   const gaps = {
-    uncovered: a.uncovered, draftStatements: a.sTotal - a.approved, toImplement: a.sDraft,
-    toBuild: a.toBuild, invisibleWork: a.invisibleWork, notEffective: a.cImpl - a.cEff, dangerRisks,
+    uncovered, draftStatements: sTotal - approved, toImplement: sDraft,
+    toBuild, invisibleWork, notEffective: cImpl - cEff, dangerRisks,
   };
   const pid  = (typeof doraPillarForCapabilityName === 'function') ? doraPillarForCapabilityName(capNm) : null;
   const pdef = ((typeof DORA_PILLARS !== 'undefined' && DORA_PILLARS) || []).find(p => p.id === pid) || {};
   const s = {
     id: 'cap:' + capId, chapter: pdef.chapter, name: capNm, short: pdef.short || 'Capability',
-    icon: pdef.icon || '🧩', inScope: true, hasData,
-    coverage: { covered: a.oblCovered, total: a.oblTotal, pct: pct(a.oblCovered, a.oblTotal) },
-    ops:      { operationalised: a.sLive, backed: a.sLive + a.sDraft, total: a.sTotal, pct: pct(a.sLive, a.sTotal) },
-    approval: { approved: a.approved, total: a.sTotal },
-    controls: { effective: a.cEff, implemented: a.cImpl, total: a.cTotal, pct: pct(a.cEff, a.cImpl) },
-    funnel: coverageFunnel(a),
+    icon: pdef.icon || '🧩', inScope: true, hasData, source,
+    coverage: { covered: oblCovered, total: oblTotal, pct: pct(oblCovered, oblTotal) },
+    ops:      { operationalised: sLive, backed: sLive + sDraft, total: sTotal, pct: pct(sLive, sTotal) },
+    approval: { approved, total: sTotal },
+    controls: { effective: cEff, implemented: cImpl, total: cTotal, pct: pct(cEff, cImpl) },
+    funnel: coverageFunnel({ oblTotal, oblCovered, oblImpl: objImpl, oblEff: objEff }),
     gaps,
   };
   if (!hasData) s.rag = 'none';
@@ -596,7 +618,9 @@ function buildCapabilitySummary(assessment, capId) {
 // Nests the traceability rows for ONE capability into the clickable hierarchy.
 // Left-over statements (tied to no DORA objective) are grouped under a
 // separate node so nothing is hidden.
-function buildCapabilityTree(assessment, capId) {
+function buildCapabilityTree(assessment, capId, source) {
+  source = source || 'all';
+  const srcMatch = r => source === 'all' || r.source === CAP_SRC_LABEL[source];
   const caps  = CONFIG.capabilities || [];
   const capNm = (caps.find(c => c.id === capId) || {}).name || capId;
   const rows  = buildTraceabilityRows(assessment).rows.filter(r => r.capability === capNm);
@@ -609,10 +633,13 @@ function buildCapabilityTree(assessment, capId) {
     const objKey = r.objectiveId || (r.article ? '__art__' : '__none__');
     let obj = art.objectives.get(objKey);
     if (!obj) { obj = { id: r.objectiveId, text: r.objective, covered: r.covered, statements: new Map() }; art.objectives.set(objKey, obj); }
-    if (r.statementRef || r.statementHeader) {
+    // Only nest statements of the selected source; objective nodes are always
+    // created, so an objective covered only by another source reads as uncovered
+    // in this view rather than disappearing.
+    if ((r.statementRef || r.statementHeader) && srcMatch(r)) {
       const sKey = r._sKey || r.statementRef;
       let st = obj.statements.get(sKey);
-      if (!st) { st = { ref: r.statementRef, header: r.statementHeader || r.statementRef, document: r.document,
+      if (!st) { st = { ref: r.statementRef, header: r.statementHeader || r.statementRef, document: r.document, source: r.source,
         operationalised: r.stmtOperationalised, disposition: r.disposition, controls: new Map() }; obj.statements.set(sKey, st); }
       if (r.control) {
         const cKey = r._cKey || r.control;
@@ -623,9 +650,12 @@ function buildCapabilityTree(assessment, capId) {
   return [...arts.values()].map(a => ({
     article: a.article, noArt: a.noArt,
     objectives: [...a.objectives.values()].map(o => ({
-      id: o.id, text: o.text, covered: o.covered,
+      id: o.id, text: o.text,
+      // In a source view an objective is "covered" only if it has a statement of
+      // that source; in the DORA view keep the objective-level flag.
+      covered: source === 'all' ? o.covered : (o.statements.size ? 'Yes' : 'Uncovered'),
       statements: [...o.statements.values()].map(s => ({
-        ref: s.ref, header: s.header, document: s.document, operationalised: s.operationalised,
+        ref: s.ref, header: s.header, document: s.document, source: s.source, operationalised: s.operationalised,
         disposition: s.disposition, controls: [...s.controls.values()],
       })),
     })),

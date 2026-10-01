@@ -3129,6 +3129,12 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .caplens-sel-lbl { display: inline-flex; flex-direction: column; gap: .25rem; font-family: var(--font-mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
 .caplens-sel { font-family: inherit; font-size: .85rem; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .45rem .6rem; min-width: 240px; cursor: pointer; }
 .caplens-sel:focus { outline: none; border-color: var(--accent); }
+/* Source lens toggle (DORA · Policy · Group Standard), beside the dropdown */
+.caplens-src-lbl { display: inline-flex; flex-direction: column; gap: .25rem; font-family: var(--font-mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+.caplens-src { display: inline-flex; gap: 2px; padding: 3px; background: color-mix(in srgb, var(--text) 8%, transparent); border-radius: 10px; }
+.cls-tab { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .03em; text-transform: uppercase; font-weight: 700; color: var(--text-muted); background: transparent; border: none; padding: .42rem .7rem; border-radius: 8px; cursor: pointer; transition: background .12s ease, color .12s ease; }
+.cls-tab:hover { color: var(--text); }
+.cls-tab-on { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .caplens-card #caplens-body { margin-top: .3rem; }
 /* Capability drill-down mind map (article → objective → statement → control) */
 .mm-wrap { margin-top: .8rem; border-top: 1px solid var(--border-subtle); padding-top: .8rem; }

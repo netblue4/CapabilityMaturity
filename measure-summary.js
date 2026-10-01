@@ -416,19 +416,30 @@ function renderCapabilityLensCard(assessment) {
         <label class="caplens-sel-lbl">Capability
           <select id="caplens-sel" class="caplens-sel" onchange="updateCapabilityLens(this.value)">${opts}</select>
         </label>
+        <div class="caplens-src-lbl">Source lens
+          <div class="caplens-src" role="tablist" aria-label="Statement source">
+            ${CAPLENS_SOURCES.map(([v, l]) => `<button type="button" class="cls-tab${v === _capLensSource ? ' cls-tab-on' : ''}" role="tab" aria-selected="${v === _capLensSource}" data-src="${v}" onclick="capLensSetSource('${v}')">${l}</button>`).join('')}
+          </div>
+        </div>
       </div>
       <div id="caplens-body">${capLensBody(assessment, firstCap.id)}</div>
     </div>`;
 }
+// Statement-source lens for the capability card: DORA (all sources combined),
+// Policy (Local Policy statements only), Group Standard only. Re-scopes the
+// funnel bars + drill-down to the selected source; the Applicable count stays.
+const CAPLENS_SOURCES = [['all', 'DORA'], ['policy', 'Policy'], ['group', 'Group Standard']];
+let _capLensSource = 'all';
 let _capLensView = 'implemented';
 let _capLensCapId = null;
 function capLensBody(a, capId) {
   _capLensCapId = capId;
   // The pillar card's coverage funnel is the view selector here: its lower three
   // stages (Documented / Implemented / Effective) are clickable and filter the
-  // drill-down below — opts.activeView marks the current one.
-  return renderExecPillar(buildCapabilitySummary(a, capId), { interactive: true, capId, activeView: _capLensView })
-    + `<div id="caplens-tree">${renderCapLensTree(a, capId, _capLensView)}</div>`;
+  // drill-down below — opts.activeView marks the current one. The funnel + tree
+  // are both scoped to the selected statement source (_capLensSource).
+  return renderExecPillar(buildCapabilitySummary(a, capId, _capLensSource), { interactive: true, capId, activeView: _capLensView })
+    + `<div id="caplens-tree">${renderCapLensTree(a, capId, _capLensView, _capLensSource)}</div>`;
 }
 function updateCapabilityLens(capId) {
   const body = document.getElementById('caplens-body');
@@ -442,19 +453,38 @@ function capLensSetView(view) {
   const body = document.getElementById('caplens-body');
   if (body) body.innerHTML = capLensBody(_capLensA, _capLensCapId);
 }
+// Switch the statement-source lens (DORA / Policy / Group Standard). Updates the
+// toggle's active chip (it lives in the card header, outside #caplens-body) then
+// re-renders the funnel + drill-down scoped to that source.
+function capLensSetSource(src) {
+  _capLensSource = src;
+  document.querySelectorAll('.caplens-src .cls-tab').forEach(b => {
+    const on = b.dataset.src === src; b.classList.toggle('cls-tab-on', on); b.setAttribute('aria-selected', on);
+  });
+  if (!_capLensA || _capLensCapId == null) return;
+  const body = document.getElementById('caplens-body');
+  if (body) body.innerHTML = capLensBody(_capLensA, _capLensCapId);
+}
+// Short scope note appended to a drill-down title when a single source is active.
+function capLensSrcNote(source) {
+  return source === 'policy' ? ' &middot; Local Policy only'
+       : source === 'group'  ? ' &middot; Group Standard only' : '';
+}
 // Drill-down for the current funnel stage. Documented roots at the DORA Article
 // (the regulatory lineage — "what must exist"); Implemented shows the full
 // article → objective → statement → control tree; Effective re-roots at Risk
 // (the risk lineage — "does it work"). All resolve to the same control records.
-function renderCapLensTree(a, capId, view) {
-  return view === 'documented' ? renderDocumentedTree(a, capId)
-       : view === 'effective'  ? renderEffectiveTree(a, capId)
-       :                          renderCapabilityTree(a, capId);
+function renderCapLensTree(a, capId, view, source) {
+  source = source || 'all';
+  return view === 'documented' ? renderDocumentedTree(a, capId, source)
+       : view === 'effective'  ? renderEffectiveTree(a, capId, source)
+       :                          renderCapabilityTree(a, capId, source);
 }
 // Documented view — DORA article → objective, coverage completeness only.
-function renderDocumentedTree(a, capId) {
-  const arts = buildCapabilityTree(a, capId).filter(x => !x.noArt);
-  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ DORA article → objective &middot; is every applicable objective covered by an owned statement?</div>${inner}</div>`;
+function renderDocumentedTree(a, capId, source) {
+  source = source || 'all';
+  const arts = buildCapabilityTree(a, capId, source).filter(x => !x.noArt);
+  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ DORA article → objective &middot; is every applicable objective covered by an owned statement?${capLensSrcNote(source)}</div>${inner}</div>`;
   if (!arts.length) return wrap('<div class="mm-empty">No DORA articles mapped to this capability yet.</div>');
   const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
   const objRow = o => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">🎯</span><span class="mm-lbl">${escHtml(o.id || '')}${o.text ? ` — ${escHtml(o.text)}` : ''}</span>${o.covered === 'Yes' ? badge('mm-b-green', '✓ covered') : badge('mm-b-red', '▲ uncovered')}</div></li>`;
@@ -468,9 +498,15 @@ function renderDocumentedTree(a, capId) {
   return wrap(legend + `<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
 }
 // Effective view — Risk → control, effectiveness badges (per risk, from the RCSA).
-function renderEffectiveTree(a, capId) {
+// The risk → control lineage is inherently cross-source (a control can treat a
+// risk regardless of which document its statement sits in), so this detail is
+// shown across all sources even under a Policy / Group Standard lens; a note says
+// so. The funnel's Effective bar above still reflects the selected source.
+function renderEffectiveTree(a, capId, source) {
+  source = source || 'all';
   const risks = buildRiskControlTree(a, capId);
-  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ Risk → control &middot; do the controls treating each risk actually work? (RCSA)</div>${inner}</div>`;
+  const note = source === 'all' ? '' : ' &middot; all sources (effectiveness is judged per risk)';
+  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ Risk → control &middot; do the controls treating each risk actually work? (RCSA)${note}</div>${inner}</div>`;
   if (!risks.length) return wrap('<div class="mm-empty">No risks with controls mapped to this capability yet.</div>');
   const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
   const ctrlBadge = c => !c.implemented ? badge('mm-b-amber', 'Draft') : c.effective ? badge('mm-b-green', 'Effective') : badge('mm-b-red', 'Not effective');
@@ -488,10 +524,11 @@ function renderEffectiveTree(a, capId) {
 // Expand / collapse a mind-map node (article / objective / statement / risk).
 function mmToggle(el) { const li = el.closest('.mm-node'); if (li) li.classList.toggle('mm-open'); }
 // Clickable hierarchy: DORA article → objective → policy statement → control.
-function renderCapabilityTree(assessment, capId) {
-  const arts = buildCapabilityTree(assessment, capId);
+function renderCapabilityTree(assessment, capId, source) {
+  source = source || 'all';
+  const arts = buildCapabilityTree(assessment, capId, source);
   const wrap = inner => `<div class="mm-wrap">
-    <div class="mm-title">↳ DORA article → objective → statement → control &middot; click a node to expand</div>${inner}</div>`;
+    <div class="mm-title">↳ DORA article → objective → statement → control &middot; click a node to expand${capLensSrcNote(source)}</div>${inner}</div>`;
   if (!arts.length) return wrap('<div class="mm-empty">No DORA articles mapped to this capability yet.</div>');
 
   const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;

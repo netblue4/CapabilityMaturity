@@ -56,7 +56,19 @@
     }));
     const stmtObls = (capId, ref) => [...(oblByStmt[capId + '||' + norm(ref)] || [])];
 
-    const ctx = { a, model, meta, cov, bops, capPillar, docStatus, oblByStmt, stmtObls, norm };
+    // statement (capId||ref) → the owners of the risk-treatment-control(s) that
+    // operationalise it (RACI accountability for Control 2's matrix).
+    const ownByStmt = {};
+    facts.forEach(f => {
+      const owner = (f.controlOwner || '').trim(); if (!owner) return;
+      (f.matchedPolicyRows || []).forEach(mp => {
+        const k = f.capId + '||' + norm(mp.statementRef);
+        (ownByStmt[k] = ownByStmt[k] || new Set()).add(owner);
+      });
+    });
+    const stmtOwners = (capId, ref) => [...(ownByStmt[capId + '||' + norm(ref)] || [])].join('; ');
+
+    const ctx = { a, model, meta, cov, bops, capPillar, docStatus, oblByStmt, stmtObls, stmtOwners, norm };
     const html = control === 1 ? evidenceControl1(ctx)
                : control === 2 ? evidenceControl2(ctx)
                :                  evidenceControl3(ctx);
@@ -255,7 +267,7 @@
   // and the pillar cards. Filter Backed = Yes + Status = Implemented to get the
   // operationalised statements a pillar card reports.
   function evidenceControl2(ctx) {
-    const { meta, cov, capPillar, docStatus, stmtObls } = ctx;
+    const { meta, cov, capPillar, docStatus, stmtObls, stmtOwners } = ctx;
     const stmts = cov.statements.slice().sort((a, b) =>
       capName(a.capId).localeCompare(capName(b.capId)) || (a.ref || '').localeCompare(b.ref || ''));
     const total = cov.total, backed = cov.backed;
@@ -283,65 +295,109 @@
         <td>${statusCell(s)}</td>
         <td>${s.exception ? `<span class="ev-exc">${esc(s.exception)}</span>` : DASH}</td>
         <td>${ctrls || DASH}</td>
+        <td>${esc(stmtOwners(s.capId, s.ref)) || DASH}</td>
         <td class="ev-obls">${objs.length ? objs.map(esc).join(', ') : DASH}</td>
       </tr>`;
     });
 
-    return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → control', meta, stat) + `
+    return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → risk-treatment-control, with owner', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide ev-sortable">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
 
-  // ── Control 3 — every backing control, its status & effectiveness ──
-  // One row PER DISTINCT CONTROL (buildBackingControlOps), so counts reconcile
-  // with the exec Control 3 card and the pillar cards. Filter Status = Implemented
-  // + Effectiveness = Effective to get the live-&-effective controls a card reports.
+  // ── Control 3 — the RCSA effectiveness view + the findings register ──
+  // Key evidence (per the control): "Risk-treatment-controls mapped to ICT risks,
+  // each with implementation status, effectiveness rating (design + operating) and
+  // residual movement taken directly from the RCSA … plus the register of controls
+  // identified as not-effective or not-yet-assessed, with the escalation /
+  // remediation reference for each." So the primary table is ONE ROW PER CONTROL ×
+  // RISK (the facts grain = the RCSA view); the register lists the findings.
+  // Headline stats stay per DISTINCT control, reconciling with the exec card.
   function evidenceControl3(ctx) {
-    const { meta, bops, capPillar, stmtObls } = ctx;
-    const ctrls = bops.controls.slice().sort((a, b) =>
-      capName(a.capId).localeCompare(capName(b.capId)) || (a.number || '').localeCompare(b.number || '') || (a.name || '').localeCompare(b.name || ''));
-    const total = bops.total;
-    const impl = ctrls.filter(c => c.implemented).length;
-    const eff  = ctrls.filter(c => c.liveEffective).length;
-    const assured = ctrls.filter(c => c.implemented && c.assessed).length;   // live controls with a current RCSA verdict
-    const blind   = ctrls.filter(c => c.blindSpot).length;                   // live, no verdict — the oversight gap
-    // Oversight measure first (what this control attests to), then the treatment
-    // outcome, explicitly attributed to the control owners.
+    const { a, meta, bops, capPillar, norm } = ctx;
+    const facts = (a.riskPolicyFacts || []).filter(f =>
+      !ftIsClosedControl(f) && (f.controlName || '').trim() && (f.matchedPolicyRows || []).length);
+    const impl = bops.implemented, assured = bops.assured, blind = bops.blindSpots.length,
+          eff = bops.liveEffective, identified = bops.identified.length;
     const stat = statPill(assured, impl, 'live controls with a current RCSA verdict (oversight measure)', true)
       + statPill(eff, impl, 'rated effective — treatment outcome, owned by control owners', true)
-      + `<span class="ev-note">This control's objective is <b>identifying ineffective controls</b>, not making them effective. <b>Not assessed</b> = a live control with no RCSA verdict — the only oversight gap (${blind} here). <b>Not effective</b> = assessed and found weak — an identified finding for control-owner remediation, not an oversight failure. <b>Status = Implemented</b> = the control is live.</span>`;
+      + `<span class="ev-note">Effectiveness is <b>inherited from the RCSA</b> (design + operating), not re-tested here. This control's objective is <b>identifying ineffective controls</b>: <b>Not assessed</b> = a live control with no RCSA verdict — the only oversight gap (${blind} here); <b>Not effective</b> = assessed and found weak — an identified finding for control-owner remediation (${identified} here). <b>Status = Implemented</b> = the control is live.</span>`;
 
-    const statusCell = c => c.implemented ? '<span class="ev-yes">Implemented</span>' : '<span class="ev-mid">Draft</span>';
-    // Three oversight states for a live control: Effective (green) · Not effective
-    // = identified finding (amber) · Not assessed = blind spot / oversight gap (red).
-    const effCell = c => !c.implemented ? DASH
-      : c.blindSpot ? '<span class="ev-no">Not assessed</span>'
-      : c.effective ? '<span class="ev-yes">Effective</span>'
-      : '<span class="ev-mid">Not effective</span>';
+    // design / operating RAG cell, straight from the RCSA wording.
+    const ragCell = v => {
+      const n = norm(v);
+      if (!n || n.includes('grey') || n.includes('gray') || n.includes('not assess')) return DASH;
+      if (n.includes('green') || n.includes('effective')) return `<span class="ev-yes">${esc(v)}</span>`;
+      if (n.includes('red')) return `<span class="ev-no">${esc(v)}</span>`;
+      return `<span class="ev-mid">${esc(v)}</span>`;                 // amber / partial
+    };
+    const verdictCell = f => !ftIsImplemented(f) ? DASH
+      : ftIsNotAssessed(f) ? '<span class="ev-no">Not assessed</span>'
+      : ftIsEffective(f)   ? '<span class="ev-yes">Effective</span>'
+      :                      '<span class="ev-mid">Not effective</span>';
+    const moveCell = f => {
+      const inh = f.inherentScore, res = f.residualScore;
+      if (inh == null && res == null) return DASH;
+      const arrow = (inh != null && res != null) ? (res < inh ? ' ▼' : res > inh ? ' ▲' : ' →') : '';
+      return `${inh == null ? '—' : inh} → ${res == null ? '—' : res}${arrow}`;
+    };
 
-    const rows = ctrls.map(c => {
-      const objs = [...new Set((c.refs || []).flatMap(r => stmtObls(c.capId, r)))];
-      const refs = (c.refs || []).map(r => `<span class="ev-ref">${esc(r)}</span>`).join(' ');
-      // Flag the oversight gap (not-live OR a live blind spot) as the red row.
-      return `<tr${(!c.implemented || c.blindSpot) ? ' class="ev-row-gap"' : ''}>
-        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', c.capId, capPillar))}</td>
-        <td>${esc(capName(c.capId))}</td>
-        <td>${esc(ctrlLabel(c))}</td>
-        <td>${esc(c.provenance)}</td>
-        <td>${statusCell(c)}</td>
-        <td>${effCell(c)}</td>
+    // Primary table — one row per control × the ICT risk it treats (the RCSA view).
+    const rows = facts.slice().sort((x, y) =>
+      capName(x.capId).localeCompare(capName(y.capId))
+      || (x.controlNumber || '').localeCompare(y.controlNumber || '')
+      || (x.riskTitle || '').localeCompare(y.riskTitle || '')).map(f => {
+      const live = ftIsImplemented(f), blindRow = live && ftIsNotAssessed(f);
+      const ctrlLbl = (f.controlNumber ? f.controlNumber + ' — ' : '') + (f.controlName || '');
+      const refs = (f.matchedPolicyRows || []).map(mp => `<span class="ev-ref">${esc(mp.statementRef)}</span>`).join(' ');
+      return `<tr${blindRow ? ' class="ev-row-gap"' : ''}>
+        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', f.capId, capPillar))}</td>
+        <td>${esc(capName(f.capId))}</td>
+        <td>${esc(f.riskTitle || '') || DASH}</td>
+        <td>${esc(ctrlLbl)}</td>
+        <td>${esc(f.controlOwner || '') || DASH}</td>
+        <td>${live ? '<span class="ev-yes">Implemented</span>' : '<span class="ev-mid">Draft</span>'}</td>
+        <td>${ragCell(f.designAssess)}</td>
+        <td>${ragCell(f.opAssess)}</td>
+        <td>${verdictCell(f)}</td>
+        <td>${moveCell(f)}</td>
+        <td>${esc(f.lastAssessDate || '') || DASH}</td>
         <td class="ev-ref-c">${refs || DASH}</td>
-        <td class="ev-obls">${objs.length ? objs.map(esc).join(', ') : DASH}</td>
       </tr>`;
     });
-
-    return pageHead('Control 3 · Effectiveness oversight — identifying ineffective controls', 'control → verdict present? + effectiveness', meta, stat) + `
+    const detail = `
       <table class="ev-tbl ev-tbl-wide ev-sortable">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Statement ref(s)</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>ICT Risk</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Status</th><th>Design</th><th>Operating</th><th>Effectiveness</th><th>Inherent &rarr; Residual</th><th>Last assessed</th><th>Statement ref(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
+
+    // Register — the oversight output: every live control that is not-assessed
+    // (blind spot) or not-effective (identified finding), with the escalation path.
+    const reg = [
+      ...bops.blindSpots.map(c => ({ c, finding: 'Not assessed', cls: 'ev-no',  action: 'Oversight to assess this cycle' })),
+      ...bops.identified.map(c => ({ c, finding: 'Not effective', cls: 'ev-mid', action: 'Control-owner remediation' })),
+    ];
+    const regRows = reg.map(({ c, finding, cls, action }) => `<tr>
+      <td class="pil-col">${pillarTag(doraPillarShortFor('', '', c.capId, capPillar))}</td>
+      <td>${esc(capName(c.capId))}</td>
+      <td>${esc((c.risks || []).join('; ')) || DASH}</td>
+      <td>${esc(ctrlLabel(c))}</td>
+      <td>${esc(c.owner) || DASH}</td>
+      <td><span class="${cls}">${finding}</span></td>
+      <td>${esc(action)}${c.owner ? ' &mdash; escalated to ' + esc(c.owner) : ''}; tracked in the RCSA / action log</td>
+    </tr>`).join('');
+    const register = `
+      <h3 class="ev-sect-h">Identified findings register — controls not-effective or not-assessed</h3>
+      <div class="ev-stat"><span class="ev-note">The oversight output: every live control with no current RCSA verdict (<b>blind spot</b> → oversight to assess) or rated not-effective (<b>identified finding</b> → control-owner remediation). Each is escalated to its control owner; the remediation reference is tracked in the RCSA / action log.</span></div>
+      ${reg.length ? `<table class="ev-tbl ev-tbl-wide ev-sortable ev-reg-tbl">
+        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>ICT Risk(s)</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Finding</th><th>Escalation / remediation</th></tr></thead>
+        <tbody>${regRows}</tbody></table>`
+        : `<p class="dora-all-covered">✓ Every live control has a current RCSA verdict and no not-effective findings outstanding.</p>`}`;
+
+    return pageHead('Control 3 · Effectiveness oversight — identifying ineffective controls', 'control × ICT risk · design + operating · residual movement', meta, stat)
+      + `<h3 class="ev-sect-h">RCSA effectiveness view — risk-treatment-control &times; ICT risk</h3>` + detail + register;
   }
 
   // ── Expose globals ───────────────────────────────────────────────

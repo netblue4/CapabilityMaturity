@@ -1249,11 +1249,12 @@ function buildBackingControlOps(policyRows, facts) {
       capId: f.capId, capName: capName(f.capId),
       name: (f.controlName || '').trim(), number: (f.controlNumber || '').trim(),
       provenance: f.controlType === 'operational' ? 'Reused (pre-DORA control)' : 'New (DORA control)',
-      implemented: false, effective: false, assessed: false, refs: new Set(), risks: new Set(),
+      implemented: false, effective: false, assessed: false, owners: new Set(), refs: new Set(), risks: new Set(),
     });
     if (ftIsImplemented(f)) d.implemented = true;
     if (ftIsEffective(f))   d.effective = true;
     if (!ftIsNotAssessed(f)) d.assessed = true;   // has a design/operating verdict in the RCSA
+    if ((f.controlOwner || '').trim()) d.owners.add(f.controlOwner.trim());
     (f.matchedPolicyRows || []).forEach(mp => d.refs.add(mp.statementRef));
     if ((f.riskTitle || '').trim()) d.risks.add(f.riskTitle.trim());
   });
@@ -1263,6 +1264,7 @@ function buildBackingControlOps(policyRows, facts) {
   //   blindSpot             — live but no RCSA verdict at all (the oversight gap)
   const controls = Object.values(map).map(d => ({
     capId: d.capId, capName: d.capName, name: d.name, number: d.number, provenance: d.provenance,
+    owner: [...d.owners].join('; '),
     implemented: d.implemented, effective: d.effective, assessed: d.assessed,
     liveEffective: d.implemented && d.effective,
     blindSpot: d.implemented && !d.assessed,

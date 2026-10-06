@@ -1314,7 +1314,10 @@ function c3gapHead() {
 function c3gapBody(rows) {
   const ctrl = r => (r.number ? r.number + ' — ' : '') + r.name;
   const statusCell = r => r.status === 'implemented' ? '<span class="ev-yes">Live</span>' : '<span class="act-todo">Not live</span>';
-  const effCell = r => r.status !== 'implemented' ? '<span class="src-zero">—</span>' : (r.effective ? '<span class="ev-yes">Effective</span>' : '<span class="act-todo">Not effective</span>');
+  const effCell = r => r.status !== 'implemented' ? '<span class="src-zero">—</span>'
+    : r.blindSpot ? '<span class="act-todo">Not assessed</span>'
+    : r.effective ? '<span class="ev-yes">Effective</span>'
+    : '<span class="ev-mid">Not effective</span>';
   return rows.map(r => `<tr>
     <td class="pil-col">${pillarTag(r.pillarShort)}</td>
     <td class="act-cap" title="${escHtml(r.capName)}">${escHtml(shortName(r.capName))}</td>
@@ -1338,7 +1341,7 @@ function renderRiskRegisterCard(assessment) {
   const risks = buildRiskProfile(assessment.riskPolicyFacts || []);
   risks.forEach(k => { k._capName = capName(k.capId); });
   const ops = buildBackingControlOps(assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  const title = 'Control 3 &middot; Control efficacy in treating risk';
+  const title = 'Control 3 &middot; Effectiveness oversight — identifying ineffective controls';
   const elevOn = window._rpElevated !== false;
   const header = desc => `
     <div class="measure-card-header">
@@ -1347,33 +1350,35 @@ function renderRiskRegisterCard(assessment) {
       ${risks.length ? rpElevToggle() : ''}
     </div>`;
   if (!risks.length) {
-    return `<div class="card measure-card">${header('Every ICT risk, the assurance behind it, and whether the controls that back our statements are live and effective.')}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
+    return `<div class="card measure-card">${header('Every ICT risk, the controls that back our statements, and whether oversight holds a current RCSA verdict on each — identifying the ineffective ones for remediation.')}<p class="policy-no-data" style="margin:.5rem 0">No risk data uploaded yet.</p></div>`;
   }
-  const opsGap = ops.total - ops.liveEffective;
-  const desc = `<b>${ops.liveEffective}</b> of <b>${ops.total}</b> backing controls live &amp; effective &middot; <b>${ops.pct}%</b> &middot; <b class="${opsGap ? 'dora-gap-num' : ''}">${opsGap}</b> to operationalise.`;
+  const blind = ops.blindSpots.length, identified = ops.identified.length;
+  // Oversight headline (the measure this control attests to): live controls with a
+  // current RCSA verdict; blind spots are the only gap. Outcome shown, owner-attributed.
+  const desc = `<b>${ops.assured}</b> of <b>${ops.implemented}</b> live controls carry a current RCSA verdict &middot; <b>${ops.assuredPct}%</b> &middot; <b class="${blind ? 'dora-gap-num' : ''}">${blind}</b> not assessed (oversight gap). Outcome — owner-remediated: <b>${ops.liveEffective}</b>/${ops.implemented} effective${identified ? `, <b>${identified}</b> identified not-effective` : ''}.`;
 
   _rrCapPillar = buildCapPillar(assessment.doraRows || [], assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  ops.gap.forEach(r => { r.pillarShort = doraPillarShortFor('', '', r.capId, _rrCapPillar); });
+  ops.blindSpots.forEach(r => { r.pillarShort = doraPillarShortFor('', '', r.capId, _rrCapPillar); });
   _rrRows = risks;
   _rrSort = { col: null, dir: 1 };
-  _c3gapRows = ops.gap;
+  _c3gapRows = ops.blindSpots;
   _c3gapSort = { col: null, dir: 1 };
 
   const gapBlock = _c3gapRows.length ? `
     <div class="act-block collapsed">
-      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> To reach 100% — backing controls not yet live &amp; effective (${_c3gapRows.length})</div>
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> To reach 100% oversight — live controls not yet assessed (${_c3gapRows.length})</div>
       <div class="rcsa-table-wrap act-body">
         <table class="act-tbl">
           <thead id="c3gap-thead">${c3gapHead()}</thead>
           <tbody id="c3gap-tbody">${c3gapBody(c3gapSortRows())}</tbody>
         </table>
       </div>
-    </div>` : (ops.total ? `<p class="dora-all-covered">✓ Every backing control is live and effective.</p>` : '');
+    </div>` : (ops.implemented ? `<p class="dora-all-covered">✓ Every live control has a current RCSA verdict; ineffective ones are identified for remediation.</p>` : '');
 
   return `
     <div class="card measure-card rp-card${elevOn ? ' rp-elevated' : ''}">
       ${header(desc)}
-      ${cmProgressBar(ops.pct)}
+      ${cmProgressBar(ops.assuredPct)}
       ${gapBlock}
     </div>`;
 }

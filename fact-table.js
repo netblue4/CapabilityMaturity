@@ -1249,24 +1249,43 @@ function buildBackingControlOps(policyRows, facts) {
       capId: f.capId, capName: capName(f.capId),
       name: (f.controlName || '').trim(), number: (f.controlNumber || '').trim(),
       provenance: f.controlType === 'operational' ? 'Reused (pre-DORA control)' : 'New (DORA control)',
-      implemented: false, effective: false, refs: new Set(), risks: new Set(),
+      implemented: false, effective: false, assessed: false, refs: new Set(), risks: new Set(),
     });
     if (ftIsImplemented(f)) d.implemented = true;
     if (ftIsEffective(f))   d.effective = true;
+    if (!ftIsNotAssessed(f)) d.assessed = true;   // has a design/operating verdict in the RCSA
     (f.matchedPolicyRows || []).forEach(mp => d.refs.add(mp.statementRef));
     if ((f.riskTitle || '').trim()) d.risks.add(f.riskTitle.trim());
   });
+  // Three oversight states for a LIVE control (they partition the implemented set):
+  //   effective             — RCSA verdict is green (design + operating)
+  //   identifiedIneffective — assessed, but the verdict is not fully effective (a finding)
+  //   blindSpot             — live but no RCSA verdict at all (the oversight gap)
   const controls = Object.values(map).map(d => ({
     capId: d.capId, capName: d.capName, name: d.name, number: d.number, provenance: d.provenance,
-    implemented: d.implemented, effective: d.effective,
+    implemented: d.implemented, effective: d.effective, assessed: d.assessed,
     liveEffective: d.implemented && d.effective,
+    blindSpot: d.implemented && !d.assessed,
+    identifiedIneffective: d.implemented && d.assessed && !d.effective,
     status: d.implemented ? 'implemented' : 'draft',
     refs: [...d.refs], risks: [...d.risks],
   }));
   const total   = controls.length;
+  const impl    = controls.filter(c => c.implemented).length;
   const liveEff = controls.filter(c => c.liveEffective).length;
-  return { controls, total, liveEffective: liveEff, pct: total ? Math.round(100 * liveEff / total) : 0,
-           gap: controls.filter(c => !c.liveEffective) };
+  const blindSpots = controls.filter(c => c.blindSpot);
+  const identified = controls.filter(c => c.identifiedIneffective);
+  const assured    = impl - blindSpots.length;   // live controls that carry a current RCSA verdict
+  return {
+    controls, total, implemented: impl,
+    // Treatment OUTCOME (owned by control owners): how many live controls actually work.
+    liveEffective: liveEff, pct: total ? Math.round(100 * liveEff / total) : 0,
+    gap: controls.filter(c => !c.liveEffective),
+    // Oversight MEASURE (this control's own effectiveness): every live control carries a
+    // current RCSA verdict and the not-effective ones are identified. Blind spots are the gap.
+    assured, assuredPct: impl ? Math.round(100 * assured / impl) : 0,
+    blindSpots, identified,
+  };
 }
 
 // ══════════════════════════════════════════════════════════════════

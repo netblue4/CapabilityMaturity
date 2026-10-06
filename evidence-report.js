@@ -305,17 +305,27 @@
     const total = bops.total;
     const impl = ctrls.filter(c => c.implemented).length;
     const eff  = ctrls.filter(c => c.liveEffective).length;
-    const stat = statPill(impl, total, 'backing controls implemented / live', true)
-      + statPill(eff, impl, 'of live controls rated effective', true)
-      + `<span class="ev-note">One row per distinct backing control. <b>Status = Implemented</b> = the control is live; <b>Effectiveness = Effective</b> = it passed its RCSA design + operating test. Filter Status = Implemented and Effectiveness = Effective to match a pillar card's effective count.</span>`;
+    const assured = ctrls.filter(c => c.implemented && c.assessed).length;   // live controls with a current RCSA verdict
+    const blind   = ctrls.filter(c => c.blindSpot).length;                   // live, no verdict — the oversight gap
+    // Oversight measure first (what this control attests to), then the treatment
+    // outcome, explicitly attributed to the control owners.
+    const stat = statPill(assured, impl, 'live controls with a current RCSA verdict (oversight measure)', true)
+      + statPill(eff, impl, 'rated effective — treatment outcome, owned by control owners', true)
+      + `<span class="ev-note">This control's objective is <b>identifying ineffective controls</b>, not making them effective. <b>Not assessed</b> = a live control with no RCSA verdict — the only oversight gap (${blind} here). <b>Not effective</b> = assessed and found weak — an identified finding for control-owner remediation, not an oversight failure. <b>Status = Implemented</b> = the control is live.</span>`;
 
     const statusCell = c => c.implemented ? '<span class="ev-yes">Implemented</span>' : '<span class="ev-mid">Draft</span>';
-    const effCell = c => !c.implemented ? DASH : c.effective ? '<span class="ev-yes">Effective</span>' : '<span class="ev-mid">Not yet</span>';
+    // Three oversight states for a live control: Effective (green) · Not effective
+    // = identified finding (amber) · Not assessed = blind spot / oversight gap (red).
+    const effCell = c => !c.implemented ? DASH
+      : c.blindSpot ? '<span class="ev-no">Not assessed</span>'
+      : c.effective ? '<span class="ev-yes">Effective</span>'
+      : '<span class="ev-mid">Not effective</span>';
 
     const rows = ctrls.map(c => {
       const objs = [...new Set((c.refs || []).flatMap(r => stmtObls(c.capId, r)))];
       const refs = (c.refs || []).map(r => `<span class="ev-ref">${esc(r)}</span>`).join(' ');
-      return `<tr${c.implemented ? '' : ' class="ev-row-gap"'}>
+      // Flag the oversight gap (not-live OR a live blind spot) as the red row.
+      return `<tr${(!c.implemented || c.blindSpot) ? ' class="ev-row-gap"' : ''}>
         <td class="pil-col">${pillarTag(doraPillarShortFor('', '', c.capId, capPillar))}</td>
         <td>${esc(capName(c.capId))}</td>
         <td>${esc(ctrlLabel(c))}</td>
@@ -327,7 +337,7 @@
       </tr>`;
     });
 
-    return pageHead('Control 3 · Control efficacy in treating risk', 'control → status + effectiveness', meta, stat) + `
+    return pageHead('Control 3 · Effectiveness oversight — identifying ineffective controls', 'control → verdict present? + effectiveness', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide ev-sortable">
         <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Control Number &amp; Name</th><th>Control provenance</th><th>Status</th><th>Effectiveness</th><th>Statement ref(s)</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>

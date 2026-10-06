@@ -644,14 +644,18 @@ function renderExecControl3(currentA, prevA) {
   const prevOps = prevA ? buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🎯</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Effective</div><h3 class="measure-card-title">Control efficacy in treating risk</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Effective</div><h3 class="measure-card-title">Effectiveness oversight — identifying ineffective controls</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!risks.length) return `<div class="card measure-card">${head('No risk data uploaded for this assessment.')}</div>`;
   const danger = risks.filter(k => ex3Zone(k).key === 'red').length;
-  const desc = `<b>${ops.liveEffective}</b>/${ops.total} backing controls live &amp; effective (${ops.pct}% ${execScDelta(ops.pct, prevOps ? prevOps.pct : null)}). Risks plotted by residual severity vs how effective their controls are — the red zone is high residual with weak controls${danger ? ` (<b class="dora-gap-num">${danger}</b> there)` : ''}.`;
+  const blind = ops.blindSpots.length, identified = ops.identified.length;
+  // Oversight measure first (what THIS control attests to): every live control
+  // carries a current RCSA verdict and the not-effective ones are identified.
+  // Then the treatment OUTCOME, explicitly attributed to the control owners.
+  const desc = `<b>${ops.assured}</b>/${ops.implemented} live controls carry a current RCSA verdict (${ops.assuredPct}% ${execScDelta(ops.assuredPct, prevOps ? prevOps.assuredPct : null)}). This control <b>identifies ineffective controls</b> for remediation; its only gap is <b class="dora-gap-num">${blind}</b> live control(s) <b>not yet assessed</b> (a blind spot). Treatment outcome — owned by control owners — <b>${ops.liveEffective}</b>/${ops.implemented} rated effective${identified ? `, <b>${identified}</b> identified not-effective and under remediation` : ''}. Risks plotted by residual severity vs control effectiveness${danger ? ` — <b class="dora-gap-num">${danger}</b> in the red zone` : ''}.`;
   return `<div class="card measure-card">
     ${head(desc)}
-    ${cmProgressBar(ops.pct)}
+    ${cmProgressBar(ops.assuredPct)}
     ${execQuadrant(risks)}
     <div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div>
   </div>`;
@@ -673,7 +677,9 @@ function renderExecAttention(currentA) {
   const stale    = doc.rows.filter(d => d.staleWaiver > 0);
   const noCtrl   = cov.uncovered;
   const invis    = doc.rows.filter(d => d.invisibleWork > 0);
-  const gapCtrl  = ops.gap;
+  const blindCtrl = ops.blindSpots;                              // live, no RCSA verdict — oversight's own action
+  const identCtrl = ops.identified;                              // live, assessed, not effective — owner remediation
+  const draftCtrl = ops.controls.filter(c => !c.implemented);    // not yet live
 
   const items = [
     { sev: 'high', cat: 'Uncovered DORA objecctives', n: uncovObl.length,
@@ -688,9 +694,15 @@ function renderExecAttention(currentA) {
     { sev: 'med', cat: 'Invisible work', n: invis.reduce((s, d) => s + d.invisibleWork, 0),
       action: 'Implemented / part-implemented statements with no control tracking them — add a control for evidence.',
       list: invis.map(d => `${escHtml(d.document)} (${d.invisibleWork})`) },
-    { sev: 'med', cat: 'Controls not yet live & effective', n: gapCtrl.length,
-      action: 'Backing controls drafted or not yet effective — operationalise them.',
-      list: gapCtrl.map(c => `${escHtml(ctrlLbl(c))} <span class="exa-tag">${c.implemented ? 'not effective' : 'not live'}</span>`) },
+    { sev: 'high', cat: 'Blind spots — live controls not assessed', n: blindCtrl.length,
+      action: 'Live controls with no current RCSA verdict — the oversight gap. Assess them (our action).',
+      list: blindCtrl.map(c => `${escHtml(ctrlLbl(c))} <span class="exa-tag">not assessed</span>`) },
+    { sev: 'med', cat: 'Identified not-effective controls', n: identCtrl.length,
+      action: 'Assessed and found not effective — identified findings for control-owner remediation.',
+      list: identCtrl.map(c => `${escHtml(ctrlLbl(c))} <span class="exa-tag">owner remediation</span>`) },
+    { sev: 'med', cat: 'Backing controls not yet live', n: draftCtrl.length,
+      action: 'Backing controls still drafted — operationalise them.',
+      list: draftCtrl.map(c => `${escHtml(ctrlLbl(c))} <span class="exa-tag">not live</span>`) },
   ].filter(it => it.n > 0);
 
   const total = items.reduce((s, it) => s + it.n, 0);
@@ -699,7 +711,7 @@ function renderExecAttention(currentA) {
       <div style="flex:1"><div class="exsc-eyebrow">Close · Path to 100%</div><h3 class="measure-card-title">What needs attention</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!items.length) {
-    return `<div class="card measure-card">${head('Nothing outstanding across the three controls.')}<p class="exa-done">✓ Every obligation is covered, every statement is backed, and every backing control is live &amp; effective.</p></div>`;
+    return `<div class="card measure-card">${head('Nothing outstanding across the three controls.')}<p class="exa-done">✓ Every obligation is covered, every statement is backed, and every live control is assessed with its ineffective ones identified for remediation.</p></div>`;
   }
   const rows = items.map(it => `<div class="exa-item exa-${it.sev}">
     <div class="exa-body">

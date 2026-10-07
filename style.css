@@ -3103,6 +3103,16 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exsum-mini i { display: block; height: 100%; border-radius: 20px; background-image: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0)); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .exsum-frac { font-family: var(--font-mono); font-size: .74rem; color: var(--text-muted); }
 .exsum-desc { font-size: .78rem; color: var(--text-muted); line-height: 1.45; margin-top: .5rem; }
+/* Progress band — comparison charts (risk coverage / control maturity / residual heatmap) */
+.exprog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .4rem; }
+@media (max-width: 760px) { .exprog-grid { grid-template-columns: 1fr; } }
+.exprog-chart { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1rem 1rem; }
+.exprog-grid + .exprog-chart, .exprog-section > .exprog-chart { margin-top: 1rem; }
+.exprog-chart-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem; margin-bottom: .5rem; }
+.exprog-chart-title { font-family: var(--font-mono); font-size: .82rem; font-weight: 700; margin: 0; }
+.exprog-chart-sub { font-size: .72rem; color: var(--text-muted); margin: .18rem 0 0; }
+.exprog-png { font-size: .68rem; padding: .3rem .6rem; white-space: nowrap; }
+.exprog-chart-svg svg { display: block; }
 /* Exec pillar cards — coverage funnel (Applicable → Documented → Implemented →
    Effective). Shared by the exec report (static) and the capability lens
    (interactive: lower stages filter the drill-down). */

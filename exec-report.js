@@ -59,6 +59,7 @@ function generateExecReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecScorecard(currentA, prevA)}
+    ${renderExecProgress(currentA, prevA)}
     ${renderExecPillars(currentA)}
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
@@ -67,6 +68,217 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderExecAttention(currentA)}</div>
   `;
   showView('exec-report');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Progress band — "since {prior quarter}". Two snapshots only (the two the
+// user selected on entry), so we use comparison idioms (dumbbell/slope), not a
+// sparse time-series. Three charts, each exportable to PNG:
+//   • Risk coverage    — Total vs Assessed risks
+//   • Control maturity — Draft / Implemented / Tested / Effective (the framework story)
+//   • Residual heatmap — every assessed risk dropped into High / Moderate / Low
+// Colours are resolved from the live CSS tokens at render time and baked into the
+// SVG, so the chart is theme-correct AND the PNG export is faithful (a rasterised
+// standalone SVG has no access to page CSS or web fonts).
+function execProgColors() {
+  const css = getComputedStyle(document.documentElement);
+  const g = (v, f) => (css.getPropertyValue(v).trim() || f);
+  return {
+    text: g('--text', '#1b1f24'), muted: g('--text-muted', '#5b6472'),
+    bg: g('--bg2', '#ffffff'), border: g('--border', '#d7dde5'),
+    accent: g('--accent', '#2a5fa8'), success: g('--clr-success', '#2e7d4f'),
+    warn: g('--clr-warning', '#b07400'), danger: g('--clr-danger', '#c0392b'),
+  };
+}
+function execQtr(a) {
+  if (!a) return '';
+  const d = a.date ? new Date(a.date + 'T00:00:00') : null;
+  if (!d || isNaN(d.getTime())) return a.label || '';
+  return 'Q' + (Math.floor(d.getMonth() / 3) + 1) + ' ' + d.getFullYear();
+}
+function execProgMetrics(a) {
+  const facts = (a && a.riskPolicyFacts) || [];
+  const risks = buildRiskProfile(facts);
+  const bops  = buildBackingControlOps((a && a.policyRows) || [], facts);
+  return {
+    totalRisks:    risks.length,
+    assessedRisks: risks.filter(k => (k.residual || 0) > 0).length,   // has a current residual rating
+    cDraft: bops.total - bops.implemented,
+    cImpl:  bops.implemented,
+    cTested: bops.assured,          // live controls carrying an RCSA verdict
+    cEff:   bops.liveEffective,
+    risks,
+  };
+}
+const EXPROG_MONO = "'Space Mono', ui-monospace, monospace";
+const EXPROG_SANS = "'DM Sans', system-ui, sans-serif";
+function exText(x, y, str, o) {
+  o = o || {};
+  return `<text x="${x}" y="${y}" font-size="${o.size || 12}" fill="${o.fill || '#000'}" font-weight="${o.weight || 400}" text-anchor="${o.anchor || 'start'}" font-family="${o.font || EXPROG_SANS}">${escHtml(String(str))}</text>`;
+}
+// Horizontal dumbbell: one row per metric, prior (hollow) → current (filled),
+// value labels, a Δ badge, and a caption for the talking point.
+function execDumbbell(rows, opts) {
+  const C = opts.colors;
+  const W = 680, padL = 18, padR = 18, labelW = 170, deltaW = 72;
+  const axisX0 = padL + labelW, axisX1 = W - padR - deltaW;
+  const topH = 34, rowH = 62, h = topH + rows.length * rowH + 8;
+  const max = Math.max(1, ...rows.flatMap(r => [r.prior, r.current])) * 1.16;
+  const X = v => axisX0 + (v / max) * (axisX1 - axisX0);
+  let s = `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img">`;
+  s += `<rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>`;
+  // legend
+  s += `<circle cx="${padL + 5}" cy="16" r="5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
+  s += exText(padL + 15, 20, opts.priorLabel, { size: 11, fill: C.muted, font: EXPROG_MONO });
+  const lx = padL + 15 + opts.priorLabel.length * 6.6 + 26;
+  s += `<circle cx="${lx}" cy="16" r="6" fill="${C.accent}"/>`;
+  s += exText(lx + 11, 20, opts.curLabel, { size: 11, fill: C.text, weight: 700, font: EXPROG_MONO });
+  rows.forEach((r, i) => {
+    const my = topH + i * rowH + 24;
+    const xP = X(r.prior), xC = X(r.current);
+    const delta = r.current - r.prior;
+    const good = r.goodUp !== false;
+    const dcol = delta === 0 ? C.muted : (good ? (delta > 0 ? C.success : C.danger) : C.muted);
+    const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '■';
+    s += exText(padL, my - 2, r.label, { size: 13, weight: 700, fill: C.text, font: EXPROG_MONO });
+    if (r.caption) s += exText(padL, my + 16, r.caption, { size: 10.5, fill: C.muted });
+    s += `<line x1="${Math.min(xP, xC)}" y1="${my}" x2="${Math.max(xP, xC)}" y2="${my}" stroke="${C.border}" stroke-width="3" stroke-linecap="round"/>`;
+    s += `<circle cx="${xP}" cy="${my}" r="5.5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
+    s += `<circle cx="${xC}" cy="${my}" r="7" fill="${r.color || C.accent}"/>`;
+    if (r.prior !== r.current) s += exText(xP, my - 11, r.prior, { size: 10.5, fill: C.muted, anchor: 'middle', font: EXPROG_MONO });
+    s += exText(xC, my - 13, r.current, { size: 13, fill: r.color || C.accent, weight: 700, anchor: 'middle', font: EXPROG_MONO });
+    s += exText(W - padR, my + 1, `${arrow} ${Math.abs(delta)}`, { size: 12, fill: dcol, weight: 700, anchor: 'end', font: EXPROG_MONO });
+  });
+  s += `</svg>`;
+  return s;
+}
+// Residual heatmap: every assessed risk as a chip in its High/Moderate/Low lane.
+// A ▼ marks a risk that dropped a severity band since the comparison snapshot.
+function execResidualHeatmap(curRisks, prevSev, opts) {
+  const C = opts.colors, W = 680, padL = 18, padR = 18;
+  const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
+  const bands = [
+    { label: 'HIGH', color: C.danger, idx: 0 },
+    { label: 'MODERATE', color: C.warn, idx: 1 },
+    { label: 'LOW', color: C.success, idx: 2 },
+  ];
+  const groups = [[], [], []];
+  curRisks.forEach(r => groups[sevOf(r.residual)].push(r));
+  const headW = 120, chipH = 26, chipGap = 8, lanePad = 12;
+  const contentX0 = padL + headW, contentX1 = W - padR, availW = contentX1 - contentX0;
+  let body = '', y = 8;
+  bands.forEach(b => {
+    const rs = groups[b.idx].slice().sort((a, c) => c.residual - a.residual);
+    const chips = rs.map(r => {
+      const title = r.title.length > 26 ? r.title.slice(0, 25) + '…' : r.title;
+      const ps = prevSev[r.title];
+      const moved = (ps != null) ? (sevOf(r.residual) - ps) : 0;   // >0 = now lower severity = improved
+      const mark = moved > 0 ? ' ▼' : moved < 0 ? ' ▲' : '';
+      const txt = `${title} · ${r.residual}${mark}`;
+      return { txt, w: Math.min(availW, 20 + txt.length * 6.3) };
+    });
+    let px = contentX0, line = 0;
+    chips.forEach(c => { if (px > contentX0 && px + c.w > contentX1) { px = contentX0; line++; } c.x = px; c.line = line; px += c.w + chipGap; });
+    const lines = rs.length ? line + 1 : 1;
+    const laneH = lanePad * 2 + lines * chipH + (lines - 1) * chipGap;
+    body += `<rect x="${padL}" y="${y}" width="${W - padL - padR}" height="${laneH}" rx="10" fill="${b.color}" fill-opacity="0.08" stroke="${b.color}" stroke-opacity="0.28"/>`;
+    body += exText(padL + 12, y + laneH / 2 - 2, b.label, { size: 13, weight: 700, fill: b.color, font: EXPROG_MONO });
+    body += exText(padL + 12, y + laneH / 2 + 15, `${rs.length} risk${rs.length === 1 ? '' : 's'}`, { size: 10.5, fill: C.muted, font: EXPROG_MONO });
+    chips.forEach(c => {
+      const cy = y + lanePad + c.line * (chipH + chipGap);
+      body += `<rect x="${c.x}" y="${cy}" width="${c.w}" height="${chipH}" rx="7" fill="${b.color}" fill-opacity="0.16" stroke="${b.color}" stroke-opacity="0.42"/>`;
+      body += exText(c.x + 10, cy + chipH / 2 + 4, c.txt, { size: 11, fill: C.text });
+    });
+    if (!rs.length) body += exText(contentX0, y + laneH / 2 + 4, '—', { size: 11, fill: C.muted });
+    y += laneH + 10;
+  });
+  const h = y + 2;
+  return `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img"><rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>${body}</svg>`;
+}
+function execChartCard(name, title, sub, svg) {
+  return `<div class="exprog-chart" data-name="${name}">
+    <div class="exprog-chart-hd">
+      <div><h4 class="exprog-chart-title">${escHtml(title)}</h4><p class="exprog-chart-sub">${sub}</p></div>
+      <button class="btn btn-outline no-print exprog-png" onclick="exportExecChart(this)">⬇ Export PNG</button>
+    </div>
+    <div class="exprog-chart-svg">${svg}</div>
+  </div>`;
+}
+function renderExecProgress(currentA, prevA) {
+  if (!currentA) return '';
+  const C = execProgColors();
+  const hasPrev = !!(prevA && prevA.id !== currentA.id);
+  const cur = execProgMetrics(currentA), prev = execProgMetrics(prevA || currentA);
+  const curL = execQtr(currentA), prevL = execQtr(prevA || currentA);
+  const aPct = cur.totalRisks ? Math.round(100 * cur.assessedRisks / cur.totalRisks) : 0;
+  const pPct = prev.totalRisks ? Math.round(100 * prev.assessedRisks / prev.totalRisks) : 0;
+
+  const riskChart = execChartCard('dora-risk-coverage', 'Risk coverage',
+    `<b>${aPct}%</b> of risks assessed${hasPrev ? ' ' + execScDelta(aPct, pPct) : ''}`,
+    execDumbbell([
+      { label: 'Risks in register', prior: prev.totalRisks, current: cur.totalRisks, color: C.accent, caption: 'total ICT risks tracked', goodUp: true },
+      { label: 'Assessed', prior: prev.assessedRisks, current: cur.assessedRisks, color: C.success, caption: 'risks with a current RCSA residual rating', goodUp: true },
+    ], { colors: C, priorLabel: prevL, curLabel: curL }));
+
+  const ctrlChart = execChartCard('dora-control-maturity', 'Control maturity',
+    'Draft → Implemented → Tested → Effective — maturing the ICT risk framework',
+    execDumbbell([
+      { label: 'Draft', prior: prev.cDraft, current: cur.cDraft, color: C.muted, caption: 'resourced — not yet implemented', goodUp: false },
+      { label: 'Implemented', prior: prev.cImpl, current: cur.cImpl, color: C.accent, caption: 'live controls', goodUp: true },
+      { label: 'Tested', prior: prev.cTested, current: cur.cTested, color: C.warn, caption: 'live & assessed — we know how they perform', goodUp: true },
+      { label: 'Effective', prior: prev.cEff, current: cur.cEff, color: C.success, caption: 'proven effective in the RCSA', goodUp: true },
+    ], { colors: C, priorLabel: prevL, curLabel: curL }));
+
+  const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
+  const prevSev = {}; prev.risks.forEach(k => { if ((k.residual || 0) > 0) prevSev[k.title] = sevOf(k.residual); });
+  const curRisks = cur.risks.filter(k => (k.residual || 0) > 0).map(k => ({ title: k.title, residual: k.residual }));
+  const na = cur.totalRisks - curRisks.length;
+  const heatChart = execChartCard('dora-residual-heatmap', 'Residual risk heatmap',
+    `${curRisks.length} assessed risk(s)${na ? ` · ${na} not yet assessed` : ''}${hasPrev ? ` · ▼ improved since ${escHtml(prevL)}` : ''}`,
+    execResidualHeatmap(curRisks, prevSev, { colors: C }));
+
+  const desc = hasPrev
+    ? `Where we stood at <b>${escHtml(prevL)}</b> versus <b>${escHtml(curL)}</b> — the progress made maturing the ICT risk framework. Each chart exports to PNG.`
+    : `Snapshot at <b>${escHtml(curL)}</b>. Pick a comparison snapshot when opening the report to see movement between quarters. Each chart exports to PNG.`;
+  return `<div class="card measure-card exprog-section">
+    <div class="measure-card-header">
+      <span class="measure-icon">📈</span>
+      <div style="flex:1"><div class="exsc-eyebrow">Progress</div><h3 class="measure-card-title">Progress since ${escHtml(prevL)}</h3><p class="measure-card-desc">${desc}</p></div>
+    </div>
+    <div class="exprog-grid">${riskChart}${ctrlChart}</div>
+    ${heatChart}
+  </div>`;
+}
+// Export a progress chart's SVG as a PNG download (works in the deployed app;
+// the artifact sandbox blocks downloads but this runs on the hosted/local app).
+function exportExecChart(btn) {
+  const wrap = btn.closest('.exprog-chart');
+  const svg = wrap && wrap.querySelector('svg');
+  if (!svg) return;
+  const name = (wrap.getAttribute('data-name') || 'chart') + '.png';
+  const vb = svg.viewBox && svg.viewBox.baseVal;
+  const w = vb && vb.width ? vb.width : (svg.clientWidth || 680);
+  const h = vb && vb.height ? vb.height : (svg.clientHeight || 400);
+  const clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('width', w); clone.setAttribute('height', h);
+  const xml = new XMLSerializer().serializeToString(clone);
+  const img = new Image();
+  img.onload = () => {
+    const scale = 2;
+    const cv = document.createElement('canvas'); cv.width = w * scale; cv.height = h * scale;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = execProgColors().bg; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.drawImage(img, 0, 0, w, h);
+    cv.toBlob(b => {
+      if (!b) return;
+      const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }, 'image/png');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
 }
 
 // ── Hero scorecard band (Control 1 / 2 / 3 at a glance) ───────────

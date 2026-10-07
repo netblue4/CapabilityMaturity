@@ -130,6 +130,28 @@ The `sample-data.json` file shows the expected format for assessments.
 
 ---
 
+## Demo data & tests
+
+- **🧪 Load demo data** (header button, or the empty-state) seeds **two quarters** —
+  Q2 2026 (less mature) and Q3 2026 — by running the real import pipeline over the
+  CSVs in `docs/sample-data/`. Open the **Exec Report** and compare Q2 → Q3 to see the
+  "Progress since …" comparison charts with real movement.
+
+- **End-to-end regression:** `test/verify-demo.mjs` (Playwright) loads the demo and
+  asserts the reconciliation spine and headline features. Run it with a static server
+  on port 8137:
+
+  ```bash
+  npm install
+  npx playwright install chromium
+  python3 -m http.server 8137 &      # serve the repo root
+  npm test
+  ```
+
+  It also runs in CI on every push / PR (`.github/workflows/test.yml`).
+
+---
+
 ## Important: Running Locally
 
 Because `config.json` is loaded via `fetch()`, the app must be served over HTTP — it will not work if you open `index.html` directly as a `file://` URL.

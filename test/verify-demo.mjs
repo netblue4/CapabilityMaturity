@@ -84,7 +84,7 @@ assert(/current RCSA verdict/i.test(c3desc) && /owned by control owners/i.test(c
 const charts = await page.$$eval('#exec-report-content .exprog-chart', els => els.map(e => ({ name: e.getAttribute('data-name'), svg: !!e.querySelector('svg'), png: !!e.querySelector('.exprog-png') })));
 assert(charts.length === 3 && charts.every(c => c.svg && c.png), 'Three progress charts, each with SVG + Export PNG');
 assert(['dora-risk-coverage', 'dora-control-maturity', 'dora-residual-heatmap'].every(n => charts.some(c => c.name === n)), 'Charts: risk coverage / control maturity / residual heatmap');
-const heatChips = await page.$$eval('#exec-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg rect[rx="7"]', r => r.length);
+const heatChips = await page.$$eval('#exec-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg rect[rx="6"]', r => r.length);
 assert(heatChips >= 3, `Residual heatmap renders risk chips (${heatChips})`);
 const moved = await page.evaluate(() => {
   const c = execProgMetrics(db.assessments.find(x => x.id === 'demo'));

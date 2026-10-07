@@ -123,8 +123,6 @@ function execDumbbell(rows, opts) {
   const W = 680, padL = 18, padR = 18, labelW = 170, deltaW = 72;
   const axisX0 = padL + labelW, axisX1 = W - padR - deltaW;
   const topH = 34, rowH = 62, h = topH + rows.length * rowH + 8;
-  const max = Math.max(1, ...rows.flatMap(r => [r.prior, r.current])) * 1.16;
-  const X = v => axisX0 + (v / max) * (axisX1 - axisX0);
   let s = `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img">`;
   s += `<rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>`;
   // legend
@@ -133,20 +131,22 @@ function execDumbbell(rows, opts) {
   const lx = padL + 15 + opts.priorLabel.length * 6.6 + 26;
   s += `<circle cx="${lx}" cy="16" r="6" fill="${C.accent}"/>`;
   s += exText(lx + 11, 20, opts.curLabel, { size: 11, fill: C.text, weight: 700, font: EXPROG_MONO });
+  // Every row uses the SAME fixed-length track — prior (hollow) at the left end,
+  // current (filled) at the right end — so the chart reads uniformly; the values
+  // are plotted on the dots rather than encoded in the line length.
   rows.forEach((r, i) => {
     const my = topH + i * rowH + 24;
-    const xP = X(r.prior), xC = X(r.current);
     const delta = r.current - r.prior;
     const good = r.goodUp !== false;
     const dcol = delta === 0 ? C.muted : (good ? (delta > 0 ? C.success : C.danger) : C.muted);
     const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '■';
     s += exText(padL, my - 2, r.label, { size: 13, weight: 700, fill: C.text, font: EXPROG_MONO });
     if (r.caption) s += exText(padL, my + 16, r.caption, { size: 10.5, fill: C.muted });
-    s += `<line x1="${Math.min(xP, xC)}" y1="${my}" x2="${Math.max(xP, xC)}" y2="${my}" stroke="${C.border}" stroke-width="3" stroke-linecap="round"/>`;
-    s += `<circle cx="${xP}" cy="${my}" r="5.5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
-    s += `<circle cx="${xC}" cy="${my}" r="7" fill="${r.color || C.accent}"/>`;
-    if (r.prior !== r.current) s += exText(xP, my - 11, r.prior, { size: 10.5, fill: C.muted, anchor: 'middle', font: EXPROG_MONO });
-    s += exText(xC, my - 13, r.current, { size: 13, fill: r.color || C.accent, weight: 700, anchor: 'middle', font: EXPROG_MONO });
+    s += `<line x1="${axisX0}" y1="${my}" x2="${axisX1}" y2="${my}" stroke="${C.border}" stroke-width="3" stroke-linecap="round"/>`;
+    s += `<circle cx="${axisX0}" cy="${my}" r="5.5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
+    s += `<circle cx="${axisX1}" cy="${my}" r="7" fill="${r.color || C.accent}"/>`;
+    s += exText(axisX0, my - 12, r.prior, { size: 11, fill: C.muted, anchor: 'middle', font: EXPROG_MONO });
+    s += exText(axisX1, my - 14, r.current, { size: 13, fill: r.color || C.accent, weight: 700, anchor: 'middle', font: EXPROG_MONO });
     s += exText(W - padR, my + 1, `${arrow} ${Math.abs(delta)}`, { size: 12, fill: dcol, weight: 700, anchor: 'end', font: EXPROG_MONO });
   });
   s += `</svg>`;
@@ -164,18 +164,19 @@ function execResidualHeatmap(curRisks, prevSev, opts) {
   ];
   const groups = [[], [], []];
   curRisks.forEach(r => groups[sevOf(r.residual)].push(r));
-  const headW = 120, chipH = 26, chipGap = 8, lanePad = 12;
+  const headW = 120, chipH = 23, chipGap = 7, lanePad = 12;
+  const CHIP_SIZE = 10, CHIP_CW = CHIP_SIZE * 0.62;   // Space Mono ≈ 0.6em/char; width is predictable
   const contentX0 = padL + headW, contentX1 = W - padR, availW = contentX1 - contentX0;
   let body = '', y = 8;
   bands.forEach(b => {
     const rs = groups[b.idx].slice().sort((a, c) => c.residual - a.residual);
     const chips = rs.map(r => {
-      const title = r.title.length > 26 ? r.title.slice(0, 25) + '…' : r.title;
+      const title = r.title.length > 30 ? r.title.slice(0, 29) + '…' : r.title;
       const ps = prevSev[r.title];
       const moved = (ps != null) ? (sevOf(r.residual) - ps) : 0;   // >0 = now lower severity = improved
       const mark = moved > 0 ? ' ▼' : moved < 0 ? ' ▲' : '';
       const txt = `${title} · ${r.residual}${mark}`;
-      return { txt, w: Math.min(availW, 20 + txt.length * 6.3) };
+      return { txt, w: Math.min(availW, 16 + txt.length * CHIP_CW) };
     });
     let px = contentX0, line = 0;
     chips.forEach(c => { if (px > contentX0 && px + c.w > contentX1) { px = contentX0; line++; } c.x = px; c.line = line; px += c.w + chipGap; });
@@ -186,8 +187,8 @@ function execResidualHeatmap(curRisks, prevSev, opts) {
     body += exText(padL + 12, y + laneH / 2 + 15, `${rs.length} risk${rs.length === 1 ? '' : 's'}`, { size: 10.5, fill: C.muted, font: EXPROG_MONO });
     chips.forEach(c => {
       const cy = y + lanePad + c.line * (chipH + chipGap);
-      body += `<rect x="${c.x}" y="${cy}" width="${c.w}" height="${chipH}" rx="7" fill="${b.color}" fill-opacity="0.16" stroke="${b.color}" stroke-opacity="0.42"/>`;
-      body += exText(c.x + 10, cy + chipH / 2 + 4, c.txt, { size: 11, fill: C.text });
+      body += `<rect x="${c.x}" y="${cy}" width="${c.w}" height="${chipH}" rx="6" fill="${b.color}" fill-opacity="0.16" stroke="${b.color}" stroke-opacity="0.42"/>`;
+      body += exText(c.x + 8, cy + chipH / 2 + 3.4, c.txt, { size: CHIP_SIZE, fill: C.text, font: EXPROG_MONO });
     });
     if (!rs.length) body += exText(contentX0, y + laneH / 2 + 4, '—', { size: 11, fill: C.muted });
     y += laneH + 10;

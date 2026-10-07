@@ -179,6 +179,7 @@
             <td>${esc(m.source)}</td>
             <td class="ev-ref-c"><span class="ev-ref">${esc(m.ref)}</span></td>
             <td>${esc(m.header)}</td>
+            <td>${esc(m.owner) || DASH}</td>
           </tr>`));
       } else {
         rows.push(`
@@ -189,7 +190,7 @@
             <td class="ev-req">${esc(o.requirement)}</td>
             <td><span class="ev-no">Uncovered</span></td>
             <td>${esc(o.capability) || DASH}</td>
-            <td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td>
+            <td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td><td>${DASH}</td>
           </tr>`);
       }
     });
@@ -199,7 +200,7 @@
       + `<h3 class="ev-sect-h">Coverage detail — objective → owned statement</h3>
       <div class="ev-stat">${stat}</div>
       <table class="ev-tbl ev-tbl-wide ev-sortable">
-        <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th></tr></thead>
+        <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Accountable</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

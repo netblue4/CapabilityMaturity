@@ -1,3 +1,6 @@
 sample.json
 PolicyStatements.csv
 RIskData.csv
+node_modules/
+*.log
+.DS_Store

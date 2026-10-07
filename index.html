@@ -47,6 +47,7 @@
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
           <button class="btn btn-outline" onclick="showExecReportModal()">📋 Exec Report</button>
           <button class="btn btn-outline" onclick="showEvidenceModal()">📄 Evidence</button>
+          <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
         </div>
       </div>
 
@@ -54,7 +55,7 @@
         <div class="empty-icon">◈</div>
         <h3>No assessments yet</h3>
         <p>Click <strong>+ New Assessment</strong> to begin tracking your ICT capabilities.</p>
-        <p class="hint">Or <strong>↑ Import</strong> a previously saved JSON file.</p>
+        <p class="hint">Or <strong>↑ Import</strong> a previously saved JSON file, or <button class="btn btn-outline" onclick="loadDemoData()">🧪 Load demo data</button> to explore two quarters of worked-through sample data.</p>
       </div>
 
       <div id="dashboard-content">
@@ -165,7 +166,7 @@
         <div class="ev-modal-btns">
           <button class="btn btn-primary" onclick="generateEvidence(1)">Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards</button>
           <button class="btn btn-primary" onclick="generateEvidence(2)">Control 2 · Policy & Group Standard statement operationalised by controls</button>
-          <button class="btn btn-primary" onclick="generateEvidence(3)">Control 3 · Control efficacy in treating risk</button>
+          <button class="btn btn-primary" onclick="generateEvidence(3)">Control 3 · Effectiveness oversight — identifying ineffective controls</button>
           <button class="btn btn-ghost" onclick="closeEvidenceModal()">Cancel</button>
         </div>
       </div>
@@ -381,6 +382,7 @@
   <script src="dora-import.js"></script>
   <script src="dora-soa-import.js"></script>
   <script src="evidence-report.js"></script>
+  <script src="demo-seed.js"></script>
   <script>
     // Sync theme toggle button label after DOM ready
     (function () {

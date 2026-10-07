@@ -123,6 +123,12 @@ function execDumbbell(rows, opts) {
   const W = 680, padL = 18, padR = 18, labelW = 170, deltaW = 72;
   const axisX0 = padL + labelW, axisX1 = W - padR - deltaW;
   const topH = 34, rowH = 62, h = topH + rows.length * rowH + 8;
+  // One shared 0 → max scale across all rows. Every row draws the SAME full-length
+  // track (0 at the left, max at the right), so the lines are uniform; the dots
+  // and their numbers are plotted at their value positions on that scale, and the
+  // prior → current segment is highlighted in the row colour.
+  const max = Math.max(1, ...rows.flatMap(r => [r.prior, r.current])) * 1.08;
+  const X = v => axisX0 + (v / max) * (axisX1 - axisX0);
   let s = `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img">`;
   s += `<rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>`;
   // legend
@@ -131,22 +137,27 @@ function execDumbbell(rows, opts) {
   const lx = padL + 15 + opts.priorLabel.length * 6.6 + 26;
   s += `<circle cx="${lx}" cy="16" r="6" fill="${C.accent}"/>`;
   s += exText(lx + 11, 20, opts.curLabel, { size: 11, fill: C.text, weight: 700, font: EXPROG_MONO });
-  // Every row uses the SAME fixed-length track — prior (hollow) at the left end,
-  // current (filled) at the right end — so the chart reads uniformly; the values
-  // are plotted on the dots rather than encoded in the line length.
   rows.forEach((r, i) => {
     const my = topH + i * rowH + 24;
+    const xP = X(r.prior), xC = X(r.current);
     const delta = r.current - r.prior;
     const good = r.goodUp !== false;
     const dcol = delta === 0 ? C.muted : (good ? (delta > 0 ? C.success : C.danger) : C.muted);
     const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '■';
+    const col = r.color || C.accent;
     s += exText(padL, my - 2, r.label, { size: 13, weight: 700, fill: C.text, font: EXPROG_MONO });
     if (r.caption) s += exText(padL, my + 16, r.caption, { size: 10.5, fill: C.muted });
-    s += `<line x1="${axisX0}" y1="${my}" x2="${axisX1}" y2="${my}" stroke="${C.border}" stroke-width="3" stroke-linecap="round"/>`;
-    s += `<circle cx="${axisX0}" cy="${my}" r="5.5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
-    s += `<circle cx="${axisX1}" cy="${my}" r="7" fill="${r.color || C.accent}"/>`;
-    s += exText(axisX0, my - 12, r.prior, { size: 11, fill: C.muted, anchor: 'middle', font: EXPROG_MONO });
-    s += exText(axisX1, my - 14, r.current, { size: 13, fill: r.color || C.accent, weight: 700, anchor: 'middle', font: EXPROG_MONO });
+    // full-length baseline (uniform) + highlighted prior → current segment
+    s += `<line x1="${axisX0}" y1="${my}" x2="${axisX1}" y2="${my}" stroke="${C.border}" stroke-width="3" stroke-linecap="round" stroke-opacity="0.45"/>`;
+    s += `<line x1="${Math.min(xP, xC)}" y1="${my}" x2="${Math.max(xP, xC)}" y2="${my}" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>`;
+    s += `<circle cx="${xP}" cy="${my}" r="5.5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
+    s += `<circle cx="${xC}" cy="${my}" r="7" fill="${col}"/>`;
+    if (r.current === r.prior) {
+      s += exText(xC, my - 13, r.current, { size: 13, fill: col, weight: 700, anchor: 'middle', font: EXPROG_MONO });
+    } else {
+      s += exText(xP, my - 12, r.prior, { size: 11, fill: C.muted, anchor: 'middle', font: EXPROG_MONO });
+      s += exText(xC, my - 14, r.current, { size: 13, fill: col, weight: 700, anchor: 'middle', font: EXPROG_MONO });
+    }
     s += exText(W - padR, my + 1, `${arrow} ${Math.abs(delta)}`, { size: 12, fill: dcol, weight: 700, anchor: 'end', font: EXPROG_MONO });
   });
   s += `</svg>`;

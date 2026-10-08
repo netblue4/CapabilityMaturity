@@ -263,13 +263,16 @@ function execResidualHeatmap(curRisks, prevSev, opts) {
     y += laneH + 10;
   });
   const h = y + 2;
-  return `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img"><rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>${body}</svg>`;
+  // Render at natural size (width/height in px) rather than width:100% so the SVG
+  // (and its text) does NOT upscale on wide monitors — the CSS caps it with
+  // max-width:100%; height:auto, so it only ever scales DOWN. This keeps the risk-
+  // name font at its intended size instead of ballooning on a full-width card.
+  return `<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img"><rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>${body}</svg>`;
 }
 function execChartCard(name, title, sub, svg) {
   return `<div class="exprog-chart" data-name="${name}">
     <div class="exprog-chart-hd">
       <div><h4 class="exprog-chart-title">${escHtml(title)}</h4><p class="exprog-chart-sub">${sub}</p></div>
-      <button class="btn btn-outline no-print exprog-png" onclick="exportExecChart(this)">⬇ Export PNG</button>
     </div>
     <div class="exprog-chart-svg">${svg}</div>
   </div>`;
@@ -308,8 +311,8 @@ function renderExecProgress(currentA, prevA) {
     execResidualHeatmap(curRisks, prevSev, { colors: C }));
 
   const desc = hasPrev
-    ? `Where we stood at <b>${escHtml(prevL)}</b> versus <b>${escHtml(curL)}</b> — the progress made maturing the ICT risk framework. Each chart exports to PNG.`
-    : `Snapshot at <b>${escHtml(curL)}</b>. Pick a comparison snapshot when opening the report to see movement between quarters. Each chart exports to PNG.`;
+    ? `Where we stood at <b>${escHtml(prevL)}</b> versus <b>${escHtml(curL)}</b> — the progress made maturing the ICT risk framework.`
+    : `Snapshot at <b>${escHtml(curL)}</b>. Pick a comparison snapshot when opening the report to see movement between quarters.`;
   return `<div class="card measure-card exprog-section">
     <div class="measure-card-header">
       <span class="measure-icon">📈</span>
@@ -318,37 +321,6 @@ function renderExecProgress(currentA, prevA) {
     <div class="exprog-grid">${riskChart}${ctrlChart}</div>
     ${heatChart}
   </div>`;
-}
-// Export a progress chart's SVG as a PNG download (works in the deployed app;
-// the artifact sandbox blocks downloads but this runs on the hosted/local app).
-function exportExecChart(btn) {
-  const wrap = btn.closest('.exprog-chart');
-  const svg = wrap && wrap.querySelector('svg');
-  if (!svg) return;
-  const name = (wrap.getAttribute('data-name') || 'chart') + '.png';
-  const vb = svg.viewBox && svg.viewBox.baseVal;
-  const w = vb && vb.width ? vb.width : (svg.clientWidth || 680);
-  const h = vb && vb.height ? vb.height : (svg.clientHeight || 400);
-  const clone = svg.cloneNode(true);
-  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  clone.setAttribute('width', w); clone.setAttribute('height', h);
-  const xml = new XMLSerializer().serializeToString(clone);
-  const img = new Image();
-  img.onload = () => {
-    const scale = 2;
-    const cv = document.createElement('canvas'); cv.width = w * scale; cv.height = h * scale;
-    const ctx = cv.getContext('2d');
-    ctx.fillStyle = execProgColors().bg; ctx.fillRect(0, 0, cv.width, cv.height);
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    ctx.drawImage(img, 0, 0, w, h);
-    cv.toBlob(b => {
-      if (!b) return;
-      const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name;
-      document.body.appendChild(a); a.click();
-      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-    }, 'image/png');
-  };
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
 }
 
 // ── Hero scorecard band (Control 1 / 2 / 3 at a glance) ───────────

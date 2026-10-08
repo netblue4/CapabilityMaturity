@@ -3115,9 +3115,29 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exprog-chart-title { font-family: var(--font-mono); font-size: .82rem; font-weight: 700; margin: 0; }
 .exprog-chart-sub { font-size: .72rem; color: var(--text-muted); margin: .18rem 0 0; }
 .exprog-chart-svg svg { display: block; }
-/* The residual heatmap renders at its natural size and only scales DOWN, so the
-   risk-name font stays put instead of ballooning on a wide, full-width card. */
-.exprog-chart[data-name="dora-residual-heatmap"] .exprog-chart-svg svg { max-width: 100%; height: auto; margin: 0 auto; }
+/* Residual heatmap — rendered as HTML lanes so chips fill the full card width,
+   wrap to show the FULL risk name, and keep a fixed font (no upscaling on wide
+   monitors). Lanes: HIGH / MODERATE / LOW / NOT ASSESSED. */
+.rrh { display: flex; flex-direction: column; gap: .5rem; }
+.rrh-lane { border-radius: 10px; padding: .6rem .75rem; border: 1px solid; }
+.rrh-lane-hd { display: flex; align-items: baseline; gap: .55rem; margin-bottom: .45rem; }
+.rrh-band { font-family: var(--font-mono); font-size: .68rem; font-weight: 700; letter-spacing: .05em; }
+.rrh-count { font-family: var(--font-mono); font-size: .62rem; color: var(--text-muted); }
+.rrh-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.rrh-chip { font-family: var(--font-mono); font-size: .66rem; line-height: 1.3; padding: .28rem .5rem; border-radius: 6px; border: 1px solid; white-space: nowrap; color: var(--text); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.rrh-empty { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); }
+.rrh-high { background: color-mix(in srgb, var(--clr-danger) 8%, transparent); border-color: color-mix(in srgb, var(--clr-danger) 28%, transparent); }
+.rrh-high .rrh-band { color: var(--clr-danger); }
+.rrh-high .rrh-chip { background: color-mix(in srgb, var(--clr-danger) 16%, transparent); border-color: color-mix(in srgb, var(--clr-danger) 42%, transparent); }
+.rrh-mod { background: color-mix(in srgb, var(--clr-warning) 8%, transparent); border-color: color-mix(in srgb, var(--clr-warning) 28%, transparent); }
+.rrh-mod .rrh-band { color: var(--clr-warning); }
+.rrh-mod .rrh-chip { background: color-mix(in srgb, var(--clr-warning) 16%, transparent); border-color: color-mix(in srgb, var(--clr-warning) 42%, transparent); }
+.rrh-low { background: color-mix(in srgb, var(--clr-success) 8%, transparent); border-color: color-mix(in srgb, var(--clr-success) 28%, transparent); }
+.rrh-low .rrh-band { color: var(--clr-success); }
+.rrh-low .rrh-chip { background: color-mix(in srgb, var(--clr-success) 16%, transparent); border-color: color-mix(in srgb, var(--clr-success) 42%, transparent); }
+.rrh-na { background: color-mix(in srgb, var(--text) 5%, transparent); border-color: color-mix(in srgb, var(--text) 18%, transparent); }
+.rrh-na .rrh-band { color: var(--text-muted); }
+.rrh-na .rrh-chip { background: color-mix(in srgb, var(--text) 8%, transparent); border-color: color-mix(in srgb, var(--text) 22%, transparent); }
 /* Exec pillar cards — coverage funnel (Applicable → Documented → Implemented →
    Effective). Shared by the exec report (static) and the capability lens
    (interactive: lower stages filter the drill-down). */

@@ -294,7 +294,8 @@ function renderExecProgress(currentA, prevA) {
     execDumbbell([
       { label: 'Risks in register', prior: prev.totalRisks, current: cur.totalRisks, color: C.accent, caption: 'total ICT risks tracked', goodUp: true },
       { label: 'Assessed', prior: prev.assessedRisks, current: cur.assessedRisks, color: C.success, caption: 'risks with a current RCSA residual rating', goodUp: true },
-    ], { colors: C, priorLabel: prevL, curLabel: curL }));
+      { label: 'Not assessed', prior: prev.totalRisks - prev.assessedRisks, current: cur.totalRisks - cur.assessedRisks, color: C.danger, caption: 'risks with no current RCSA residual rating', goodUp: false },
+    ], { colors: C, priorLabel: prevL, curLabel: curL, note: 'bar colour = metric' }));
 
   const ctrlChart = execChartCard('dora-control-maturity', 'Control maturity',
     'Draft → Implemented → Tested → Effective — maturing the ICT risk framework',

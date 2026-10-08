@@ -50,12 +50,12 @@ assert(base.stmts === 13 && base.backed === 11 && base.oped === 8, 'Statements r
 assert(base.cTotal === 13 && base.cImpl === 9 && base.cEff === 5 && base.cBlind === 1, 'Controls reconcile (13 total · 9 live · 5 effective · 1 blind spot)');
 assert(base.risks === 7 && base.assessed === 6, 'Risks reconcile (7 total · 6 assessed)');
 
-// ── Executive report (Q2 → Q3 comparison) ──
+// ── DORA Forum report (Q2 → Q3 comparison) ──
 await page.evaluate(() => {
-  showExecReportModal();
+  showReportModal('dora');
   document.getElementById('exec-prev-sel').value = 'demo-q2';
   document.getElementById('exec-curr-sel').value = 'demo';
-  generateExecReport();
+  generateDoraForumReport();
 });
 await page.waitForSelector('#exec-report-content .pil-grid');
 
@@ -80,25 +80,14 @@ assert(/oversight|identifying ineffective/i.test(c3), `Control 3 reframed → "$
 const c3desc = await page.$eval('#exec-report-content .card:has(.ex3-quad) .measure-card-desc', e => e.textContent);
 assert(/current RCSA verdict/i.test(c3desc) && /owned by control owners/i.test(c3desc), 'Control 3 states oversight measure + owner-attributed outcome');
 
-// Progress charts: three comparison charts, each with SVG + Export PNG, with movement.
-const charts = await page.$$eval('#exec-report-content .exprog-chart', els => els.map(e => ({ name: e.getAttribute('data-name'), svg: !!e.querySelector('svg'), png: !!e.querySelector('.exprog-png') })));
-assert(charts.length === 3 && charts.every(c => c.svg && c.png), 'Three progress charts, each with SVG + Export PNG');
-assert(['dora-risk-coverage', 'dora-control-maturity', 'dora-residual-heatmap'].every(n => charts.some(c => c.name === n)), 'Charts: risk coverage / control maturity / residual heatmap');
-const heatChips = await page.$$eval('#exec-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg rect[rx="6"]', r => r.length);
-assert(heatChips >= 3, `Residual heatmap renders risk chips (${heatChips})`);
-const moved = await page.evaluate(() => {
-  const c = execProgMetrics(db.assessments.find(x => x.id === 'demo'));
-  const p = execProgMetrics(db.assessments.find(x => x.id === 'demo-q2'));
-  return c.cImpl > p.cImpl && c.cEff > p.cEff;
-});
-assert(moved, 'Control maturity grew Q2 → Q3 (dumbbells show movement)');
-const exported = await page.evaluate(() => new Promise(resolve => {
-  const orig = HTMLAnchorElement.prototype.click; let got = null;
-  HTMLAnchorElement.prototype.click = function () { got = this.download; };
-  try { exportExecChart(document.querySelector('.exprog-chart[data-name="dora-control-maturity"] .exprog-png')); } catch (e) { resolve('throw:' + e.message); return; }
-  setTimeout(() => { HTMLAnchorElement.prototype.click = orig; resolve(got); }, 700);
-}));
-assert(exported === 'dora-control-maturity.png', `Export PNG triggers a download (${exported})`);
+// DORA Forum carries the traceability table (moved from the main screen) and NO progress charts.
+await page.waitForSelector('#exec-report-content .trace-tbl');
+assert((await page.$$('#exec-report-content .exprog-chart')).length === 0, 'DORA Forum report has no progress charts (moved to ROC)');
+const dfTrace = await page.$$eval('#exec-report-content .trace-tbl thead th', th => th.map(t => t.textContent.trim()));
+assert(dfTrace.includes('Accountability') && dfTrace.includes('Control owner'), `DORA Forum traceability present (${dfTrace.length} cols)`);
+// Control 1/2/3 tables are inside collapsed blocks for readability.
+const collapsed = await page.$$eval('#exec-report-content .act-block.collapsed .act-hdr', e => e.length);
+assert(collapsed >= 3, `Control 1/2/3 tables collapsed (${collapsed} blocks)`);
 
 // ── Evidence pages ──
 const exec = await page.evaluate(() => {
@@ -150,32 +139,66 @@ assert(c3e.rows === exec.cTotal && c3e.impl === exec.cImpl && c3e.eff === exec.c
 assert(['ICT Risk', 'Design', 'Operating', 'Inherent → Residual', 'Control owner', 'Last assessed'].every(h => c3e.heads.includes(h)), `Control 3 carries RCSA columns → ${JSON.stringify(c3e.heads)}`);
 assert(c3e.notAssessed === 1 && c3e.reg >= 1, `Control 3 blind spot + findings register (${c3e.notAssessed} not-assessed, ${c3e.reg} register rows)`);
 
-// ── Main-screen traceability export: Accountability + Control owner columns ──
-await page.evaluate(() => { closeEvidenceModal && closeEvidenceModal(); showView('dashboard'); });
-await page.waitForSelector('.trace-tbl');
+// DORA Forum traceability columns: Accountability after Statement detail, Control owner after Control description.
 const tr = await page.evaluate(() => {
-  const heads = [...document.querySelectorAll('.trace-tbl thead th')].map(t => t.textContent.trim());
+  const heads = [...document.querySelectorAll('#exec-report-content .trace-tbl thead th')].map(t => t.textContent.trim());
   const sd = heads.indexOf('Statement detail'), ac = heads.indexOf('Accountability');
   const cd = heads.indexOf('Control description'), co = heads.indexOf('Control owner');
-  const trs = [...document.querySelectorAll('.trace-tbl tbody tr')];
+  const trs = [...document.querySelectorAll('#exec-report-content .trace-tbl tbody tr')];
   const nonEmpty = i => trs.filter(t => (t.children[i]?.innerText || '').trim()).length;
   return { ac, sd, co, cd, acData: ac >= 0 ? nonEmpty(ac) : 0, coData: co >= 0 ? nonEmpty(co) : 0 };
 });
 assert(tr.ac === tr.sd + 1 && tr.acData > 0, 'Traceability: Accountability after Statement detail, populated');
 assert(tr.co === tr.cd + 1 && tr.coData > 0, 'Traceability: Control owner after Control description, populated');
 
-// ── Risk & control (full extract) — the full RCSA register for the committee ──
-await page.waitForSelector('#riskctrl-extract-card-row .rcx-tbl');
+// ── ROC report (Q2 → Q3): progress charts over the FULL register + full extract ──
+await page.evaluate(() => {
+  closeEvidenceModal && closeEvidenceModal();
+  showReportModal('roc');
+  document.getElementById('exec-prev-sel').value = 'demo-q2';
+  document.getElementById('exec-curr-sel').value = 'demo';
+  generateRocReport();
+});
+await page.waitForSelector('#roc-report-content .exprog-section');
+const charts = await page.$$eval('#roc-report-content .exprog-chart', els => els.map(e => ({ name: e.getAttribute('data-name'), svg: !!e.querySelector('svg'), png: !!e.querySelector('.exprog-png') })));
+assert(charts.length === 3 && charts.every(c => c.svg && c.png), 'ROC: three progress charts with SVG + Export PNG');
+assert(['dora-risk-coverage', 'dora-control-maturity', 'dora-residual-heatmap'].every(n => charts.some(c => c.name === n)), 'ROC charts: risk coverage / control maturity / residual heatmap');
+const heatChips = await page.$$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg rect[rx="6"]', r => r.length);
+assert(heatChips >= 3, `ROC residual heatmap chips (${heatChips})`);
+const moved = await page.evaluate(() => {
+  const c = execProgMetrics(db.assessments.find(x => x.id === 'demo'));
+  const p = execProgMetrics(db.assessments.find(x => x.id === 'demo-q2'));
+  return c.cImpl > p.cImpl && c.cEff > p.cEff;
+});
+assert(moved, 'ROC control maturity grew Q2 → Q3');
+const exported = await page.evaluate(() => new Promise(resolve => {
+  const orig = HTMLAnchorElement.prototype.click; let got = null;
+  HTMLAnchorElement.prototype.click = function () { got = this.download; };
+  try { exportExecChart(document.querySelector('#roc-report-content .exprog-chart[data-name="dora-control-maturity"] .exprog-png')); } catch (e) { resolve('throw:' + e.message); return; }
+  setTimeout(() => { HTMLAnchorElement.prototype.click = orig; resolve(got); }, 700);
+}));
+assert(exported === 'dora-control-maturity.png', `ROC export PNG (${exported})`);
+// Progress cards count the FULL register (ties to the full extract), not DORA-mapped only.
+const regTie = await page.evaluate(() => {
+  const a = db.assessments.find(x => x.id === 'demo');
+  const m = execProgMetrics(a);
+  const facts = (a.riskPolicyFacts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim());
+  const keys = new Set(facts.map(f => f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName)));
+  return { cardTotal: m.cDraft + m.cImpl, distinct: keys.size };
+});
+assert(regTie.cardTotal === regTie.distinct, `ROC control total ${regTie.cardTotal} == full-register distinct controls ${regTie.distinct}`);
+// ROC report carries the full extract table underneath.
+await page.waitForSelector('#roc-report-content .rcx-tbl');
 const rcx = await page.evaluate(() => {
-  const heads = [...document.querySelectorAll('#riskctrl-extract-card-row .rcx-tbl thead th')].map(t => t.textContent.trim());
-  const rows = document.querySelectorAll('#riskctrl-extract-card-row .rcx-tbl tbody tr').length;
+  const heads = [...document.querySelectorAll('#roc-report-content .rcx-tbl thead th')].map(t => t.textContent.trim());
+  const rows = document.querySelectorAll('#roc-report-content .rcx-tbl tbody tr').length;
   const a = db.assessments.find(x => x.id === 'demo');
   const facts = (a.riskPolicyFacts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).length;
   return { heads, rows, facts };
 });
-assert(rcx.rows === rcx.facts, `Full extract has one row per non-closed control fact (${rcx.rows} == ${rcx.facts})`);
+assert(rcx.rows === rcx.facts, `ROC full extract: one row per non-closed control fact (${rcx.rows} == ${rcx.facts})`);
 assert(['Risk', 'Risk owner', 'Control No. & Name', 'DORA statement ref(s)'].every(h => rcx.heads.includes(h)),
-  `Full extract carries the register columns → ${JSON.stringify(rcx.heads)}`);
+  `ROC full extract columns → ${JSON.stringify(rcx.heads)}`);
 
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();

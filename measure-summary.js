@@ -11,10 +11,9 @@ function renderMeasureSummary(assessment) {
   if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
   const capLensSlot = document.getElementById("caplens-card-row");
   if (capLensSlot) capLensSlot.innerHTML = renderCapabilityLensCard(assessment);
-  const traceSlot = document.getElementById("trace-card-row");
-  if (traceSlot) traceSlot.innerHTML = renderTraceabilityCard(assessment);
-  const rcxSlot = document.getElementById("riskctrl-extract-card-row");
-  if (rcxSlot) rcxSlot.innerHTML = renderRiskControlExtract(assessment);
+  // The DORA → Control traceability and Risk & control (full extract) tables moved
+  // into the DORA Forum and ROC reports respectively (so each report carries its
+  // own supporting data), so they are no longer rendered on the main screen.
   const planSlot = document.getElementById("planning-card-row");
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }

@@ -45,7 +45,8 @@
             <input type="file" id="import-file" accept=".json" style="display:none" />
           </label>
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
-          <button class="btn btn-outline" onclick="showExecReportModal()">📋 Exec Report</button>
+          <button class="btn btn-outline" onclick="showReportModal('dora')">📋 DORA Forum</button>
+          <button class="btn btn-outline" onclick="showReportModal('roc')">📊 ROC</button>
           <button class="btn btn-outline" onclick="showEvidenceModal()">📄 Evidence</button>
           <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
         </div>
@@ -78,10 +79,6 @@
 
         <div id="caplens-card-row" class="risk-card-row"></div>
 
-        <div id="trace-card-row" class="risk-card-row"></div>
-
-        <div id="riskctrl-extract-card-row" class="risk-card-row"></div>
-
         <div id="planning-card-row" class="risk-card-row"></div>
       </div>
     </section>
@@ -113,20 +110,29 @@
       </form>
     </section>
 
-    <!-- Executive Report View -->
+    <!-- DORA Forum Report View -->
     <section id="view-exec-report" class="view">
       <div class="section-header no-print">
         <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
-        <h2>Executive Report</h2>
+        <h2>DORA Forum report</h2>
       </div>
       <div id="exec-report-content"></div>
     </section>
 
-    <!-- Exec Report Modal -->
+    <!-- ROC Report View -->
+    <section id="view-roc-report" class="view">
+      <div class="section-header no-print">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>ROC report — Risk Oversight Committee</h2>
+      </div>
+      <div id="roc-report-content"></div>
+    </section>
+
+    <!-- Report Chooser Modal (DORA Forum / ROC) -->
     <div id="exec-report-modal" class="modal-overlay" onclick="if(event.target===this)closeExecReportModal()" style="display:none">
       <div class="modal-box" style="max-width:420px">
         <div class="modal-header">
-          <h3>Generate Executive Report</h3>
+          <h3 id="report-modal-title">Generate report</h3>
           <button class="modal-close" onclick="closeExecReportModal()">✕</button>
         </div>
         <div class="form-row">
@@ -138,7 +144,7 @@
           <select id="exec-curr-sel" class="exec-sel"></select>
         </div>
         <div style="display:flex;gap:.75rem;margin-top:1.25rem">
-          <button class="btn btn-primary" onclick="generateExecReport()">Generate</button>
+          <button class="btn btn-primary" onclick="generateReport()">Generate</button>
           <button class="btn btn-ghost"   onclick="closeExecReportModal()">Cancel</button>
         </div>
       </div>

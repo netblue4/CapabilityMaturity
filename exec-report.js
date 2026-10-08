@@ -1,10 +1,16 @@
-// ── Executive Report ──────────────────────────────────────────
-
-function showExecReportModal() {
+// ── Reports: DORA Forum + ROC (Risk Oversight Committee) ─────────
+// Two reports share one snapshot-chooser modal. _reportType decides which the
+// Generate button produces. DORA Forum = the DORA-scoped view (scorecard,
+// pillars, Control 1/2/3 with collapsed tables, ownership, DORA traceability).
+// ROC = the full-register view (risk coverage + control maturity + residual
+// heatmap, + the full risk/control extract).
+let _reportType = 'dora';
+function showReportModal(type) {
   if (db.assessments.length < 2) {
     alert('You need at least 2 assessments to generate a report.');
     return;
   }
+  _reportType = type || 'dora';
   const opts = db.assessments.map(a =>
     `<option value="${a.id}">${a.label} · ${formatDate(a.date)}</option>`
   ).join('');
@@ -14,11 +20,16 @@ function showExecReportModal() {
   const n = db.assessments.length;
   document.getElementById('exec-prev-sel').value = db.assessments[Math.max(0, n - 2)].id;
   document.getElementById('exec-curr-sel').value = db.assessments[n - 1].id;
+  const titleEl = document.getElementById('report-modal-title');
+  if (titleEl) titleEl.textContent = _reportType === 'roc' ? 'Generate ROC report' : 'Generate DORA Forum report';
   document.getElementById('exec-report-modal').style.display = 'flex';
 }
-
+function showExecReportModal() { showReportModal('dora'); }   // back-compat
 function closeExecReportModal() {
   document.getElementById('exec-report-modal').style.display = 'none';
+}
+function generateReport() {
+  if (_reportType === 'roc') generateRocReport(); else generateDoraForumReport();
 }
 
 // ── The operationalisation story — four sequential steps ──────────
@@ -48,7 +59,10 @@ function execStep(n) {
   </div>`;
 }
 
-function generateExecReport() {
+// DORA Forum report — the DORA-scoped view. Control 1/2/3 tables are collapsed
+// for readability; the DORA → Control traceability (full export) is appended so
+// the cards and their supporting data live on one screen. No progress charts.
+function generateDoraForumReport() {
   const prevA    = db.assessments.find(a => a.id === document.getElementById('exec-prev-sel').value);
   const currentA = db.assessments.find(a => a.id === document.getElementById('exec-curr-sel').value);
   if (!prevA || !currentA) return;
@@ -63,10 +77,31 @@ function generateExecReport() {
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
-    ${renderExecProgress(currentA, prevA)}
     <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
+    <div class="exec-rcsa-wrap">${renderTraceabilityCard(currentA)}</div>
   `;
   showView('exec-report');
+}
+// Back-compat alias (tests / older callers).
+function generateExecReport() { generateDoraForumReport(); }
+
+// ROC report — the Risk Oversight Committee view. Risk coverage + control
+// maturity + residual heatmap (all over the FULL RCSA register), with the full
+// risk/control extract underneath so the cards and their data are on one screen.
+function generateRocReport() {
+  const prevA    = db.assessments.find(a => a.id === document.getElementById('exec-prev-sel').value);
+  const currentA = db.assessments.find(a => a.id === document.getElementById('exec-curr-sel').value);
+  if (!prevA || !currentA) return;
+  closeExecReportModal();
+
+  document.getElementById('roc-report-content').innerHTML = `
+    <div class="exec-report-top no-print" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+    ${renderExecProgress(currentA, prevA)}
+    <div class="exec-rcsa-wrap">${renderRiskControlExtract(currentA)}</div>
+  `;
+  showView('roc-report');
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -95,17 +130,38 @@ function execQtr(a) {
   if (!d || isNaN(d.getTime())) return a.label || '';
   return 'Q' + (Math.floor(d.getMonth() / 3) + 1) + ' ' + d.getFullYear();
 }
+// Control states over the WHOLE RCSA register (every non-closed control), NOT
+// just DORA statement-backed ones — this matches the "Risk & control (full
+// extract)" table, so the ROC cards tie to that table (not the DORA traceability).
+function fullRegisterControls(facts) {
+  const map = {};
+  (facts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).forEach(f => {
+    const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    const d = map[ck] || (map[ck] = { implemented: false, assessed: false, effective: false });
+    if (ftIsImplemented(f)) d.implemented = true;
+    if (!ftIsNotAssessed(f)) d.assessed = true;
+    if (ftIsEffective(f)) d.effective = true;
+  });
+  const controls = Object.values(map);
+  const impl = controls.filter(c => c.implemented);
+  return {
+    total: controls.length,
+    implemented: impl.length,
+    assured: impl.filter(c => c.assessed).length,     // live & assessed
+    liveEffective: impl.filter(c => c.effective).length,
+  };
+}
 function execProgMetrics(a) {
   const facts = (a && a.riskPolicyFacts) || [];
   const risks = buildRiskProfile(facts);
-  const bops  = buildBackingControlOps((a && a.policyRows) || [], facts);
+  const ctrl  = fullRegisterControls(facts);
   return {
     totalRisks:    risks.length,
     assessedRisks: risks.filter(k => (k.residual || 0) > 0).length,   // has a current residual rating
-    cDraft: bops.total - bops.implemented,
-    cImpl:  bops.implemented,
-    cTested: bops.assured,          // live controls carrying an RCSA verdict
-    cEff:   bops.liveEffective,
+    cDraft: ctrl.total - ctrl.implemented,
+    cImpl:  ctrl.implemented,
+    cTested: ctrl.assured,          // live controls carrying an RCSA verdict
+    cEff:   ctrl.liveEffective,
     risks,
   };
 }
@@ -578,11 +634,14 @@ function renderExecCoverageMatrix(currentA) {
     ${head(desc)}
     ${cmProgressBar(covPct)}
     ${legend}
-    <div class="rcsa-table-wrap">
-      <table class="exm-tbl">
-        <thead id="exm-thead">${exmHead()}</thead>
-        <tbody id="exm-tbody">${exmBody(exmSortRows())}</tbody>
-      </table>
+    <div class="act-block collapsed">
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Coverage detail table (per article/RTS)</div>
+      <div class="act-body"><div class="rcsa-table-wrap">
+        <table class="exm-tbl">
+          <thead id="exm-thead">${exmHead()}</thead>
+          <tbody id="exm-tbody">${exmBody(exmSortRows())}</tbody>
+        </table>
+      </div></div>
     </div>
   </div>`;
 }
@@ -739,10 +798,15 @@ function renderExecControl2(currentA, prevA) {
       ${flag(inv, 'ex2-flag-warn', 'Invisible work', `Statements self-declared implemented or part-implemented with no control tracking them.${inv ? ' — ' + invDrill : ' None — good.'}`)}
       ${flag(stale, 'ex2-flag-bad', 'Stale / incorrect waivers', `Statements carrying a waiver that already have a live control — the waiver should be lifted.${stale ? ' — ' + staleDrill : ' None — good.'}`)}
     </div>
-    <div class="ex2-section">Group Standards — approval &amp; operationalisation</div>
-    <div class="rcsa-table-wrap">${ex2DocTable('gs')}</div>
-    <div class="ex2-section">Policies — approval &amp; operationalisation</div>
-    <div class="rcsa-table-wrap">${ex2DocTable('pol')}</div>
+    <div class="act-block collapsed">
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Approval &amp; operationalisation tables (Group Standards &amp; Policies)</div>
+      <div class="act-body">
+        <div class="ex2-section">Group Standards — approval &amp; operationalisation</div>
+        <div class="rcsa-table-wrap">${ex2DocTable('gs')}</div>
+        <div class="ex2-section">Policies — approval &amp; operationalisation</div>
+        <div class="rcsa-table-wrap">${ex2DocTable('pol')}</div>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -887,7 +951,10 @@ function renderExecControl3(currentA, prevA) {
     ${head(desc)}
     ${cmProgressBar(ops.assuredPct)}
     ${execQuadrant(risks)}
-    <div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div>
+    <div class="act-block collapsed">
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Risk &amp; control detail table</div>
+      <div class="act-body"><div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div></div>
+    </div>
   </div>`;
 }
 

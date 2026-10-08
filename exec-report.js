@@ -189,12 +189,11 @@ function execDumbbell(rows, opts) {
   // Legend: hollow = prior snapshot, filled = current snapshot. The marker colour
   // is NEUTRAL (so it doesn't imply "current = blue"); each row's dot is coloured
   // by its own stage, which the right-hand note explains.
-  s += `<circle cx="${padL + 5}" cy="16" r="5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
+  s += `<circle cx="${padL + 5}" cy="16" r="5" fill="${C.bg}" stroke="${C.text}" stroke-width="2"/>`;
   s += exText(padL + 15, 20, opts.priorLabel, { size: 11, fill: C.muted, font: EXPROG_MONO });
   const lx = padL + 15 + opts.priorLabel.length * 6.6 + 26;
   s += `<circle cx="${lx}" cy="16" r="6" fill="${C.text}"/>`;
   s += exText(lx + 11, 20, opts.curLabel, { size: 11, fill: C.text, weight: 700, font: EXPROG_MONO });
-  if (opts.note) s += exText(W - padR, 20, opts.note, { size: 10, fill: C.muted, anchor: 'end' });
   rows.forEach((r, i) => {
     const my = topH + i * rowH + 24;
     const xP = X(r.prior), xC = X(r.current);
@@ -202,13 +201,15 @@ function execDumbbell(rows, opts) {
     const good = r.goodUp !== false;
     const dcol = delta === 0 ? C.muted : (good ? (delta > 0 ? C.success : C.danger) : C.muted);
     const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '■';
-    const col = r.color || C.accent;
+    // All dumbbells are monochrome (text colour), matching the Q2/Q3 legend:
+    // hollow = prior, filled = current. The Δ badge keeps its up/down colour.
+    const col = C.text;
     s += exText(padL, my - 2, r.label, { size: 13, weight: 700, fill: C.text, font: EXPROG_MONO });
     if (r.caption) s += exText(padL, my + 16, r.caption, { size: 10.5, fill: C.muted });
     // full-length baseline (uniform) + highlighted prior → current segment
     s += `<line x1="${axisX0}" y1="${my}" x2="${axisX1}" y2="${my}" stroke="${C.border}" stroke-width="3" stroke-linecap="round" stroke-opacity="0.45"/>`;
     s += `<line x1="${Math.min(xP, xC)}" y1="${my}" x2="${Math.max(xP, xC)}" y2="${my}" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>`;
-    s += `<circle cx="${xP}" cy="${my}" r="5.5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
+    s += `<circle cx="${xP}" cy="${my}" r="5.5" fill="${C.bg}" stroke="${C.text}" stroke-width="2"/>`;
     s += `<circle cx="${xC}" cy="${my}" r="7" fill="${col}"/>`;
     if (r.current === r.prior) {
       s += exText(xC, my - 13, r.current, { size: 13, fill: col, weight: 700, anchor: 'middle', font: EXPROG_MONO });
@@ -295,7 +296,7 @@ function renderExecProgress(currentA, prevA) {
       { label: 'Risks in register', prior: prev.totalRisks, current: cur.totalRisks, color: C.accent, caption: 'total ICT risks tracked', goodUp: true },
       { label: 'Assessed', prior: prev.assessedRisks, current: cur.assessedRisks, color: C.success, caption: 'risks with a current RCSA residual rating', goodUp: true },
       { label: 'Not assessed', prior: prev.totalRisks - prev.assessedRisks, current: cur.totalRisks - cur.assessedRisks, color: C.danger, caption: 'risks with no current RCSA residual rating', goodUp: false },
-    ], { colors: C, priorLabel: prevL, curLabel: curL, note: 'bar colour = metric' }));
+    ], { colors: C, priorLabel: prevL, curLabel: curL }));
 
   const ctrlChart = execChartCard('dora-control-maturity', 'Control maturity',
     'Draft → Implemented → Tested → Effective — maturing the ICT risk framework',
@@ -305,7 +306,7 @@ function renderExecProgress(currentA, prevA) {
       { label: 'Tested', prior: prev.cTested, current: cur.cTested, color: C.warn, caption: 'live & assessed — we know how they perform', goodUp: true },
       { label: 'Not assessed', prior: prev.cImpl - prev.cTested, current: cur.cImpl - cur.cTested, color: C.danger, caption: 'live but no RCSA verdict — a blind spot', goodUp: false },
       { label: 'Effective', prior: prev.cEff, current: cur.cEff, color: C.success, caption: 'proven effective in the RCSA', goodUp: true },
-    ], { colors: C, priorLabel: prevL, curLabel: curL, note: 'bar colour = maturity stage' }));
+    ], { colors: C, priorLabel: prevL, curLabel: curL }));
 
   const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
   const prevSev = {}; prev.risks.forEach(k => { if ((k.residual || 0) > 0) prevSev[k.title] = sevOf(k.residual); });

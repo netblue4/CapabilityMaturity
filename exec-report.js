@@ -59,13 +59,12 @@ function generateExecReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecScorecard(currentA, prevA)}
-    ${renderExecProgress(currentA, prevA)}
     ${renderExecPillars(currentA)}
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
+    ${renderExecProgress(currentA, prevA)}
     <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
-    <div class="exec-rcsa-wrap">${renderExecAttention(currentA)}</div>
   `;
   showView('exec-report');
 }
@@ -166,7 +165,10 @@ function execDumbbell(rows, opts) {
 // Residual heatmap: every assessed risk as a chip in its High/Moderate/Low lane.
 // A ▼ marks a risk that dropped a severity band since the comparison snapshot.
 function execResidualHeatmap(curRisks, prevSev, opts) {
-  const C = opts.colors, W = 680, padL = 18, padR = 18;
+  // viewBox is ~2× the dumbbell's (680) because this card spans the full width
+  // while the dumbbells are half-width — so it upscales at the SAME ratio and its
+  // text renders at the same visual size as the other charts / the card heading.
+  const C = opts.colors, W = 1360, padL = 18, padR = 18;
   const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
   const bands = [
     { label: 'HIGH', color: C.danger, idx: 0 },
@@ -175,8 +177,8 @@ function execResidualHeatmap(curRisks, prevSev, opts) {
   ];
   const groups = [[], [], []];
   curRisks.forEach(r => groups[sevOf(r.residual)].push(r));
-  const headW = 120, chipH = 23, chipGap = 7, lanePad = 12;
-  const CHIP_SIZE = 10, CHIP_CW = CHIP_SIZE * 0.62;   // Space Mono ≈ 0.6em/char; width is predictable
+  const headW = 150, chipH = 26, chipGap = 9, lanePad = 14;
+  const CHIP_SIZE = 12, CHIP_CW = CHIP_SIZE * 0.62;   // Space Mono ≈ 0.6em/char; width is predictable
   const contentX0 = padL + headW, contentX1 = W - padR, availW = contentX1 - contentX0;
   let body = '', y = 8;
   bands.forEach(b => {
@@ -469,15 +471,8 @@ function renderExecPillar(p, opts) {
     <span><i class="exl" style="background:color-mix(in srgb,var(--text) 30%,transparent)"></i>Applicable</span>
   </div>`;
 
-  const steps = pilGenSteps(p).map(s => `<div class="pil-step">
-    <span class="pil-pri pil-pri-${s.pri}">P${s.pri}</span>
-    <span class="pil-lens">${escHtml(s.lens)}</span>
-    <span class="pil-step-txt">${s.text}</span>
-  </div>`).join('');
-
   return `<div class="pil-card pil-rag-b-${p.rag}">
     ${head}${funnel}${legend}
-    <div class="pil-steps"><div class="pil-steps-h">↳ High-level next steps</div>${steps}</div>
   </div>`;
 }
 function renderExecPillars(currentA) {
@@ -632,7 +627,8 @@ const EX2_FIELD = {
   dispE:          r => r.excE || 0,
   dispWT:         r => r.excWT || 0,
   dispWP:         r => r.excWP || 0,
-  operationalised: r => r.total ? r.operationalised / r.total : -1,
+  operationalised: r => r.operationalised || 0,
+  ctrlTotal:      r => (r.ctrlDraft || 0) + (r.ctrlImpl || 0),
   ctrlDraft:      r => r.ctrlDraft || 0,
   ctrlImpl:       r => r.ctrlImpl || 0,
 };
@@ -646,7 +642,14 @@ function ex2SortRows(which) {
     return String(va).localeCompare(String(vb)) * dir || a.document.localeCompare(b.document);
   });
 }
-const EX2_COLGROUP = `<colgroup><col style="width:9%"><col style="width:14%"><col style="width:10%"><col style="width:5%"><col style="width:8%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:11%"><col style="width:7%"><col style="width:8%"></colgroup>`;
+const EX2_COLGROUP = `<colgroup><col style="width:8%"><col style="width:13%"><col style="width:9%"><col style="width:5%"><col style="width:11%"><col style="width:8%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:4%"><col style="width:5%"><col style="width:7%"><col style="width:8%"></colgroup>`;
+// Count + progress bar WITHOUT the "/d" denominator — so a spreadsheet cell reads
+// a plain number instead of "3/7" (which Excel misreads as a date/fraction).
+function rpCount(n, d, eff) {
+  const w = d > 0 ? Math.round(100 * n / d) : 0;
+  const num = n === 0 ? `<span class="rp-zero">0</span>` : `${n}`;
+  return `<div class="rp-frac"><span class="rp-frac-num">${num}</span><span class="rp-bar${eff ? ' rp-bar-eff' : ''}"><i style="width:${w}%"></i></span></div>`;
+}
 function ex2StatusBadge(r) {
   const map = { approved: ['gov-approved', 'Approved'], draft: ['gov-draft', 'Draft'], partial: ['gov-partial', 'Partial'] };
   const [cls, txt] = map[r.status] || map.draft;
@@ -656,7 +659,7 @@ function ex2Head(which) {
   const st = _ex2Sort[which];
   const arrow = c => st.col === c ? `<span class="mrt-arrow">${st.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l, cls, title) => `<th class="mrt-sort${cls ? ' ' + cls : ''}"${title ? ` title="${title}"` : ''} onclick="sortExec2('${which}','${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('pillar', 'DORA Pillar')}${th('document', 'Document')}${th('capName', 'Capability')}${th('total', 'Statements', 'ex2-num-h')}${th('status', 'Document status')}${th('dispI', 'I', 'ex2-dc', 'Self-declared Implemented')}${th('dispPI', 'PI', 'ex2-dc', 'Self-declared Part-implemented')}${th('dispU', 'U', 'ex2-dc', 'Unknown / not declared')}${th('dispE', 'E', 'ex2-dc', 'Exemption (E): applies but cannot be implemented')}${th('dispWT', 'WT', 'ex2-dc', 'Waiver Temporary (WT): applies, need time / a new tool')}${th('dispWP', 'WP', 'ex2-dc', 'Waiver Permanent (WP): applies but will not build')}${th('operationalised', 'Control backed statements', 'rp-num')}${th('ctrlDraft', 'Draft', 'rp-num')}${th('ctrlImpl', 'Implemented', 'rp-num')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('document', 'Document')}${th('capName', 'Capability')}${th('total', 'Statements', 'ex2-num-h')}${th('operationalised', 'Statements backed by controls', 'rp-num')}${th('status', 'Document status')}${th('dispI', 'I', 'ex2-dc', 'Self-declared Implemented')}${th('dispPI', 'PI', 'ex2-dc', 'Self-declared Part-implemented')}${th('dispU', 'U', 'ex2-dc', 'Unknown / not declared')}${th('dispE', 'E', 'ex2-dc', 'Exemption (E): applies but cannot be implemented')}${th('dispWT', 'WT', 'ex2-dc', 'Waiver Temporary (WT): applies, need time / a new tool')}${th('dispWP', 'WP', 'ex2-dc', 'Waiver Permanent (WP): applies but will not build')}${th('ctrlTotal', 'Controls', 'rp-num')}${th('ctrlDraft', 'Draft', 'rp-num')}${th('ctrlImpl', 'Implemented', 'rp-num')}</tr>`;
 }
 function ex2Body(rows) {
   const disp = (n, cls, tip) => `<td class="ex2-dc ${n ? cls : ''}" title="${tip}">${n ? n : '<span class="src-zero">·</span>'}</td>`;
@@ -667,6 +670,7 @@ function ex2Body(rows) {
     <td class="exm-art">${escHtml(d.document)}</td>
     <td class="exm-cap">${escHtml(d.capName)}</td>
     <td class="ex2-num">${d.total}</td>
+    <td class="rp-num">${rpCount(d.operationalised, d.total)}</td>
     <td class="ex2-status">${ex2StatusBadge(d)}</td>
     ${disp(d.implementedStatus, 'src-disp-imp', `${d.implementedStatus || 0} statement(s) self-declared Implemented`)}
     ${disp(d.partImplemented, 'src-disp-temp', `${d.partImplemented || 0} statement(s) self-declared Part-implemented`)}
@@ -674,9 +678,9 @@ function ex2Body(rows) {
     ${disp(d.excE, 'src-disp-perm', `${d.excE || 0} Exemption (E): objective applies but cannot be implemented (technical)`)}
     ${disp(d.excWT, 'src-disp-temp', `${d.excWT || 0} Waiver Temporary (WT): applies but need time / a new tool`)}
     ${disp(d.excWP, 'src-disp-perm', `${d.excWP || 0} Waiver Permanent (WP): applies but we will not build it (regulatory)`)}
-    <td class="rp-num">${rpFrac(d.operationalised, d.total)}</td>
-    <td class="rp-num">${rpFrac(d.ctrlDraft, totCtrl)}</td>
-    <td class="rp-num">${rpFrac(d.ctrlImpl, totCtrl, true)}</td>
+    <td class="rp-num">${totCtrl}</td>
+    <td class="rp-num">${rpCount(d.ctrlDraft, totCtrl)}</td>
+    <td class="rp-num">${rpCount(d.ctrlImpl, totCtrl, true)}</td>
   </tr>`;
   }).join('');
 }
@@ -802,6 +806,7 @@ const EX3_ZONE_RANK = { na: 0, green: 1, amber: 2, red: 3 };
 const EX3_FIELD = {
   pillar: k => doraPillarShort(_ex3CapPillar[k.capId]),
   capName: k => k._capName || '', title: k => k.title || '', residual: k => k.residual || 0,
+  active: k => k.active || 0,
   implemented: k => k.active ? k.implemented / k.active : -1,
   tested: k => k.active ? k.tested / k.active : -1,
   effective: k => k.active ? k.effective / k.active : -1,
@@ -823,7 +828,7 @@ function ex3SortRows() {
 function ex3Head() {
   const arrow = c => _ex3Sort.col === c ? `<span class="mrt-arrow">${_ex3Sort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortExec3('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('pillar', 'DORA Pillar')}${th('capName', 'Capability')}${th('title', 'Risk')}${th('residual', 'Residual', 'rp-num')}${th('implemented', 'Implemented', 'rp-num')}${th('tested', 'Tested', 'rp-num')}${th('effective', 'Effective', 'rp-num')}${th('conf', 'Confidence', 'rp-num')}${th('srcLoc', 'Local Policy', 'rp-num rr-src')}${th('srcGrp', 'Group Std', 'rp-num rr-src')}${th('srcPre', 'Pre-DORA', 'rp-num rr-src')}${th('zone', 'Zone')}</tr>`;
+  return `<tr>${th('pillar', 'DORA Pillar')}${th('capName', 'Capability')}${th('title', 'Risk')}${th('residual', 'Residual', 'rp-num')}${th('active', 'Controls', 'rp-num')}${th('implemented', 'Implemented', 'rp-num')}${th('tested', 'Tested', 'rp-num')}${th('effective', 'Effective', 'rp-num')}${th('conf', 'Confidence', 'rp-num')}${th('srcLoc', 'Local Policy', 'rp-num rr-src')}${th('srcGrp', 'Group Std', 'rp-num rr-src')}${th('srcPre', 'Pre-DORA', 'rp-num rr-src')}${th('zone', 'Zone')}</tr>`;
 }
 function ex3SrcCell(n) { return n ? `<b>${n}</b>` : '<span class="src-zero">·</span>'; }
 function ex3Body(rows) {
@@ -834,9 +839,10 @@ function ex3Body(rows) {
       <td class="rr-cap" title="${escHtml(k._capName)}">${escHtml(shortName(k._capName))}</td>
       <td><div class="rp-title">${escHtml(k.title)}</div></td>
       <td class="rp-num">${rpResCell(k)}</td>
-      <td class="rp-num">${rpFrac(k.implemented, k.active)}</td>
-      <td class="rp-num">${rpFrac(k.tested, k.active)}</td>
-      <td class="rp-num">${rpFrac(k.effective, k.active, true)}</td>
+      <td class="rp-num">${k.active || 0}</td>
+      <td class="rp-num">${rpCount(k.implemented, k.active)}</td>
+      <td class="rp-num">${rpCount(k.tested, k.active)}</td>
+      <td class="rp-num">${rpCount(k.effective, k.active, true)}</td>
       <td class="rp-num">${rpConfCell(k)}</td>
       <td class="rp-num rr-src" title="${k.srcLoc || 0} treating control(s) from Local Policy">${ex3SrcCell(k.srcLoc)}</td>
       <td class="rp-num rr-src" title="${k.srcGrp || 0} treating control(s) from Group Standards">${ex3SrcCell(k.srcGrp)}</td>

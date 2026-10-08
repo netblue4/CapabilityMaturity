@@ -186,12 +186,15 @@ function execDumbbell(rows, opts) {
   const X = v => axisX0 + (v / max) * (axisX1 - axisX0);
   let s = `<svg viewBox="0 0 ${W} ${h}" width="100%" role="img">`;
   s += `<rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>`;
-  // legend
+  // Legend: hollow = prior snapshot, filled = current snapshot. The marker colour
+  // is NEUTRAL (so it doesn't imply "current = blue"); each row's dot is coloured
+  // by its own stage, which the right-hand note explains.
   s += `<circle cx="${padL + 5}" cy="16" r="5" fill="${C.bg}" stroke="${C.muted}" stroke-width="2"/>`;
   s += exText(padL + 15, 20, opts.priorLabel, { size: 11, fill: C.muted, font: EXPROG_MONO });
   const lx = padL + 15 + opts.priorLabel.length * 6.6 + 26;
-  s += `<circle cx="${lx}" cy="16" r="6" fill="${C.accent}"/>`;
+  s += `<circle cx="${lx}" cy="16" r="6" fill="${C.text}"/>`;
   s += exText(lx + 11, 20, opts.curLabel, { size: 11, fill: C.text, weight: 700, font: EXPROG_MONO });
+  if (opts.note) s += exText(W - padR, 20, opts.note, { size: 10, fill: C.muted, anchor: 'end' });
   rows.forEach((r, i) => {
     const my = topH + i * rowH + 24;
     const xP = X(r.prior), xC = X(r.current);
@@ -299,8 +302,9 @@ function renderExecProgress(currentA, prevA) {
       { label: 'Draft', prior: prev.cDraft, current: cur.cDraft, color: C.muted, caption: 'resourced — not yet implemented', goodUp: false },
       { label: 'Implemented', prior: prev.cImpl, current: cur.cImpl, color: C.accent, caption: 'live controls', goodUp: true },
       { label: 'Tested', prior: prev.cTested, current: cur.cTested, color: C.warn, caption: 'live & assessed — we know how they perform', goodUp: true },
+      { label: 'Not assessed', prior: prev.cImpl - prev.cTested, current: cur.cImpl - cur.cTested, color: C.danger, caption: 'live but no RCSA verdict — a blind spot', goodUp: false },
       { label: 'Effective', prior: prev.cEff, current: cur.cEff, color: C.success, caption: 'proven effective in the RCSA', goodUp: true },
-    ], { colors: C, priorLabel: prevL, curLabel: curL }));
+    ], { colors: C, priorLabel: prevL, curLabel: curL, note: 'bar colour = maturity stage' }));
 
   const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
   const prevSev = {}; prev.risks.forEach(k => { if ((k.residual || 0) > 0) prevSev[k.title] = sevOf(k.residual); });

@@ -172,6 +172,8 @@ const moved = await page.evaluate(() => {
   return c.cImpl > p.cImpl && c.cEff > p.cEff;
 });
 assert(moved, 'ROC control maturity grew Q2 → Q3');
+const cmText = await page.$eval('#roc-report-content .exprog-chart[data-name="dora-control-maturity"] svg', s => s.textContent);
+assert(/Not assessed/.test(cmText), 'Control maturity has a "Not assessed" (blind-spot) bar');
 // The heatmap SVG renders at its natural size (capped) so the chip font doesn't balloon.
 const heatCap = await page.$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg', s => ({ w: s.getAttribute('width'), pct: s.getAttribute('width') === '100%' }));
 assert(!heatCap.pct && +heatCap.w > 100, `ROC heatmap SVG uses a natural width, not 100% (${heatCap.w})`);

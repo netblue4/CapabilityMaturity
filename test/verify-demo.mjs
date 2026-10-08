@@ -164,6 +164,19 @@ const tr = await page.evaluate(() => {
 assert(tr.ac === tr.sd + 1 && tr.acData > 0, 'Traceability: Accountability after Statement detail, populated');
 assert(tr.co === tr.cd + 1 && tr.coData > 0, 'Traceability: Control owner after Control description, populated');
 
+// ── Risk & control (full extract) — the full RCSA register for the committee ──
+await page.waitForSelector('#riskctrl-extract-card-row .rcx-tbl');
+const rcx = await page.evaluate(() => {
+  const heads = [...document.querySelectorAll('#riskctrl-extract-card-row .rcx-tbl thead th')].map(t => t.textContent.trim());
+  const rows = document.querySelectorAll('#riskctrl-extract-card-row .rcx-tbl tbody tr').length;
+  const a = db.assessments.find(x => x.id === 'demo');
+  const facts = (a.riskPolicyFacts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).length;
+  return { heads, rows, facts };
+});
+assert(rcx.rows === rcx.facts, `Full extract has one row per non-closed control fact (${rcx.rows} == ${rcx.facts})`);
+assert(['Risk', 'Risk owner', 'Control No. & Name', 'DORA statement ref(s)'].every(h => rcx.heads.includes(h)),
+  `Full extract carries the register columns → ${JSON.stringify(rcx.heads)}`);
+
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();
 process.exit(fails ? 1 : 0);

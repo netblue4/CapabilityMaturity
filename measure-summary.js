@@ -13,6 +13,8 @@ function renderMeasureSummary(assessment) {
   if (capLensSlot) capLensSlot.innerHTML = renderCapabilityLensCard(assessment);
   const traceSlot = document.getElementById("trace-card-row");
   if (traceSlot) traceSlot.innerHTML = renderTraceabilityCard(assessment);
+  const rcxSlot = document.getElementById("riskctrl-extract-card-row");
+  if (rcxSlot) rcxSlot.innerHTML = renderRiskControlExtract(assessment);
   const planSlot = document.getElementById("planning-card-row");
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }
@@ -664,6 +666,84 @@ function renderTraceabilityCard(assessment) {
         <table class="trace-tbl">
           <thead>${th}</thead>
           <tbody>${body}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Risk & control (full extract) — for the Risk Oversight Committee ──
+// One row per RCSA risk × control, over the WHOLE register (every non-closed
+// control), INCLUDING controls not mapped to a DORA policy statement. The DORA →
+// Control traceability table above stays DORA-scoped (for the DORA forum); this
+// wider extract is what the Risk Oversight Committee reports on. The "DORA
+// statement ref(s)" column shows which controls are DORA-linked vs standalone.
+function copyExtractTable(btn) {
+  const table = btn.closest('.card').querySelector('table.rcx-tbl');
+  if (!table) return;
+  const tsv = [...table.querySelectorAll('tr')].map(tr =>
+    [...tr.querySelectorAll('th,td')].map(c => (c.innerText || '').trim().replace(/\s+/g, ' ')).join('\t')
+  ).join('\n');
+  navigator.clipboard.writeText(tsv).then(() => {
+    const o = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = o; }, 1500);
+  }).catch(() => { btn.textContent = 'Copy failed'; });
+}
+function renderRiskControlExtract(assessment) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id || '';
+  const facts = (assessment.riskPolicyFacts || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim());
+  const title = 'Risk &amp; control (full extract)';
+  const header = desc => `
+    <div class="measure-card-header">
+      <span class="measure-icon">🗂️</span>
+      <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
+      ${facts.length ? '<button class="btn btn-outline" onclick="copyExtractTable(this)">⧉ Copy for Excel</button>' : ''}
+    </div>`;
+  if (!facts.length) {
+    return `<div class="card measure-card">${header('One row per RCSA risk &times; control over the whole register — for Risk Oversight Committee reporting. Import risk &amp; control data to populate.')}<p class="policy-no-data" style="margin:.5rem 0">No risk data yet.</p></div>`;
+  }
+  const risks = new Set(facts.map(f => f.capId + '|' + (f.riskTitle || ''))).size;
+  const mapped = facts.filter(f => (f.matchedPolicyRows || []).length).length;
+  const desc = `${facts.length} rows &middot; <b>${risks}</b> risk(s) &middot; <b>${facts.length - mapped}</b> control row(s) not mapped to a DORA statement. The full RCSA register (every non-closed control), <b>wider than the DORA traceability above</b> — use this for the Risk Oversight Committee. The DORA &rarr; Control traceability table stays DORA-scoped.`;
+
+  const stCell = f => ftIsImplemented(f) ? '<span class="ev-yes">Implemented</span>' : '<span class="ev-mid">Draft</span>';
+  const ragCell = v => { const n = (v || '').toLowerCase(); if (!n || n.includes('grey') || n.includes('gray') || n.includes('not')) return '<span class="src-zero">—</span>'; if (n.includes('green')) return `<span class="ev-yes">${escHtml(v)}</span>`; if (n.includes('red')) return `<span class="ev-no">${escHtml(v)}</span>`; return `<span class="ev-mid">${escHtml(v)}</span>`; };
+  const effCell = f => !ftIsImplemented(f) ? '<span class="src-zero">—</span>'
+    : ftIsNotAssessed(f) ? '<span class="ev-no">Not assessed</span>'
+    : ftIsEffective(f) ? '<span class="ev-yes">Effective</span>'
+    : '<span class="ev-mid">Not effective</span>';
+  const rows = facts.slice().sort((a, b) =>
+    capName(a.capId).localeCompare(capName(b.capId)) || (a.riskTitle || '').localeCompare(b.riskTitle || '')
+    || (a.controlNumber || '').localeCompare(b.controlNumber || '')).map(f => {
+    const refs = (f.matchedPolicyRows || []).map(m => m.statementRef).filter(Boolean).join(', ');
+    const ctrl = (f.controlNumber ? f.controlNumber + ' — ' : '') + (f.controlName || '');
+    return `<tr>
+      <td>${escHtml(capName(f.capId))}</td>
+      <td class="tr-req">${escHtml(f.riskTitle || '')}</td>
+      <td>${escHtml(f.riskOwner || '')}</td>
+      <td class="tr-c">${f.inherentScore != null ? f.inherentScore : ''}</td>
+      <td class="tr-c">${f.residualScore != null ? f.residualScore : ''}</td>
+      <td>${escHtml(ctrl)}</td>
+      <td>${escHtml(f.controlOwner || '')}</td>
+      <td class="tr-detail">${escHtml(f.controlDesc || '')}</td>
+      <td class="tr-c">${stCell(f)}</td>
+      <td class="tr-c">${ragCell(f.designAssess)}</td>
+      <td class="tr-c">${ragCell(f.opAssess)}</td>
+      <td class="tr-c">${effCell(f)}</td>
+      <td class="tr-c">${escHtml(f.lastAssessDate || '')}</td>
+      <td class="tr-ref">${refs ? refs.split(', ').map(r => `<span class="dora-ref">${escHtml(r)}</span>`).join(' ') : '<span class="src-zero">— not DORA-mapped</span>'}</td>
+    </tr>`;
+  }).join('');
+  const th = `<tr>
+    <th>Capability</th><th>Risk</th><th>Risk owner</th><th class="tr-c">Inherent</th><th class="tr-c">Residual</th>
+    <th>Control No. &amp; Name</th><th>Control owner</th><th>Control description</th><th class="tr-c">Status</th>
+    <th class="tr-c">Design</th><th class="tr-c">Operating</th><th class="tr-c">Effectiveness</th><th class="tr-c">Last assessed</th><th>DORA statement ref(s)</th>
+  </tr>`;
+  return `
+    <div class="card measure-card">
+      ${header(desc)}
+      <div class="rcsa-table-wrap trace-wrap">
+        <table class="trace-tbl rcx-tbl">
+          <thead>${th}</thead>
+          <tbody>${rows}</tbody>
         </table>
       </div>
     </div>`;

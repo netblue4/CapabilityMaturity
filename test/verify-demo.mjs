@@ -161,7 +161,8 @@ await page.evaluate(() => {
 });
 await page.waitForSelector('#roc-report-content .exprog-section');
 const charts = await page.$$eval('#roc-report-content .exprog-chart', els => els.map(e => ({ name: e.getAttribute('data-name'), svg: !!e.querySelector('svg'), png: !!e.querySelector('.exprog-png') })));
-assert(charts.length === 3 && charts.every(c => c.svg && c.png), 'ROC: three progress charts with SVG + Export PNG');
+assert(charts.length === 3 && charts.every(c => c.svg), 'ROC: three progress charts render an SVG');
+assert(charts.every(c => !c.png), 'ROC: Export PNG buttons removed');
 assert(['dora-risk-coverage', 'dora-control-maturity', 'dora-residual-heatmap'].every(n => charts.some(c => c.name === n)), 'ROC charts: risk coverage / control maturity / residual heatmap');
 const heatChips = await page.$$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg rect[rx="6"]', r => r.length);
 assert(heatChips >= 3, `ROC residual heatmap chips (${heatChips})`);
@@ -171,13 +172,9 @@ const moved = await page.evaluate(() => {
   return c.cImpl > p.cImpl && c.cEff > p.cEff;
 });
 assert(moved, 'ROC control maturity grew Q2 → Q3');
-const exported = await page.evaluate(() => new Promise(resolve => {
-  const orig = HTMLAnchorElement.prototype.click; let got = null;
-  HTMLAnchorElement.prototype.click = function () { got = this.download; };
-  try { exportExecChart(document.querySelector('#roc-report-content .exprog-chart[data-name="dora-control-maturity"] .exprog-png')); } catch (e) { resolve('throw:' + e.message); return; }
-  setTimeout(() => { HTMLAnchorElement.prototype.click = orig; resolve(got); }, 700);
-}));
-assert(exported === 'dora-control-maturity.png', `ROC export PNG (${exported})`);
+// The heatmap SVG renders at its natural size (capped) so the chip font doesn't balloon.
+const heatCap = await page.$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg', s => ({ w: s.getAttribute('width'), pct: s.getAttribute('width') === '100%' }));
+assert(!heatCap.pct && +heatCap.w > 100, `ROC heatmap SVG uses a natural width, not 100% (${heatCap.w})`);
 // Progress cards count the FULL register (ties to the full extract), not DORA-mapped only.
 const regTie = await page.evaluate(() => {
   const a = db.assessments.find(x => x.id === 'demo');

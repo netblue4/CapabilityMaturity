@@ -3114,8 +3114,10 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .exprog-chart-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem; margin-bottom: .5rem; }
 .exprog-chart-title { font-family: var(--font-mono); font-size: .82rem; font-weight: 700; margin: 0; }
 .exprog-chart-sub { font-size: .72rem; color: var(--text-muted); margin: .18rem 0 0; }
-.exprog-png { font-size: .68rem; padding: .3rem .6rem; white-space: nowrap; }
 .exprog-chart-svg svg { display: block; }
+/* The residual heatmap renders at its natural size and only scales DOWN, so the
+   risk-name font stays put instead of ballooning on a wide, full-width card. */
+.exprog-chart[data-name="dora-residual-heatmap"] .exprog-chart-svg svg { max-width: 100%; height: auto; margin: 0 auto; }
 /* Exec pillar cards — coverage funnel (Applicable → Documented → Implemented →
    Effective). Shared by the exec report (static) and the capability lens
    (interactive: lower stages filter the drill-down). */

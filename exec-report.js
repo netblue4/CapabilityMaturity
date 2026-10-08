@@ -222,56 +222,43 @@ function execDumbbell(rows, opts) {
   s += `</svg>`;
   return s;
 }
-// Residual heatmap: every assessed risk as a chip in its High/Moderate/Low lane.
+// Residual heatmap: every assessed risk as a chip in its High/Moderate/Low lane,
+// plus a Not-assessed lane for risks with no current RCSA residual rating.
+// Rendered as HTML (not SVG) so chips wrap across the full card width, show the
+// FULL risk name (no truncation), and keep a fixed CSS font that never upscales
+// on wide monitors — which is what ballooned the SVG text before.
 // A ▼ marks a risk that dropped a severity band since the comparison snapshot.
 function execResidualHeatmap(curRisks, prevSev, opts) {
-  // viewBox is ~2× the dumbbell's (680) because this card spans the full width
-  // while the dumbbells are half-width — so it upscales at the SAME ratio and its
-  // text renders at the same visual size as the other charts / the card heading.
-  const C = opts.colors, W = 1360, padL = 18, padR = 18;
   const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
   const bands = [
-    { label: 'HIGH', color: C.danger, idx: 0 },
-    { label: 'MODERATE', color: C.warn, idx: 1 },
-    { label: 'LOW', color: C.success, idx: 2 },
+    { label: 'HIGH', cls: 'high', idx: 0 },
+    { label: 'MODERATE', cls: 'mod', idx: 1 },
+    { label: 'LOW', cls: 'low', idx: 2 },
   ];
   const groups = [[], [], []];
   curRisks.forEach(r => groups[sevOf(r.residual)].push(r));
-  const headW = 150, chipH = 26, chipGap = 9, lanePad = 14;
-  const CHIP_SIZE = 12, CHIP_CW = CHIP_SIZE * 0.62;   // Space Mono ≈ 0.6em/char; width is predictable
-  const contentX0 = padL + headW, contentX1 = W - padR, availW = contentX1 - contentX0;
-  let body = '', y = 8;
+  const notAssessed = (opts.notAssessed || []).slice();
+  let html = '<div class="rrh">';
   bands.forEach(b => {
     const rs = groups[b.idx].slice().sort((a, c) => c.residual - a.residual);
     const chips = rs.map(r => {
-      const title = r.title.length > 30 ? r.title.slice(0, 29) + '…' : r.title;
       const ps = prevSev[r.title];
       const moved = (ps != null) ? (sevOf(r.residual) - ps) : 0;   // >0 = now lower severity = improved
       const mark = moved > 0 ? ' ▼' : moved < 0 ? ' ▲' : '';
-      const txt = `${title} · ${r.residual}${mark}`;
-      return { txt, w: Math.min(availW, 16 + txt.length * CHIP_CW) };
-    });
-    let px = contentX0, line = 0;
-    chips.forEach(c => { if (px > contentX0 && px + c.w > contentX1) { px = contentX0; line++; } c.x = px; c.line = line; px += c.w + chipGap; });
-    const lines = rs.length ? line + 1 : 1;
-    const laneH = lanePad * 2 + lines * chipH + (lines - 1) * chipGap;
-    body += `<rect x="${padL}" y="${y}" width="${W - padL - padR}" height="${laneH}" rx="10" fill="${b.color}" fill-opacity="0.08" stroke="${b.color}" stroke-opacity="0.28"/>`;
-    body += exText(padL + 12, y + laneH / 2 - 2, b.label, { size: 13, weight: 700, fill: b.color, font: EXPROG_MONO });
-    body += exText(padL + 12, y + laneH / 2 + 15, `${rs.length} risk${rs.length === 1 ? '' : 's'}`, { size: 10.5, fill: C.muted, font: EXPROG_MONO });
-    chips.forEach(c => {
-      const cy = y + lanePad + c.line * (chipH + chipGap);
-      body += `<rect x="${c.x}" y="${cy}" width="${c.w}" height="${chipH}" rx="6" fill="${b.color}" fill-opacity="0.16" stroke="${b.color}" stroke-opacity="0.42"/>`;
-      body += exText(c.x + 8, cy + chipH / 2 + 3.4, c.txt, { size: CHIP_SIZE, fill: C.text, font: EXPROG_MONO });
-    });
-    if (!rs.length) body += exText(contentX0, y + laneH / 2 + 4, '—', { size: 11, fill: C.muted });
-    y += laneH + 10;
+      return `<span class="rrh-chip">${escHtml(r.title)} · ${r.residual}${mark}</span>`;
+    }).join('');
+    html += `<div class="rrh-lane rrh-${b.cls}">
+      <div class="rrh-lane-hd"><span class="rrh-band">${b.label}</span><span class="rrh-count">${rs.length} risk${rs.length === 1 ? '' : 's'}</span></div>
+      <div class="rrh-chips">${chips || '<span class="rrh-empty">—</span>'}</div>
+    </div>`;
   });
-  const h = y + 2;
-  // Render at natural size (width/height in px) rather than width:100% so the SVG
-  // (and its text) does NOT upscale on wide monitors — the CSS caps it with
-  // max-width:100%; height:auto, so it only ever scales DOWN. This keeps the risk-
-  // name font at its intended size instead of ballooning on a full-width card.
-  return `<svg viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img"><rect x="0" y="0" width="${W}" height="${h}" fill="${C.bg}"/>${body}</svg>`;
+  const naChips = notAssessed.map(r => `<span class="rrh-chip">${escHtml(r.title)}</span>`).join('');
+  html += `<div class="rrh-lane rrh-na">
+    <div class="rrh-lane-hd"><span class="rrh-band">NOT ASSESSED</span><span class="rrh-count">${notAssessed.length} risk${notAssessed.length === 1 ? '' : 's'}</span></div>
+    <div class="rrh-chips">${naChips || '<span class="rrh-empty">—</span>'}</div>
+  </div>`;
+  html += '</div>';
+  return html;
 }
 function execChartCard(name, title, sub, svg) {
   return `<div class="exprog-chart" data-name="${name}">
@@ -311,10 +298,11 @@ function renderExecProgress(currentA, prevA) {
   const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
   const prevSev = {}; prev.risks.forEach(k => { if ((k.residual || 0) > 0) prevSev[k.title] = sevOf(k.residual); });
   const curRisks = cur.risks.filter(k => (k.residual || 0) > 0).map(k => ({ title: k.title, residual: k.residual }));
-  const na = cur.totalRisks - curRisks.length;
+  const naRisks = cur.risks.filter(k => !((k.residual || 0) > 0)).map(k => ({ title: k.title }));
+  const na = naRisks.length;
   const heatChart = execChartCard('dora-residual-heatmap', 'Residual risk heatmap',
     `${curRisks.length} assessed risk(s)${na ? ` · ${na} not yet assessed` : ''}${hasPrev ? ` · ▼ improved since ${escHtml(prevL)}` : ''}`,
-    execResidualHeatmap(curRisks, prevSev, { colors: C }));
+    execResidualHeatmap(curRisks, prevSev, { colors: C, notAssessed: naRisks }));
 
   const desc = hasPrev
     ? `Where we stood at <b>${escHtml(prevL)}</b> versus <b>${escHtml(curL)}</b> — the progress made maturing the ICT risk framework.`

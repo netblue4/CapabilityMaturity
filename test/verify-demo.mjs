@@ -160,11 +160,14 @@ await page.evaluate(() => {
   generateRocReport();
 });
 await page.waitForSelector('#roc-report-content .exprog-section');
-const charts = await page.$$eval('#roc-report-content .exprog-chart', els => els.map(e => ({ name: e.getAttribute('data-name'), svg: !!e.querySelector('svg'), png: !!e.querySelector('.exprog-png') })));
-assert(charts.length === 3 && charts.every(c => c.svg), 'ROC: three progress charts render an SVG');
+const charts = await page.$$eval('#roc-report-content .exprog-chart', els => els.map(e => ({ name: e.getAttribute('data-name'), svg: !!e.querySelector('svg'), rrh: !!e.querySelector('.rrh'), png: !!e.querySelector('.exprog-png') })));
+assert(charts.length === 3, 'ROC: three progress charts render');
+// The two dumbbell charts are SVG; the residual heatmap is now HTML lanes (.rrh).
+assert(charts.filter(c => c.svg).length === 2, 'ROC: risk-coverage + control-maturity render an SVG');
+assert(charts.some(c => c.name === 'dora-residual-heatmap' && c.rrh), 'ROC: residual heatmap renders HTML lanes');
 assert(charts.every(c => !c.png), 'ROC: Export PNG buttons removed');
 assert(['dora-risk-coverage', 'dora-control-maturity', 'dora-residual-heatmap'].every(n => charts.some(c => c.name === n)), 'ROC charts: risk coverage / control maturity / residual heatmap');
-const heatChips = await page.$$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg rect[rx="6"]', r => r.length);
+const heatChips = await page.$$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] .rrh-chip', r => r.length);
 assert(heatChips >= 3, `ROC residual heatmap chips (${heatChips})`);
 const moved = await page.evaluate(() => {
   const c = execProgMetrics(db.assessments.find(x => x.id === 'demo'));
@@ -174,9 +177,12 @@ const moved = await page.evaluate(() => {
 assert(moved, 'ROC control maturity grew Q2 → Q3');
 const cmText = await page.$eval('#roc-report-content .exprog-chart[data-name="dora-control-maturity"] svg', s => s.textContent);
 assert(/Not assessed/.test(cmText), 'Control maturity has a "Not assessed" (blind-spot) bar');
-// The heatmap SVG renders at its natural size (capped) so the chip font doesn't balloon.
-const heatCap = await page.$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] svg', s => ({ w: s.getAttribute('width'), pct: s.getAttribute('width') === '100%' }));
-assert(!heatCap.pct && +heatCap.w > 100, `ROC heatmap SVG uses a natural width, not 100% (${heatCap.w})`);
+// The heatmap renders HTML lanes (HIGH/MODERATE/LOW/NOT ASSESSED) so full risk
+// names show without truncation and the font never upscales on a wide card.
+const heatLanes = await page.$$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] .rrh-band', bs => bs.map(b => b.textContent.trim()));
+assert(heatLanes.includes('NOT ASSESSED'), `ROC heatmap has a NOT ASSESSED lane (${heatLanes.join(', ')})`);
+const heatFullNames = await page.$$eval('#roc-report-content .exprog-chart[data-name="dora-residual-heatmap"] .rrh-chip', cs => cs.every(c => !/…/.test(c.textContent)));
+assert(heatFullNames, 'ROC heatmap chips show full risk names (no "…" truncation)');
 // Progress cards count the FULL register (ties to the full extract), not DORA-mapped only.
 const regTie = await page.evaluate(() => {
   const a = db.assessments.find(x => x.id === 'demo');

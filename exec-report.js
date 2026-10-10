@@ -100,10 +100,10 @@ function generateDoraForumReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecScorecard(currentA, prevA)}
+    <div class="exec-rcsa-wrap">${renderCapabilityLensCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
-    <div class="exec-rcsa-wrap">${renderCapabilityLensCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderTraceabilityCard(currentA)}</div>
   `);

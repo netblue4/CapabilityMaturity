@@ -92,8 +92,11 @@ function generateDoraForumReport() {
   if (!prevA || !currentA) return;
   closeExecReportModal();
 
-  // The DORA Forum report is a DORA deliverable — pin it to the DORA lens so the
-  // on-screen lens (MiCA / NIST) never bleeds into it.
+  // The DORA Forum report is a DORA deliverable — pin the lens to DORA for the
+  // whole time the view is shown, so every card AND every later interactive
+  // callback (sort / capability-lens dropdown) resolves to DORA data.
+  if (typeof setImportLens === 'function') setImportLens('dora');
+  if (typeof updateSiteSubtitle === 'function') updateSiteSubtitle();
   const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
   document.getElementById('exec-report-content').innerHTML = runWithLens('dora', () => `
     <div class="exec-report-top no-print" style="justify-content:flex-end">
@@ -123,6 +126,8 @@ function generateRocReport() {
 
   // ROC report is built over the full RCSA register (lens-independent), but pin
   // to DORA for consistency so any lens-aware helper it reaches stays on DORA.
+  if (typeof setImportLens === 'function') setImportLens('dora');
+  if (typeof updateSiteSubtitle === 'function') updateSiteSubtitle();
   const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
   document.getElementById('roc-report-content').innerHTML = runWithLens('dora', () => `
     <div class="exec-report-top no-print" style="justify-content:flex-end">
@@ -134,35 +139,45 @@ function generateRocReport() {
   showView('roc-report');
 }
 
-// MiCA / NIST CSF Reporting — scaffold. Scoped entirely to the chosen lens's own
-// SOA + policy + mapping (single shared control framework underneath). Renders
-// the lens's Control 1 coverage + Control 2/3 evidence; the full report layout
-// is to be defined per-lens. Everything here reads the lens's own data via the
-// lens accessors, so no DORA data leaks in.
+// MiCA / NIST CSF Reporting — the SAME treatment as the DORA Reporting screen,
+// scoped entirely to the chosen lens's own SOA + policy + mapping (single shared
+// control framework underneath). Every card reads the lens's own data via the
+// lens accessors and shows the lens's own labels (Service / Category instead of
+// Capability, MiCA domain / NIST Function instead of DORA Pillar), so no DORA
+// data or wording leaks in. The lens is pinned for the whole time the view is
+// shown, so later interactive callbacks resolve to the right lens too.
 function generateLensReport(lens) {
+  const prevA    = db.assessments.find(a => a.id === document.getElementById('exec-prev-sel').value);
   const currentA = db.assessments.find(a => a.id === document.getElementById('exec-curr-sel').value);
   if (!currentA) return;
   closeExecReportModal();
+  if (typeof setImportLens === 'function') setImportLens(lens);
+  if (typeof updateSiteSubtitle === 'function') updateSiteSubtitle();
   const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
-  const F = (typeof FRAMEWORKS !== 'undefined') ? FRAMEWORKS[lens] : { label: lens, dimLabel: '' };
+  const F = (typeof FRAMEWORKS !== 'undefined' && FRAMEWORKS[lens]) ? FRAMEWORKS[lens] : { label: lens, dimLabel: '', icon: '📋' };
   const html = runWithLens(lens, () => {
-    const hasPolicy = (typeof lensPolicy === 'function') && lensPolicy(currentA).length > 0;
-    const ev = (n) => (typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, n, { embedded: true }) : '';
-    return `
-    <div class="exec-report-top no-print" style="justify-content:flex-end">
+    const hasData = (typeof lensHasData === 'function' && lensHasData(currentA))
+      || ((typeof lensPolicy === 'function') && lensPolicy(currentA).length > 0);
+    const top = `<div class="exec-report-top no-print" style="justify-content:flex-end">
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
-    </div>
-    <div class="card measure-card lens-report-intro">
-      <div class="measure-card-header"><span class="measure-icon">${F.icon || '📋'}</span>
-        <div style="flex:1"><div class="exsc-eyebrow">${escHtml(F.label)} Reporting</div>
-        <h3 class="measure-card-title">${escHtml(F.label)} — single control framework, ${escHtml(F.label)} lens</h3>
-        <p class="measure-card-desc">Scoped to the ${escHtml(F.label)} SOA, ${escHtml(F.label)} policy data (grouped by <b>${escHtml(F.dimLabel)}</b>) and ${escHtml(F.label)} objective mapping. The risk &amp; control data underneath is shared across all lenses. <em>Report layout to be defined.</em></p></div>
-      </div>
-    </div>
-    <div class="exec-rcsa-wrap">${renderDoraCoverageCard(currentA)}</div>
-    ${hasPolicy ? `<div class="exec-rcsa-wrap card measure-card">${ev(2)}</div>
-    <div class="exec-rcsa-wrap card measure-card">${ev(3)}</div>` :
-    `<div class="card measure-card"><p class="policy-no-data" style="margin:.6rem 0">No ${escHtml(F.label)} policy data loaded for this assessment yet — import <b>${escHtml(F.label)} Policy Data</b> (grouped by ${escHtml(F.dimLabel)}) on the New/Edit Assessment screen to populate Controls 2 &amp; 3.</p></div>`}
+    </div>`;
+    if (!hasData) {
+      return top + `<div class="card measure-card lens-report-intro">
+        <div class="measure-card-header"><span class="measure-icon">${F.icon || '📋'}</span>
+          <div style="flex:1"><div class="exsc-eyebrow">${escHtml(F.label)} Reporting</div>
+          <h3 class="measure-card-title">${escHtml(F.label)} — single control framework, ${escHtml(F.label)} lens</h3>
+          <p class="measure-card-desc">No ${escHtml(F.label)} data loaded for this assessment yet. Import the <b>${escHtml(F.label)} SOA</b>, <b>${escHtml(F.label)} Policy Data</b> (grouped by ${escHtml(F.dimLabel)}) and <b>${escHtml(F.label)} Mapping</b> on the New/Edit Assessment screen to populate this report. The risk &amp; control data underneath is shared across all lenses.</p></div>
+        </div>
+      </div>`;
+    }
+    return top + `
+    ${renderExecScorecard(currentA, prevA)}
+    <div class="exec-rcsa-wrap">${renderCapabilityLensCard(currentA)}</div>
+    <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
+    <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
+    <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
+    <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
+    <div class="exec-rcsa-wrap">${renderTraceabilityCard(currentA)}</div>
     `;
   });
   document.getElementById(lens + '-report-content').innerHTML = html;
@@ -396,9 +411,13 @@ function execScDelta(cur, prev) {
   return `<span class="exsc-${up ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${up ? '+' : ''}${d}%</span>`;
 }
 function renderExecScorecard(currentA, prevA) {
-  const cur  = buildExecScorecard(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
-  const sops = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
-  const bops = buildBackingControlOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const LRows = a => (typeof lensRows === 'function') ? lensRows(a) : (a.doraRows || []);
+  const LPol  = a => (typeof lensPolicy === 'function') ? lensPolicy(a) : (a.policyRows || []);
+  const LFac  = a => (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
+  const LL    = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
+  const cur  = buildExecScorecard(LRows(currentA), LPol(currentA), LFac(currentA));
+  const sops = buildStatementOps(LPol(currentA), LFac(currentA));
+  const bops = buildBackingControlOps(LPol(currentA), LFac(currentA));
   const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
   const subVs = prevA ? ` &nbsp;·&nbsp; vs ${escHtml(prevA.label)}` : '';
 
@@ -414,9 +433,9 @@ function renderExecScorecard(currentA, prevA) {
   // Previous-quarter % per metric (same definitions) for the delta arrow.
   let pDoc = null, pImpl = null, pEff = null;
   if (prevA) {
-    const pc = buildExecScorecard(prevA.doraRows || [], prevA.policyRows || [], prevA.riskPolicyFacts || []);
-    const ps = buildStatementOps(prevA.policyRows || [], prevA.riskPolicyFacts || []);
-    const pb = buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || []);
+    const pc = buildExecScorecard(LRows(prevA), LPol(prevA), LFac(prevA));
+    const ps = buildStatementOps(LPol(prevA), LFac(prevA));
+    const pb = buildBackingControlOps(LPol(prevA), LFac(prevA));
     const pic = pb.controls.filter(c => c.implemented).length;
     pDoc  = pc.control1.pct;
     pImpl = ps.all.total ? Math.round(100 * ps.all.operationalised / ps.all.total) : 0;
@@ -436,12 +455,12 @@ function renderExecScorecard(currentA, prevA) {
     <div class="exsc-hdr">
       <div>
         <div class="exsc-eyebrow">◈ ${escHtml(app)}</div>
-        <h2 class="exsc-title">DORA Operationalisation Scorecard</h2>
+        <h2 class="exsc-title">${escHtml(LL)} Operationalisation Scorecard</h2>
         <div class="exsc-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)}${subVs}</div>
       </div>
     </div>
     <div class="exsum-row">
-      ${cell(documented,  'Documented',  'Applicable DORA objectives covered by an owned policy or group-standard statement.', pDoc)}
+      ${cell(documented,  'Documented',  `Applicable ${escHtml(LL)} objectives covered by an owned policy or group-standard statement.`, pDoc)}
       ${cell(implemented, 'Implemented', 'Policy / group-standard statements operationalised by a live control.',              pImpl)}
       ${cell(effective,   'Effective',   'Implemented controls rated effective in the RCSA (of implemented controls only).',    pEff)}
     </div>
@@ -640,19 +659,29 @@ function sortExecMatrix(col) {
   if (th) th.innerHTML = exmHead();
 }
 function renderExecCoverageMatrix(currentA) {
-  const cov = buildDoraArticleCoverage(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const LRows = (typeof lensRows === 'function') ? lensRows(currentA) : (currentA.doraRows || []);
+  const LPol  = (typeof lensPolicy === 'function') ? lensPolicy(currentA) : (currentA.policyRows || []);
+  const LFac  = (typeof lensFacts === 'function') ? lensFacts(currentA) : (currentA.riskPolicyFacts || []);
+  const LL    = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
+  const UNIT  = (typeof activeFramework === 'function') ? activeFramework().unitLabel : 'articles/RTS';
+  const unitTitle = `${LL} ${UNIT}`;                                   // e.g. "DORA articles/RTS", "MiCA articles"
+  // Singular "per X" words. The prose desc uses the plain ref word (DORA:
+  // "article"); the collapsible header keeps DORA's "article/RTS".
+  const perDesc = (typeof lensRefWord === 'function') ? lensRefWord() : 'article';
+  const perHdr  = (typeof activeLens !== 'undefined' && activeLens !== 'dora') ? perDesc : 'article/RTS';
+  const cov = buildDoraArticleCoverage(LRows, LPol, LFac);
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">⚖️</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Documented</div><h3 class="measure-card-title">Applicable DORA articles/RTS objectives covered by Policies and Group Standards</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Documented</div><h3 class="measure-card-title">Applicable ${escHtml(unitTitle)} objectives covered by Policies and Group Standards</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!cov.articles.length) {
-    return `<div class="card measure-card">${head('No DORA mapping uploaded for this assessment.')}</div>`;
+    return `<div class="card measure-card">${head(`No ${escHtml(LL)} mapping uploaded for this assessment.`)}</div>`;
   }
   const fully   = cov.articles.filter(a => a.covered === a.total).length;
   const uncov   = cov.articles.filter(a => a.covered === 0).length;
   const partial = cov.articles.length - fully - uncov;
   const t = cov.totals;
-  const desc = `${cov.articles.length} applicable DORA articles/RTS &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} DORA Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). One bar per article spans all its objectives, split by how each covered one is owned.`;
+  const desc = `${cov.articles.length} applicable ${escHtml(unitTitle)} &middot; <b>${fully}</b> fully covered &middot; ${partial} partial &middot; <b class="${uncov ? 'dora-gap-num' : ''}">${uncov}</b> uncovered &middot; ${t.covered}/${t.total} ${escHtml(LL)} Objectives (${t.total ? Math.round(100 * t.covered / t.total) : 0}%). One bar per ${escHtml(perDesc)} spans all its objectives, split by how each covered one is owned.`;
   _exmRows = cov.articles;
   _exmSort = { col: null, dir: 1 };
   const covPct = t.total ? Math.round(100 * t.covered / t.total) : 0;
@@ -666,7 +695,7 @@ function renderExecCoverageMatrix(currentA) {
     ${cmProgressBar(covPct)}
     ${legend}
     <div class="act-block collapsed">
-      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Coverage detail table (per article/RTS) ${actCopyBtn()}</div>
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Coverage detail table (per ${escHtml(perHdr)}) ${actCopyBtn()}</div>
       <div class="act-body">${(typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, 1, { embedded: true }) : `<div class="rcsa-table-wrap">
         <table class="exm-tbl">
           <thead id="exm-thead">${exmHead()}</thead>
@@ -790,9 +819,11 @@ function sortExec2(which, col) {
   if (th) th.innerHTML = ex2Head(which);
 }
 function renderExecControl2(currentA, prevA) {
-  const ops     = buildStatementOps(currentA.policyRows || [], currentA.riskPolicyFacts || []);
-  const prevOps = prevA ? buildStatementOps(prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
-  const doc     = buildExecDocDetail(currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const LPol = a => (typeof lensPolicy === 'function') ? lensPolicy(a) : (a.policyRows || []);
+  const LFac = a => (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
+  const ops     = buildStatementOps(LPol(currentA), LFac(currentA));
+  const prevOps = prevA ? buildStatementOps(LPol(prevA), LFac(prevA)) : null;
+  const doc     = buildExecDocDetail(LPol(currentA), LFac(currentA));
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🗂️</span>
       <div style="flex:1"><div class="exsc-eyebrow">Implemented</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by controls</h3><p class="measure-card-desc">${desc}</p></div>
@@ -810,7 +841,7 @@ function renderExecControl2(currentA, prevA) {
 
   const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a control (Draft or Implemented)(${ops.operationalisedPct.all}%).`;
 
-  const capPillar = buildCapPillar(currentA.doraRows || [], currentA.policyRows || [], currentA.riskPolicyFacts || []);
+  const capPillar = buildCapPillar();
   const withPillar = r => Object.assign({}, r, { pillarShort: doraPillarShortFor('', '', r.capId, capPillar) });
   _ex2Data = { gs: doc.groupStandard.map(withPillar), pol: doc.policy.map(withPillar) };
   _ex2Sort = { gs: { col: null, dir: 1 }, pol: { col: null, dir: 1 } };
@@ -959,10 +990,12 @@ function ex3RiskTable(risks) {
     <thead id="ex3-thead">${ex3Head()}</thead>
     <tbody id="ex3-tbody">${ex3Body(ex3SortRows())}</tbody></table>`;
 }
-// Risk titles that threaten a DORA objective: a risk treated by a live control
-// that backs a statement mapped to a DORA obligation.
+// Risk titles that threaten an objective of the ACTIVE lens: a risk treated by a
+// (non-closed) control that backs a statement mapped to a lens obligation.
 function execDoraRiskTitles(a) {
-  const facts = a.riskPolicyFacts || [], policyRows = a.policyRows || [], doraRows = a.doraRows || [];
+  const facts      = (typeof lensFacts === 'function')  ? lensFacts(a)  : (a.riskPolicyFacts || []);
+  const policyRows = (typeof lensPolicy === 'function') ? lensPolicy(a) : (a.policyRows || []);
+  const doraRows   = (typeof lensRows === 'function')   ? lensRows(a)   : (a.doraRows || []);
   const model = buildDoraObligations(doraRows, policyRows, facts);
   const keys = new Set();
   model.obligations.forEach(o => (o.mappedRefs || []).forEach(m => keys.add(m.capId + '||' + ftNorm(m.ref))));
@@ -975,33 +1008,41 @@ function execDoraRiskTitles(a) {
   return titles;
 }
 // Residual-risk heatmap (same lanes as the ROC report) but filtered to the risks
-// that threaten DORA objectives — Control 3's effectiveness-oversight view.
+// that threaten objectives of the ACTIVE lens — Control 3's effectiveness-
+// oversight view. Risk data is shared across lenses; the filter + the facts the
+// residuals are read from are the active lens's, so the set reconciles with the
+// lens's own Control 2/3 tables.
 function renderDoraRiskHeatmap(currentA, prevA) {
   const C = execProgColors();
+  const LFac = a => (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
+  const LL   = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
+  const ICON = (typeof activeFramework === 'function') ? activeFramework().icon : '🛡️';
   const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
   const curTitles = execDoraRiskTitles(currentA);
-  const curAll = buildRiskProfile(currentA.riskPolicyFacts || []).filter(k => curTitles.has(k.title));
+  const curAll = buildRiskProfile(LFac(currentA)).filter(k => curTitles.has(k.title));
   const curRisks = curAll.filter(k => (k.residual || 0) > 0).map(k => ({ title: k.title, residual: k.residual }));
   const naRisks  = curAll.filter(k => !((k.residual || 0) > 0)).map(k => ({ title: k.title }));
   const prevSev = {};
   if (prevA) {
     const pT = execDoraRiskTitles(prevA);
-    buildRiskProfile(prevA.riskPolicyFacts || []).filter(k => pT.has(k.title)).forEach(k => { if ((k.residual || 0) > 0) prevSev[k.title] = sevOf(k.residual); });
+    buildRiskProfile(LFac(prevA)).filter(k => pT.has(k.title)).forEach(k => { if ((k.residual || 0) > 0) prevSev[k.title] = sevOf(k.residual); });
   }
   const prevL = prevA ? execQtr(prevA) : '';
-  const legend = `<p class="rrh-legend-note">🛡️ <b>These are the risks that threaten DORA objectives</b> — i.e. risks treated by a control that backs a DORA-mapped policy/group-standard statement. Each is placed by its residual severity after controls (HIGH ≥ 20 · MODERATE 12–19 · LOW &lt; 12; <b>NOT ASSESSED</b> = no current RCSA residual rating)${prevA ? '. ▼ marks a risk that dropped a severity band since ' + escHtml(prevL) : ''}.</p>`;
-  const sub = `${curRisks.length} assessed risk(s) threatening DORA objectives${naRisks.length ? ` · ${naRisks.length} not yet assessed` : ''}`;
-  return execChartCard('dora-c3-heatmap', 'Residual risk heatmap — risks threatening DORA objectives', sub,
+  const legend = `<p class="rrh-legend-note">${ICON} <b>These are the risks that threaten ${escHtml(LL)} objectives</b> — i.e. risks treated by a control that backs a ${escHtml(LL)}-mapped policy/group-standard statement. Each is placed by its residual severity after controls (HIGH ≥ 20 · MODERATE 12–19 · LOW &lt; 12; <b>NOT ASSESSED</b> = no current RCSA residual rating)${prevA ? '. ▼ marks a risk that dropped a severity band since ' + escHtml(prevL) : ''}.</p>`;
+  const sub = `${curRisks.length} assessed risk(s) threatening ${escHtml(LL)} objectives${naRisks.length ? ` · ${naRisks.length} not yet assessed` : ''}`;
+  return execChartCard('dora-c3-heatmap', `Residual risk heatmap — risks threatening ${LL} objectives`, sub,
     legend + execResidualHeatmap(curRisks, prevSev, { colors: C, notAssessed: naRisks }));
 }
 function renderExecControl3(currentA, prevA) {
-  const facts   = currentA.riskPolicyFacts || [];
-  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+  const LPol = a => (typeof lensPolicy === 'function') ? lensPolicy(a) : (a.policyRows || []);
+  const LFac = a => (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
+  const facts   = LFac(currentA);
+  const capName = id => (typeof lensCapName === 'function') ? lensCapName(currentA, id) : ((CONFIG.capabilities || []).find(c => c.id === id)?.name || id);
   const risks   = buildRiskProfile(facts);
   risks.forEach(k => { k._capName = capName(k.capId); });
-  _ex3CapPillar = buildCapPillar(currentA.doraRows || [], currentA.policyRows || [], facts);
-  const ops     = buildBackingControlOps(currentA.policyRows || [], facts);
-  const prevOps = prevA ? buildBackingControlOps(prevA.policyRows || [], prevA.riskPolicyFacts || []) : null;
+  _ex3CapPillar = buildCapPillar();
+  const ops     = buildBackingControlOps(LPol(currentA), facts);
+  const prevOps = prevA ? buildBackingControlOps(LPol(prevA), LFac(prevA)) : null;
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🎯</span>
       <div style="flex:1"><div class="exsc-eyebrow">Effective</div><h3 class="measure-card-title">Effectiveness oversight — identifying ineffective controls</h3><p class="measure-card-desc">${desc}</p></div>

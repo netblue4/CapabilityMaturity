@@ -362,8 +362,9 @@ function buildGovernanceRows(policyRows, facts) {
 // statements they own, and how many distinct (non-closed) controls
 // operationalise those statements. Accountable owner comes from the policy
 // statement's Owner column; a blank owner is grouped as "Unassigned".
-function buildPolicyOwnership(policyRows, facts) {
-  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
+function buildPolicyOwnership(policyRows, facts, capNameFn) {
+  const capName = (typeof capNameFn === 'function') ? capNameFn
+    : (id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id);
   const map = {};
   const gkey = (capId, doc, owner) => capId + '||' + doc + '||' + owner;
 
@@ -540,7 +541,9 @@ function buildCapabilitySummary(assessment, capId, source) {
   const srcMatch = r => source === 'all' || r.source === CAP_SRC_LABEL[source];
   const caps  = CONFIG.capabilities || [];
   const cap   = caps.find(c => c.id === capId);
-  const capNm = cap ? cap.name : capId;
+  // DORA resolves via CONFIG capabilities; MiCA/NIST via the lens's per-assessment
+  // group names — so capNm matches buildTraceabilityRows' r.capability.
+  const capNm = (typeof lensCapName === 'function') ? lensCapName(assessment, capId) : (cap ? cap.name : capId);
   const trace = buildTraceabilityRows(assessment);
 
   const objMeta = new Map();                      // _oKey → {id, article, requirement} — all applicable objectives
@@ -626,7 +629,7 @@ function buildCapabilityTree(assessment, capId, source) {
   source = source || 'all';
   const srcMatch = r => source === 'all' || r.source === CAP_SRC_LABEL[source];
   const caps  = CONFIG.capabilities || [];
-  const capNm = (caps.find(c => c.id === capId) || {}).name || capId;
+  const capNm = (typeof lensCapName === 'function') ? lensCapName(assessment, capId) : ((caps.find(c => c.id === capId) || {}).name || capId);
   const rows  = buildTraceabilityRows(assessment).rows.filter(r => r.capability === capNm);
   const NO_ART = 'Statements not mapped to a ' + ((typeof lensLabel === 'function') ? lensLabel() : 'DORA') + ' objective';
   const arts = new Map();

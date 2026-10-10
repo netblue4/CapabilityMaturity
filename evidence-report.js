@@ -68,7 +68,31 @@
     });
     const stmtOwners = (capId, ref) => [...(ownByStmt[capId + '||' + norm(ref)] || [])].join('; ');
 
-    return { a, model, meta, cov, bops, capPillar, docStatus, oblByStmt, stmtObls, stmtOwners, norm };
+    // statement (capId||ref) → the lens group (MiCA domain / NIST function) of a
+    // mapped objective, used for the group column under a non-DORA lens.
+    const grpByStmt = {};
+    model.obligations.forEach(o => {
+      const g = (o.group || '').trim(); if (!g) return;
+      (o.mappedRefs || []).forEach(m => { const k = m.capId + '||' + norm(m.ref); if (!grpByStmt[k]) grpByStmt[k] = g; });
+    });
+    const stmtGroup = (capId, ref) => grpByStmt[capId + '||' + norm(ref)] || '';
+
+    return { a, model, meta, cov, bops, capPillar, docStatus, oblByStmt, stmtObls, stmtOwners, stmtGroup, norm };
+  }
+
+  // Lens-aware label + pillar helpers for the embedded evidence tables. DORA
+  // keeps its exact wording and pillar logic; MiCA/NIST use the lens group
+  // (MiCA domain / NIST function) and dimension (Service / Category).
+  function isDoraLens() { return (typeof activeLens === 'undefined') || activeLens === 'dora'; }
+  function lensCapNm(ctx, id) { return (typeof lensCapName === 'function') ? lensCapName(ctx.a, id) : capName(id); }
+  function hGroup() { return isDoraLens() ? 'DORA Pillar' : esc((typeof lensGroupLabel === 'function') ? lensGroupLabel() : 'DORA Pillar'); }
+  function hDim()   { return isDoraLens() ? 'Capability' : esc((typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability'); }
+  function evLabel() { return (typeof lensLabel === 'function') ? lensLabel() : 'DORA'; }
+  // Group tag for a statement (resolved via the obligations model's group).
+  function evGroupTagForStmt(ctx, capId, ref) {
+    if (isDoraLens()) return pillarTag(doraPillarShortFor('', '', capId, ctx.capPillar));
+    const gid = (ctx.stmtGroup(capId, ref) || '').trim() || '__other';
+    return (typeof pillarShortById === 'function') ? pillarTag(pillarShortById(gid)) : pillarTag(gid);
   }
 
   // HTML for one control's evidence page (1/2/3) under the active lens. Used by
@@ -181,18 +205,23 @@
     const covered = model.coveredObligations, total = model.totalObligations;
     const stat = statPill(covered, total, 'objectives covered by either a policy or group standard statement', true)
       + `<span class="ev-note">Completeness is the Gate-1 precondition: an objective with no policy or group-standard statement is a compliance gap regardless of downstream control activity.</span>`;
+    // Group tag for an obligation row: DORA via capability name, else the
+    // objective's own group (MiCA domain / NIST function).
+    const oGroupTag = (capStr, o) => isDoraLens()
+      ? pillarTag(doraPillarShortForCap(capStr || ''))
+      : ((typeof pillarShortById === 'function') ? pillarTag(pillarShortById((o.group || '').trim() || '__other')) : pillarTag((o.group || '').trim()));
 
     const rows = [];
     model.obligations.forEach(o => {
       if (o.covered) {
         o.mappedRefs.forEach(m => rows.push(`
           <tr>
-            <td class="pil-col">${pillarTag(doraPillarShortForCap(capName(m.capId)))}</td>
+            <td class="pil-col">${oGroupTag(lensCapNm(ctx, m.capId), o)}</td>
             <td>${esc(o.article)}</td>
             <td class="ev-obl">${esc(o.obligationId)}</td>
             <td class="ev-req">${esc(o.requirement)}</td>
             <td><span class="ev-yes">Covered</span></td>
-            <td>${esc(capName(m.capId))}</td>
+            <td>${esc(lensCapNm(ctx, m.capId))}</td>
             <td>${esc(m.document)}</td>
             <td>${docStatusCell(docStatus[dkey(m)])}</td>
             <td>${esc(m.source)}</td>
@@ -203,7 +232,7 @@
       } else {
         rows.push(`
           <tr class="ev-row-gap">
-            <td class="pil-col">${pillarTag(doraPillarShortForCap(o.capability))}</td>
+            <td class="pil-col">${oGroupTag(o.capability, o)}</td>
             <td>${esc(o.article)}</td>
             <td class="ev-obl">${esc(o.obligationId)}</td>
             <td class="ev-req">${esc(o.requirement)}</td>
@@ -214,12 +243,15 @@
       }
     });
 
-    return pageHead('Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards', 'DORA article/RTS → objective → policy/group standard statement', meta)
+    const UNIT = (typeof activeFramework === 'function') ? activeFramework().unitLabel : 'articles/RTS';
+    const refWordCap = isDoraLens() ? 'Article/RTS' : (activeLens === 'nist' ? 'Subcategory' : 'Article');
+    const refWordLo  = isDoraLens() ? 'article/RTS' : (activeLens === 'nist' ? 'subcategory' : 'article');
+    return pageHead(`Control 1 · Applicable ${evLabel()} ${UNIT} objectives covered by Policies and Group Standards`, `${evLabel()} ${refWordLo} → objective → policy/group standard statement`, meta)
       + soaSection(ctx)
       + `<h3 class="ev-sect-h">Coverage detail — objective → owned statement</h3>
       <div class="ev-stat">${stat}</div>
       <table class="ev-tbl ev-tbl-wide ev-sortable">
-        <thead><tr><th>DORA Pillar</th><th>DORA Article/RTS</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Accountable</th></tr></thead>
+        <thead><tr><th>${hGroup()}</th><th>${esc(evLabel())} ${refWordCap}</th><th>Objective paragraph(s)</th><th>Objective</th><th>Coverage</th><th>${hDim()}</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Accountable</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
@@ -264,18 +296,22 @@
         <td>${covCell(r)}</td>
         <td class="soa-why">${refCell(r)}</td>
       </tr>`).join('');
+    const LLs = evLabel();
+    const UNITs = (typeof activeFramework === 'function') ? activeFramework().unitLabel : 'articles/RTS';
+    const soaUnitHdr = isDoraLens() ? 'DORA Article / RTS' : (esc(LLs) + ' ' + (activeLens === 'nist' ? 'Subcategory' : 'Article'));
+    const soaUnitLo  = isDoraLens() ? 'article/RTS' : (activeLens === 'nist' ? 'subcategory' : 'article');
     return `
       <div class="ev-soa">
         <div class="ev-soa-hd">
           <div>
-            <h3 class="ev-sect-h">DORA Statement of Applicability (SOA)</h3>
-            <p class="ev-soa-sub">Every DORA article/RTS with its applicability decision — the completeness baseline. <b>Applicable</b> items are highlighted; for those, coverage status joins to the detail below. Review this first to confirm the whole of DORA was considered.</p>
+            <h3 class="ev-sect-h">${esc(LLs)} Statement of Applicability (SOA)</h3>
+            <p class="ev-soa-sub">Every ${esc(LLs)} ${soaUnitLo} with its applicability decision — the completeness baseline. <b>Applicable</b> items are highlighted; for those, coverage status joins to the detail below. Review this first to confirm the whole of ${esc(LLs)} was considered.</p>
           </div>
           <button class="btn btn-outline no-print" onclick="copySoaTable(this)">⧉ Copy for Excel</button>
         </div>
-        <div class="ev-stat">${statPill(applicable.length, total, 'DORA articles/RTS applicable', false)}<span class="ev-note"><b>${mapped}</b> applicable item(s) mapped this cycle · <b class="${notMapped ? 'dora-gap-num' : ''}">${notMapped}</b> applicable but not yet mapped. The Reference column links to the EUR-Lex text.</span></div>
+        <div class="ev-stat">${statPill(applicable.length, total, esc(LLs) + ' ' + UNITs + ' applicable', false)}<span class="ev-note"><b>${mapped}</b> applicable item(s) mapped this cycle · <b class="${notMapped ? 'dora-gap-num' : ''}">${notMapped}</b> applicable but not yet mapped.${isDoraLens() ? ' The Reference column links to the EUR-Lex text.' : ''}</span></div>
         <table class="ev-soa-tbl ev-sortable">
-          <thead><tr><th>DORA Article / RTS</th><th>Chapter</th><th>Applicable</th><th>Coverage</th><th>Reference</th></tr></thead>
+          <thead><tr><th>${soaUnitHdr}</th><th>Chapter</th><th>Applicable</th><th>Coverage</th><th>Reference</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -288,8 +324,9 @@
   // operationalised statements a pillar card reports.
   function evidenceControl2(ctx) {
     const { meta, cov, capPillar, docStatus, stmtObls, stmtOwners } = ctx;
+    const cN = id => lensCapNm(ctx, id);
     const stmts = cov.statements.slice().sort((a, b) =>
-      capName(a.capId).localeCompare(capName(b.capId)) || (a.ref || '').localeCompare(b.ref || ''));
+      cN(a.capId).localeCompare(cN(b.capId)) || (a.ref || '').localeCompare(b.ref || ''));
     const total = cov.total, backed = cov.backed;
     const isLive = s => s.backing === 'Built new' || s.backing === 'Reused pre-DORA';
     const operationalised = stmts.filter(isLive).length;
@@ -304,8 +341,8 @@
       const objs = stmtObls(s.capId, s.ref);
       const ctrls = (s.controls || []).map(ctrlLabel).map(esc).join('; ');
       return `<tr${s.hasControl ? '' : ' class="ev-row-gap"'}>
-        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', s.capId, capPillar))}</td>
-        <td>${esc(capName(s.capId))}</td>
+        <td class="pil-col">${evGroupTagForStmt(ctx, s.capId, s.ref)}</td>
+        <td>${esc(cN(s.capId))}</td>
         <td>${esc(s.document)}</td>
         <td>${docStatusCell(docStatus[dkey(s)])}</td>
         <td>${esc(s.source)}</td>
@@ -322,7 +359,7 @@
 
     return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → risk-treatment-control, with owner', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide ev-sortable">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>${hGroup()}</th><th>${hDim()}</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }
@@ -337,7 +374,9 @@
   // Headline stats stay per DISTINCT control, reconciling with the exec card.
   function evidenceControl3(ctx) {
     const { a, meta, bops, capPillar, norm } = ctx;
-    const facts = (a.riskPolicyFacts || []).filter(f =>
+    const cN = id => lensCapNm(ctx, id);
+    const lensFactsAll = (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
+    const facts = lensFactsAll.filter(f =>
       !ftIsClosedControl(f) && (f.controlName || '').trim() && (f.matchedPolicyRows || []).length);
     const impl = bops.implemented, assured = bops.assured, blind = bops.blindSpots.length,
           eff = bops.liveEffective, identified = bops.identified.length;
@@ -366,15 +405,16 @@
 
     // Primary table — one row per control × the ICT risk it treats (the RCSA view).
     const rows = facts.slice().sort((x, y) =>
-      capName(x.capId).localeCompare(capName(y.capId))
+      cN(x.capId).localeCompare(cN(y.capId))
       || (x.controlNumber || '').localeCompare(y.controlNumber || '')
       || (x.riskTitle || '').localeCompare(y.riskTitle || '')).map(f => {
       const live = ftIsImplemented(f), blindRow = live && ftIsNotAssessed(f);
       const ctrlLbl = (f.controlNumber ? f.controlNumber + ' — ' : '') + (f.controlName || '');
       const refs = (f.matchedPolicyRows || []).map(mp => `<span class="ev-ref">${esc(mp.statementRef)}</span>`).join(' ');
+      const firstRef = ((f.matchedPolicyRows || [])[0] || {}).statementRef;
       return `<tr${blindRow ? ' class="ev-row-gap"' : ''}>
-        <td class="pil-col">${pillarTag(doraPillarShortFor('', '', f.capId, capPillar))}</td>
-        <td>${esc(capName(f.capId))}</td>
+        <td class="pil-col">${evGroupTagForStmt(ctx, f.capId, firstRef)}</td>
+        <td>${esc(cN(f.capId))}</td>
         <td>${esc(f.riskTitle || '') || DASH}</td>
         <td>${esc(ctrlLbl)}</td>
         <td>${esc(f.controlOwner || '') || DASH}</td>
@@ -389,7 +429,7 @@
     });
     const detail = `
       <table class="ev-tbl ev-tbl-wide ev-sortable">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>ICT Risk</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Status</th><th>Design</th><th>Operating</th><th>Effectiveness</th><th>Inherent &rarr; Residual</th><th>Last assessed</th><th>Statement ref(s)</th></tr></thead>
+        <thead><tr><th>${hGroup()}</th><th>${hDim()}</th><th>ICT Risk</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Status</th><th>Design</th><th>Operating</th><th>Effectiveness</th><th>Inherent &rarr; Residual</th><th>Last assessed</th><th>Statement ref(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
 
@@ -400,8 +440,8 @@
       ...bops.identified.map(c => ({ c, finding: 'Not effective', cls: 'ev-mid', action: 'Control-owner remediation' })),
     ];
     const regRows = reg.map(({ c, finding, cls, action }) => `<tr>
-      <td class="pil-col">${pillarTag(doraPillarShortFor('', '', c.capId, capPillar))}</td>
-      <td>${esc(capName(c.capId))}</td>
+      <td class="pil-col">${evGroupTagForStmt(ctx, c.capId, (c.refs || [])[0])}</td>
+      <td>${esc(cN(c.capId))}</td>
       <td>${esc((c.risks || []).join('; ')) || DASH}</td>
       <td>${esc(ctrlLabel(c))}</td>
       <td>${esc(c.owner) || DASH}</td>
@@ -412,7 +452,7 @@
       <h3 class="ev-sect-h">Identified findings register — controls not-effective or not-assessed</h3>
       <div class="ev-stat"><span class="ev-note">The oversight output: every live control with no current RCSA verdict (<b>blind spot</b> → oversight to assess) or rated not-effective (<b>identified finding</b> → control-owner remediation). Each is escalated to its control owner; the remediation reference is tracked in the RCSA / action log.</span></div>
       ${reg.length ? `<table class="ev-tbl ev-tbl-wide ev-sortable ev-reg-tbl">
-        <thead><tr><th>DORA Pillar</th><th>Capability</th><th>ICT Risk(s)</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Finding</th><th>Escalation / remediation</th></tr></thead>
+        <thead><tr><th>${hGroup()}</th><th>${hDim()}</th><th>ICT Risk(s)</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Finding</th><th>Escalation / remediation</th></tr></thead>
         <tbody>${regRows}</tbody></table>`
         : `<p class="dora-all-covered">✓ Every live control has a current RCSA verdict and no not-effective findings outstanding.</p>`}`;
 

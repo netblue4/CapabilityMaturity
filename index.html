@@ -399,9 +399,18 @@
       if (note) note.innerHTML = activeLens === 'dora'
         ? 'DORA — the full model, exactly as configured for the current regime.'
         : `${FRAMEWORKS[activeLens].label} module — same control framework, mapped through the policies to its ${FRAMEWORKS[activeLens].unitLabel}.`;
-      const sub = document.getElementById('site-subtitle');
-      if (sub) { const L = FRAMEWORKS[activeLens].label, u = activeLens === 'nist' ? 'subcategory' : 'article'; sub.textContent = `${L} ${u} → ${L} objective → policy statement → control → operationalisation`; }
+      updateSiteSubtitle();
     }
+    // The header methodology breadcrumb, written for the active lens. Called when
+    // a report view is opened (the on-screen lens switch bar was removed, so the
+    // subtitle now follows whichever Reporting screen you are on).
+    function updateSiteSubtitle() {
+      const sub = document.getElementById('site-subtitle');
+      if (!sub || typeof FRAMEWORKS === 'undefined' || !FRAMEWORKS[activeLens]) return;
+      const L = FRAMEWORKS[activeLens].label, u = activeLens === 'nist' ? 'subcategory' : 'article';
+      sub.textContent = `${L} ${u} → ${L} objective → policy statement → control → operationalisation`;
+    }
+    window.updateSiteSubtitle = updateSiteSubtitle;
     // Re-render the dashboard (the active analysis screen) when the lens changes.
     function rerenderActiveView() {
       try { if (typeof renderDashboard === 'function') renderDashboard(); }

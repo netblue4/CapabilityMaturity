@@ -4,8 +4,8 @@ function renderMeasureSummary(assessment) {
   // dashboard keeps the (DORA) Capability Lens and the Planning extract. All
   // lens-specific analysis lives in the reports now, so force the DORA lens here.
   if (typeof activeLens !== 'undefined') activeLens = 'dora';
-  const capLensSlot = document.getElementById("caplens-card-row");
-  if (capLensSlot) capLensSlot.innerHTML = renderCapabilityLensCard(assessment);
+  // The Capability Lens card now lives in the DORA Reporting screen; the main
+  // dashboard keeps only the Planning extract (+ Assessment History).
   const planSlot = document.getElementById("planning-card-row");
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }
@@ -371,15 +371,19 @@ function renderOwnershipCard(assessment) {
 
   _ownRows = rows;
   _ownSort = { col: 'capName', dir: 1 };
+  const copyBtn = (typeof actCopyBtn === 'function') ? actCopyBtn() : '';
   return `
     <div class="card measure-card">
       ${header(desc)}
-      <div class="rcsa-table-wrap">
-        <table class="src-table own-table">
-          <colgroup><col class="own-c-cap"><col class="own-c-doc"><col class="own-c-owner"><col class="own-c-num"><col class="own-c-bar"></colgroup>
-          <thead id="own-thead">${ownHead()}</thead>
-          <tbody id="own-tbody">${ownBody(ownSortRows())}</tbody>
-        </table>
+      <div class="act-block collapsed">
+        <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Ownership detail table ${copyBtn}</div>
+        <div class="act-body"><div class="rcsa-table-wrap">
+          <table class="src-table own-table">
+            <colgroup><col class="own-c-cap"><col class="own-c-doc"><col class="own-c-owner"><col class="own-c-num"><col class="own-c-bar"></colgroup>
+            <thead id="own-thead">${ownHead()}</thead>
+            <tbody id="own-tbody">${ownBody(ownSortRows())}</tbody>
+          </table>
+        </div></div>
       </div>
     </div>`;
 }

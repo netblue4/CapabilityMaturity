@@ -7,6 +7,59 @@
   let _piComputed            = [];
   let _piCandidatePolicyRows = [];
 
+  // ── Lens helpers ─────────────────────────────────────────────────
+  // DORA maps CSV groupings onto CONFIG.capabilities; MiCA/NIST take the CSV's
+  // own grouping values (Service / Category) directly as free-form groups.
+  const _lk      = () => (typeof activeLens !== 'undefined') ? activeLens : 'dora';
+  const _isDora  = () => _lk() === 'dora';
+  const _fw      = () => (typeof activeFramework === 'function') ? activeFramework()
+                         : { policyKey: 'policyRows', factsKey: 'riskPolicyFacts', policyMetaKey: 'policyStatements', groupsKey: null };
+  const _slug    = s => (String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')) || 'group';
+  // group CSV value → group id for the active lens.
+  function _groupIdOf(csvName, mapping) {
+    if (_isDora()) return mapping[csvName] || null;            // mapped CONFIG id
+    return csvName ? _slug(csvName) : null;                    // free-form slug
+  }
+  function _groupName(csvCap, capId) {
+    if (_isDora()) { const c = (CONFIG.capabilities || []).find(x => x.id === capId); return c ? c.name : capId; }
+    return csvCap;                                             // free-form group name
+  }
+  // Flatten the CSV into policy rows (one per statement) for the active lens.
+  function _extractPolicyRows(mapping) {
+    const out = [];
+    _piRows.forEach(row => {
+      const csvCap = row[_piCols.capability] || '';
+      const capId  = _groupIdOf(csvCap, mapping);
+      if (!capId) return;
+      const ref = _piCols.ref ? (row[_piCols.ref] || '').trim() : '';
+      if (!ref) return;
+      out.push({
+        capId, capName: _groupName(csvCap, capId),
+        statementRef:    ref,
+        type:            _piCols.type      ? (row[_piCols.type]      || '').trim() : '',
+        document:        _piCols.document  ? (row[_piCols.document]  || '').trim() : '',
+        status:          _piCols.status    ? (row[_piCols.status]    || '').trim() : '',
+        statementHeader: _piCols.header    ? (row[_piCols.header]    || '').trim() : '',
+        statementDetail: _piCols.detail    ? (row[_piCols.detail]    || '').trim() : '',
+        owner:           _piCols.owner     ? (row[_piCols.owner]     || '').trim() : '',
+        exception:       _piCols.exception ? (row[_piCols.exception] || '').trim() : '',
+      });
+    });
+    return out;
+  }
+  // Distinct {id,name} groups present in the rows (for the lens group registry).
+  function _groupsFromRows(rows) {
+    const seen = {}, out = [];
+    rows.forEach(r => { if (!seen[r.capId]) { seen[r.capId] = 1; out.push({ id: r.capId, name: r.capName || r.capId }); } });
+    return out;
+  }
+  function _currentMapping() {
+    const sels = document.querySelectorAll('.pi-cap-sel');
+    const mapping = {};
+    sels.forEach(sel => { if (sel.value) mapping[_piCsvCapNames[parseInt(sel.dataset.idx)]] = sel.value; });
+    return mapping;
+  }
+
   // ── Entry point ──────────────────────────────────────────────────
   function initPolicyImport() {
     _piRows = []; _piCsvCapNames = []; _piCols = {}; _piComputed = []; _piCandidatePolicyRows = [];
@@ -76,8 +129,13 @@
     // "Document" must not capture "Document Type" / "Document Status".
     let docIdx = hl.findIndex(h => h === 'document');
     if (docIdx < 0) docIdx = hl.findIndex(h => h.includes('document') && !h.includes('type') && !h.includes('status'));
+    // Grouping column is lens-specific: DORA=Capability, MiCA=Service, NIST=Category.
+    const lensKey = (typeof activeLens !== 'undefined') ? activeLens : 'dora';
+    const groupTerms = lensKey === 'mica' ? ['service', 'capability', 'process', 'domain', 'function']
+                     : lensKey === 'nist' ? ['category', 'subcategory', 'function', 'capability', 'process', 'domain']
+                     :                       ['capability', 'process', 'domain', 'function'];
     return {
-      capability: find('capability', 'process', 'domain', 'function'),
+      capability: find(...groupTerms),
       ref:        find('statement ref', 'ref', 'reference'),
       type:       find('document type', 'type'),
       document:   docIdx >= 0 ? headers[docIdx] : null,
@@ -102,14 +160,15 @@
         alert('Could not find a Statement Ref column.\nColumns found: ' + headers.join(', '));
         return;
       }
+      const dimLabel = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
       if (!_piCols.capability) {
-        alert('Could not find a Capability column.\nColumns found: ' + headers.join(', '));
+        alert(`Could not find a ${dimLabel} column.\nColumns found: ` + headers.join(', '));
         return;
       }
       _piRows = rows;
       _piCsvCapNames = [...new Set(rows.map(r => r[_piCols.capability]).filter(Boolean))];
       document.getElementById('pi-upload-info').textContent =
-        file.name + ' — ' + rows.length + ' rows, ' + _piCsvCapNames.length + ' unique capabilities detected.';
+        file.name + ' — ' + rows.length + ' rows, ' + _piCsvCapNames.length + ` unique ${dimLabel.toLowerCase()}(s) detected.`;
       renderPiMappingTable();
       showPiSection('pi-mapping');
     };
@@ -135,7 +194,16 @@
 
   // ── Step 2: mapping table ────────────────────────────────────────
   function renderPiMappingTable() {
+    const dimLabel = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
     const rows = _piCsvCapNames.map((name, i) => {
+      if (!_isDora()) {
+        // MiCA / NIST: the CSV's own grouping value is the group (identity map).
+        return `
+        <tr>
+          <td class="rk-map-csv">${name}</td>
+          <td><select class="pi-cap-sel" data-idx="${i}"><option value="${_slug(name)}" selected>${name}</option></select></td>
+        </tr>`;
+      }
       const match = piAutoMatch(name);
       const opts = CONFIG.capabilities.map(c =>
         `<option value="${c.id}"${c.id === match ? ' selected' : ''}>${c.name}</option>`
@@ -153,67 +221,24 @@
     }).join('');
     document.getElementById('pi-map-body').innerHTML = rows;
     const countEl = document.getElementById('pi-map-count');
-    if (countEl) countEl.textContent =
-      _piCsvCapNames.length + ' capabilities found — confirm or adjust the mappings below, then click Confirm Mappings.';
+    if (countEl) countEl.textContent = _isDora()
+      ? _piCsvCapNames.length + ' capabilities found — confirm or adjust the mappings below, then click Confirm Mappings.'
+      : `${_piCsvCapNames.length} ${dimLabel.toLowerCase()}(s) found — confirm, then click Confirm Mappings.`;
   }
 
   // ── Step 3: process mappings → review ────────────────────────────
   function processPolicyImport() {
-    const sels = document.querySelectorAll('.pi-cap-sel');
-    const mapping = {};
-    sels.forEach(sel => {
-      if (sel.value) mapping[_piCsvCapNames[parseInt(sel.dataset.idx)]] = sel.value;
-    });
+    const mapping = _currentMapping();
     if (!Object.keys(mapping).length) {
-      alert('Map at least one capability before confirming.');
+      alert('Map at least one ' + ((typeof lensDimLabel === 'function' ? lensDimLabel() : 'capability').toLowerCase()) + ' before confirming.');
       return;
     }
-
-    const grouped = {};
-    _piRows.forEach(row => {
-      const csvCap = row[_piCols.capability] || '';
-      const capId  = mapping[csvCap];
-      if (!capId) return;
-      const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
-      const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
-      const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
-      if (!ref) return;
-      if (!grouped[capId]) grouped[capId] = { count: 0, refs: [], types: {}, documents: [] };
-      const g = grouped[capId];
-      g.count++;
-      g.refs.push(ref);
-      if (type) g.types[type] = (g.types[type] || 0) + 1;
-      if (doc && !g.documents.includes(doc)) g.documents.push(doc);
-    });
-
-    _piComputed = Object.entries(grouped).map(([capId, data]) => {
-      const cap = CONFIG.capabilities.find(c => c.id === capId);
-      return { capId, capName: cap ? cap.name : capId, ...data };
-    });
-
-    if (!_piComputed.length) {
-      alert('No statement refs matched the configured mappings.');
+    _piCandidatePolicyRows = _extractPolicyRows(mapping);
+    _piComputed = _groupsFromRows(_piCandidatePolicyRows);
+    if (!_piCandidatePolicyRows.length) {
+      alert('No statement refs matched the mappings.');
       return;
     }
-
-    // Build flat policy rows for the preview (same logic as savePolicyImport)
-    _piCandidatePolicyRows = [];
-    _piRows.forEach(row => {
-      const csvCap = row[_piCols.capability] || '';
-      const capId  = mapping[csvCap];
-      if (!capId) return;
-      const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
-      const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
-      const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
-      const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
-      const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
-      const det  = _piCols.detail   ? (row[_piCols.detail]   || '').trim() : '';
-      const own  = _piCols.owner    ? (row[_piCols.owner]    || '').trim() : '';
-      const exc  = _piCols.exception ? (row[_piCols.exception] || '').trim() : '';
-      if (!ref) return;
-      _piCandidatePolicyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, statementDetail: det, owner: own, exception: exc });
-    });
-
     renderPiReviewTable();
     showPiSection('pi-review');
   }
@@ -239,45 +264,21 @@
     const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
     if (!assessment) { alert('No assessment open — return to an assessment before saving.'); return; }
 
-    // Rebuild mapping from current select state
-    const sels = document.querySelectorAll('.pi-cap-sel');
-    const mapping = {};
-    sels.forEach(sel => {
-      if (sel.value) mapping[_piCsvCapNames[parseInt(sel.dataset.idx)]] = sel.value;
-    });
+    const mapping    = _currentMapping();
+    const policyRows = _extractPolicyRows(mapping);
+    const fw         = _fw();
 
-    // Build flat policyRows (one per statement) from _piRows
-    const policyRows = [];
-    let unmapped = 0;
-    _piRows.forEach(row => {
-      const csvCap = row[_piCols.capability] || '';
-      const capId  = mapping[csvCap];
-      if (!capId) { unmapped++; return; }
-      const ref  = _piCols.ref      ? (row[_piCols.ref]      || '').trim() : '';
-      const type = _piCols.type     ? (row[_piCols.type]     || '').trim() : '';
-      const doc  = _piCols.document ? (row[_piCols.document] || '').trim() : '';
-      const st   = _piCols.status   ? (row[_piCols.status]   || '').trim() : '';
-      const hdr  = _piCols.header   ? (row[_piCols.header]   || '').trim() : '';
-      const det  = _piCols.detail   ? (row[_piCols.detail]   || '').trim() : '';
-      const own  = _piCols.owner    ? (row[_piCols.owner]    || '').trim() : '';
-      const exc  = _piCols.exception ? (row[_piCols.exception] || '').trim() : '';
-      if (!ref) return;
-      policyRows.push({ capId, statementRef: ref, type, document: doc, status: st, statementHeader: hdr, statementDetail: det, owner: own, exception: exc });
-    });
-
-    assessment.policyRows = policyRows;
-    assessment.policyStatements = {
+    // Write policy + facts into the ACTIVE lens's slots. DORA uses the original
+    // field names (policyRows / riskPolicyFacts) so its behaviour is unchanged.
+    assessment[fw.policyKey] = policyRows;
+    assessment[fw.policyMetaKey] = {
       uploadDate:      new Date().toISOString().slice(0, 10),
       totalStatements: policyRows.length,
-      unmapped,
-      byCapability:    buildPolicyByCapability(policyRows),
+      byCapability:    _isDora() ? buildPolicyByCapability(policyRows) : undefined,
     };
-
-    // Rebuild enriched fact table
-    assessment.riskPolicyFacts = buildRiskPolicyFacts(assessment.riskRows || [], policyRows);
-
-    // Rebuild stored summary tables for trend arrows
-    assessment.factSummary = buildFactSummary(assessment.riskPolicyFacts, policyRows);
+    if (fw.groupsKey) assessment[fw.groupsKey] = _groupsFromRows(policyRows);
+    assessment[fw.factsKey] = buildRiskPolicyFacts(assessment.riskRows || [], policyRows);
+    if (_isDora()) assessment.factSummary = buildFactSummary(assessment.riskPolicyFacts, policyRows);
 
     saveToLocalStorage();
     loadFromLocalStorage();
@@ -326,50 +327,23 @@ function renderPolicyCardContent(assessment, capId) {
     </div>`;
 }
 
+// Update the per-lens import summaries on the New/Edit Assessment screen.
 function refreshPolicyCards() {
-  const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
+  const a = editingId ? db.assessments.find(x => x.id === editingId) : null;
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  const FW = (typeof FRAMEWORKS !== 'undefined') ? FRAMEWORKS : {};
 
-  const ps = assessment?.policyStatements;
-  const polSummary = document.getElementById('policy-import-summary');
-  if (polSummary) {
-    polSummary.textContent = ps
-      ? `${ps.totalStatements} statements · Uploaded ${ps.uploadDate}`
-      : 'No policy data uploaded';
-  }
-
-  const doraSummary = document.getElementById('dora-import-summary');
-  if (doraSummary) {
-    const dm = assessment?.doraMeta;
-    doraSummary.textContent = dm
-      ? `${dm.totalObligations} obligations · ${dm.coveredObligations} covered · Uploaded ${dm.uploadDate}`
-      : 'No DORA mapping uploaded';
-  }
-
-  const soaSummary = document.getElementById('dora-soa-import-summary');
-  if (soaSummary) {
-    const sm = assessment?.doraSoaMeta;
-    soaSummary.textContent = sm
-      ? `${sm.total} articles/RTS · ${sm.applicable} applicable · Uploaded ${sm.uploadDate}`
-      : 'No DORA SOA uploaded';
-  }
-
-  const rkSummary = document.getElementById('rk-data-summary');
-  if (rkSummary) {
-    const riskRows = assessment?.riskRows || [];
-    const caps = new Set(riskRows.map(r => r.capId)).size;
-    rkSummary.textContent = caps > 0
-      ? `Risk data for ${caps} capabilities · ${riskRows.length} controls`
-      : 'No risk data uploaded';
-  }
-
-  (CONFIG.capabilities || []).forEach(cap => {
-    const el = document.getElementById(`policy-card-${cap.id}`);
-    if (!el) return;
-    el.innerHTML = `
-      <div class="policy-data-card-hdr">
-        <span>📋</span>
-        <span>Uploaded Policy Data</span>
-      </div>
-      ${renderPolicyCardContent(assessment, cap.id)}`;
+  ['dora', 'mica', 'nist'].forEach(key => {
+    const f = FW[key]; if (!f) return;
+    const soa = a && a[f.soaMetaKey];
+    set(`imp-soa-${key}`, soa ? `${soa.total} ${f.unitLabel} · ${soa.applicable} applicable · ${soa.uploadDate}` : `No ${f.label} SOA uploaded`);
+    const pol = a && a[f.policyMetaKey];
+    set(`imp-pol-${key}`, pol ? `${pol.totalStatements} statements · ${pol.uploadDate}` : `No ${f.label} policy data uploaded`);
+    const map = a && a[f.metaKey];
+    set(`imp-map-${key}`, map ? `${map.totalObligations} objectives · ${map.coveredObligations} covered · ${map.uploadDate}` : `No ${f.label} mapping uploaded`);
   });
+
+  const riskRows = a?.riskRows || [];
+  const caps = new Set(riskRows.map(r => r.capId)).size;
+  set('rk-data-summary', caps > 0 ? `Risk data · ${riskRows.length} controls across ${caps} capabilities` : 'No risk data uploaded');
 }

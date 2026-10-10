@@ -29,11 +29,11 @@
   }
   function closeEvidenceModal() { document.getElementById('evidence-modal').style.display = 'none'; }
 
-  function generateEvidence(control) {
-    const a = db.assessments.find(x => x.id === document.getElementById('evidence-sel').value);
-    if (!a) return;
-    closeEvidenceModal();
-    const policyRows = a.policyRows || [], facts = a.riskPolicyFacts || [];
+  // Build the shared evidence context for an assessment under the ACTIVE lens.
+  // Exposed so the Reporting screens can embed a control's evidence directly.
+  function buildEvidenceCtx(a) {
+    const policyRows = (typeof lensPolicy === 'function') ? lensPolicy(a) : (a.policyRows || []);
+    const facts      = (typeof lensFacts === 'function')  ? lensFacts(a)  : (a.riskPolicyFacts || []);
     const model = buildDoraObligations(lensRows(a), policyRows, facts);
     const meta  = { label: a.label, date: formatDate(a.date) };
     const norm  = s => (s == null ? '' : String(s)).toLowerCase().trim();
@@ -68,13 +68,21 @@
     });
     const stmtOwners = (capId, ref) => [...(ownByStmt[capId + '||' + norm(ref)] || [])].join('; ');
 
-    const ctx = { a, model, meta, cov, bops, capPillar, docStatus, oblByStmt, stmtObls, stmtOwners, norm };
-    const html = control === 1 ? evidenceControl1(ctx)
-               : control === 2 ? evidenceControl2(ctx)
-               :                  evidenceControl3(ctx);
-    document.getElementById('evidence-content').innerHTML = html;
-    showView('evidence');
-    window.scrollTo(0, 0);
+    return { a, model, meta, cov, bops, capPillar, docStatus, oblByStmt, stmtObls, stmtOwners, norm };
+  }
+
+  // HTML for one control's evidence page (1/2/3) under the active lens. Used by
+  // the Reporting screens. opts.embedded = true renders a slim head (no big
+  // title / Copy / Print) so it nests inside a report card.
+  let _evEmbedded = false;
+  function evidenceControlHtml(a, control, opts) {
+    _evEmbedded = !!(opts && opts.embedded);
+    try {
+      const ctx = buildEvidenceCtx(a);
+      return control === 1 ? evidenceControl1(ctx)
+           : control === 2 ? evidenceControl2(ctx)
+           :                  evidenceControl3(ctx);
+    } finally { _evEmbedded = false; }
   }
 
   // Copy a table into the clipboard as TSV (paste straight into Excel).
@@ -88,10 +96,16 @@
       setTimeout(() => { btn.textContent = old; }, 1500);
     }).catch(() => { btn.textContent = 'Copy failed'; });
   }
-  // The page's detail table (Control 1/2/3) — the top "Copy for Excel" button.
-  function copyEvidenceTable(btn) { copyTableTsv(document.querySelector('#evidence-content table.ev-tbl'), btn); }
+  // Find a table near the clicked button (evidence is now embedded in reports,
+  // so scope to the button's own view/section rather than a fixed container).
+  function _nearTable(btn, sel) {
+    const scope = btn && (btn.closest('.view') || btn.closest('.card') || document);
+    return (scope && scope.querySelector(sel)) || document.querySelector(sel);
+  }
+  // The page's detail table (Control 1/2/3) — the "Copy for Excel" button.
+  function copyEvidenceTable(btn) { copyTableTsv(_nearTable(btn, 'table.ev-tbl'), btn); }
   // The DORA SOA table (Control 1 only).
-  function copySoaTable(btn) { copyTableTsv(document.querySelector('#evidence-content table.ev-soa-tbl'), btn); }
+  function copySoaTable(btn) { copyTableTsv(_nearTable(btn, 'table.ev-soa-tbl'), btn); }
 
   // Click-to-sort for any evidence table tagged .ev-sortable. DOM-based: sorts
   // the existing rows by the clicked column's text (numeric-aware), toggling
@@ -117,7 +131,7 @@
     rows.forEach(r => tbody.appendChild(r));
   }
   document.addEventListener('click', e => {
-    const th = e.target.closest('#evidence-content .ev-sortable thead th');
+    const th = e.target.closest('.ev-sortable thead th');
     if (th) sortEvTable(th);
   });
 
@@ -125,6 +139,11 @@
   function pageHead(controlName, subtitle, meta, stat) {
     const title = `${esc(appName())} — ${esc(controlName)}`;
     const sub   = `${esc(meta.label)} · ${esc(meta.date)}${subtitle ? ' · ' + subtitle : ''}`;
+    // Embedded in a Reporting card: slim header, no standalone-page chrome.
+    if (_evEmbedded) {
+      return `<div class="ev-embed-head"><h3 class="ev-embed-title">${esc(controlName)}</h3><p class="ev-sub">${sub}</p></div>
+      ${stat ? `<div class="ev-stat">${stat}</div>` : ''}`;
+    }
     return `
       <div class="ev-top no-print">
         <div><h2 class="ev-title">${title}</h2><p class="ev-sub">${sub}</p></div>
@@ -404,7 +423,7 @@
   // ── Expose globals ───────────────────────────────────────────────
   window.showEvidenceModal  = showEvidenceModal;
   window.closeEvidenceModal = closeEvidenceModal;
-  window.generateEvidence   = generateEvidence;
+  window.evidenceControlHtml = evidenceControlHtml;
   window.copyEvidenceTable  = copyEvidenceTable;
   window.copySoaTable       = copySoaTable;
 })();

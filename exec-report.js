@@ -21,7 +21,8 @@ function showReportModal(type) {
   document.getElementById('exec-prev-sel').value = db.assessments[Math.max(0, n - 2)].id;
   document.getElementById('exec-curr-sel').value = db.assessments[n - 1].id;
   const titleEl = document.getElementById('report-modal-title');
-  if (titleEl) titleEl.textContent = _reportType === 'roc' ? 'Generate ROC report' : 'Generate DORA Forum report';
+  const names = { dora: 'DORA Reporting', mica: 'MiCA Reporting', nist: 'NIST CSF Reporting', roc: 'Risk Oversight Committee Reporting' };
+  if (titleEl) titleEl.textContent = 'Generate ' + (names[_reportType] || 'report');
   document.getElementById('exec-report-modal').style.display = 'flex';
 }
 function showExecReportModal() { showReportModal('dora'); }   // back-compat
@@ -29,7 +30,9 @@ function closeExecReportModal() {
   document.getElementById('exec-report-modal').style.display = 'none';
 }
 function generateReport() {
-  if (_reportType === 'roc') generateRocReport(); else generateDoraForumReport();
+  if (_reportType === 'roc') return generateRocReport();
+  if (_reportType === 'mica' || _reportType === 'nist') return generateLensReport(_reportType);
+  return generateDoraForumReport();
 }
 
 // ── The operationalisation story — four sequential steps ──────────
@@ -108,6 +111,41 @@ function generateRocReport() {
     <div class="exec-rcsa-wrap">${renderRiskControlExtract(currentA)}</div>
   `);
   showView('roc-report');
+}
+
+// MiCA / NIST CSF Reporting — scaffold. Scoped entirely to the chosen lens's own
+// SOA + policy + mapping (single shared control framework underneath). Renders
+// the lens's Control 1 coverage + Control 2/3 evidence; the full report layout
+// is to be defined per-lens. Everything here reads the lens's own data via the
+// lens accessors, so no DORA data leaks in.
+function generateLensReport(lens) {
+  const currentA = db.assessments.find(a => a.id === document.getElementById('exec-curr-sel').value);
+  if (!currentA) return;
+  closeExecReportModal();
+  const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
+  const F = (typeof FRAMEWORKS !== 'undefined') ? FRAMEWORKS[lens] : { label: lens, dimLabel: '' };
+  const html = runWithLens(lens, () => {
+    const hasPolicy = (typeof lensPolicy === 'function') && lensPolicy(currentA).length > 0;
+    const ev = (n) => (typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, n, { embedded: true }) : '';
+    return `
+    <div class="exec-report-top no-print" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+    <div class="card measure-card lens-report-intro">
+      <div class="measure-card-header"><span class="measure-icon">${F.icon || '📋'}</span>
+        <div style="flex:1"><div class="exsc-eyebrow">${escHtml(F.label)} Reporting</div>
+        <h3 class="measure-card-title">${escHtml(F.label)} — single control framework, ${escHtml(F.label)} lens</h3>
+        <p class="measure-card-desc">Scoped to the ${escHtml(F.label)} SOA, ${escHtml(F.label)} policy data (grouped by <b>${escHtml(F.dimLabel)}</b>) and ${escHtml(F.label)} objective mapping. The risk &amp; control data underneath is shared across all lenses. <em>Report layout to be defined.</em></p></div>
+      </div>
+    </div>
+    <div class="exec-rcsa-wrap">${renderDoraCoverageCard(currentA)}</div>
+    ${hasPolicy ? `<div class="exec-rcsa-wrap card measure-card">${ev(2)}</div>
+    <div class="exec-rcsa-wrap card measure-card">${ev(3)}</div>` :
+    `<div class="card measure-card"><p class="policy-no-data" style="margin:.6rem 0">No ${escHtml(F.label)} policy data loaded for this assessment yet — import <b>${escHtml(F.label)} Policy Data</b> (grouped by ${escHtml(F.dimLabel)}) on the New/Edit Assessment screen to populate Controls 2 &amp; 3.</p></div>`}
+    `;
+  });
+  document.getElementById(lens + '-report-content').innerHTML = html;
+  showView(lens + '-report');
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -608,12 +646,12 @@ function renderExecCoverageMatrix(currentA) {
     ${legend}
     <div class="act-block collapsed">
       <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Coverage detail table (per article/RTS)</div>
-      <div class="act-body"><div class="rcsa-table-wrap">
+      <div class="act-body">${(typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, 1, { embedded: true }) : `<div class="rcsa-table-wrap">
         <table class="exm-tbl">
           <thead id="exm-thead">${exmHead()}</thead>
           <tbody id="exm-tbody">${exmBody(exmSortRows())}</tbody>
         </table>
-      </div></div>
+      </div>`}</div>
     </div>
   </div>`;
 }
@@ -772,11 +810,11 @@ function renderExecControl2(currentA, prevA) {
     </div>
     <div class="act-block collapsed">
       <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Approval &amp; operationalisation tables (Group Standards &amp; Policies)</div>
-      <div class="act-body">
+      <div class="act-body">${(typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, 2, { embedded: true }) : `
         <div class="ex2-section">Group Standards — approval &amp; operationalisation</div>
         <div class="rcsa-table-wrap">${ex2DocTable('gs')}</div>
         <div class="ex2-section">Policies — approval &amp; operationalisation</div>
-        <div class="rcsa-table-wrap">${ex2DocTable('pol')}</div>
+        <div class="rcsa-table-wrap">${ex2DocTable('pol')}</div>`}
       </div>
     </div>
   </div>`;
@@ -925,7 +963,7 @@ function renderExecControl3(currentA, prevA) {
     ${execQuadrant(risks)}
     <div class="act-block collapsed">
       <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Risk &amp; control detail table</div>
-      <div class="act-body"><div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div></div>
+      <div class="act-body">${(typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, 3, { embedded: true }) : `<div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div>`}</div>
     </div>
   </div>`;
 }

@@ -1,19 +1,11 @@
 // ── Dashboard data cards (governance + themed risk + RCSA metrics) ──
 function renderMeasureSummary(assessment) {
-  const currentIndex = db.assessments.findIndex(a => a.id === assessment.id);
-  const prev = currentIndex > 0 ? db.assessments[currentIndex - 1] : null;
-
-  const doraSlot = document.getElementById("dora-card-row");
-  if (doraSlot) doraSlot.innerHTML = renderDoraCoverageCard(assessment);
-  const srcSlot = document.getElementById("sources-card-row");
-  if (srcSlot) srcSlot.innerHTML = renderSourcesCard(assessment);
-  const rmSlot = document.getElementById("riskmgmt-card-row");
-  if (rmSlot) rmSlot.innerHTML = renderThemedRiskSection(assessment, prev);
+  // The Control 1/2/3 cards moved into the per-lens Reporting screens; the main
+  // dashboard keeps the (DORA) Capability Lens and the Planning extract. All
+  // lens-specific analysis lives in the reports now, so force the DORA lens here.
+  if (typeof activeLens !== 'undefined') activeLens = 'dora';
   const capLensSlot = document.getElementById("caplens-card-row");
   if (capLensSlot) capLensSlot.innerHTML = renderCapabilityLensCard(assessment);
-  // The DORA → Control traceability and Risk & control (full extract) tables moved
-  // into the DORA Forum and ROC reports respectively (so each report carries its
-  // own supporting data), so they are no longer rendered on the main screen.
   const planSlot = document.getElementById("planning-card-row");
   if (planSlot) planSlot.innerHTML = renderPlanningCard(assessment);
 }

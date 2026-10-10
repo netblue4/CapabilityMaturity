@@ -1,0 +1,16 @@
+Service,Statement Ref,Document Type,Document,Document Status,Statement Header,Statement Detail,Owner,Exception
+Operation of a trading platform,LP-01 PS01,Local Policy,Local ICT Asset Management Policy,Approved,ICT asset inventory maintained,Anonymised statement detail for LP-01 PS01.,IT Ops,
+Operation of a trading platform,LP-01 PS02,Local Policy,Local ICT Asset Management Policy,Approved,Asset ownership assigned,Anonymised statement detail for LP-01 PS02.,Risk 2nd-line,
+Operation of a trading platform,GS-01 SR01,Group Standard,Group ICT Configuration Standard,Approved,Configuration baselines defined,Anonymised statement detail for GS-01 SR01.,InfoSec,
+Operation of a trading platform,LP-02 PS01,Local Policy,Local ICT Change Management Policy,Approved,Changes risk-assessed before deployment,Anonymised statement detail for LP-02 PS01.,IT Ops,
+Operation of a trading platform,LP-02 PS02,Local Policy,Local ICT Change Management Policy,Draft,Emergency change process defined,Anonymised statement detail for LP-02 PS02.,IT Ops,
+Operation of a trading platform,LP-03 PS01,Local Policy,Local ICT Incident Management Policy,Approved,Incidents classified by severity,Anonymised statement detail for LP-03 PS01.,InfoSec,
+Operation of a trading platform,GS-02 SR01,Group Standard,Group ICT Incident Standard,Approved,Major incident escalation defined,Anonymised statement detail for GS-02 SR01.,Risk 2nd-line,
+Custody & administration of crypto-assets,LP-04 PS01,Local Policy,Local ICT Third-Party Policy,Draft,Critical providers register maintained,Anonymised statement detail for LP-04 PS01.,Compliance,
+Custody & administration of crypto-assets,LP-04 PS02,Local Policy,Local ICT Third-Party Policy,Approved,Provider exit strategies documented,Anonymised statement detail for LP-04 PS02.,Risk 2nd-line,IMPLEMENTED
+Custody & administration of crypto-assets,LP-05 PS01,Local Policy,Local ICT Vulnerability Policy,Approved,Vulnerability scans scheduled,Anonymised statement detail for LP-05 PS01.,InfoSec,WT
+Custody & administration of crypto-assets,GS-03 SR01,Group Standard,Group ICT Security Standard,Approved,Patch SLAs defined,Anonymised statement detail for GS-03 SR01.,InfoSec,
+Custody & administration of crypto-assets,LP-06 PS01,Local Policy,Local ICT Access Control Policy,Approved,Access reviews performed quarterly,Anonymised statement detail for LP-06 PS01.,Compliance,
+Custody & administration of crypto-assets,LP-06 PS02,Local Policy,Local ICT Access Control Policy,Approved,Privileged access restricted,Anonymised statement detail for LP-06 PS02.,InfoSec,
+Client-asset safeguarding,MP-01 PS01,Local Policy,Client Asset Protection Policy,Draft,Client crypto-assets segregated from firm holdings,New MiCA policy covering Article 70 safekeeping.,Compliance,
+Conduct & investor protection,MP-02 PS01,Local Policy,Client Complaints Policy,Draft,Complaints-handling procedure operated,New MiCA policy covering Article 71 complaints.,Compliance,

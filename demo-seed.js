@@ -42,6 +42,14 @@
     await feed('dora-file-input', file);
     await waitVisible('dora-review'); saveDoraImport();
   }
+  // Import policy statements into the CURRENT lens's slot (groups auto-map for
+  // MiCA/NIST; DORA maps onto CONFIG capabilities).
+  async function importPolicy(id, file) {
+    openAssessmentForm(id); showView('policy-import'); initPolicyImport();
+    await feed('pi-file-input', file);
+    await waitVisible('pi-mapping'); processPolicyImport();
+    await waitVisible('pi-review'); savePolicyImport();
+  }
   // Import a Statement of Applicability into the CURRENT lens's slot.
   async function importSoa(id, file) {
     openAssessmentForm(id); showView('dora-soa-import'); initDoraSoaImport();
@@ -56,33 +64,30 @@
   async function importAssessment(id, label, date, riskFile) {
     db.assessments = db.assessments.filter(a => a.id !== id);
     db.assessments.push({ id: id, label: label, date: date });
-    // 1 · Policy statements (shared)
+    // ── DORA lens ── SOA + policy (by Capability) + mapping
     if (typeof activeLens !== 'undefined') activeLens = 'dora';
-    openAssessmentForm(id); showView('policy-import'); initPolicyImport();
-    await feed('pi-file-input', 'demo-policy.csv');
-    await waitVisible('pi-mapping'); processPolicyImport();
-    await waitVisible('pi-review'); savePolicyImport();
-    // 2 · DORA → policy mapping (DORA lens)
+    await importPolicy(id, 'demo-policy.csv');
     await importMapping(id, 'demo-dora.csv');
-    // 3 · Risk & control (RCSA) — shared
+    await importSoa(id, 'demo-soa.csv');
+    // ── MiCA lens ── SOA + policy (by Service) + mapping
+    if (typeof activeLens !== 'undefined') {
+      activeLens = 'mica';
+      await importPolicy(id, 'mica-policy.csv');
+      await importMapping(id, 'mica.csv');
+      await importSoa(id, 'mica-soa.csv');
+      // ── NIST CSF lens ── SOA + policy (by Category) + mapping
+      activeLens = 'nist';
+      await importPolicy(id, 'nist-policy.csv');
+      await importMapping(id, 'nist.csv');
+      await importSoa(id, 'nist-soa.csv');
+      activeLens = 'dora';
+    }
+    // ── Shared control framework ── risk & control (RCSA). Rebuilds per-lens facts.
     openAssessmentForm(id); showView('riskonnect-import'); initRiskonnectImport();
     await feed('rk-file-input', riskFile);
     await waitVisible('rk-mapping'); processRkImport();
     await waitVisible('rk-review');
     document.getElementById('rk-assessment-sel').value = id; saveRkImport();
-    // 4 · DORA SOA (DORA lens)
-    await importSoa(id, 'demo-soa.csv');
-    // 5 · MiCA module (objectives + SOA → MiCA lens slots)
-    if (typeof activeLens !== 'undefined') {
-      activeLens = 'mica';
-      await importMapping(id, 'mica.csv');
-      await importSoa(id, 'mica-soa.csv');
-      // 6 · NIST CSF module (objectives + SOA → NIST lens slots)
-      activeLens = 'nist';
-      await importMapping(id, 'nist.csv');
-      await importSoa(id, 'nist-soa.csv');
-      activeLens = 'dora';
-    }
   }
 
   async function loadDemoData() {

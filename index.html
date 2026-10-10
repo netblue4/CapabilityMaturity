@@ -45,18 +45,12 @@
             <input type="file" id="import-file" accept=".json" style="display:none" />
           </label>
           <button id="btn-theme-toggle" class="btn btn-outline" onclick="toggleTheme()" title="Switch to light theme">☀</button>
-          <button class="btn btn-outline" onclick="showReportModal('dora')">📋 DORA Forum</button>
-          <button class="btn btn-outline" onclick="showReportModal('roc')">📊 ROC</button>
-          <button class="btn btn-outline" onclick="showEvidenceModal()">📄 Evidence</button>
+          <button class="btn btn-outline" onclick="showReportModal('dora')">📋 DORA Reporting</button>
+          <button class="btn btn-outline" onclick="showReportModal('mica')">🪙 MiCA Reporting</button>
+          <button class="btn btn-outline" onclick="showReportModal('nist')">🔐 NIST CSF Reporting</button>
+          <button class="btn btn-outline" onclick="showReportModal('roc')">📊 Risk Oversight Committee Reporting</button>
           <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
         </div>
-      </div>
-
-      <!-- Regulatory lens switch — add-on modules (DORA = today's behaviour) -->
-      <div class="card lens-switch-card" id="lens-switch-bar">
-        <span class="lens-switch-label">Regulatory lens</span>
-        <div class="lens-switch" id="lens-switch"></div>
-        <span class="lens-switch-note" id="lens-switch-note"></span>
       </div>
 
       <div id="no-data-message" class="empty-state" style="display:none">
@@ -67,12 +61,6 @@
       </div>
 
       <div id="dashboard-content">
-
-        <div id="dora-card-row" class="risk-card-row"></div>
-
-        <div id="sources-card-row" class="risk-card-row"></div>
-
-        <div id="riskmgmt-card-row" class="risk-card-row"></div>
 
         <div class="card history-card">
           <h3 class="card-title">Assessment History</h3>
@@ -117,20 +105,38 @@
       </form>
     </section>
 
-    <!-- DORA Forum Report View -->
+    <!-- DORA Reporting View -->
     <section id="view-exec-report" class="view">
       <div class="section-header no-print">
         <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
-        <h2>DORA Forum report</h2>
+        <h2>DORA Reporting</h2>
       </div>
       <div id="exec-report-content"></div>
     </section>
 
-    <!-- ROC Report View -->
+    <!-- MiCA Reporting View -->
+    <section id="view-mica-report" class="view">
+      <div class="section-header no-print">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>MiCA Reporting</h2>
+      </div>
+      <div id="mica-report-content"></div>
+    </section>
+
+    <!-- NIST CSF Reporting View -->
+    <section id="view-nist-report" class="view">
+      <div class="section-header no-print">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>NIST CSF Reporting</h2>
+      </div>
+      <div id="nist-report-content"></div>
+    </section>
+
+    <!-- Risk Oversight Committee Reporting View -->
     <section id="view-roc-report" class="view">
       <div class="section-header no-print">
         <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
-        <h2>ROC report — Risk Oversight Committee</h2>
+        <h2>Risk Oversight Committee Reporting</h2>
       </div>
       <div id="roc-report-content"></div>
     </section>
@@ -153,36 +159,6 @@
         <div style="display:flex;gap:.75rem;margin-top:1.25rem">
           <button class="btn btn-primary" onclick="generateReport()">Generate</button>
           <button class="btn btn-ghost"   onclick="closeExecReportModal()">Cancel</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Evidence Report View -->
-    <section id="view-evidence" class="view">
-      <div class="section-header no-print">
-        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
-        <h2>Compliance Evidence</h2>
-      </div>
-      <div id="evidence-content"></div>
-    </section>
-
-    <!-- Evidence Chooser Modal -->
-    <div id="evidence-modal" class="modal-overlay" onclick="if(event.target===this)closeEvidenceModal()" style="display:none">
-      <div class="modal-box" style="max-width:460px">
-        <div class="modal-header">
-          <h3>Generate Compliance Evidence</h3>
-          <button class="modal-close" onclick="closeEvidenceModal()">✕</button>
-        </div>
-        <div class="form-row">
-          <label>Assessment</label>
-          <select id="evidence-sel" class="exec-sel"></select>
-        </div>
-        <p class="ev-modal-desc">Each control produces its own print-ready page you can save as PDF and attach to the matching Riskonnect control.</p>
-        <div class="ev-modal-btns">
-          <button class="btn btn-primary" onclick="generateEvidence(1)">Control 1 · Applicable DORA articles/RTS objectives covered by Policies and Group Standards</button>
-          <button class="btn btn-primary" onclick="generateEvidence(2)">Control 2 · Policy & Group Standard statement operationalised by controls</button>
-          <button class="btn btn-primary" onclick="generateEvidence(3)">Control 3 · Effectiveness oversight — identifying ineffective controls</button>
-          <button class="btn btn-ghost" onclick="closeEvidenceModal()">Cancel</button>
         </div>
       </div>
     </div>

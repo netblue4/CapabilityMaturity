@@ -161,69 +161,50 @@ function updateKpiPct(kpiId) {
   if (el) el.textContent = d > 0 ? Math.round((n / d) * 100) + '%' : '—';
 }
 
+// The New/Edit Assessment screen is a clean data-load surface: one button group
+// per regulatory lens (DORA / MiCA / NIST CSF), each with SOA + Policy + Mapping
+// imports, plus a single shared Import Risk Data below. Each import button sets
+// the target lens so the wizard writes to that lens's own slots.
 function buildCapabilityFields() {
   const container = document.getElementById("capability-fields");
 
-  const allCapCheckbox = `
-    <label class="dimension-check-label" style="border-color:var(--accent)">
-      <input type="checkbox" id="capability-check-all" checked
-        onchange="toggleAllCapabilities(this)" />
-      <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--accent)">ALL</span>
-    </label>`;
-
-  const capCheckboxes = CONFIG.capabilities.map((cap, i) => `
-    <label class="dimension-check-label">
-      <input type="checkbox" class="capability-check" value="${cap.id}" checked
-        onchange="updateDimensionVisibility()" />
-      <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--accent)">${i + 1}</span>
-      ${shortName(cap.name)}
-    </label>
-  `).join('');
-
-  const capFilterCard = `
-    <div class="card form-meta cap-nav-card">
-      <div class="form-row" style="margin-bottom:0">
-        <label>Capabilities to Rate</label>
-        <div class="dimension-checks">${allCapCheckbox}${capCheckboxes}</div>
-      </div>
-    </div>`;
-
-  const importBtnsRow = `
-    <div class="import-btn-row">
-      <div class="import-btn-item">
-        <button type="button" class="btn btn-outline"
-          onclick="showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data</button>
-        <span id="rk-data-summary" class="import-data-summary">No risk data uploaded</span>
-      </div>
-      <div class="import-btn-item">
-        <button type="button" class="btn btn-outline"
-          onclick="showView('policy-import');initPolicyImport()">📥 Import Policy Data</button>
-        <span id="policy-import-summary" class="import-data-summary">No policy data uploaded</span>
-      </div>
-      <div class="import-btn-item">
-        <button type="button" class="btn btn-outline"
-          onclick="showView('dora-import');initDoraImport()">📥 Import DORA Mapping</button>
-        <span id="dora-import-summary" class="import-data-summary">No DORA mapping uploaded</span>
-      </div>
-      <div class="import-btn-item">
-        <button type="button" class="btn btn-outline"
-          onclick="showView('dora-soa-import');initDoraSoaImport()">📥 Import DORA SOA</button>
-        <span id="dora-soa-import-summary" class="import-data-summary">No DORA SOA uploaded</span>
-      </div>
-    </div>`;
-
-  container.innerHTML = importBtnsRow + capFilterCard + CONFIG.capabilities.map(cap => `
-    <div class="card cap-card" id="capcard-${cap.id}" data-capability="${cap.id}">
-      <div class="cap-card-header">
-        <div>
-          <h3 class="cap-name">${cap.name}</h3>
-          <p class="cap-desc">${cap.description}</p>
+  const lensGroup = (key) => {
+    const f = FRAMEWORKS[key];
+    const dim = f.dimLabel;
+    return `
+    <div class="lens-import-group lens-import-${key}">
+      <div class="lens-import-hd"><span class="lens-import-ico">${f.icon}</span><span class="lens-import-name">${f.label}</span></div>
+      <div class="lens-import-btns">
+        <div class="import-btn-item">
+          <button type="button" class="btn btn-outline" onclick="setImportLens('${key}');showView('dora-soa-import');initDoraSoaImport()">📥 Import ${f.label} SOA</button>
+          <span id="imp-soa-${key}" class="import-data-summary">No ${f.label} SOA uploaded</span>
+        </div>
+        <div class="import-btn-item">
+          <button type="button" class="btn btn-outline" onclick="setImportLens('${key}');showView('policy-import');initPolicyImport()">📥 Import ${f.label} Policy Data</button>
+          <span id="imp-pol-${key}" class="import-data-summary">No ${f.label} policy data uploaded</span>
+        </div>
+        <div class="import-btn-item">
+          <button type="button" class="btn btn-outline" onclick="setImportLens('${key}');showView('dora-import');initDoraImport()">📥 Import ${f.label} Mapping</button>
+          <span id="imp-map-${key}" class="import-data-summary">No ${f.label} mapping uploaded</span>
         </div>
       </div>
+      <p class="lens-import-note">Policy Data groups by <b>${dim}</b>; Mapping links its objectives to the policy statements.</p>
+    </div>`;
+  };
 
-      ${buildKpiInputsBlock(cap)}
+  container.innerHTML = `
+    <div class="lens-import-grid">
+      ${lensGroup('dora')}
+      ${lensGroup('mica')}
+      ${lensGroup('nist')}
     </div>
-  `).join("");
+    <div class="lens-import-shared">
+      <div class="import-btn-item">
+        <button type="button" class="btn btn-primary" onclick="setImportLens('dora');showView('riskonnect-import');initRiskonnectImport()">📥 Import Risk Data</button>
+        <span id="rk-data-summary" class="import-data-summary">No risk data uploaded</span>
+      </div>
+      <p class="lens-import-note">Risk &amp; control data is the single control framework shared by all three lenses.</p>
+    </div>`;
 }
 
 // ── Dimension Selector ────────────────────────────────────────
@@ -330,31 +311,13 @@ function openAssessmentForm(id) {
   document.getElementById("assessment-form-title").textContent = id ? "Edit Assessment" : "New Assessment";
   setDefaultDate();
 
-  document.querySelectorAll(".capability-check").forEach(cb => cb.checked = true);
-  const allCapCb = document.getElementById("capability-check-all");
-  if (allCapCb) { allCapCb.checked = true; allCapCb.indeterminate = false; }
-
   if (id) {
     const a = db.assessments.find(x => x.id === id);
     if (a) {
       document.getElementById("assessment-label").value = a.label || "";
       document.getElementById("assessment-date").value = a.date || "";
-      (CONFIG.kpis || []).forEach(kpi => {
-        const val = a.kpiValues?.[kpi.id];
-        const nEl = document.getElementById(`kpi-n-${kpi.id}`);
-        const dEl = document.getElementById(`kpi-d-${kpi.id}`);
-        if (nEl) nEl.value = val?.n ?? 0;
-        if (dEl) dEl.value = val?.d ?? 0;
-        updateKpiPct(kpi.id);
-      });
     }
-  } else {
-    (CONFIG.kpis || []).forEach(kpi => {
-      const el = document.getElementById(`kpi-pct-${kpi.id}`);
-      if (el) el.textContent = '—';
-    });
   }
-  updateDimensionVisibility();
   refreshPolicyCards();
   showView("assessment");
 }
@@ -398,42 +361,22 @@ function updateTargetDisplay(capId, measureId, value) {
 function saveAssessment(e) {
   e.preventDefault();
 
-  // Fetch prevData so we can preserve imported risk/policy values
+  // Fetch prevData so we can preserve imported data blobs (all data arrives via
+  // the import wizards now — the form itself only captures label + date).
   const prevData = editingId ? db.assessments.find(a => a.id === editingId) : null;
 
-  // Only riskManagement (from the Riskonnect import) is preserved under measureScores.
-  const measureScores = {};
-  CONFIG.capabilities.forEach(cap => {
-    measureScores[cap.id] = { riskManagement: prevData?.measureScores?.[cap.id]?.riskManagement || {} };
-  });
-
-  const kpiValues = {};
-  (CONFIG.kpis || []).forEach(kpi => {
-    const n = parseInt(document.getElementById(`kpi-n-${kpi.id}`)?.value) || 0;
-    const d = parseInt(document.getElementById(`kpi-d-${kpi.id}`)?.value) || 0;
-    kpiValues[kpi.id] = { n, d };
-  });
-
-  // Preserve imported data blobs that live outside the form fields
   const assessment = {
     id: editingId || Date.now().toString(),
     label: document.getElementById("assessment-label").value.trim(),
     date: document.getElementById("assessment-date").value,
-    measureScores,
-    kpiValues,
   };
   if (prevData) {
-    if (prevData.riskRows)         assessment.riskRows         = prevData.riskRows;
-    if (prevData.policyRows)       assessment.policyRows       = prevData.policyRows;
-    if (prevData.riskPolicyFacts)  assessment.riskPolicyFacts  = prevData.riskPolicyFacts;
-    if (prevData.policyStatements) assessment.policyStatements = prevData.policyStatements;
-    if (prevData.factSummary)      assessment.factSummary      = prevData.factSummary;
-    if (prevData.doraRows)         assessment.doraRows         = prevData.doraRows;
-    if (prevData.doraMeta)         assessment.doraMeta         = prevData.doraMeta;
-    if (prevData.doraSoa)          assessment.doraSoa          = prevData.doraSoa;
-    if (prevData.doraSoaMeta)      assessment.doraSoaMeta      = prevData.doraSoaMeta;
-    // Carry forward the add-on regulatory-lens modules (MiCA / NIST CSF) too.
-    ['micaRows','micaMeta','micaSoa','micaSoaMeta','nistRows','nistMeta','nistSoa','nistSoaMeta'].forEach(k => { if (prevData[k]) assessment[k] = prevData[k]; });
+    // Shared control framework (risk data) + each lens's SOA / policy / mapping.
+    ['riskRows', 'factSummary',
+     'policyRows', 'riskPolicyFacts', 'policyStatements', 'doraRows', 'doraMeta', 'doraSoa', 'doraSoaMeta',
+     'micaRows', 'micaMeta', 'micaSoa', 'micaSoaMeta', 'micaPolicyRows', 'micaPolicyMeta', 'micaGroups', 'micaFacts',
+     'nistRows', 'nistMeta', 'nistSoa', 'nistSoaMeta', 'nistPolicyRows', 'nistPolicyMeta', 'nistGroups', 'nistFacts',
+    ].forEach(k => { if (prevData[k] !== undefined) assessment[k] = prevData[k]; });
   }
 
   if (editingId) {

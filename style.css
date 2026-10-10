@@ -3289,6 +3289,28 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .pil-tag-unmapped          { background: color-mix(in srgb, var(--text) 10%, transparent);        color: var(--text-muted);  border-color: var(--border); }
 .pil-col { white-space: nowrap; }
 
+/* ── New/Edit Assessment — per-lens import groups ────────────────────── */
+.lens-import-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+@media (max-width: 900px) { .lens-import-grid { grid-template-columns: 1fr; } }
+.lens-import-group { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: .6rem; }
+.lens-import-group.lens-import-dora { border-top: 3px solid var(--accent); }
+.lens-import-group.lens-import-mica { border-top: 3px solid var(--clr-warning); }
+.lens-import-group.lens-import-nist { border-top: 3px solid var(--clr-success); }
+.lens-import-hd { display: flex; align-items: center; gap: .5rem; }
+.lens-import-ico { font-size: 1.1rem; }
+.lens-import-name { font-family: var(--font-mono); font-size: .95rem; font-weight: 700; letter-spacing: .02em; }
+.lens-import-btns { display: flex; flex-direction: column; gap: .7rem; }
+.lens-import-btns .import-btn-item { display: flex; flex-direction: column; gap: .2rem; }
+.lens-import-btns .btn { width: 100%; justify-content: flex-start; }
+.lens-import-note { font-size: .72rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
+.lens-import-shared { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
+.lens-import-shared .import-btn-item { display: flex; flex-direction: column; gap: .2rem; max-width: 320px; }
+/* Evidence embedded inside a Reporting card */
+.ev-embed-head { margin: .2rem 0 .5rem; }
+.ev-embed-title { font-family: var(--font-mono); font-size: .9rem; font-weight: 700; margin: 0 0 .15rem; }
+.lens-report-intro .exsc-eyebrow { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.import-data-summary { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); }
+
 /* ── Regulatory lens switch (DORA / MiCA / NIST CSF) ─────────────────── */
 .lens-switch-card { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem .85rem; padding: .55rem 1rem; margin-bottom: .35rem; }
 .lens-switch-label { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }

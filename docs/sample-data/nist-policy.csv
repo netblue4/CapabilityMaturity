@@ -1,0 +1,15 @@
+Category,Statement Ref,Document Type,Document,Document Status,Statement Header,Statement Detail,Owner,Exception
+ID.AM Asset Management,LP-01 PS01,Local Policy,Local ICT Asset Management Policy,Approved,ICT asset inventory maintained,Anonymised statement detail for LP-01 PS01.,IT Ops,
+ID.AM Asset Management,LP-01 PS02,Local Policy,Local ICT Asset Management Policy,Approved,Asset ownership assigned,Anonymised statement detail for LP-01 PS02.,Risk 2nd-line,
+PR.PS Platform Security,GS-01 SR01,Group Standard,Group ICT Configuration Standard,Approved,Configuration baselines defined,Anonymised statement detail for GS-01 SR01.,InfoSec,
+ID.RA Risk Assessment,LP-02 PS01,Local Policy,Local ICT Change Management Policy,Approved,Changes risk-assessed before deployment,Anonymised statement detail for LP-02 PS01.,IT Ops,
+ID.RA Risk Assessment,LP-02 PS02,Local Policy,Local ICT Change Management Policy,Draft,Emergency change process defined,Anonymised statement detail for LP-02 PS02.,IT Ops,
+RS.MA Incident Management,LP-03 PS01,Local Policy,Local ICT Incident Management Policy,Approved,Incidents classified by severity,Anonymised statement detail for LP-03 PS01.,InfoSec,
+RS.MA Incident Management,GS-02 SR01,Group Standard,Group ICT Incident Standard,Approved,Major incident escalation defined,Anonymised statement detail for GS-02 SR01.,Risk 2nd-line,
+GV.SC Cybersecurity Supply Chain,LP-04 PS01,Local Policy,Local ICT Third-Party Policy,Draft,Critical providers register maintained,Anonymised statement detail for LP-04 PS01.,Compliance,
+GV.SC Cybersecurity Supply Chain,LP-04 PS02,Local Policy,Local ICT Third-Party Policy,Approved,Provider exit strategies documented,Anonymised statement detail for LP-04 PS02.,Risk 2nd-line,IMPLEMENTED
+ID.RA Risk Assessment,LP-05 PS01,Local Policy,Local ICT Vulnerability Policy,Approved,Vulnerability scans scheduled,Anonymised statement detail for LP-05 PS01.,InfoSec,WT
+PR.PS Platform Security,GS-03 SR01,Group Standard,Group ICT Security Standard,Approved,Patch SLAs defined,Anonymised statement detail for GS-03 SR01.,InfoSec,
+PR.AA Identity & Access Control,LP-06 PS01,Local Policy,Local ICT Access Control Policy,Approved,Access reviews performed quarterly,Anonymised statement detail for LP-06 PS01.,Compliance,
+PR.AA Identity & Access Control,LP-06 PS02,Local Policy,Local ICT Access Control Policy,Approved,Privileged access restricted,Anonymised statement detail for LP-06 PS02.,InfoSec,
+PR.DS Data Security,IS-01 PS01,Local Policy,InfoSec Backup & Recovery Policy,Draft,Backups created and tested,New InfoSec policy covering NIST PR.DS / RC recovery.,InfoSec,

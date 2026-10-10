@@ -68,7 +68,10 @@ function generateDoraForumReport() {
   if (!prevA || !currentA) return;
   closeExecReportModal();
 
-  document.getElementById('exec-report-content').innerHTML = `
+  // The DORA Forum report is a DORA deliverable — pin it to the DORA lens so the
+  // on-screen lens (MiCA / NIST) never bleeds into it.
+  const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
+  document.getElementById('exec-report-content').innerHTML = runWithLens('dora', () => `
     <div class="exec-report-top no-print" style="justify-content:flex-end">
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
@@ -79,7 +82,7 @@ function generateDoraForumReport() {
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderTraceabilityCard(currentA)}</div>
-  `;
+  `);
   showView('exec-report');
 }
 // Back-compat alias (tests / older callers).
@@ -94,13 +97,16 @@ function generateRocReport() {
   if (!prevA || !currentA) return;
   closeExecReportModal();
 
-  document.getElementById('roc-report-content').innerHTML = `
+  // ROC report is built over the full RCSA register (lens-independent), but pin
+  // to DORA for consistency so any lens-aware helper it reaches stays on DORA.
+  const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
+  document.getElementById('roc-report-content').innerHTML = runWithLens('dora', () => `
     <div class="exec-report-top no-print" style="justify-content:flex-end">
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecProgress(currentA, prevA)}
     <div class="exec-rcsa-wrap">${renderRiskControlExtract(currentA)}</div>
-  `;
+  `);
   showView('roc-report');
 }
 
@@ -470,7 +476,7 @@ function renderExecPillar(p, opts) {
   const head = `<div class="pil-head">
     <div class="pil-ico">${p.icon}</div>
     <div class="pil-head-txt">
-      <div class="pil-eyebrow">DORA Pillar · Chapter ${p.chapter} · ${escHtml(p.short)}</div>
+      <div class="pil-eyebrow">${p.chapter ? `DORA Pillar · Chapter ${p.chapter} · ${escHtml(p.short)}` : `${escHtml(typeof lensLabel === 'function' ? lensLabel() : 'Framework')} lens · ${escHtml(p.short || 'Capability')}`}</div>
       <div class="pil-title">${escHtml(p.name)}</div>
       <div class="pil-verdict">${escHtml(pilVerdict(p))}</div>
     </div>

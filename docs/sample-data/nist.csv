@@ -1,0 +1,20 @@
+NIST Subcategory,Paragraph Reference,NIST Outcome,Statement Ref,Statement Header,Document,Capability,Pillar
+ID.AM-01,ID.AM-01,Maintain an inventory of hardware ICT assets,LP-01 PS01,ICT asset inventory maintained,Local ICT Asset Management Policy,ICT Asset & Configuration Management,Identify
+ID.AM-02,ID.AM-02,Assign ownership for software services and systems,LP-01 PS02,Asset ownership assigned,Local ICT Asset Management Policy,ICT Asset & Configuration Management,Identify
+PR.PS-01,PR.PS-01,Establish and enforce secure configuration baselines,GS-01 SR01,Configuration baselines defined,Group ICT Configuration Standard,ICT Asset & Configuration Management,Protect
+ID.RA-01,ID.RA-01,Identify and record vulnerabilities in assets,LP-05 PS01,Vulnerability scans scheduled,Local ICT Vulnerability Management Policy,ICT Vulnerability Management,Identify
+DE.CM-09,DE.CM-09,Scan computing hardware and software for vulnerabilities,LP-05 PS01,Vulnerability scans scheduled,Local ICT Vulnerability Management Policy,ICT Vulnerability Management,Detect
+PR.PS-02,PR.PS-02,Maintain and patch software within defined SLAs,GS-03 SR01,Patch SLAs defined,Group ICT Vulnerability Standard,ICT Vulnerability Management,Protect
+PR.AA-01,PR.AA-01,Manage identities and credentials and review access,LP-06 PS01,Access reviews performed quarterly,Local ICT Access Control Policy,ICT Access Control Management,Protect
+PR.AA-05,PR.AA-05,Enforce least privilege for privileged access,LP-06 PS02,Privileged access restricted,Local ICT Access Control Policy,ICT Access Control Management,Protect
+GV.SC-01,GV.SC-01,Operate a cyber supply-chain risk management programme,LP-04 PS01,Critical providers register maintained,Local ICT Third-Party Risk Management Policy,ICT Third-Party Risk Management,Govern
+GV.SC-02,GV.SC-02,Maintain supplier exit and continuity arrangements,LP-04 PS02,Provider exit strategies documented,Local ICT Third-Party Risk Management Policy,ICT Third-Party Risk Management,Govern
+ID.RA-07,ID.RA-07,Manage changes and record risk assessment,LP-02 PS01,Changes risk-assessed before deployment,Local ICT Change Management Policy,ICT Change Management,Identify
+ID.RA-08,ID.RA-08,Operate a controlled emergency-change process,LP-02 PS02,Emergency change process defined,Local ICT Change Management Policy,ICT Change Management,Identify
+RS.MA-01,RS.MA-01,Execute the incident response plan during an incident,LP-03 PS01,Incidents classified by severity,Local ICT Incident Management Policy,ICT Incident Management,Respond
+RS.MA-03,RS.MA-03,Categorise prioritise and escalate major incidents,GS-02 SR01,Major incident escalation defined,Group ICT Incident Standard,ICT Incident Management,Respond
+GV.OC-01,GV.OC-01,Ensure organizational mission informs cyber risk management,No matching policy,N/A,Not Found,Govern,Govern
+GV.RM-01,GV.RM-01,Establish and agree risk-management objectives,No matching policy,N/A,Not Found,Govern,Govern
+RC.RP-01,RC.RP-01,Execute a recovery plan during or after an incident,No matching policy,N/A,Not Found,Recover,Recover
+RC.CO-03,RC.CO-03,Communicate recovery activities to stakeholders,No matching policy,N/A,Not Found,Recover,Recover
+PR.DS-11,PR.DS-11,Create maintain and test backups of data,No matching policy,N/A,Not Found,Protect,Protect

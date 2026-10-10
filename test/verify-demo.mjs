@@ -205,6 +205,50 @@ assert(rcx.rows === rcx.facts, `ROC full extract: one row per non-closed control
 assert(['Risk', 'Risk owner', 'Control No. & Name', 'DORA statement ref(s)'].every(h => rcx.heads.includes(h)),
   `ROC full extract columns → ${JSON.stringify(rcx.heads)}`);
 
+// ══════════════════════════════════════════════════════════════════
+// Regulatory-lens modules (DORA / MiCA / NIST CSF)
+// ══════════════════════════════════════════════════════════════════
+// The demo seeds all three lenses into each assessment, sharing one control
+// framework. Verify the switch re-scopes the main screen and that DORA is intact.
+await page.evaluate(() => showView('dashboard'));
+const lensData = await page.evaluate(() => {
+  const a = db.assessments.find(x => x.id === 'demo');
+  return { mica: (a.micaRows || []).length, micaSoa: (a.micaSoa || []).length,
+           nist: (a.nistRows || []).length, nistSoa: (a.nistSoa || []).length,
+           dora: (a.doraRows || []).length };
+});
+assert(lensData.mica > 0 && lensData.micaSoa > 0, `MiCA module seeded (${lensData.mica} objectives, ${lensData.micaSoa} SOA)`);
+assert(lensData.nist > 0 && lensData.nistSoa > 0, `NIST module seeded (${lensData.nist} objectives, ${lensData.nistSoa} SOA)`);
+
+// Read the Control-1 card under each lens.
+async function lensCard(lens) {
+  await page.evaluate(k => setActiveLens(k), lens);
+  await page.waitForTimeout(80);
+  return await page.evaluate(() => {
+    const el = document.querySelector('#dora-card-row .measure-card');
+    const b = document.querySelector('#dora-card-row .dora-uncov-block');
+    if (b) b.classList.remove('collapsed');
+    return {
+      title: el ? (el.querySelector('.measure-card-title') || {}).textContent || '' : '',
+      desc: el ? (el.querySelector('.measure-card-desc') || {}).textContent || '' : '',
+      pills: [...new Set([...document.querySelectorAll('#dora-card-row .pil-tag')].map(x => x.textContent))],
+    };
+  });
+}
+const Ld = await lensCard('dora');
+assert(/DORA/.test(Ld.title) && /DORA objectives/.test(Ld.desc), 'DORA lens: Control-1 titled for DORA');
+const Lm = await lensCard('mica');
+assert(/MiCA/.test(Lm.title) && /MiCA objectives/.test(Lm.desc), 'MiCA lens: Control-1 re-titled for MiCA');
+assert(Lm.pills.some(p => /Client Assets|Prudential|Conduct|Market Integrity/.test(p)), `MiCA lens: pillar tags are MiCA domains (${Lm.pills.join(', ')})`);
+assert(!Lm.pills.some(p => /Risk Management|Third-Party Risk/.test(p)), 'MiCA lens: no DORA pillar labels leak in');
+const Ln = await lensCard('nist');
+assert(/NIST/.test(Ln.title), 'NIST lens: Control-1 re-titled for NIST CSF');
+assert(Ln.pills.some(p => /Govern|Recover|Protect|Identify/.test(p)), `NIST lens: pillar tags are NIST functions (${Ln.pills.join(', ')})`);
+
+// Switching back to DORA restores the exact DORA view (byte-for-byte).
+const Ld2 = await lensCard('dora');
+assert(Ld2.title === Ld.title && Ld2.desc === Ld.desc, 'Switching back to DORA restores the DORA Control-1 card');
+
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();
 process.exit(fails ? 1 : 0);

@@ -121,8 +121,11 @@
   function saveDoraSoaImport() {
     const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
     if (!assessment) { alert('No assessment open — return to an assessment before saving.'); return; }
-    assessment.doraSoa = _sEntries;
-    assessment.doraSoaMeta = {
+    // Save into the ACTIVE lens's SOA slot (DORA → doraSoa, unchanged; MiCA →
+    // micaSoa; NIST → nistSoa) so the same wizard imports any framework's SOA.
+    const fw = (typeof activeFramework === 'function') ? activeFramework() : { soaKey: 'doraSoa', soaMetaKey: 'doraSoaMeta' };
+    assessment[fw.soaKey] = _sEntries;
+    assessment[fw.soaMetaKey] = {
       uploadDate: new Date().toISOString().slice(0, 10),
       total: _sEntries.length,
       applicable: _sEntries.filter(e => e.applicable).length,

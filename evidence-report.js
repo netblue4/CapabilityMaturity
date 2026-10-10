@@ -34,7 +34,7 @@
     if (!a) return;
     closeEvidenceModal();
     const policyRows = a.policyRows || [], facts = a.riskPolicyFacts || [];
-    const model = buildDoraObligations(a.doraRows || [], policyRows, facts);
+    const model = buildDoraObligations(lensRows(a), policyRows, facts);
     const meta  = { label: a.label, date: formatDate(a.date) };
     const norm  = s => (s == null ? '' : String(s)).toLowerCase().trim();
 
@@ -211,8 +211,8 @@
   // Applicable items are highlighted; for those, coverage status joins to the
   // mapping model so an auditor confirms completeness before the detail below.
   function soaSection(ctx) {
-    const soa = (ctx.a.doraSoa && ctx.a.doraSoa.length) ? ctx.a.doraSoa
-              : (typeof DORA_SOA !== 'undefined' ? DORA_SOA : []);
+    const soa = (typeof lensSoa === 'function') ? lensSoa(ctx.a)
+              : ((ctx.a.doraSoa && ctx.a.doraSoa.length) ? ctx.a.doraSoa : (typeof DORA_SOA !== 'undefined' ? DORA_SOA : []));
     if (!soa.length) return '';
     // Coverage joins by article/RTS INDEX (RTS4 / ARTICLE17 …) so SOA titles need
     // not match the mapping's titles exactly.

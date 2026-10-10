@@ -91,7 +91,8 @@
       header:      find('statement header', 'header'),
       document:    docIdx >= 0 ? headers[docIdx] : null,
       capability:  find('capability', 'process', 'domain', 'function'),
-      article:     find('dora', 'article', 'regulation'),
+      article:     find('dora article', 'mica article', 'nist subcategory', 'subcategory', 'article', 'regulation', 'dora'),
+      group:       find('pillar', 'lens group', 'framework group'),
     };
   }
 
@@ -130,6 +131,7 @@
           statementHeader: _dCols.header      ? (row[_dCols.header]      || '').trim() : '',
           document:        doc,
           capability:      _dCols.capability   ? (row[_dCols.capability]   || '').trim() : '',
+          group:           _dCols.group        ? (row[_dCols.group]        || '').trim() : '',
           unmapped:        isUnmapped(ref, doc),
         };
       }).filter(r => r.obligationId);
@@ -196,8 +198,12 @@
 
     const model = buildDoraObligations(_dRows, assessment.policyRows || [], assessment.riskPolicyFacts || []);
 
-    assessment.doraRows = _dRows;
-    assessment.doraMeta = {
+    // Write into the ACTIVE lens's slot: DORA → doraRows/doraMeta (unchanged);
+    // MiCA → micaRows/micaMeta; NIST → nistRows/nistMeta. So the same wizard
+    // imports whichever framework's mapping is switched on.
+    const fw = (typeof activeFramework === 'function') ? activeFramework() : { rowsKey: 'doraRows', metaKey: 'doraMeta' };
+    assessment[fw.rowsKey] = _dRows;
+    assessment[fw.metaKey] = {
       uploadDate:         new Date().toISOString().slice(0, 10),
       totalRows:          _dRows.length,
       totalObligations:   model.totalObligations,

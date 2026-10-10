@@ -17,7 +17,7 @@
         <span class="logo-icon">◈</span>
         <div>
           <h1 class="site-title" id="app-title">Measurable IT Regulatory Oversight Model</h1>
-          <p class="site-subtitle">DORA Article/RTS → DORA objective → policy statement → control → operationalisation</p>
+          <p class="site-subtitle" id="site-subtitle">DORA Article/RTS → DORA objective → policy statement → control → operationalisation</p>
         </div>
       </div>
     </div>
@@ -50,6 +50,13 @@
           <button class="btn btn-outline" onclick="showEvidenceModal()">📄 Evidence</button>
           <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
         </div>
+      </div>
+
+      <!-- Regulatory lens switch — add-on modules (DORA = today's behaviour) -->
+      <div class="card lens-switch-card" id="lens-switch-bar">
+        <span class="lens-switch-label">Regulatory lens</span>
+        <div class="lens-switch" id="lens-switch"></div>
+        <span class="lens-switch-note" id="lens-switch-note"></span>
       </div>
 
       <div id="no-data-message" class="empty-state" style="display:none">
@@ -375,6 +382,7 @@
   <script src="state.js"></script>
   <script src="helpers.js"></script>
   <script src="dora-pillars.js"></script>
+  <script src="lens.js"></script>
   <script src="dora-soa.js"></script>
   <script src="fact-table.js"></script>
   <script src="modals.js"></script>
@@ -401,6 +409,31 @@
         btn.title = saved === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
       }
     })();
+
+    // ── Regulatory lens switch ──────────────────────────────────────
+    // Renders the DORA / MiCA / NIST CSF toggle and re-renders on change.
+    // DORA is the default and leaves every view byte-for-byte as before.
+    function updateLensSwitchUI() {
+      const host = document.getElementById('lens-switch');
+      if (!host || typeof FRAMEWORKS === 'undefined') return;
+      host.innerHTML = LENS_ORDER.map(k => {
+        const f = FRAMEWORKS[k];
+        const on = k === activeLens;
+        return `<button type="button" class="lens-opt${on ? ' lens-opt-on' : ''}" aria-pressed="${on}" onclick="setActiveLens('${k}')">${f.icon} ${f.label}</button>`;
+      }).join('');
+      const note = document.getElementById('lens-switch-note');
+      if (note) note.innerHTML = activeLens === 'dora'
+        ? 'DORA — the full model, exactly as configured for the current regime.'
+        : `${FRAMEWORKS[activeLens].label} module — same control framework, mapped through the policies to its ${FRAMEWORKS[activeLens].unitLabel}.`;
+      const sub = document.getElementById('site-subtitle');
+      if (sub) { const L = FRAMEWORKS[activeLens].label, u = activeLens === 'nist' ? 'subcategory' : 'article'; sub.textContent = `${L} ${u} → ${L} objective → policy statement → control → operationalisation`; }
+    }
+    // Re-render the dashboard (the active analysis screen) when the lens changes.
+    function rerenderActiveView() {
+      try { if (typeof renderDashboard === 'function') renderDashboard(); }
+      catch (e) { console.warn('lens re-render failed', e); }
+    }
+    (function () { if (typeof loadActiveLens === 'function') loadActiveLens(); if (typeof updateLensSwitchUI === 'function') updateLensSwitchUI(); })();
   </script>
 </body>
 </html>

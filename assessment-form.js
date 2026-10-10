@@ -432,6 +432,8 @@ function saveAssessment(e) {
     if (prevData.doraMeta)         assessment.doraMeta         = prevData.doraMeta;
     if (prevData.doraSoa)          assessment.doraSoa          = prevData.doraSoa;
     if (prevData.doraSoaMeta)      assessment.doraSoaMeta      = prevData.doraSoaMeta;
+    // Carry forward the add-on regulatory-lens modules (MiCA / NIST CSF) too.
+    ['micaRows','micaMeta','micaSoa','micaSoaMeta','nistRows','nistMeta','nistSoa','nistSoaMeta'].forEach(k => { if (prevData[k]) assessment[k] = prevData[k]; });
   }
 
   if (editingId) {

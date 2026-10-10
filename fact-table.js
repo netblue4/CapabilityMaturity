@@ -592,11 +592,15 @@ function buildCapabilitySummary(assessment, capId, source) {
     uncovered, draftStatements: sTotal - approved, toImplement: sDraft,
     toBuild, invisibleWork, notEffective: cImpl - cEff, dangerRisks,
   };
-  const pid  = (typeof doraPillarForCapabilityName === 'function') ? doraPillarForCapabilityName(capNm) : null;
-  const pdef = ((typeof DORA_PILLARS !== 'undefined' && DORA_PILLARS) || []).find(p => p.id === pid) || {};
+  // DORA borrows the pillar identity (chapter/short/icon) for the card header;
+  // under a non-DORA lens there is no DORA chapter, so the header falls back to
+  // the lens name (see renderExecPillar's eyebrow).
+  const isDora = (typeof activeLens === 'undefined') || activeLens === 'dora';
+  const pid  = isDora && (typeof doraPillarForCapabilityName === 'function') ? doraPillarForCapabilityName(capNm) : null;
+  const pdef = isDora ? (((typeof DORA_PILLARS !== 'undefined' && DORA_PILLARS) || []).find(p => p.id === pid) || {}) : {};
   const s = {
     id: 'cap:' + capId, chapter: pdef.chapter, name: capNm, short: pdef.short || 'Capability',
-    icon: pdef.icon || '🧩', inScope: true, hasData, source,
+    icon: pdef.icon || (isDora ? '🧩' : (typeof activeFramework === 'function' ? activeFramework().icon : '🧩')), inScope: true, hasData, source,
     coverage: { covered: oblCovered, total: oblTotal, pct: pct(oblCovered, oblTotal) },
     ops:      { operationalised: sLive, backed: sLive + sDraft, total: sTotal, pct: pct(sLive, sTotal) },
     approval: { approved, total: sTotal },
@@ -624,7 +628,7 @@ function buildCapabilityTree(assessment, capId, source) {
   const caps  = CONFIG.capabilities || [];
   const capNm = (caps.find(c => c.id === capId) || {}).name || capId;
   const rows  = buildTraceabilityRows(assessment).rows.filter(r => r.capability === capNm);
-  const NO_ART = 'Statements not mapped to a DORA objective';
+  const NO_ART = 'Statements not mapped to a ' + ((typeof lensLabel === 'function') ? lensLabel() : 'DORA') + ' objective';
   const arts = new Map();
   rows.forEach(r => {
     const artKey = r.article || NO_ART;
@@ -699,7 +703,8 @@ function buildRiskControlTree(assessment, capId) {
 // Three "first row" flags let Excel count distinct objectives / statements /
 // controls with a single filter, so the totals reconcile with the cards.
 function buildTraceabilityRows(assessment) {
-  const doraRows = assessment.doraRows || [], policyRows = assessment.policyRows || [], facts = assessment.riskPolicyFacts || [];
+  const doraRows = (typeof lensRows === 'function') ? lensRows(assessment) : (assessment.doraRows || []);
+  const policyRows = assessment.policyRows || [], facts = assessment.riskPolicyFacts || [];
   const caps = CONFIG.capabilities || [];
   const capName = id => caps.find(c => c.id === id)?.name || id;
   // Resolve an obligation's free-text capability (from the DORA upload) to the
@@ -753,9 +758,12 @@ function buildTraceabilityRows(assessment) {
     const oid = o ? o.obligationId : '';
     const ci = (c && capId != null) ? ctrlInfo(capId, c) : null;
     const rowCap = s ? capName(s.capId) : (o ? resolveCap(o.capability) : '');
-    const pid = doraPillarForCapabilityName(rowCap);
+    // Pillar: DORA uses the capability-name rule (unchanged); MiCA/NIST use the
+    // objective's own group (MiCA domain / NIST function).
+    const pid = (typeof lensPillarId === 'function') ? lensPillarId(rowCap, o ? o.group : '') : doraPillarForCapabilityName(rowCap);
+    const pShort = (typeof activeLens !== 'undefined' && activeLens !== 'dora' && typeof pillarShortById === 'function') ? pillarShortById(pid) : doraPillarShort(pid);
     rows.push({
-      pillar:          doraPillarShort(pid),
+      pillar:          pShort,
       _pillarId:       pid,
       _approved:       s ? ftNorm((polByKey[s.capId + '||' + ftNorm(s.ref)] || {}).status).includes('approv') : false,
       article,
@@ -1141,13 +1149,14 @@ function buildDoraObligations(doraRows, policyRows, facts) {
     const id = (row.obligationId || '').trim();
     if (!id) return;
     if (!oblMap[id]) {
-      oblMap[id] = { obligationId: id, article: (row.article || '').trim(), requirement: (row.requirement || '').trim(), capability: (row.capability || '').trim(), mappedRefs: [], _seen: new Set() };
+      oblMap[id] = { obligationId: id, article: (row.article || '').trim(), requirement: (row.requirement || '').trim(), capability: (row.capability || '').trim(), group: (row.group || '').trim(), mappedRefs: [], _seen: new Set() };
       oblOrder.push(id);
     }
     const o = oblMap[id];
     if (!o.requirement && row.requirement) o.requirement = row.requirement.trim();
     if (!o.article && row.article)         o.article     = row.article.trim();
     if (!o.capability && row.capability)   o.capability   = row.capability.trim();
+    if (!o.group && row.group)             o.group        = row.group.trim();
     if (row.unmapped) return;                       // sentinel — no statement
     resolveRef(row.statementRef).forEach(pr => {
       const key = pr.capId + '||' + ftNorm(pr.statementRef);
@@ -1185,6 +1194,8 @@ function buildDoraObligations(doraRows, policyRows, facts) {
     artMap[a].obligations.sort((x, y) => x.obligationId.localeCompare(y.obligationId, undefined, { numeric: true }));
     // Article-level capability = distinct capabilities of its obligations.
     artMap[a].capability = [...new Set(artMap[a].obligations.map(o => o.capability).filter(Boolean))].join(', ');
+    // Article-level lens group (MiCA domain / NIST function) — first non-empty.
+    artMap[a].group = (artMap[a].obligations.find(o => o.group) || {}).group || '';
     return artMap[a];
   });
   const obligations = articles.flatMap(a => a.obligations);

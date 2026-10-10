@@ -1,0 +1,22 @@
+MiCA Article,Paragraph Reference,MiCA Objective,Statement Ref,Statement Header,Document,Capability,Pillar
+Article 68 — Governance arrangements,Art68-7,Maintain sound ICT security systems and business continuity,GS-01 SR01,Configuration baselines defined,Group ICT Configuration Standard,ICT Asset & Configuration Management,Operational Resilience
+Article 68 — Governance arrangements,Art68-8,Operate resilient ICT change control over the trading platform,LP-02 PS01,Changes risk-assessed before deployment,Local ICT Change Management Policy,ICT Change Management,Operational Resilience
+Article 69 — Information to competent authorities,Art69-1,Risk-assess and notify material changes to critical systems,LP-02 PS02,Emergency change process defined,Local ICT Change Management Policy,ICT Change Management,Governance & Organisation
+Article 73 — Outsourcing,Art73-1,Perform due diligence and maintain a register of critical outsourced providers,LP-04 PS01,Critical providers register maintained,Local ICT Third-Party Risk Management Policy,ICT Third-Party Risk Management,Operational Resilience
+Article 73 — Outsourcing,Art73-2,Document exit strategies so outsourcing does not impair resilience,LP-04 PS02,Provider exit strategies documented,Local ICT Third-Party Risk Management Policy,ICT Third-Party Risk Management,Operational Resilience
+Article 68 — Governance arrangements,Art68-9,Detect and remediate vulnerabilities in client-facing systems,LP-05 PS01,Vulnerability scans scheduled,Local ICT Vulnerability Management Policy,ICT Vulnerability Management,Operational Resilience
+Article 68 — Governance arrangements,Art68-10,Patch known vulnerabilities within defined SLAs,GS-03 SR01,Patch SLAs defined,Group ICT Vulnerability Standard,ICT Vulnerability Management,Operational Resilience
+Article 92 — Prevention and detection of market abuse,Art92-2,Classify and escalate incidents including suspicious platform activity,LP-03 PS01,Incidents classified by severity,Local ICT Incident Management Policy,ICT Incident Management,Market Integrity
+Article 92 — Prevention and detection of market abuse,Art92-3,Escalate major incidents affecting market integrity,GS-02 SR01,Major incident escalation defined,Group ICT Incident Standard,ICT Incident Management,Market Integrity
+Article 70 — Safekeeping of clients' crypto-assets,Art70-4,Restrict privileged access to client-asset and wallet systems,LP-06 PS02,Privileged access restricted,Local ICT Access Control Policy,ICT Access Control Management,Client-Asset Safeguarding
+Article 70 — Safekeeping of clients' crypto-assets,Art70-5,Review access to custody systems periodically,LP-06 PS01,Access reviews performed quarterly,Local ICT Access Control Policy,ICT Access Control Management,Client-Asset Safeguarding
+Article 66 — Acting honestly fairly and professionally,Art66-1,Ensure client communications are fair clear and not misleading,No matching policy,N/A,Not Found,Conduct & Investor Protection,Conduct & Investor Protection
+Article 67 — Prudential requirements,Art67-1,Hold permanent minimum own funds per Annex IV,No matching policy,N/A,Not Found,Prudential,Prudential
+Article 67 — Prudential requirements,Art67-2,Stress-test own-funds adequacy,No matching policy,N/A,Not Found,Prudential,Prudential
+Article 70 — Safekeeping of clients' crypto-assets,Art70-1,Segregate clients' crypto-assets from the firm's own holdings,No matching policy,N/A,Not Found,Client-Asset Safeguarding,Client-Asset Safeguarding
+Article 70 — Safekeeping of clients' crypto-assets,Art70-2,Hold client crypto-assets so they are insolvency-remote,No matching policy,N/A,Not Found,Client-Asset Safeguarding,Client-Asset Safeguarding
+Article 71 — Complaints-handling,Art71-1,Operate a documented complaints-handling procedure,No matching policy,N/A,Not Found,Conduct & Investor Protection,Conduct & Investor Protection
+Article 72 — Conflicts of interest,Art72-1,Identify prevent and disclose conflicts of interest,No matching policy,N/A,Not Found,Governance & Organisation,Governance & Organisation
+Article 74 — Orderly wind-down,Art74-1,Maintain an orderly wind-down plan,No matching policy,N/A,Not Found,Operational Resilience,Operational Resilience
+Article 78 — Execution of orders,Art78-1,Take all reasonable steps to obtain best execution for clients,No matching policy,N/A,Not Found,Conduct & Investor Protection,Conduct & Investor Protection
+Article 92 — Prevention and detection of market abuse,Art92-1,Detect and report suspicious orders and transactions,No matching policy,N/A,Not Found,Market Integrity,Market Integrity

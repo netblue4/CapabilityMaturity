@@ -36,45 +36,75 @@
     el.files = dt.files;
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
-  // Import all four sources into one assessment, via the real wizards.
+  // Import an objective→statement mapping into the CURRENT lens's slot.
+  async function importMapping(id, file) {
+    openAssessmentForm(id); showView('dora-import'); initDoraImport();
+    await feed('dora-file-input', file);
+    await waitVisible('dora-review'); saveDoraImport();
+  }
+  // Import a Statement of Applicability into the CURRENT lens's slot.
+  async function importSoa(id, file) {
+    openAssessmentForm(id); showView('dora-soa-import'); initDoraSoaImport();
+    await feed('dora-soa-file-input', file);
+    await waitVisible('dora-soa-review'); saveDoraSoaImport();
+  }
+
+  // Import all sources into one assessment, via the real wizards. The policy
+  // statements, risks and controls (the single control framework) are shared;
+  // DORA, MiCA and NIST are added as separate regulatory-lens modules — each is
+  // just another SOA + objective mapping written to its own slot.
   async function importAssessment(id, label, date, riskFile) {
     db.assessments = db.assessments.filter(a => a.id !== id);
     db.assessments.push({ id: id, label: label, date: date });
-    // 1 · Policy statements
+    // 1 · Policy statements (shared)
+    if (typeof activeLens !== 'undefined') activeLens = 'dora';
     openAssessmentForm(id); showView('policy-import'); initPolicyImport();
     await feed('pi-file-input', 'demo-policy.csv');
     await waitVisible('pi-mapping'); processPolicyImport();
     await waitVisible('pi-review'); savePolicyImport();
-    // 2 · DORA → policy mapping
-    openAssessmentForm(id); showView('dora-import'); initDoraImport();
-    await feed('dora-file-input', 'demo-dora.csv');
-    await waitVisible('dora-review'); saveDoraImport();
-    // 3 · Risk & control (RCSA)
+    // 2 · DORA → policy mapping (DORA lens)
+    await importMapping(id, 'demo-dora.csv');
+    // 3 · Risk & control (RCSA) — shared
     openAssessmentForm(id); showView('riskonnect-import'); initRiskonnectImport();
     await feed('rk-file-input', riskFile);
     await waitVisible('rk-mapping'); processRkImport();
     await waitVisible('rk-review');
     document.getElementById('rk-assessment-sel').value = id; saveRkImport();
-    // 4 · DORA SOA
-    openAssessmentForm(id); showView('dora-soa-import'); initDoraSoaImport();
-    await feed('dora-soa-file-input', 'demo-soa.csv');
-    await waitVisible('dora-soa-review'); saveDoraSoaImport();
+    // 4 · DORA SOA (DORA lens)
+    await importSoa(id, 'demo-soa.csv');
+    // 5 · MiCA module (objectives + SOA → MiCA lens slots)
+    if (typeof activeLens !== 'undefined') {
+      activeLens = 'mica';
+      await importMapping(id, 'mica.csv');
+      await importSoa(id, 'mica-soa.csv');
+      // 6 · NIST CSF module (objectives + SOA → NIST lens slots)
+      activeLens = 'nist';
+      await importMapping(id, 'nist.csv');
+      await importSoa(id, 'nist-soa.csv');
+      activeLens = 'dora';
+    }
   }
 
   async function loadDemoData() {
     const btn = document.getElementById('btn-load-demo');
     const orig = btn ? btn.textContent : '';
+    const userLens = (typeof activeLens !== 'undefined') ? activeLens : 'dora';
     try {
       if (btn) { btn.disabled = true; btn.textContent = 'Loading demo…'; }
       await importAssessment('demo-q2', 'Q2 2026', '2026-06-30', 'demo-risk-q2.csv');
       await importAssessment('demo', 'Q3 2026', '2026-09-30', 'demo-risk.csv');
       db.assessments.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+      // Restore whatever lens the user was on before seeding.
+      if (typeof activeLens !== 'undefined') activeLens = userLens;
+      if (typeof updateLensSwitchUI === 'function') updateLensSwitchUI();
       showView('dashboard');
     } catch (e) {
       console.error(e);
       alert('Could not load the demo data: ' + e.message);
     } finally {
+      if (typeof activeLens !== 'undefined') activeLens = userLens;
+      if (typeof updateLensSwitchUI === 'function') updateLensSwitchUI();
       if (btn) { btn.disabled = false; btn.textContent = orig; }
     }
   }

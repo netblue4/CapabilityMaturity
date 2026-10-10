@@ -28,7 +28,7 @@ function renderMeasureSummary(assessment) {
 
 // ── Table A: per-article coverage ──
 let _d1aRows = [], _d1aSort = { col: null, dir: 1 };
-const D1A_FIELD = { pillar: r => doraPillarShortForCap(r.capability), article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
+const D1A_FIELD = { pillar: r => (typeof activeLens !== 'undefined' && activeLens !== 'dora') ? (r.group || '') : doraPillarShortForCap(r.capability), article: r => r.article || '', capability: r => r.capability || '', covered: r => r.pct };
 function d1aSortRows() {
   if (!_d1aSort.col) return _d1aRows;
   const f = D1A_FIELD[_d1aSort.col] || D1A_FIELD.article, dir = _d1aSort.dir;
@@ -41,13 +41,19 @@ function d1aSortRows() {
 function d1aHead() {
   const arrow = c => _d1aSort.col === c ? `<span class="mrt-arrow">${_d1aSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortDora1Art('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('pillar', 'DORA Pillar')}${th('article', 'DORA article/RTS')}${th('capability', 'Capability')}${th('covered', 'Objectives covered')}</tr>`;
+  return `<tr>${th('pillar', escHtml(lensGroupLabel()))}${th('article', escHtml(lensLabel()) + ' reference')}${th('capability', 'Capability')}${th('covered', 'Objectives covered')}</tr>`;
+}
+// Lens-aware pillar tag for an article/coverage row: DORA from the capability
+// name (unchanged), MiCA/NIST from the row's group.
+function lensRowPillarTag(r) {
+  if (typeof activeLens !== 'undefined' && activeLens !== 'dora') return pillarTag(pillarShortById(r.group || '__other'));
+  return pillarTag(doraPillarShortForCap(r.capability));
 }
 function d1aBody(rows) {
   return rows.map(r => {
     const full = r.covered === r.total;
     return `<tr>
-      <td class="pil-col">${pillarTag(doraPillarShortForCap(r.capability))}</td>
+      <td class="pil-col">${lensRowPillarTag(r)}</td>
       <td class="dora-art-c">${escHtml(r.article)}</td>
       <td class="dora-cap-c">${escHtml(r.capability) || '<span class="src-zero">—</span>'}</td>
       <td class="dora-artcov-c">
@@ -66,7 +72,7 @@ function sortDora1Art(col) {
 
 // ── Table B: uncovered obligations (action list) ──
 let _d1uRows = [], _d1uSort = { col: null, dir: 1 };
-const D1U_FIELD = { pillar: r => doraPillarShortForCap(r.capability), article: r => r.article || '', capability: r => r.capability || '', obligation: r => r.obligationId || '', requirement: r => r.requirement || '' };
+const D1U_FIELD = { pillar: r => (typeof activeLens !== 'undefined' && activeLens !== 'dora') ? (r.group || '') : doraPillarShortForCap(r.capability), article: r => r.article || '', capability: r => r.capability || '', obligation: r => r.obligationId || '', requirement: r => r.requirement || '' };
 function d1uSortRows() {
   if (!_d1uSort.col) return _d1uRows;
   const f = D1U_FIELD[_d1uSort.col] || D1U_FIELD.article, dir = _d1uSort.dir;
@@ -75,11 +81,11 @@ function d1uSortRows() {
 function d1uHead() {
   const arrow = c => _d1uSort.col === c ? `<span class="mrt-arrow">${_d1uSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label) => `<th class="mrt-sort" onclick="sortDora1Unc('${k}')">${label}${arrow(k)}</th>`;
-  return `<tr>${th('pillar', 'DORA Pillar')}${th('article', 'Article/RTS')}${th('capability', 'Capability')}${th('obligation', 'Paragraph')}${th('requirement', 'Objective')}</tr>`;
+  return `<tr>${th('pillar', escHtml(lensGroupLabel()))}${th('article', escHtml(lensLabel()) + ' ref')}${th('capability', 'Capability')}${th('obligation', 'Paragraph')}${th('requirement', 'Objective')}</tr>`;
 }
 function d1uBody(rows) {
   return rows.map(o => `<tr>
-    <td class="pil-col">${pillarTag(doraPillarShortForCap(o.capability))}</td>
+    <td class="pil-col">${lensRowPillarTag(o)}</td>
     <td class="dora-uncov-art">${escHtml(o.article)}</td>
     <td class="dora-uncov-cap">${escHtml(o.capability) || '—'}</td>
     <td class="dora-uncov-obl">${escHtml(o.obligationId)}</td>
@@ -95,8 +101,9 @@ function sortDora1Unc(col) {
 
 function renderDoraCoverageCard(assessment) {
   const model = buildDoraObligations(
-    assessment.doraRows || [], assessment.policyRows || [], assessment.riskPolicyFacts || []);
-  const title = 'Control 1 &middot; Applicable DORA articles/RTS objectives covered by Policies and Group Standards';
+    lensRows(assessment), assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const LBL = lensLabel(), UNIT = activeFramework().unitLabel;
+  const title = `Control 1 &middot; Applicable ${escHtml(LBL)} ${escHtml(UNIT)} objectives covered by Policies and Group Standards`;
   const header = (icon, desc) => `
     <div class="measure-card-header">
       <span class="measure-icon">${icon}</span>
@@ -104,19 +111,22 @@ function renderDoraCoverageCard(assessment) {
     </div>`;
 
   if (!model.totalObligations) {
+    const hint = activeLens === 'dora'
+      ? 'No DORA mapping uploaded yet. Use <b>+ New / Edit Assessment → Import DORA Mapping</b>.'
+      : `No ${escHtml(LBL)} mapping loaded for this assessment yet. Switch on ${escHtml(LBL)}, then import its objective mapping (the same wizard writes to the ${escHtml(LBL)} module).`;
     return `<div class="card measure-card">${header('⚖️', 'The regulatory obligation universe — mapped to owned policy &amp; group-standard statements.')}
-      <p class="policy-no-data" style="margin:.5rem 0">No DORA mapping uploaded yet. Use <b>+ New / Edit Assessment → Import DORA Mapping</b>.</p></div>`;
+      <p class="policy-no-data" style="margin:.5rem 0">${hint}</p></div>`;
   }
 
   const covered   = model.coveredObligations;
   const total     = model.totalObligations;
   const uncovered = total - covered;
   const pct       = model.completenessPct;
-  const desc = `<b>${covered}</b> of <b>${total}</b> DORA objectives covered by a statement &middot; <b>${pct}%</b> complete &middot; <b class="${uncovered ? 'dora-gap-num' : ''}">${uncovered}</b> uncovered.`;
+  const desc = `<b>${covered}</b> of <b>${total}</b> ${escHtml(LBL)} objectives covered by a statement &middot; <b>${pct}%</b> complete &middot; <b class="${uncovered ? 'dora-gap-num' : ''}">${uncovered}</b> uncovered.`;
 
   _d1aRows = model.articles.map(a => {
     const cov = a.obligations.filter(o => o.covered).length, tot = a.obligations.length;
-    return { article: a.article, capability: a.capability || '', covered: cov, total: tot, pct: tot ? Math.round(100 * cov / tot) : 0 };
+    return { article: a.article, capability: a.capability || '', group: a.group || '', covered: cov, total: tot, pct: tot ? Math.round(100 * cov / tot) : 0 };
   });
   _d1aSort = { col: null, dir: 1 };
   _d1uRows = model.obligations.filter(o => !o.covered);
@@ -411,15 +421,15 @@ function renderCapabilityLensCard(assessment) {
       <div class="measure-card-header">
         <span class="measure-icon">🔎</span>
         <div style="flex:1">
-          <h3 class="measure-card-title">Capability lens &mdash; relate a capability to its DORA objectives</h3>
-          <p class="measure-card-desc">Pick a capability to see its coverage, operationalisation and effectiveness as a DORA-pillar card &mdash; the same view as the executive report, scoped to that capability.</p>
+          <h3 class="measure-card-title">Capability lens &mdash; relate a capability to its ${escHtml(lensLabel())} objectives</h3>
+          <p class="measure-card-desc">Pick a capability to see its coverage, operationalisation and effectiveness scoped to that capability, for the ${escHtml(lensLabel())} lens.</p>
         </div>
         <label class="caplens-sel-lbl">Capability
           <select id="caplens-sel" class="caplens-sel" onchange="updateCapabilityLens(this.value)">${opts}</select>
         </label>
         <div class="caplens-src-lbl">Source lens
           <div class="caplens-src" role="tablist" aria-label="Statement source">
-            ${CAPLENS_SOURCES.map(([v, l]) => `<button type="button" class="cls-tab${v === _capLensSource ? ' cls-tab-on' : ''}" role="tab" aria-selected="${v === _capLensSource}" data-src="${v}" onclick="capLensSetSource('${v}')">${l}</button>`).join('')}
+            ${CAPLENS_SOURCES.map(([v, l]) => `<button type="button" class="cls-tab${v === _capLensSource ? ' cls-tab-on' : ''}" role="tab" aria-selected="${v === _capLensSource}" data-src="${v}" onclick="capLensSetSource('${v}')">${v === 'all' ? escHtml(lensLabel()) : l}</button>`).join('')}
           </div>
         </div>
       </div>
@@ -485,8 +495,8 @@ function renderCapLensTree(a, capId, view, source) {
 function renderDocumentedTree(a, capId, source) {
   source = source || 'all';
   const arts = buildCapabilityTree(a, capId, source).filter(x => !x.noArt);
-  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ DORA article → objective &middot; is every applicable objective covered by an owned statement?${capLensSrcNote(source)}</div>${inner}</div>`;
-  if (!arts.length) return wrap('<div class="mm-empty">No DORA articles mapped to this capability yet.</div>');
+  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ ${escHtml(lensRef())} → objective &middot; is every applicable objective covered by an owned statement?${capLensSrcNote(source)}</div>${inner}</div>`;
+  if (!arts.length) return wrap(`<div class="mm-empty">No ${escHtml(lensRef())}s mapped to this capability yet.</div>`);
   const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
   const objRow = o => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">🎯</span><span class="mm-lbl">${escHtml(o.id || '')}${o.text ? ` — ${escHtml(o.text)}` : ''}</span>${o.covered === 'Yes' ? badge('mm-b-green', '✓ covered') : badge('mm-b-red', '▲ uncovered')}</div></li>`;
   const renderArt = x => {
@@ -529,8 +539,8 @@ function renderCapabilityTree(assessment, capId, source) {
   source = source || 'all';
   const arts = buildCapabilityTree(assessment, capId, source);
   const wrap = inner => `<div class="mm-wrap">
-    <div class="mm-title">↳ DORA article → objective → statement → control &middot; click a node to expand${capLensSrcNote(source)}</div>${inner}</div>`;
-  if (!arts.length) return wrap('<div class="mm-empty">No DORA articles mapped to this capability yet.</div>');
+    <div class="mm-title">↳ ${escHtml(lensRef())} → objective → statement → control &middot; click a node to expand${capLensSrcNote(source)}</div>${inner}</div>`;
+  if (!arts.length) return wrap(`<div class="mm-empty">No ${escHtml(lensRef())}s mapped to this capability yet.</div>`);
 
   const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
   // Roll the worst status up the tree so a collapsed parent still flags work

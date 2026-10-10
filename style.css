@@ -3445,6 +3445,9 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 
 /* Collapsible action blocks (all three Control cards) */
 .act-hdr, .dora-uncov-hdr { cursor: pointer; user-select: none; }
+.act-hdr { display: flex; align-items: center; gap: .4rem; }
+.act-copy { margin-left: auto; font-size: .64rem; font-family: var(--font-mono); text-transform: none; letter-spacing: 0; padding: .2rem .55rem; }
+.rrh-legend-note { font-size: .74rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 .6rem; padding: .5rem .65rem; background: color-mix(in srgb, var(--accent) 7%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 8px; }
 .act-caret { display: inline-block; font-size: .7rem; margin-right: .15rem; transition: transform .15s ease; }
 .act-block.collapsed .act-caret, .dora-uncov-block.collapsed .act-caret { transform: rotate(-90deg); }
 .act-block.collapsed .act-body, .dora-uncov-block.collapsed .act-body { display: none; }

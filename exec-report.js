@@ -35,6 +35,27 @@ function generateReport() {
   return generateDoraForumReport();
 }
 
+// "Copy for Excel" button for a collapsible detail block header. stopPropagation
+// so clicking Copy does not toggle the block.
+function actCopyBtn() {
+  return `<button class="btn btn-outline act-copy" onclick="event.stopPropagation();copyActBlock(this)">⧉ Copy for Excel</button>`;
+}
+// Copy every table inside the button's act-block as TSV (tables blank-line
+// separated), so the detail pastes straight into Excel.
+function copyActBlock(btn) {
+  const block = btn.closest('.act-block') || btn.closest('.card');
+  if (!block) return;
+  const tsv = [...block.querySelectorAll('table')].map(table =>
+    [...table.querySelectorAll('tr')].map(tr =>
+      [...tr.querySelectorAll('th,td')].map(c => (c.innerText || '').trim().replace(/\s+/g, ' ')).join('\t')
+    ).join('\n')
+  ).join('\n\n');
+  if (!tsv) return;
+  navigator.clipboard.writeText(tsv).then(() => {
+    const o = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = o; }, 1500);
+  }).catch(() => { btn.textContent = 'Copy failed'; });
+}
+
 // ── The operationalisation story — four sequential steps ──────────
 // Each step signposts a card (or set of cards) with the exec question it
 // answers. Same wording as the story summary, shown as a top stepper + banners.
@@ -79,10 +100,10 @@ function generateDoraForumReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecScorecard(currentA, prevA)}
-    ${renderExecPillars(currentA)}
     <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
+    <div class="exec-rcsa-wrap">${renderCapabilityLensCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
     <div class="exec-rcsa-wrap">${renderTraceabilityCard(currentA)}</div>
   `);
@@ -645,7 +666,7 @@ function renderExecCoverageMatrix(currentA) {
     ${cmProgressBar(covPct)}
     ${legend}
     <div class="act-block collapsed">
-      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Coverage detail table (per article/RTS)</div>
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Coverage detail table (per article/RTS) ${actCopyBtn()}</div>
       <div class="act-body">${(typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, 1, { embedded: true }) : `<div class="rcsa-table-wrap">
         <table class="exm-tbl">
           <thead id="exm-thead">${exmHead()}</thead>
@@ -809,7 +830,7 @@ function renderExecControl2(currentA, prevA) {
       ${flag(stale, 'ex2-flag-bad', 'Stale / incorrect waivers', `Statements carrying a waiver that already have a live control — the waiver should be lifted.${stale ? ' — ' + staleDrill : ' None — good.'}`)}
     </div>
     <div class="act-block collapsed">
-      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Approval &amp; operationalisation tables (Group Standards &amp; Policies)</div>
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Approval &amp; operationalisation tables (Group Standards &amp; Policies) ${actCopyBtn()}</div>
       <div class="act-body">${(typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, 2, { embedded: true }) : `
         <div class="ex2-section">Group Standards — approval &amp; operationalisation</div>
         <div class="rcsa-table-wrap">${ex2DocTable('gs')}</div>
@@ -938,6 +959,41 @@ function ex3RiskTable(risks) {
     <thead id="ex3-thead">${ex3Head()}</thead>
     <tbody id="ex3-tbody">${ex3Body(ex3SortRows())}</tbody></table>`;
 }
+// Risk titles that threaten a DORA objective: a risk treated by a live control
+// that backs a statement mapped to a DORA obligation.
+function execDoraRiskTitles(a) {
+  const facts = a.riskPolicyFacts || [], policyRows = a.policyRows || [], doraRows = a.doraRows || [];
+  const model = buildDoraObligations(doraRows, policyRows, facts);
+  const keys = new Set();
+  model.obligations.forEach(o => (o.mappedRefs || []).forEach(m => keys.add(m.capId + '||' + ftNorm(m.ref))));
+  const titles = new Set();
+  (facts || []).forEach(f => {
+    if (ftIsClosedControl(f)) return;
+    const hit = (f.matchedPolicyRows || []).some(mp => keys.has(mp.capId + '||' + ftNorm(mp.statementRef)));
+    if (hit && (f.riskTitle || '').trim()) titles.add((f.riskTitle || '').trim());
+  });
+  return titles;
+}
+// Residual-risk heatmap (same lanes as the ROC report) but filtered to the risks
+// that threaten DORA objectives — Control 3's effectiveness-oversight view.
+function renderDoraRiskHeatmap(currentA, prevA) {
+  const C = execProgColors();
+  const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;
+  const curTitles = execDoraRiskTitles(currentA);
+  const curAll = buildRiskProfile(currentA.riskPolicyFacts || []).filter(k => curTitles.has(k.title));
+  const curRisks = curAll.filter(k => (k.residual || 0) > 0).map(k => ({ title: k.title, residual: k.residual }));
+  const naRisks  = curAll.filter(k => !((k.residual || 0) > 0)).map(k => ({ title: k.title }));
+  const prevSev = {};
+  if (prevA) {
+    const pT = execDoraRiskTitles(prevA);
+    buildRiskProfile(prevA.riskPolicyFacts || []).filter(k => pT.has(k.title)).forEach(k => { if ((k.residual || 0) > 0) prevSev[k.title] = sevOf(k.residual); });
+  }
+  const prevL = prevA ? execQtr(prevA) : '';
+  const legend = `<p class="rrh-legend-note">🛡️ <b>These are the risks that threaten DORA objectives</b> — i.e. risks treated by a control that backs a DORA-mapped policy/group-standard statement. Each is placed by its residual severity after controls (HIGH ≥ 20 · MODERATE 12–19 · LOW &lt; 12; <b>NOT ASSESSED</b> = no current RCSA residual rating)${prevA ? '. ▼ marks a risk that dropped a severity band since ' + escHtml(prevL) : ''}.</p>`;
+  const sub = `${curRisks.length} assessed risk(s) threatening DORA objectives${naRisks.length ? ` · ${naRisks.length} not yet assessed` : ''}`;
+  return execChartCard('dora-c3-heatmap', 'Residual risk heatmap — risks threatening DORA objectives', sub,
+    legend + execResidualHeatmap(curRisks, prevSev, { colors: C, notAssessed: naRisks }));
+}
 function renderExecControl3(currentA, prevA) {
   const facts   = currentA.riskPolicyFacts || [];
   const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id;
@@ -960,9 +1016,9 @@ function renderExecControl3(currentA, prevA) {
   return `<div class="card measure-card">
     ${head(desc)}
     ${cmProgressBar(ops.assuredPct)}
-    ${execQuadrant(risks)}
+    ${renderDoraRiskHeatmap(currentA, prevA)}
     <div class="act-block collapsed">
-      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Risk &amp; control detail table</div>
+      <div class="act-hdr" onclick="toggleActBlock(this)"><span class="act-caret">▾</span> Risk &amp; control detail table ${actCopyBtn()}</div>
       <div class="act-body">${(typeof evidenceControlHtml === 'function') ? evidenceControlHtml(currentA, 3, { embedded: true }) : `<div class="rcsa-table-wrap">${ex3RiskTable(risks)}</div>`}</div>
     </div>
   </div>`;

@@ -95,19 +95,20 @@ assert(newedit.groups === 3 && newedit.shared, 'New/Edit: three lens import grou
 assert(['Import DORA SOA', 'Import MiCA Policy Data', 'Import NIST CSF Mapping', 'Import Risk Data'].every(t => newedit.btns.some(b => b.includes(t))), 'New/Edit: per-lens SOA/Policy/Mapping + Risk Data buttons present');
 assert(newedit.legacy === 0, 'New/Edit: legacy capability / maturity cards removed');
 
-// ── Main dashboard: no control cards; keeps Capability Lens + Planning + History ──
+// ── Main dashboard: no control cards, no Capability Lens; keeps Planning + History ──
 await page.evaluate(() => showView('dashboard'));
 await page.waitForSelector('#dashboard-content');
 const dash = await page.evaluate(() => ({
   controlCards: !!document.getElementById('dora-card-row') || !!document.getElementById('sources-card-row') || !!document.getElementById('riskmgmt-card-row'),
   lensSwitch: !!document.getElementById('lens-switch-bar'),
-  caplens: !!document.querySelector('#caplens-card-row .caplens-card'),
+  caplens: !!document.querySelector('#dashboard-content .caplens-card'),
   planning: !!document.querySelector('#planning-card-row'),
   history: !!document.querySelector('.history-card'),
 }));
 assert(!dash.controlCards, 'Dashboard: Control 1/2/3 cards removed');
 assert(!dash.lensSwitch, 'Dashboard: on-screen lens switch bar removed');
-assert(dash.caplens && dash.planning && dash.history, 'Dashboard keeps Capability Lens + Planning + Assessment History');
+assert(!dash.caplens, 'Dashboard: Capability Lens moved to DORA Reporting');
+assert(dash.planning && dash.history, 'Dashboard keeps Planning + Assessment History');
 
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));
@@ -124,26 +125,33 @@ await page.evaluate(() => {
   document.getElementById('exec-curr-sel').value = 'demo';
   generateReport();
 });
-await page.waitForSelector('#exec-report-content .pil-grid');
+await page.waitForSelector('#exec-report-content .measure-card');
 const doraRep = await page.evaluate(() => ({
   embeds: document.querySelectorAll('#exec-report-content .ev-embed-title').length,
   soa: !!document.querySelector('#exec-report-content .ev-soa-tbl'),
   trace: !!document.querySelector('#exec-report-content .trace-tbl'),
-  actBlocks: document.querySelectorAll('#exec-report-content .act-block').length,
+  pillGrid: !!document.querySelector('#exec-report-content .pil-grid'),
+  caplens: !!document.querySelector('#exec-report-content .caplens-card'),
+  heatmap: !!document.querySelector('#exec-report-content [data-name="dora-c3-heatmap"] .rrh'),
+  heatLegend: !!document.querySelector('#exec-report-content .rrh-legend-note'),
+  heatNotAssessed: [...document.querySelectorAll('#exec-report-content [data-name="dora-c3-heatmap"] .rrh-band')].some(b => /NOT ASSESSED/.test(b.textContent)),
+  copyBtns: document.querySelectorAll('#exec-report-content .act-copy').length,
+  ownCollapsed: !!document.querySelector('#exec-report-content .own-table') && !!(document.querySelector('#exec-report-content .own-table') || {}).closest?.('.act-block'),
 }));
 assert(doraRep.embeds >= 3, `DORA Reporting embeds Control 1/2/3 evidence (${doraRep.embeds} evidence heads)`);
 assert(doraRep.soa, 'DORA Reporting Control 1 evidence carries the SOA');
 assert(doraRep.trace, 'DORA Reporting still carries the traceability export');
+assert(!doraRep.pillGrid, 'DORA Reporting: DORA Pillar cards removed');
+assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
+assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');
+assert(doraRep.heatLegend, 'DORA Reporting Control 3: heatmap legend explains risks threaten DORA objectives');
+assert(doraRep.copyBtns >= 4, `DORA Reporting: Copy-for-Excel on each detail block (${doraRep.copyBtns})`);
+assert(doraRep.ownCollapsed, 'DORA Reporting: ownership detail table is collapsible');
 
-// Pillar funnels reconcile with the hero scorecard (DORA).
-const recon = await page.evaluate(() => {
-  const a = db.assessments.find(x => x.id === 'demo');
-  const pil = buildPillarSummary(a).filter(p => p.inScope && p.hasData);
-  const sum = (f) => pil.reduce((s, p) => s + f(p), 0);
-  const sc = buildExecScorecard(a.doraRows || [], a.policyRows || [], a.riskPolicyFacts || []);
-  return { pilStmt: sum(p => p.ops.total), heroStmt: sc.control2.d };
-});
-assert(recon.pilStmt === recon.heroStmt, `DORA pillar statements ${recon.pilStmt} == hero ${recon.heroStmt}`);
+// Control 3 heatmap is filtered to risks that threaten DORA objectives (fewer
+// than the full register in general; here all 7 are DORA-linked in the demo).
+const doraHeat = await page.evaluate(() => document.querySelectorAll('#exec-report-content [data-name="dora-c3-heatmap"] .rrh-chip').length);
+assert(doraHeat > 0, `DORA Control-3 heatmap lists DORA-objective risks (${doraHeat} chips)`);
 
 // ── MiCA Reporting: scoped entirely to MiCA data ──
 await page.evaluate(() => {

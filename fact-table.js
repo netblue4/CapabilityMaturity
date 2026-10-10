@@ -703,10 +703,11 @@ function buildRiskControlTree(assessment, capId) {
 // Three "first row" flags let Excel count distinct objectives / statements /
 // controls with a single filter, so the totals reconcile with the cards.
 function buildTraceabilityRows(assessment) {
-  const doraRows = (typeof lensRows === 'function') ? lensRows(assessment) : (assessment.doraRows || []);
-  const policyRows = assessment.policyRows || [], facts = assessment.riskPolicyFacts || [];
+  const doraRows   = (typeof lensRows === 'function')   ? lensRows(assessment)   : (assessment.doraRows || []);
+  const policyRows = (typeof lensPolicy === 'function') ? lensPolicy(assessment) : (assessment.policyRows || []);
+  const facts      = (typeof lensFacts === 'function')  ? lensFacts(assessment)  : (assessment.riskPolicyFacts || []);
   const caps = CONFIG.capabilities || [];
-  const capName = id => caps.find(c => c.id === id)?.name || id;
+  const capName = id => (typeof lensCapName === 'function') ? lensCapName(assessment, id) : (caps.find(c => c.id === id)?.name || id);
   // Resolve an obligation's free-text capability (from the DORA upload) to the
   // app's canonical capability name, so an uncovered objective filters under the
   // same Capability value as that capability's policy statements.

@@ -16,20 +16,27 @@ const FRAMEWORKS = {
   dora: {
     key: 'dora', label: 'DORA', short: 'DORA', icon: '🛡️',
     objLabel: 'Digital Resilience Objective', unitLabel: 'articles/RTS', groupLabel: 'DORA Pillar',
+    // DORA keeps the app's original field names so its behaviour is byte-for-byte.
     rowsKey: 'doraRows', soaKey: 'doraSoa', metaKey: 'doraMeta', soaMetaKey: 'doraSoaMeta',
-    csvRows: null, csvSoa: null,   // DORA keeps its dedicated wizards
+    policyKey: 'policyRows', factsKey: 'riskPolicyFacts', policyMetaKey: 'policyStatements', groupsKey: null,
+    dimLabel: 'Capability', dimPlural: 'capabilities',
+    csvRows: null, csvSoa: null, csvPolicy: null,
   },
   mica: {
     key: 'mica', label: 'MiCA', short: 'MiCA', icon: '🪙',
     objLabel: 'MiCA Objective', unitLabel: 'articles', groupLabel: 'MiCA domain',
     rowsKey: 'micaRows', soaKey: 'micaSoa', metaKey: 'micaMeta', soaMetaKey: 'micaSoaMeta',
-    csvRows: 'mica.csv', csvSoa: 'mica-soa.csv',
+    policyKey: 'micaPolicyRows', factsKey: 'micaFacts', policyMetaKey: 'micaPolicyMeta', groupsKey: 'micaGroups',
+    dimLabel: 'Service', dimPlural: 'services',
+    csvRows: 'mica.csv', csvSoa: 'mica-soa.csv', csvPolicy: 'mica-policy.csv',
   },
   nist: {
     key: 'nist', label: 'NIST CSF', short: 'NIST', icon: '🔐',
     objLabel: 'NIST Outcome', unitLabel: 'subcategories', groupLabel: 'NIST Function',
     rowsKey: 'nistRows', soaKey: 'nistSoa', metaKey: 'nistMeta', soaMetaKey: 'nistSoaMeta',
-    csvRows: 'nist.csv', csvSoa: 'nist-soa.csv',
+    policyKey: 'nistPolicyRows', factsKey: 'nistFacts', policyMetaKey: 'nistPolicyMeta', groupsKey: 'nistGroups',
+    dimLabel: 'Category', dimPlural: 'categories',
+    csvRows: 'nist.csv', csvSoa: 'nist-soa.csv', csvPolicy: 'nist-policy.csv',
   },
 };
 const LENS_ORDER = ['dora', 'mica', 'nist'];
@@ -43,6 +50,19 @@ function lensGroupLabel() { return activeFramework().groupLabel; }
 function lensRefWord() { return activeLens === 'nist' ? 'subcategory' : 'article'; }
 function lensRef() { return activeFramework().label + ' ' + lensRefWord(); }
 
+function lensDimLabel() { return activeFramework().dimLabel; }
+function lensDimPlural() { return activeFramework().dimPlural; }
+// Active lens's policy statements, control↔statement facts and groups.
+function lensPolicy(a) { return (a && a[activeFramework().policyKey]) || []; }
+function lensFacts(a) { return (a && a[activeFramework().factsKey]) || []; }
+function lensGroups(a) { const k = activeFramework().groupsKey; return (k && a && a[k]) || null; }
+function lensPolicyMeta(a) { return a && a[activeFramework().policyMetaKey]; }
+// Group id → display name under the active lens. DORA uses CONFIG.capabilities;
+// MiCA/NIST use the per-assessment groups captured at policy import.
+function lensCapName(a, id) {
+  if (activeLens === 'dora') { const c = (CONFIG.capabilities || []).find(x => x.id === id); return c ? c.name : id; }
+  const g = (lensGroups(a) || []).find(x => x.id === id); return g ? g.name : id;
+}
 // Active lens's objective-mapping rows for an assessment.
 function lensRows(a) { return (a && a[activeFramework().rowsKey]) || []; }
 // Active lens's SOA entries. DORA falls back to the seeded DORA_SOA snapshot
@@ -69,6 +89,9 @@ function withLens(key, fn) {
   try { return fn(); } finally { activeLens = prev; }
 }
 
+// Set the lens for an import/report action WITHOUT re-rendering (unlike
+// setActiveLens, which is for the on-screen switch).
+function setImportLens(key) { if (FRAMEWORKS[key]) activeLens = key; }
 function loadActiveLens() {
   try { const k = localStorage.getItem('ict_active_lens'); if (k && FRAMEWORKS[k]) activeLens = k; } catch (e) {}
 }
@@ -123,10 +146,13 @@ if (typeof window !== 'undefined') {
   window.FRAMEWORKS = FRAMEWORKS;
   window.activeFramework = activeFramework;
   window.lensRows = lensRows; window.lensSoa = lensSoa; window.lensMeta = lensMeta; window.lensSoaMeta = lensSoaMeta;
+  window.lensPolicy = lensPolicy; window.lensFacts = lensFacts; window.lensGroups = lensGroups;
+  window.lensPolicyMeta = lensPolicyMeta; window.lensCapName = lensCapName;
+  window.lensDimLabel = lensDimLabel; window.lensDimPlural = lensDimPlural;
   window.lensLabel = lensLabel; window.lensObjLabel = lensObjLabel; window.lensGroupLabel = lensGroupLabel;
   window.lensRefWord = lensRefWord; window.lensRef = lensRef;
   window.lensHasData = lensHasData; window.withLens = withLens;
-  window.setActiveLens = setActiveLens; window.loadActiveLens = loadActiveLens;
+  window.setActiveLens = setActiveLens; window.loadActiveLens = loadActiveLens; window.setImportLens = setImportLens;
   window.activePillars = activePillars; window.pillarShortById = pillarShortById; window.pillarDefById = pillarDefById;
   window.lensPillarId = lensPillarId;
 }

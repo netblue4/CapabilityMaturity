@@ -292,10 +292,13 @@
     const newRiskRows = _computed.flatMap(r => r.facts);
     assessment.riskRows = newRiskRows;
 
-    // Join with any existing policy rows
-    assessment.riskPolicyFacts = buildRiskPolicyFacts(newRiskRows, assessment.policyRows || []);
+    // Join with each lens's policy rows — the controls are shared, but the
+    // control↔statement facts are per lens (each lens has its own statements).
+    assessment.riskPolicyFacts = buildRiskPolicyFacts(newRiskRows, assessment.policyRows || []);   // DORA
+    assessment.micaFacts       = buildRiskPolicyFacts(newRiskRows, assessment.micaPolicyRows || []);
+    assessment.nistFacts       = buildRiskPolicyFacts(newRiskRows, assessment.nistPolicyRows || []);
 
-    // Rebuild stored summary tables for trend arrows
+    // Rebuild stored summary tables for trend arrows (DORA)
     assessment.factSummary = buildFactSummary(assessment.riskPolicyFacts, assessment.policyRows || []);
 
     // Keep residual + count fields in measureScores for the assessment form

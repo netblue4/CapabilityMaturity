@@ -4,6 +4,7 @@ function renderMeasureSummary(assessment) {
   // dashboard keeps the (DORA) Capability Lens and the Planning extract. All
   // lens-specific analysis lives in the reports now, so force the DORA lens here.
   if (typeof activeLens !== 'undefined') activeLens = 'dora';
+  if (typeof updateSiteSubtitle === 'function') updateSiteSubtitle();
   // The Capability Lens card now lives in the DORA Reporting screen; the main
   // dashboard keeps only the Planning extract (+ Assessment History).
   const planSlot = document.getElementById("planning-card-row");
@@ -302,7 +303,7 @@ function sortSourcesTable(col) {
 // ── Ownership — who owns our policy statements (and their controls) ──
 // One row per accountable owner within a document: statements owned and the
 // controls operationalising them. Reads buildPolicyOwnership. Sortable.
-let _ownRows = [], _ownSort = { col: 'capName', dir: 1 };
+let _ownRows = [], _ownSort = { col: 'capName', dir: 1 }, _ownDimLabel = 'Capability';
 const OWN_FIELD = {
   capName:    r => r.capName || '',
   document:   r => r.document || '',
@@ -335,7 +336,7 @@ function ownHead() {
   const arrow = c => _ownSort.col === c ? `<span class="mrt-arrow">${_ownSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, label, cls) => `<th class="mrt-sort${cls ? ' ' + cls : ''}" onclick="sortOwnershipTable('${k}')">${label}${arrow(k)}</th>`;
   const ctrlLbl = 'Controls owned — <span class="exm-th-draft">draft</span> · <span class="exm-th-impl">implemented</span>';
-  return `<tr>${th('capName', 'Capability')}${th('document', 'Document')}${th('owner', 'Owner')}${th('statements', 'Statements owned', 'own-num')}${th('controls', ctrlLbl)}</tr>`;
+  return `<tr>${th('capName', escHtml(_ownDimLabel))}${th('document', 'Document')}${th('owner', 'Owner')}${th('statements', 'Statements owned', 'own-num')}${th('controls', ctrlLbl)}</tr>`;
 }
 function ownBody(rows) {
   return rows.map(r => `<tr>
@@ -355,7 +356,11 @@ function sortOwnershipTable(col) {
   if (th) th.innerHTML = ownHead();
 }
 function renderOwnershipCard(assessment) {
-  const rows = buildPolicyOwnership(assessment.policyRows || [], assessment.riskPolicyFacts || []);
+  const LPol = (typeof lensPolicy === 'function') ? lensPolicy(assessment) : (assessment.policyRows || []);
+  const LFac = (typeof lensFacts === 'function') ? lensFacts(assessment) : (assessment.riskPolicyFacts || []);
+  const capNameFn = (typeof lensCapName === 'function') ? (id => lensCapName(assessment, id)) : null;
+  _ownDimLabel = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
+  const rows = buildPolicyOwnership(LPol, LFac, capNameFn);
   const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">👤</span>
@@ -399,28 +404,46 @@ function copyTraceTable(btn) {
     const o = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = o; }, 1500);
   }).catch(() => { btn.textContent = 'Copy failed'; });
 }
-// ── Capability lens — the exec DORA-pillar card, scoped to one capability ──
-// A meeting aid: pick a capability and see its coverage / operationalisation /
-// effectiveness rendered as the exact same card the executive report draws per
-// DORA pillar (renderExecPillar), so the discussion ties back to DORA.
+// ── Capability / Service / Category lens — the exec pillar card, scoped to one
+// dimension value ──
+// A meeting aid: pick a dimension value (DORA Capability / MiCA Service / NIST
+// Category) and see its coverage / operationalisation / effectiveness rendered
+// as the exact same card the executive report draws per pillar (renderExecPillar),
+// so the discussion ties back to the active framework.
 let _capLensA = null;
+// The dropdown's dimension values for the active lens: DORA uses CONFIG
+// capabilities; MiCA/NIST use the per-assessment groups (Services / Categories)
+// captured at policy import.
+function lensDims(assessment) {
+  const isDora = (typeof activeLens === 'undefined') || activeLens === 'dora';
+  if (isDora) return (CONFIG.capabilities || []).map(c => ({ id: c.id, name: c.name }));
+  const g = (typeof lensGroups === 'function') ? (lensGroups(assessment) || []) : [];
+  if (g.length) return g.map(x => ({ id: x.id, name: x.name }));
+  // Fallback: derive the dimension values from the statements present.
+  const pol = (typeof lensPolicy === 'function') ? lensPolicy(assessment) : [];
+  const seen = new Map();
+  pol.forEach(pr => { if (!seen.has(pr.capId)) seen.set(pr.capId, (typeof lensCapName === 'function') ? lensCapName(assessment, pr.capId) : pr.capId); });
+  return [...seen].map(([id, name]) => ({ id, name }));
+}
 function renderCapabilityLensCard(assessment) {
   _capLensA = assessment;
-  const caps = CONFIG.capabilities || [];
-  if (!caps.length) return '';
+  const dims = lensDims(assessment);
+  if (!dims.length) return '';
+  const dimLbl   = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
+  const dimLower = dimLbl.toLowerCase();
   const trace   = buildTraceabilityRows(assessment);
   const present = new Set(trace.rows.map(r => r.capability).filter(Boolean));
-  const firstCap = caps.find(c => present.has(c.name)) || caps[0];
-  const opts = caps.map(c => `<option value="${escHtml(c.id)}"${c.id === firstCap.id ? ' selected' : ''}>${escHtml(c.name)}</option>`).join('');
+  const firstCap = dims.find(c => present.has(c.name)) || dims[0];
+  const opts = dims.map(c => `<option value="${escHtml(c.id)}"${c.id === firstCap.id ? ' selected' : ''}>${escHtml(c.name)}</option>`).join('');
   return `
     <div class="card measure-card caplens-card">
       <div class="measure-card-header">
         <span class="measure-icon">🔎</span>
         <div style="flex:1">
-          <h3 class="measure-card-title">Capability lens &mdash; relate a capability to its ${escHtml(lensLabel())} objectives</h3>
-          <p class="measure-card-desc">Pick a capability to see its coverage, operationalisation and effectiveness scoped to that capability, for the ${escHtml(lensLabel())} lens.</p>
+          <h3 class="measure-card-title">${escHtml(dimLbl)} lens &mdash; relate a ${escHtml(dimLower)} to its ${escHtml(lensLabel())} objectives</h3>
+          <p class="measure-card-desc">Pick a ${escHtml(dimLower)} to see its coverage, operationalisation and effectiveness scoped to that ${escHtml(dimLower)}, for the ${escHtml(lensLabel())} lens.</p>
         </div>
-        <label class="caplens-sel-lbl">Capability
+        <label class="caplens-sel-lbl">${escHtml(dimLbl)}
           <select id="caplens-sel" class="caplens-sel" onchange="updateCapabilityLens(this.value)">${opts}</select>
         </label>
         <div class="caplens-src-lbl">Source lens
@@ -609,7 +632,10 @@ function renderCapabilityTree(assessment, capId, source) {
 }
 function renderTraceabilityCard(assessment) {
   const t = buildTraceabilityRows(assessment);
-  const title = 'DORA &rarr; Control traceability (full export)';
+  const LL  = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
+  const GL  = (typeof lensGroupLabel === 'function') ? lensGroupLabel() : 'DORA Pillar';
+  const DL  = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
+  const title = `${escHtml(LL)} &rarr; Control traceability (full export)`;
   const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">🧬</span>
@@ -617,7 +643,7 @@ function renderTraceabilityCard(assessment) {
       ${t.rows.length ? '<button class="btn btn-outline" onclick="copyTraceTable(this)">⧉ Copy for Excel</button>' : ''}
     </div>`;
   if (!t.rows.length) {
-    return `<div class="card measure-card">${header('One row per DORA objective &times; statement &times; control — the full traceability spine. Import DORA, policy and risk data to populate.')}<p class="policy-no-data" style="margin:.5rem 0">No data yet.</p></div>`;
+    return `<div class="card measure-card">${header(`One row per ${escHtml(LL)} objective &times; statement &times; control — the full traceability spine. Import ${escHtml(LL)}, policy and risk data to populate.`)}<p class="policy-no-data" style="margin:.5rem 0">No data yet.</p></div>`;
   }
   const T = t.totals;
   const desc = `${T.rows} rows &middot; <b>${T.objectives}</b> objectives (${T.covered} covered) &middot; <b>${T.statements}</b> statements &middot; <b>${T.controls}</b> controls. One row per objective &times; statement &times; control (left-joined — gaps and unmapped statements show as blank cells). Copy to Excel and filter; the ⚑ First-row flags let you count distinct objectives / statements / controls with one filter.`;
@@ -658,8 +684,8 @@ function renderTraceabilityCard(assessment) {
   </tr>`).join('');
 
   const th = `<tr>
-    <th>DORA Pillar</th><th>Article/RTS</th><th>Objective</th><th>Objective text</th><th class="tr-c">Objective covered</th>
-    <th>Capability</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Statement detail</th><th>Accountability</th><th>Disposition</th><th class="tr-c">Backed by control</th><th class="tr-c" title="Statement-level: Live = has a live control, Draft = only draft controls">Statement operationalised</th>
+    <th>${escHtml(GL)}</th><th>Article/RTS</th><th>Objective</th><th>Objective text</th><th class="tr-c">Objective covered</th>
+    <th>${escHtml(DL)}</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Statement detail</th><th>Accountability</th><th>Disposition</th><th class="tr-c">Backed by control</th><th class="tr-c" title="Statement-level: Live = has a live control, Draft = only draft controls">Statement operationalised</th>
     <th>Control No. &amp; Name</th><th>Control description</th><th>Control owner</th><th>Provenance</th><th class="tr-c">Control status</th><th class="tr-c">Effectiveness</th>
     <th class="tr-c" title="First row for this objective">⚑ First obj</th><th class="tr-c" title="First row for this statement">⚑ First stmt</th><th class="tr-c" title="First row for this control">⚑ First ctrl</th>
   </tr>`;

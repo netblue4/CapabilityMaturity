@@ -153,7 +153,10 @@ assert(doraRep.ownCollapsed, 'DORA Reporting: ownership detail table is collapsi
 const doraHeat = await page.evaluate(() => document.querySelectorAll('#exec-report-content [data-name="dora-c3-heatmap"] .rrh-chip').length);
 assert(doraHeat > 0, `DORA Control-3 heatmap lists DORA-objective risks (${doraHeat} chips)`);
 
-// ── MiCA Reporting: scoped entirely to MiCA data ──
+// ── MiCA Reporting: the full DORA treatment, scoped entirely to MiCA data ──
+// Same cards as the DORA screen (scorecard, Service lens, Control 1/2/3 evidence,
+// residual heatmap filtered to MiCA objectives + legend, Copy buttons, collapsible
+// ownership, traceability) with MiCA labels and NO DORA wording leaking in.
 await page.evaluate(() => {
   showReportModal('mica');
   document.getElementById('exec-prev-sel').value = 'demo-q2';
@@ -162,14 +165,45 @@ await page.evaluate(() => {
 });
 await page.waitForSelector('#mica-report-content .measure-card');
 const micaRep = await page.evaluate(() => {
-  const title = document.querySelector('#mica-report-content .measure-card-title')?.textContent || '';
-  const c1 = [...document.querySelectorAll('#mica-report-content .measure-card-title')].map(t => t.textContent).join(' | ');
-  return { title, c1 };
+  const root = document.getElementById('mica-report-content');
+  const titles = [...root.querySelectorAll('.measure-card-title, .exsc-title')].map(t => t.textContent);
+  const heads = [...root.querySelectorAll('th')].map(t => t.textContent.trim());
+  return {
+    titles: titles.join(' | '),
+    scorecard: !!root.querySelector('.exsc-title'),
+    caplens: !!root.querySelector('.caplens-card'),
+    embeds: root.querySelectorAll('.ev-embed-title').length,
+    soa: !!root.querySelector('.ev-soa-tbl'),
+    heatmap: !!root.querySelector('[data-name="dora-c3-heatmap"] .rrh'),
+    heatNA: [...root.querySelectorAll('[data-name="dora-c3-heatmap"] .rrh-band')].some(b => /NOT ASSESSED/.test(b.textContent)),
+    heatLegend: (root.querySelector('.rrh-legend-note') || {}).textContent || '',
+    copyBtns: root.querySelectorAll('.act-copy').length,
+    ownCollapsed: !!(root.querySelector('.own-table') && root.querySelector('.own-table').closest('.act-block')),
+    trace: !!root.querySelector('.trace-tbl'),
+    heads,
+    anyDoraPillar: heads.includes('DORA Pillar'),
+    anyCapability: heads.includes('Capability'),
+    hasServiceHead: heads.includes('Service'),
+    hasDomainHead: heads.includes('MiCA domain'),
+    bodyText: root.textContent,
+  };
 });
-assert(/MiCA/.test(micaRep.title), `MiCA Reporting titled for MiCA ("${micaRep.title}")`);
-assert(/MiCA articles objectives/.test(micaRep.c1), 'MiCA Reporting Control 1 reads MiCA articles');
+assert(/MiCA/.test(micaRep.titles), `MiCA Reporting titled for MiCA`);
+assert(micaRep.scorecard && /MiCA Operationalisation Scorecard/.test(micaRep.titles), 'MiCA Reporting: scorecard present and MiCA-titled');
+assert(/Service lens — relate a service to its MiCA objectives/.test(micaRep.titles), 'MiCA Reporting: Service lens card (not Capability)');
+assert(/Applicable MiCA articles objectives/.test(micaRep.titles), 'MiCA Reporting Control 1 reads MiCA articles');
+assert(micaRep.embeds >= 3, `MiCA Reporting embeds Control 1/2/3 evidence (${micaRep.embeds})`);
+assert(micaRep.soa, 'MiCA Reporting Control 1 evidence carries the MiCA SOA');
+assert(micaRep.heatmap && micaRep.heatNA, 'MiCA Reporting Control 3: residual heatmap with NOT ASSESSED lane');
+assert(/threaten MiCA objectives/.test(micaRep.heatLegend), 'MiCA Reporting Control 3: heatmap legend names MiCA objectives');
+assert(micaRep.copyBtns >= 4, `MiCA Reporting: Copy-for-Excel on each detail block (${micaRep.copyBtns})`);
+assert(micaRep.ownCollapsed, 'MiCA Reporting: ownership detail table is collapsible');
+assert(micaRep.trace, 'MiCA Reporting: carries the MiCA traceability export');
+assert(micaRep.hasServiceHead && !micaRep.anyCapability, 'MiCA Reporting: tables use Service, not Capability');
+assert(micaRep.hasDomainHead && !micaRep.anyDoraPillar, 'MiCA Reporting: tables use MiCA domain, not DORA Pillar');
+assert(!/threaten DORA objectives/.test(micaRep.bodyText) && !/DORA Operationalisation Scorecard/.test(micaRep.bodyText), 'MiCA Reporting: no DORA wording leaks in');
 
-// ── NIST CSF Reporting ──
+// ── NIST CSF Reporting: the full treatment with NIST labels ──
 await page.evaluate(() => {
   showReportModal('nist');
   document.getElementById('exec-prev-sel').value = 'demo-q2';
@@ -177,8 +211,31 @@ await page.evaluate(() => {
   generateReport();
 });
 await page.waitForSelector('#nist-report-content .measure-card');
-const nistTitle = await page.$eval('#nist-report-content .measure-card-title', e => e.textContent);
-assert(/NIST/.test(nistTitle), `NIST CSF Reporting titled for NIST ("${nistTitle}")`);
+const nistRep = await page.evaluate(() => {
+  const root = document.getElementById('nist-report-content');
+  const titles = [...root.querySelectorAll('.measure-card-title, .exsc-title')].map(t => t.textContent).join(' | ');
+  const heads = [...root.querySelectorAll('th')].map(t => t.textContent.trim());
+  return {
+    titles,
+    scorecard: /NIST CSF Operationalisation Scorecard/.test(titles),
+    caplens: /Category lens — relate a category to its NIST CSF objectives/.test(titles),
+    c1: /Applicable NIST CSF subcategories objectives/.test(titles),
+    embeds: root.querySelectorAll('.ev-embed-title').length,
+    heatLegend: (root.querySelector('.rrh-legend-note') || {}).textContent || '',
+    hasCategoryHead: heads.includes('Category'),
+    hasFunctionHead: heads.includes('NIST Function'),
+    anyDoraPillar: heads.includes('DORA Pillar'),
+    trace: !!root.querySelector('.trace-tbl'),
+  };
+});
+assert(/NIST/.test(nistRep.titles), `NIST CSF Reporting titled for NIST`);
+assert(nistRep.scorecard, 'NIST Reporting: scorecard NIST-titled');
+assert(nistRep.caplens, 'NIST Reporting: Category lens card');
+assert(nistRep.c1, 'NIST Reporting Control 1 reads NIST subcategories');
+assert(nistRep.embeds >= 3, `NIST Reporting embeds Control 1/2/3 evidence (${nistRep.embeds})`);
+assert(/threaten NIST CSF objectives/.test(nistRep.heatLegend), 'NIST Reporting Control 3: heatmap legend names NIST objectives');
+assert(nistRep.hasCategoryHead && nistRep.hasFunctionHead && !nistRep.anyDoraPillar, 'NIST Reporting: tables use Category / NIST Function, not DORA Pillar');
+assert(nistRep.trace, 'NIST Reporting: carries the NIST traceability export');
 
 // ── Risk Oversight Committee Reporting (lens-independent full register) ──
 await page.evaluate(() => {

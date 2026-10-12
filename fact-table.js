@@ -552,8 +552,13 @@ function buildCapabilitySummary(assessment, capId, source) {
   let sTotal = 0, sLive = 0, sDraft = 0, sNone = 0, approved = 0, toBuild = 0, invisibleWork = 0;
   trace.rows.forEach(r => {
     if (r.capability !== capNm) return;
-    // Applicable universe — every in-scope objective, regardless of source.
-    if (r.firstObj === 'Yes' && r._oKey) objMeta.set(r._oKey, { id: r.objectiveId, article: r.article, requirement: r.objective });
+    // Applicable universe — every in-scope objective PRESENT UNDER THIS CAPABILITY,
+    // regardless of source. Dedupe by objective key locally (the Map keys), NOT by
+    // the global firstObj flag: a statement filed under several capabilities (e.g. a
+    // shared incident / major-incident policy) gives an objective rows under each of
+    // them, and firstObj marks only the first globally — so using it would undercount
+    // the applicable total here and make it disagree with the drill-down tree below.
+    if (r._oKey && !objMeta.has(r._oKey)) objMeta.set(r._oKey, { id: r.objectiveId, article: r.article, requirement: r.objective });
     if (!srcMatch(r)) return;
     if (r._oKey) {
       if (r.statementRef && r.covered === 'Yes') objCov.add(r._oKey);

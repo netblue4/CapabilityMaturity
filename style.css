@@ -404,6 +404,27 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 }
 .modal-close:hover { color: var(--text); background: var(--bg3); }
 .modal-desc { font-size: .85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5; }
+
+/* ── AI prompts popup (traceability table) ── */
+.trace-hdr-btns { display: flex; gap: .5rem; flex-wrap: wrap; align-items: flex-start; }
+.prompts-box { width: 780px; }
+.prompts-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem 1rem; margin-bottom: .6rem; }
+.prompts-risk-lbl { display: flex; flex-direction: column; gap: .25rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-family: var(--font-mono); }
+.prompts-risk-lbl .exec-sel { min-width: 240px; max-width: 420px; }
+.prompt-kind-tabs { display: inline-flex; flex-wrap: wrap; gap: .35rem; border: 1px solid var(--border); border-radius: var(--radius); padding: .25rem; background: var(--bg); }
+.prompt-kind-tab { font-family: var(--font-mono); font-size: .72rem; padding: .35rem .7rem; border: none; background: none; color: var(--text-muted); border-radius: 6px; cursor: pointer; }
+.prompt-kind-tab:hover { color: var(--text); background: var(--bg3); }
+.prompt-kind-on, .prompt-kind-on:hover { background: var(--accent); color: #fff; }
+.prompt-kind-desc { font-size: .82rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 .6rem; }
+.prompt-text {
+  width: 100%; min-height: 320px; box-sizing: border-box; resize: vertical;
+  font-family: var(--font-mono); font-size: .76rem; line-height: 1.5;
+  color: var(--text); background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .75rem; white-space: pre; overflow: auto;
+}
+.prompts-actions { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
+.prompt-hint { font-size: .78rem; color: var(--text-muted); }
+.tr-risk { font-weight: 600; white-space: nowrap; }
 .modal-levels { display: flex; flex-direction: column; gap: .75rem; }
 .modal-level-row { display: flex; align-items: flex-start; gap: .75rem; }
 .modal-level-desc { font-size: .82rem; color: var(--text-muted); }

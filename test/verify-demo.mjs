@@ -141,6 +141,43 @@ const doraRep = await page.evaluate(() => ({
 assert(doraRep.embeds >= 3, `DORA Reporting embeds Control 1/2/3 evidence (${doraRep.embeds} evidence heads)`);
 assert(doraRep.soa, 'DORA Reporting Control 1 evidence carries the SOA');
 assert(doraRep.trace, 'DORA Reporting still carries the traceability export');
+
+// ── Traceability table: Risk name + Risk description columns, and the AI
+// Prompts popup (per risk). ──
+const traceRisk = await page.evaluate(() => {
+  const root = document.getElementById('exec-report-content');
+  const heads = [...root.querySelectorAll('.trace-tbl thead th')].map(t => t.textContent.trim());
+  const riskCells = [...root.querySelectorAll('.trace-tbl tbody .tr-risk')].map(c => c.textContent.trim()).filter(Boolean);
+  const descCells = [...root.querySelectorAll('.trace-tbl tbody tr')].map(tr => tr.children[23]?.textContent.trim()).filter(Boolean);
+  return {
+    hasRiskName: heads.includes('Risk name'),
+    hasRiskDesc: heads.includes('Risk description'),
+    promptsBtn: !!root.querySelector('button[onclick="openPromptsModal()"]'),
+    risksPopulated: riskCells.length > 0,
+    descsPopulated: descCells.some(d => /incident|asset|provider|access|change|patch|config/i.test(d)),
+  };
+});
+assert(traceRisk.hasRiskName && traceRisk.hasRiskDesc, 'Traceability: Risk name + Risk description columns present');
+assert(traceRisk.risksPopulated, 'Traceability: risk cells populated (control × risk rows)');
+assert(traceRisk.descsPopulated, 'Traceability: risk descriptions flow through from import');
+assert(traceRisk.promptsBtn, 'Traceability: ✨ Prompts button present');
+
+const promptsOut = await page.evaluate(() => {
+  openPromptsModal();
+  const risks = [...document.getElementById('prompt-risk-sel').options].map(o => o.value).filter(Boolean);
+  const pick = risks.includes('Delayed incident response') ? 'Delayed incident response' : risks[0];
+  document.getElementById('prompt-risk-sel').value = pick;
+  updatePromptView();
+  const out = {};
+  ['validate', 'coverage', 'reduce'].forEach(k => { setPromptKind(k); out[k] = document.getElementById('prompt-text').value; });
+  closePromptsModal();
+  return { risks, pick, out };
+});
+assert(promptsOut.risks.length >= 5, `Prompts: risk dropdown lists the threatening risks (${promptsOut.risks.length})`);
+assert(/RISK NAME: Delayed incident response/.test(promptsOut.out.validate) && /RISK DESCRIPTION:/.test(promptsOut.out.validate) && /TRACEABILITY EXTRACT/.test(promptsOut.out.validate), 'Prompts: extract embeds the selected risk + traceability table');
+assert(/TASK — VALIDATE THE RISK/.test(promptsOut.out.validate) && /VALID —/.test(promptsOut.out.validate) && /NEEDS REVISION/.test(promptsOut.out.validate), 'Prompts: Validate-the-risk prompt');
+assert(/TASK — CONTROL COVERAGE/.test(promptsOut.out.coverage) && /\| Statement ref \| Control name \| Control objective \| Control description \|/.test(promptsOut.out.coverage), 'Prompts: Control-coverage prompt + output table spec');
+assert(/TASK — REDUCE NUMBER OF CONTROLS/.test(promptsOut.out.reduce) && /\| Controls to merge \| Control name \| Control objective \| Control description \|/.test(promptsOut.out.reduce), 'Prompts: Reduce-controls prompt + output table spec');
 assert(!doraRep.pillGrid, 'DORA Reporting: DORA Pillar cards removed');
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');

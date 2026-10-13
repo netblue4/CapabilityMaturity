@@ -80,6 +80,9 @@
     return {
       capability:     find('business process', 'process', 'capability', 'function', 'domain'),
       riskTitle:      find('risk title', 'risk name', 'title'),
+      // Risk description / detail — risk-specific terms only so it never grabs the
+      // "Control: Description" column. Optional: older files without it import fine.
+      riskDesc:       find('risk: description', 'risk description', 'risk: detail', 'risk detail', 'risk: summary', 'risk summary', 'risk statement'),
       status:         find('status'),
       owner:          findExcept(riskOwner, 'control: owner', 'control owner', 'owner'),
       riskOwner:      riskOwner,
@@ -180,6 +183,7 @@
       return {
         capId,
         riskTitle:      cols.riskTitle      ? (row[cols.riskTitle]      || '').trim() : '',
+        riskDesc:       cols.riskDesc       ? (row[cols.riskDesc]       || '').trim() : '',
         riskStatus:     cols.status         ? (row[cols.status]         || '').toLowerCase().trim() : '',
         controlName:    rawName,
         controlNumber:  cols.controlNumber ? (row[cols.controlNumber] || '').trim() : '',

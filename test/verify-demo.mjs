@@ -252,6 +252,25 @@ const roc = await page.evaluate(() => ({
 assert(roc.charts === 3, `ROC Reporting: three progress charts (${roc.charts})`);
 assert(roc.extract === 13, `ROC Reporting: full extract one row per control (${roc.extract})`);
 
+// ── Capability lens: funnel APPLICABLE must equal the drill-down's distinct
+// objective count, even when a statement is filed under several capabilities
+// (shared incident / major-incident policy). Regression for the funnel
+// undercounting because it leaned on the GLOBAL firstObj flag. ──
+const capLensConsistency = await page.evaluate(() => {
+  if (typeof activeLens !== 'undefined') activeLens = 'dora';
+  const pol = (capId) => [{ capId, statementRef: 'IM-01.PS01', statementHeader: 'Incident response', statementDetail: 'Respond', type: 'locPol', document: 'ICT Incident Management Policy', owner: 'CISO', exception: '' }];
+  const doraRows = [{ obligationId: 'ART-99-1', article: 'Article 99', requirement: 'Handle major incidents', capability: 'ICT Major Incident Management', statementRef: 'IM-01.PS01', group: '' }];
+  const mkFact = (capId) => ({ capId, controlName: 'C-IM-1', controlNumber: 'C1', controlType: 'locPol', controlOwner: 'Ops', riskTitle: 'Incident risk', controlDesc: 'x', designAssess: 'Green', opAssess: 'Green', residualScore: 5, inherentScore: 20, status: 'Implemented', matchedPolicyRows: [{ capId, statementRef: 'IM-01.PS01', document: 'ICT Incident Management Policy', owner: 'CISO' }] });
+  const a = { id: 'synthetic', label: 'S', date: '2026-01-01', doraRows, policyRows: [...pol('incident_mgmt'), ...pol('major_incident_mgmt')], riskPolicyFacts: [mkFact('incident_mgmt'), mkFact('major_incident_mgmt')] };
+  const treeObjs = (t) => { const o = new Set(); t.forEach(art => art.objectives.forEach(x => { if (x.id) o.add(x.id); })); return o.size; };
+  const check = (capId) => ({ applicable: buildCapabilitySummary(a, capId, 'all').funnel.applicable, tree: treeObjs(buildCapabilityTree(a, capId, 'all')) });
+  return { major: check('major_incident_mgmt'), incident: check('incident_mgmt') };
+});
+assert(capLensConsistency.major.applicable === capLensConsistency.major.tree && capLensConsistency.major.tree === 1,
+  `Capability lens: shared objective counts under Major Incident (funnel ${capLensConsistency.major.applicable} = tree ${capLensConsistency.major.tree})`);
+assert(capLensConsistency.incident.applicable === capLensConsistency.incident.tree && capLensConsistency.incident.tree === 1,
+  `Capability lens: shared objective counts under Incident (funnel ${capLensConsistency.incident.applicable} = tree ${capLensConsistency.incident.tree})`);
+
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();
 process.exit(fails ? 1 : 0);

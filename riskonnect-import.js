@@ -77,12 +77,17 @@
     // Dedicated risk-owner column (e.g. "Risk: Owner Name"). Detected first so the
     // generic control-owner match below doesn't accidentally grab it.
     const riskOwner = find('risk: owner name', 'risk owner name', 'risk: owner', 'risk owner');
+    // Resolve the control-description header first, so the risk-description
+    // fallback (a plain "Description" column, as Riskonnect exports it) never
+    // steals the "Control: Description" column.
+    const controlDescHdr = find('control: description', 'control description', 'controls description');
     return {
       capability:     find('business process', 'process', 'capability', 'function', 'domain'),
       riskTitle:      find('risk title', 'risk name', 'title'),
-      // Risk description / detail — risk-specific terms only so it never grabs the
-      // "Control: Description" column. Optional: older files without it import fine.
-      riskDesc:       find('risk: description', 'risk description', 'risk: detail', 'risk detail', 'risk: summary', 'risk summary', 'risk statement'),
+      // Risk description / detail. Prefer risk-specific headers; fall back to a
+      // plain "Description" column, but never the one already claimed by the
+      // control description. Optional: older files without it import fine.
+      riskDesc:       findExcept(controlDescHdr, 'risk: description', 'risk description', 'risk: detail', 'risk detail', 'risk: summary', 'risk summary', 'risk statement', 'description'),
       status:         find('status'),
       owner:          findExcept(riskOwner, 'control: owner', 'control owner', 'owner'),
       riskOwner:      riskOwner,
@@ -94,7 +99,7 @@
       lastAssessDate: find('last control assessment', 'last assessment', 'assessment date'),
       controlName:    find('control: name', 'control name', 'control: title', 'control title'),
       controlNumber:  find('control: number', 'control number', 'control: id', 'control id', 'control: reference', 'control reference', 'control ref'),
-      controlDesc:    find('control: description', 'control description', 'controls description'),
+      controlDesc:    controlDescHdr,
     };
   }
 

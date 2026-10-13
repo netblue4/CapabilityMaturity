@@ -635,18 +635,23 @@ function renderTraceabilityCard(assessment) {
   const LL  = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
   const GL  = (typeof lensGroupLabel === 'function') ? lensGroupLabel() : 'DORA Pillar';
   const DL  = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
+  // Remember the assessment + lens this card was drawn for, so the Prompts popup
+  // (opened later, outside this render) rebuilds the extract under the right lens.
+  _promptsA = assessment;
+  _promptsLens = (typeof activeLens !== 'undefined') ? activeLens : 'dora';
   const title = `${escHtml(LL)} &rarr; Control traceability (full export)`;
+  const hasRisk = t.rows.some(r => (r.riskName || '').trim());
   const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">🧬</span>
       <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
-      ${t.rows.length ? '<button class="btn btn-outline" onclick="copyTraceTable(this)">⧉ Copy for Excel</button>' : ''}
+      ${t.rows.length ? `<div class="trace-hdr-btns">${hasRisk ? '<button class="btn btn-outline" onclick="openPromptsModal()" title="AI prompts that work one risk at a time">✨ Prompts</button>' : ''}<button class="btn btn-outline" onclick="copyTraceTable(this)">⧉ Copy for Excel</button></div>` : ''}
     </div>`;
   if (!t.rows.length) {
     return `<div class="card measure-card">${header(`One row per ${escHtml(LL)} objective &times; statement &times; control — the full traceability spine. Import ${escHtml(LL)}, policy and risk data to populate.`)}<p class="policy-no-data" style="margin:.5rem 0">No data yet.</p></div>`;
   }
   const T = t.totals;
-  const desc = `${T.rows} rows &middot; <b>${T.objectives}</b> objectives (${T.covered} covered) &middot; <b>${T.statements}</b> statements &middot; <b>${T.controls}</b> controls. One row per objective &times; statement &times; control (left-joined — gaps and unmapped statements show as blank cells). Copy to Excel and filter; the ⚑ First-row flags let you count distinct objectives / statements / controls with one filter.`;
+  const desc = `${T.rows} rows &middot; <b>${T.objectives}</b> objectives (${T.covered} covered) &middot; <b>${T.statements}</b> statements &middot; <b>${T.controls}</b> controls. One row per objective &times; statement &times; control &times; ICT risk (left-joined — gaps and unmapped statements show as blank cells; a control is repeated once per risk it treats). Copy to Excel and filter; the ⚑ First-row flags let you count distinct objectives / statements / controls with one filter.${hasRisk ? ' Use <b>✨ Prompts</b> to generate an AI prompt for one risk at a time.' : ''}`;
 
   const yn = v => v === 'Yes' ? '<span class="ev-yes">Yes</span>' : (v === 'No' || v === 'Uncovered') ? `<span class="ev-no">${v}</span>` : (v || '');
   const docBadge = st => { const m = { approved: ['gov-approved', 'Approved'], partial: ['gov-partial', 'Partial'], draft: ['gov-draft', 'Draft'] }; const g = m[st]; return g ? `<span class="gov-badge ${g[0]}">${g[1]}</span>` : ''; };
@@ -678,6 +683,8 @@ function renderTraceabilityCard(assessment) {
     <td>${escHtml(r.provenance)}</td>
     <td class="tr-c">${stCell(r.controlStatus)}</td>
     <td class="tr-c">${effCell(r.effectiveness)}</td>
+    <td class="tr-risk">${escHtml(r.riskName)}</td>
+    <td class="tr-detail">${escHtml(r.riskDescription)}</td>
     <td class="tr-c">${flag(r.firstObj)}</td>
     <td class="tr-c">${flag(r.firstStmt)}</td>
     <td class="tr-c">${flag(r.firstCtrl)}</td>
@@ -687,6 +694,7 @@ function renderTraceabilityCard(assessment) {
     <th>${escHtml(GL)}</th><th>Article/RTS</th><th>Objective</th><th>Objective text</th><th class="tr-c">Objective covered</th>
     <th>${escHtml(DL)}</th><th>Document</th><th class="tr-c">Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Statement detail</th><th>Accountability</th><th>Disposition</th><th class="tr-c">Backed by control</th><th class="tr-c" title="Statement-level: Live = has a live control, Draft = only draft controls">Statement operationalised</th>
     <th>Control No. &amp; Name</th><th>Control description</th><th>Control owner</th><th>Provenance</th><th class="tr-c">Control status</th><th class="tr-c">Effectiveness</th>
+    <th>Risk name</th><th>Risk description</th>
     <th class="tr-c" title="First row for this objective">⚑ First obj</th><th class="tr-c" title="First row for this statement">⚑ First stmt</th><th class="tr-c" title="First row for this control">⚑ First ctrl</th>
   </tr>`;
 

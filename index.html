@@ -161,6 +161,28 @@
       </div>
     </div>
 
+    <!-- AI Prompts popup (traceability table, one risk at a time) -->
+    <div id="prompts-modal" class="modal-overlay" onclick="if(event.target===this)closePromptsModal()" style="display:none">
+      <div class="modal-box prompts-box">
+        <div class="modal-header">
+          <h3 id="prompts-modal-title">✨ AI prompts</h3>
+          <button class="modal-close" onclick="closePromptsModal()">✕</button>
+        </div>
+        <div class="prompts-controls">
+          <label class="prompts-risk-lbl">Risk
+            <select id="prompt-risk-sel" class="exec-sel" onchange="updatePromptView()"></select>
+          </label>
+          <div id="prompt-kind-tabs" class="prompt-kind-tabs" role="tablist" aria-label="Prompt"></div>
+        </div>
+        <p id="prompt-kind-desc" class="prompt-kind-desc"></p>
+        <textarea id="prompt-text" class="prompt-text" readonly spellcheck="false"></textarea>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="copyPromptText(this)">⧉ Copy prompt</button>
+          <span class="prompt-hint">Paste into your AI tool (Claude, ChatGPT, Copilot…). Work one risk at a time.</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Riskonnect Import View -->
     <section id="view-riskonnect-import" class="view">
       <div class="section-header">
@@ -372,6 +394,7 @@
   <script src="dora-import.js"></script>
   <script src="dora-soa-import.js"></script>
   <script src="evidence-report.js"></script>
+  <script src="prompts.js"></script>
   <script src="demo-seed.js"></script>
   <script>
     // Sync theme toggle button label after DOM ready

@@ -117,7 +117,7 @@ ${table}`;
 function _promptBody(kind, LL) {
   if (kind === 'coverage') {
     return `TASK — CONTROL COVERAGE
-For this single risk, examine each policy / group-standard statement in the extract and the control(s) currently mapped to it. Identify every statement whose objective is NOT yet met by a live (Implemented) control — i.e. the statement has no control, or only Draft controls.
+For this single risk, examine each policy / group-standard statement in the extract and the control(s) currently mapped to it. Identify every statement whose objective is NOT yet met by a control, either a live control or a draft control — i.e. the statement has no control mapped to it at all.
 
 For each such gap, propose ONE new DRAFT control that would meet that statement.
 
@@ -128,8 +128,8 @@ Output ONLY a markdown table, no preamble, with exactly these columns:
 - Control objective — one sentence stating the regulatory outcome the control must achieve (derived from the statement and the ${LL} objective).
 - Control description — 1–3 sentences on what the control does, how, and how often.
 
-If every statement is already met by a live control, output exactly:
-No new controls required — every statement is operationalised by a live control.`;
+If every statement already has a control mapped to it (live or draft), output exactly:
+No new controls required — every statement already has a control mapped to it.`;
   }
   if (kind === 'reduce') {
     return `TASK — REDUCE NUMBER OF CONTROLS

@@ -424,7 +424,6 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 }
 .prompts-actions { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
 .prompt-hint { font-size: .78rem; color: var(--text-muted); }
-.tr-risk { font-weight: 600; white-space: nowrap; }
 .modal-levels { display: flex; flex-direction: column; gap: .75rem; }
 .modal-level-row { display: flex; align-items: flex-start; gap: .75rem; }
 .modal-level-desc { font-size: .82rem; color: var(--text-muted); }

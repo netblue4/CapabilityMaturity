@@ -41,26 +41,47 @@ function _promptLensLabel() {
   return _promptsWithLens(() => (typeof lensLabel === 'function') ? lensLabel() : 'DORA');
 }
 
-// Distinct risks that threaten a lens objective, for the dropdown.
-function _promptRiskList(rows) {
-  const seen = new Map();
-  rows.forEach(r => {
-    const name = (r.riskName || '').trim();
-    if (!name || !r._oKey) return;              // must threaten an objective
-    if (!seen.has(name)) seen.set(name, (r.riskDescription || '').trim());
-    else if (!seen.get(name) && (r.riskDescription || '').trim()) seen.set(name, r.riskDescription.trim());
-  });
-  return [...seen].map(([title, desc]) => ({ title, desc })).sort((a, b) => a.title.localeCompare(b.title));
+// The active lens's RCSA facts (risk × control, from the Riskonnect import).
+function _promptFacts() {
+  return _promptsWithLens(() => (typeof lensFacts === 'function') ? lensFacts(_promptsA) : (_promptsA.riskPolicyFacts || []));
+}
+function _promptCtrlKey(f) { return f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName); }
+function _promptIsLiveFact(f) {
+  return !(typeof ftIsClosedControl === 'function' && ftIsClosedControl(f)) && (f.controlName || '').trim();
 }
 
-// The traceability extract for one risk: every row for the objectives that risk
-// threatens (so statements with no/only-draft controls show up as coverage gaps,
-// not just the statements whose control already treats the risk). De-duplicated by
-// objective × statement × control.
-function _promptExtractRows(allRows, riskTitle) {
-  const riskRows = allRows.filter(r => (r.riskName || '').trim() === riskTitle);
-  const objIds = new Set(riskRows.map(r => r._oKey).filter(Boolean));
-  let ext = objIds.size ? allRows.filter(r => r._oKey && objIds.has(r._oKey)) : riskRows;
+// Distinct risks (from the RCSA facts) that threaten a lens objective — i.e. a
+// control treating the risk backs a statement mapped to an objective. Carries the
+// risk description from the import. For the dropdown.
+function _promptRiskList(all, facts) {
+  const objCtrlKeys = new Set(all.filter(r => r._oKey && r._cKey).map(r => r._cKey));
+  const out = new Map();
+  (facts || []).forEach(f => {
+    if (!_promptIsLiveFact(f)) return;
+    const rt = (f.riskTitle || '').trim(); if (!rt) return;
+    if (!objCtrlKeys.has(_promptCtrlKey(f))) return;   // this control backs no mapped objective
+    if (!out.has(rt)) out.set(rt, (f.riskDesc || '').trim());
+    else if (!out.get(rt) && (f.riskDesc || '').trim()) out.set(rt, f.riskDesc.trim());
+  });
+  return [...out].map(([title, desc]) => ({ title, desc })).sort((a, b) => a.title.localeCompare(b.title));
+}
+
+// The traceability extract for one risk: the risk's controls are found in the
+// RCSA facts, then every traceability row for the objectives those controls back
+// is included (so statements with no/only-draft controls show up as coverage
+// gaps, not just the statements whose control already treats the risk).
+// De-duplicated by objective × statement × control.
+function _promptExtractRows(all, facts, riskTitle) {
+  const ck = new Set();
+  (facts || []).forEach(f => {
+    if (!_promptIsLiveFact(f)) return;
+    if (ftNorm(f.riskTitle) !== ftNorm(riskTitle)) return;
+    ck.add(_promptCtrlKey(f));
+  });
+  const riskRows = all.filter(r => r._oKey && r._cKey && ck.has(r._cKey));
+  const objIds = new Set(riskRows.map(r => r._oKey));
+  let ext = objIds.size ? all.filter(r => r._oKey && objIds.has(r._oKey))
+                        : all.filter(r => r._cKey && ck.has(r._cKey));
   const seen = new Set();
   return ext.filter(r => {
     const k = (r._oKey || '') + '¦' + (r._sKey || '') + '¦' + (r._cKey || '');
@@ -144,10 +165,11 @@ function buildPromptText() {
   if (!_promptsA) return '';
   const LL = _promptLensLabel();
   const all = _promptsWithLens(() => buildTraceabilityRows(_promptsA)).rows;
-  const risks = _promptRiskList(all);
+  const facts = _promptFacts();
+  const risks = _promptRiskList(all, facts);
   const risk = risks.find(r => r.title === _promptRisk) || risks[0];
   if (!risk) return 'No risks are linked to the ' + LL + ' objectives yet.';
-  const ext = _promptExtractRows(all, risk.title);
+  const ext = _promptExtractRows(all, facts, risk.title);
   const table = _promptExtractTable(ext, LL);
   return `${_promptPreamble(LL, risk, table)}\n\n${_promptBody(_promptKind, LL)}\n`;
 }
@@ -159,7 +181,8 @@ function openPromptsModal() {
   if (!m || !_promptsA) return;
   const LL = _promptLensLabel();
   const all = _promptsWithLens(() => buildTraceabilityRows(_promptsA)).rows;
-  const risks = _promptRiskList(all);
+  const facts = _promptFacts();
+  const risks = _promptRiskList(all, facts);
   // Keep the current risk if still present, else default to the first.
   if (!risks.some(r => r.title === _promptRisk)) _promptRisk = risks.length ? risks[0].title : '';
   const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));

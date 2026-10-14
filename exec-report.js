@@ -416,29 +416,34 @@ function renderExecScorecard(currentA, prevA) {
   const LFac  = a => (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
   const LL    = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
   const cur  = buildExecScorecard(LRows(currentA), LPol(currentA), LFac(currentA));
-  const sops = buildStatementOps(LPol(currentA), LFac(currentA));
+  const cov  = buildStatementCoverage(LPol(currentA), LFac(currentA));
   const bops = buildBackingControlOps(LPol(currentA), LFac(currentA));
   const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
   const subVs = prevA ? ` &nbsp;·&nbsp; vs ${escHtml(prevA.label)}` : '';
 
+  // Operationalised (Control 2) = statements linked to a risk-treatment-control OR
+  // carrying a disclosed exception / total — the coverage-&-ownership measure.
+  // Draft-vs-live is implementation progress, assured separately (not this metric).
+  const c2n = c => c.backed + c.statements.filter(s => !s.hasControl && s.exception).length;
+
   // Three independent percentages — no averaging, no combined status.
-  //   Documented  = covered objectives / total applicable objectives   (Control 1)
-  //   Implemented = statements with a live control / total statements   (Control 2)
-  //   Effective   = effective controls / IMPLEMENTED controls only      (Control 3)
-  const implCount   = bops.controls.filter(c => c.implemented).length;
-  const documented  = { n: cur.control1.n, d: cur.control1.d, pct: cur.control1.pct };
-  const implemented = { n: sops.all.operationalised, d: sops.all.total, pct: sops.all.total ? Math.round(100 * sops.all.operationalised / sops.all.total) : 0 };
-  const effective   = { n: bops.liveEffective, d: implCount, pct: implCount ? Math.round(100 * bops.liveEffective / implCount) : 0 };
+  //   Documented     = covered objectives / total applicable objectives      (Control 1)
+  //   Operationalised = statements linked-to-a-control or excepted / total    (Control 2)
+  //   Effective      = effective controls / IMPLEMENTED controls only         (Control 3)
+  const implCount      = bops.controls.filter(c => c.implemented).length;
+  const documented     = { n: cur.control1.n, d: cur.control1.d, pct: cur.control1.pct };
+  const operationalised = { n: c2n(cov), d: cov.total, pct: cov.total ? Math.round(100 * c2n(cov) / cov.total) : 0 };
+  const effective      = { n: bops.liveEffective, d: implCount, pct: implCount ? Math.round(100 * bops.liveEffective / implCount) : 0 };
 
   // Previous-quarter % per metric (same definitions) for the delta arrow.
-  let pDoc = null, pImpl = null, pEff = null;
+  let pDoc = null, pOp = null, pEff = null;
   if (prevA) {
     const pc = buildExecScorecard(LRows(prevA), LPol(prevA), LFac(prevA));
-    const ps = buildStatementOps(LPol(prevA), LFac(prevA));
+    const pv = buildStatementCoverage(LPol(prevA), LFac(prevA));
     const pb = buildBackingControlOps(LPol(prevA), LFac(prevA));
     const pic = pb.controls.filter(c => c.implemented).length;
     pDoc  = pc.control1.pct;
-    pImpl = ps.all.total ? Math.round(100 * ps.all.operationalised / ps.all.total) : 0;
+    pOp   = pv.total ? Math.round(100 * c2n(pv) / pv.total) : 0;
     pEff  = pic ? Math.round(100 * pb.liveEffective / pic) : 0;
   }
 
@@ -460,9 +465,9 @@ function renderExecScorecard(currentA, prevA) {
       </div>
     </div>
     <div class="exsum-row">
-      ${cell(documented,  'Documented',  `Applicable ${escHtml(LL)} objectives covered by an owned policy or group-standard statement.`, pDoc)}
-      ${cell(implemented, 'Implemented', 'Policy / group-standard statements operationalised by a live control.',              pImpl)}
-      ${cell(effective,   'Effective',   'Implemented controls rated effective in the RCSA (of implemented controls only).',    pEff)}
+      ${cell(documented,     'Documented',     `Applicable ${escHtml(LL)} objectives covered by an owned policy or group-standard statement.`, pDoc)}
+      ${cell(operationalised, 'Operationalised', 'Statements linked to a risk-treatment-control or carrying a disclosed exception (draft/live status assured separately).', pOp)}
+      ${cell(effective,      'Effective',      'Implemented controls rated effective in the RCSA (of implemented controls only).',    pEff)}
     </div>
   </div>`;
 }
@@ -818,15 +823,33 @@ function sortExec2(which, col) {
   if (tb) tb.innerHTML = ex2Body(ex2SortRows(which));
   if (th) th.innerHTML = ex2Head(which);
 }
+// Control 2 — coverage & ownership of the statement→control mapping.
+// Reframed (mirrors Control 3's "identifying ineffective controls"): the control's
+// OWN measure is that every statement is operationalised — linked to ≥1 risk-
+// treatment-control, OR carrying a disclosed exception. Whether each linked control
+// is draft or live is implementation progress, assured separately (Control 3) — so a
+// draft-only control does NOT fail Control 2. Its only gap is a statement with no
+// control AND no exception. The oversight %, the implementation bars and the gap all
+// reconcile with the Control 2 evidence detail (Backed / Status / Exception columns),
+// which is left unchanged.
 function renderExecControl2(currentA, prevA) {
   const LPol = a => (typeof lensPolicy === 'function') ? lensPolicy(a) : (a.policyRows || []);
   const LFac = a => (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
   const ops     = buildStatementOps(LPol(currentA), LFac(currentA));
   const prevOps = prevA ? buildStatementOps(LPol(prevA), LFac(prevA)) : null;
   const doc     = buildExecDocDetail(LPol(currentA), LFac(currentA));
+  // Coverage & exceptions straight from the same source as the evidence detail,
+  // so the card figures reconcile with that table exactly.
+  const cov     = buildStatementCoverage(LPol(currentA), LFac(currentA));
+  const prevCov = prevA ? buildStatementCoverage(LPol(prevA), LFac(prevA)) : null;
+  const c2 = c => { const exc = c.statements.filter(s => !s.hasControl && s.exception).length; return { total: c.total, backed: c.backed, excepted: exc, opExc: c.backed + exc }; };
+  const cc = c2(cov);
+  const opExc = cc.opExc, gap = cc.total - opExc;
+  const pct = cc.total ? Math.round(100 * opExc / cc.total) : 0;
+  const prevPct = prevCov ? (c2(prevCov).total ? Math.round(100 * c2(prevCov).opExc / c2(prevCov).total) : 0) : null;
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🗂️</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Implemented</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by controls</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Operationalised</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by risk-treatment-controls</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!doc.rows.length) return `<div class="card measure-card">${head('No policy data uploaded for this assessment.')}</div>`;
 
@@ -839,7 +862,7 @@ function renderExecControl2(currentA, prevA) {
       <div class="ex2-flag-body"><div class="ex2-flag-t">${title}</div><div class="ex2-flag-d">${body}</div></div>
     </div>`;
 
-  const desc = `<b>${ops.all.operationalised}</b>/${ops.all.total} statements operationalised with a control (Draft or Implemented)(${ops.operationalisedPct.all}%).`;
+  const desc = `<b>${opExc}</b>/${cc.total} statements operationalised by a risk-treatment-control <b>or</b> carrying a disclosed exception (${pct}% ${execScDelta(pct, prevPct)}). This control assures the statement&rarr;control mapping is <b>complete and owned</b>; whether each linked control is draft or live is implementation progress, <b>assured separately</b> (Control 3) — a draft-only control does not fail this control. ${gap ? `Its only gap is <b class="dora-gap-num">${gap}</b> statement(s) with <b>no control and no disclosed exception</b>.` : 'Every statement is linked to a control or carries a disclosed exception.'}`;
 
   const capPillar = buildCapPillar();
   const withPillar = r => Object.assign({}, r, { pillarShort: doraPillarShortFor('', '', r.capId, capPillar) });
@@ -848,13 +871,20 @@ function renderExecControl2(currentA, prevA) {
 
   return `<div class="card measure-card">
     ${head(desc)}
+    ${cmProgressBar(pct)}
+    <div class="exm-legend">
+      <span class="exm-leg"><i style="background:var(--clr-success)"></i> Linked to a risk-treatment-control</span>
+      <span class="exm-leg"><i style="background:var(--accent)"></i> Disclosed exception (E / WT / WP)</span>
+      <span class="exm-leg"><i class="exm-leg-uncov"></i> No control &amp; no exception — gap</span>
+    </div>
+    <div class="ex2-section">Implementation progress — assured separately (Control 3): live vs draft of the linked controls</div>
     <div class="exm-legend">
       <span class="exm-leg"><i style="background:var(--clr-success)"></i> Statement with a live control</span>
       <span class="exm-leg"><i style="background:var(--accent)"></i> Statement with a draft control only</span>
     </div>
     <div class="ex2-agg">
-      ${ex2AggBar('Policy statements operationalised', ops.policy, prevOps ? prevOps.policy : null)}
-      ${ex2AggBar('Group-standard statements operationalised', ops.groupStandard, prevOps ? prevOps.groupStandard : null)}
+      ${ex2AggBar('Policy statements', ops.policy, prevOps ? prevOps.policy : null)}
+      ${ex2AggBar('Group-standard statements', ops.groupStandard, prevOps ? prevOps.groupStandard : null)}
     </div>
     <div class="ex2-flags">
       ${flag(inv, 'ex2-flag-warn', 'Invisible work', `Statements self-declared implemented or part-implemented with no control tracking them.${inv ? ' — ' + invDrill : ' None — good.'}`)}

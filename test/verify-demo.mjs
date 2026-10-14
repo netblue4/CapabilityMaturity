@@ -155,6 +155,55 @@ assert(doraRep.heatLegend, 'DORA Reporting Control 3: heatmap legend explains ri
 assert(doraRep.copyBtns >= 4, `DORA Reporting: Copy-for-Excel on each detail block (${doraRep.copyBtns})`);
 assert(doraRep.ownCollapsed, 'DORA Reporting: ownership detail table is collapsible');
 
+// ── Control 2 reframe: coverage & ownership (linked-or-excepted), not live-only.
+// A draft-only control no longer fails Control 2; the figure reconciles with the
+// unchanged evidence detail (Backed / Exception columns). Demo: 11 backed + 0
+// excepted = 11/13; the 2 gaps have no control and no exception. ──
+const c2 = await page.evaluate(() => {
+  const root = document.getElementById('exec-report-content');
+  // Scorecard middle metric
+  const cells = [...root.querySelectorAll('.exsum-cell')].map(c => ({
+    lbl: c.querySelector('.exsum-lbl')?.textContent.trim(),
+    frac: c.querySelector('.exsum-frac')?.textContent.trim(),
+  }));
+  const op = cells.find(c => c.lbl === 'Operationalised');
+  // Control 2 card
+  const card = [...root.querySelectorAll('.measure-card')].find(c => /operationalised by risk-treatment-controls/i.test(c.querySelector('.measure-card-title')?.textContent || ''));
+  const eyebrow = card?.querySelector('.exsc-eyebrow')?.textContent.trim();
+  const desc = card?.querySelector('.measure-card-desc')?.textContent || '';
+  // Evidence detail (unchanged): count "Backed by control = Yes" rows + Exception column present
+  const evHeads = [...(card?.querySelectorAll('.ev-tbl thead th') || [])].map(t => t.textContent.trim());
+  const backedIdx = evHeads.indexOf('Backed by control');
+  const evRows = [...(card?.querySelectorAll('.ev-tbl tbody tr') || [])];
+  const backedYes = evRows.filter(tr => (tr.children[backedIdx]?.textContent || '').trim() === 'Yes').length;
+  return {
+    opLabel: !!op, opFrac: op?.frac,
+    eyebrow, title: card?.querySelector('.measure-card-title')?.textContent.trim(),
+    descReframe: /assured separately \(Control 3\)/.test(desc) && /no control and no disclosed exception/.test(desc),
+    detailUnchanged: evHeads.includes('Backed by control') && evHeads.includes('Status') && evHeads.includes('Exception'),
+    backedYes, evRowCount: evRows.length,
+  };
+});
+assert(c2.opLabel && /^11 \/ 13/.test(c2.opFrac), `Scorecard: middle metric is Operationalised 11/13 (${c2.opFrac})`);
+assert(c2.eyebrow === 'Operationalised' && /risk-treatment-controls/.test(c2.title), 'Control 2 card: reframed title + eyebrow');
+assert(c2.descReframe, 'Control 2 card: desc states implementation assured separately + the no-control/no-exception gap');
+assert(c2.detailUnchanged, 'Control 2 detail table unchanged (Backed / Status / Exception columns intact)');
+assert(c2.backedYes === 11 && c2.evRowCount === 13, `Control 2: card figure reconciles with detail (11 backed of 13 in the table)`);
+
+// A statement with a disclosed exception (no control) counts toward Operationalised.
+const c2exc = await page.evaluate(() => {
+  activeLens = 'dora';
+  const a = db.assessments.find(x => x.id === 'demo');
+  const base = buildStatementCoverage(a.policyRows, a.riskPolicyFacts);
+  const n = c => c.backed + c.statements.filter(s => !s.hasControl && s.exception).length;
+  // Clone the policy rows and give one uncovered statement a temporary waiver.
+  const gapKey = base.uncovered[0].key;
+  const pol = a.policyRows.map(p => (p.capId + '||' + ftNorm(p.statementRef)) === gapKey ? { ...p, exception: 'WT' } : { ...p });
+  const after = buildStatementCoverage(pol, a.riskPolicyFacts);
+  return { before: n(base), after: n(after) };
+});
+assert(c2exc.after === c2exc.before + 1, `Control 2: a disclosed exception on an uncovered statement counts toward Operationalised (${c2exc.before} → ${c2exc.after})`);
+
 // Control 3 heatmap is filtered to risks that threaten DORA objectives (fewer
 // than the full register in general; here all 7 are DORA-linked in the demo).
 const doraHeat = await page.evaluate(() => document.querySelectorAll('#exec-report-content [data-name="dora-c3-heatmap"] .rrh-chip').length);

@@ -751,11 +751,6 @@ function buildTraceabilityRows(assessment) {
   // Control description (from the Risk upload's "Control: Description"), keyed the
   // same way as _cKey so each control row can carry its full description text.
   const ctrlDescIdx = {}, ctrlOwnerIdx = {};
-  // Control → the ICT risk(s) it treats (name + description), keyed the same way
-  // as _cKey. A control can treat several risks (the RCSA grain), so each control
-  // row in the export is expanded to one row per treated risk — which is what lets
-  // the table (and the AI prompts) be filtered to a single risk.
-  const risksByCtrl = {};
   (facts || []).forEach(f => {
     const nm = (f.controlName || '').trim(); if (!nm) return;
     const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(nm);
@@ -763,16 +758,10 @@ function buildTraceabilityRows(assessment) {
     if (d && !ctrlDescIdx[ck]) ctrlDescIdx[ck] = d;
     const ow = (f.controlOwner || '').trim();
     if (ow && !ctrlOwnerIdx[ck]) ctrlOwnerIdx[ck] = ow;
-    const rt = (f.riskTitle || '').trim(); if (!rt) return;
-    const arr = risksByCtrl[ck] || (risksByCtrl[ck] = []);
-    const rk = ftNorm(rt);
-    const existing = arr.find(x => ftNorm(x.title) === rk);
-    if (!existing) arr.push({ title: rt, desc: (f.riskDesc || '').trim() });
-    else if (!existing.desc && (f.riskDesc || '').trim()) existing.desc = f.riskDesc.trim();
   });
 
   const rows = [];
-  const pushRow = (o, s, c, risk) => {
+  const pushRow = (o, s, c) => {
     const capId = s ? s.capId : null;
     const article = o ? o.article : '';
     const oid = o ? o.obligationId : '';
@@ -809,10 +798,6 @@ function buildTraceabilityRows(assessment) {
       provenance:      ci ? ci.provenance : '',
       controlStatus:   ci ? (ci.implemented ? 'Implemented' : 'Draft') : '',
       effectiveness:   ci ? (ci.implemented ? (ci.effective ? 'Effective' : 'Not yet') : '—') : '',
-      // ICT risk this control row treats (one row per risk; blank for gap rows or
-      // controls not yet mapped to a risk in the RCSA).
-      riskName:        risk ? risk.title : '',
-      riskDescription: risk ? (risk.desc || '') : '',
       _oKey: oid,
       _sKey: capId != null ? capId + '||' + ftNorm(s.ref) : '',
       _cKey: (c && capId != null) ? capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name) : '',
@@ -823,21 +808,12 @@ function buildTraceabilityRows(assessment) {
   const mappedKeys = new Set();
   model.obligations.forEach(o => (o.mappedRefs || []).forEach(m => mappedKeys.add(m.capId + '||' + ftNorm(m.ref))));
 
-  // Push one row per risk the control treats (so the table filters by one risk);
-  // a control not yet mapped to any risk still gets a single row with a blank risk.
-  const pushCtrl = (o, st, c) => {
-    const ck = st.capId + '|' + ftNorm(c.number) + '|' + ftNorm(c.name);
-    const rks = risksByCtrl[ck] || [];
-    if (rks.length) rks.forEach(risk => pushRow(o, st, c, risk));
-    else pushRow(o, st, c, null);
-  };
-
   // 1) The DORA spine: obligation → statement → control (and the gap rows).
   model.obligations.forEach(o => {
     if (!o.covered) { pushRow(o, null, null); return; }
     (o.mappedRefs || []).forEach(m => {
       const st = mkStmt(m);
-      if (st.controls.length) st.controls.forEach(c => pushCtrl(o, st, c));
+      if (st.controls.length) st.controls.forEach(c => pushRow(o, st, c));
       else pushRow(o, st, null);
     });
   });
@@ -846,7 +822,7 @@ function buildTraceabilityRows(assessment) {
   cov.statements.forEach(s => {
     if (mappedKeys.has(s.capId + '||' + ftNorm(s.ref))) return;
     const st = mkStmt(s); st.hasCtrl = s.hasControl;
-    if (st.controls.length) st.controls.forEach(c => pushCtrl(null, st, c));
+    if (st.controls.length) st.controls.forEach(c => pushRow(null, st, c));
     else pushRow(null, st, null);
   });
 

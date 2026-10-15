@@ -204,6 +204,29 @@ const c2exc = await page.evaluate(() => {
 });
 assert(c2exc.after === c2exc.before + 1, `Control 2: a disclosed exception on an uncovered statement counts toward Operationalised (${c2exc.before} → ${c2exc.after})`);
 
+// ── Capability lens mini-scorecard: three cells (Documented / Operationalised /
+// Effective) above the funnel, scoped to the selected capability, reconciling
+// with that capability's own coverage/ops/controls figures. ──
+const capSc = await page.evaluate(() => {
+  const card = document.querySelector('#exec-report-content .caplens-card');
+  const sc = card?.querySelector('.caplens-scorecard');
+  const labels = [...(sc?.querySelectorAll('.exsum-lbl') || [])].map(l => l.textContent.trim());
+  // scorecard must come before the funnel in the DOM
+  const scBeforeFunnel = sc && card.querySelector('.exfun') && (sc.compareDocumentPosition(card.querySelector('.exfun')) & Node.DOCUMENT_POSITION_FOLLOWING);
+  // reconcile against the builder for the selected capability
+  activeLens = 'dora';
+  const a = db.assessments.find(x => x.id === 'demo');
+  const capId = document.getElementById('caplens-sel').value;
+  const s = buildCapabilitySummary(a, capId, 'all');
+  const sameLook = s.scorecard.documented.n === s.coverage.covered && s.scorecard.documented.d === s.coverage.total
+    && s.scorecard.effective.n === s.controls.effective && s.scorecard.effective.d === s.controls.implemented
+    && s.scorecard.operationalised.d === s.ops.total && s.scorecard.operationalised.n >= s.ops.operationalised;
+  return { cells: (sc?.querySelectorAll('.exsum-cell') || []).length, labels, scBeforeFunnel: !!scBeforeFunnel, sameLook };
+});
+assert(capSc.cells === 3 && capSc.labels.join(',') === 'Documented,Operationalised,Effective', `Capability lens: 3-cell mini scorecard (${capSc.labels.join(', ')})`);
+assert(capSc.scBeforeFunnel, 'Capability lens: mini scorecard sits above the Applicable funnel');
+assert(capSc.sameLook, 'Capability lens: scorecard figures reconcile with the capability coverage/ops/controls');
+
 // Control 3 heatmap is filtered to risks that threaten DORA objectives (fewer
 // than the full register in general; here all 7 are DORA-linked in the demo).
 const doraHeat = await page.evaluate(() => document.querySelectorAll('#exec-report-content [data-name="dora-c3-heatmap"] .rrh-chip').length);

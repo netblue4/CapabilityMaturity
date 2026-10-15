@@ -570,6 +570,11 @@ function renderExecPillar(p, opts) {
     return `<div class="pil-card pil-card-muted">${head}</div>`;
   }
 
+  // Mini scorecard for this capability — the same three cells as the top (DORA)
+  // Operationalisation Scorecard, scoped to the selected capability. Sits above
+  // the funnel so each capability reads like a miniature of the whole-DORA view.
+  const scorecard = renderCapLensScorecard(p);
+
   // Coverage funnel — Applicable → Documented → Implemented → Effective, all at
   // the DORA-objective grain so each stage is a subset of the one above. On the
   // main-screen capability lens the lower three stages filter the drill-down.
@@ -583,7 +588,26 @@ function renderExecPillar(p, opts) {
   </div>`;
 
   return `<div class="pil-card pil-rag-b-${p.rag}">
-    ${head}${funnel}${legend}
+    ${head}${scorecard}${funnel}${legend}
+  </div>`;
+}
+// The three-cell mini scorecard for one capability (Documented / Operationalised /
+// Effective), styled like the top scorecard. Reads p.scorecard from
+// buildCapabilitySummary, so it reconciles with that capability's funnel + drill-down.
+function renderCapLensScorecard(p) {
+  const sc = p && p.scorecard;
+  if (!sc) return '';
+  const cell = (m, label, desc) => `<div class="exsum-cell">
+    <div class="exsum-lbl">${label}</div>
+    <div class="exsum-pct" style="color:${execScColor(m.pct)}">${m.pct}%</div>
+    <div class="exsum-mini"><i style="width:${Math.max(m.pct, 2)}%;background:${execScColor(m.pct)}"></i></div>
+    <div class="exsum-frac">${m.n} / ${m.d}</div>
+    <div class="exsum-desc">${desc}</div>
+  </div>`;
+  return `<div class="exsum-row caplens-scorecard">
+    ${cell(sc.documented,     'Documented',     'Objectives covered by an owned statement.')}
+    ${cell(sc.operationalised, 'Operationalised', 'Statements linked to a control or carrying a disclosed exception.')}
+    ${cell(sc.effective,      'Effective',      'Implemented controls rated effective in the RCSA.')}
   </div>`;
 }
 function renderExecPillars(currentA) {

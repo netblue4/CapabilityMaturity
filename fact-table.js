@@ -595,6 +595,11 @@ function buildCapabilitySummary(assessment, capId, source) {
   });
 
   const pct = (n, d) => d ? Math.round(100 * n / d) : 0;
+  // Statements with no control but a disclosed exception (E/WT/WP): the sNone
+  // branch above buckets no-control statements into invisibleWork / toBuild /
+  // (else) exception, so the remainder is the excepted count.
+  const excepted = Math.max(0, sNone - invisibleWork - toBuild);
+  const opExc = sLive + sDraft + excepted;   // operationalised = linked to a control OR excepted
   const hasData = oblTotal + sTotal + cTotal > 0;
   const gaps = {
     uncovered, draftStatements: sTotal - approved, toImplement: sDraft,
@@ -614,6 +619,14 @@ function buildCapabilitySummary(assessment, capId, source) {
     approval: { approved, total: sTotal },
     controls: { effective: cEff, implemented: cImpl, total: cTotal, pct: pct(cEff, cImpl) },
     funnel: coverageFunnel({ oblTotal, oblCovered, oblImpl: objImpl, oblEff: objEff }),
+    // Mini scorecard for this capability — mirrors the top (DORA) scorecard's
+    // three cells: Documented (objectives covered), Operationalised (statements
+    // linked to a control or excepted) and Effective (effective of implemented).
+    scorecard: {
+      documented:     { n: oblCovered, d: oblTotal, pct: pct(oblCovered, oblTotal) },
+      operationalised:{ n: opExc,      d: sTotal,   pct: pct(opExc, sTotal) },
+      effective:      { n: cEff,       d: cImpl,    pct: pct(cEff, cImpl) },
+    },
     gaps,
   };
   if (!hasData) s.rag = 'none';

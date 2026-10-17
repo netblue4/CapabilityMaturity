@@ -166,7 +166,7 @@ const c2 = await page.evaluate(() => {
     lbl: c.querySelector('.exsum-lbl')?.textContent.trim(),
     frac: c.querySelector('.exsum-frac')?.textContent.trim(),
   }));
-  const op = cells.find(c => c.lbl === 'Operationalised');
+  const op = cells.find(c => c.lbl === 'Implemented');
   // Control 2 card
   const card = [...root.querySelectorAll('.measure-card')].find(c => /operationalised by risk-treatment-controls/i.test(c.querySelector('.measure-card-title')?.textContent || ''));
   const eyebrow = card?.querySelector('.exsc-eyebrow')?.textContent.trim();
@@ -184,8 +184,8 @@ const c2 = await page.evaluate(() => {
     backedYes, evRowCount: evRows.length,
   };
 });
-assert(c2.opLabel && /^11 \/ 13/.test(c2.opFrac), `Scorecard: middle metric is Operationalised 11/13 (${c2.opFrac})`);
-assert(c2.eyebrow === 'Operationalised' && /risk-treatment-controls/.test(c2.title), 'Control 2 card: reframed title + eyebrow');
+assert(c2.opLabel && /^11 \/ 13/.test(c2.opFrac), `Scorecard: middle metric labelled Implemented, 11/13 (${c2.opFrac})`);
+assert(c2.eyebrow === 'Implemented' && /risk-treatment-controls/.test(c2.title), 'Control 2 card: Implemented eyebrow + reframed title');
 assert(c2.descReframe, 'Control 2 card: desc states implementation assured separately + the no-control/no-exception gap');
 assert(c2.detailUnchanged, 'Control 2 detail table unchanged (Backed / Status / Exception columns intact)');
 assert(c2.backedYes === 11 && c2.evRowCount === 13, `Control 2: card figure reconciles with detail (11 backed of 13 in the table)`);
@@ -223,7 +223,7 @@ const capSc = await page.evaluate(() => {
     && s.scorecard.operationalised.d === s.ops.total && s.scorecard.operationalised.n >= s.ops.operationalised;
   return { cells: (sc?.querySelectorAll('.exsum-cell') || []).length, labels, scBeforeFunnel: !!scBeforeFunnel, sameLook };
 });
-assert(capSc.cells === 3 && capSc.labels.join(',') === 'Documented,Operationalised,Effective', `Capability lens: 3-cell mini scorecard (${capSc.labels.join(', ')})`);
+assert(capSc.cells === 3 && capSc.labels.join(',') === 'Documented,Implemented,Effective', `Capability lens: 3-cell mini scorecard (${capSc.labels.join(', ')})`);
 assert(capSc.scBeforeFunnel, 'Capability lens: mini scorecard sits above the Applicable funnel');
 assert(capSc.sameLook, 'Capability lens: scorecard figures reconcile with the capability coverage/ops/controls');
 

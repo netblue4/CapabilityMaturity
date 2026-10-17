@@ -466,7 +466,7 @@ function renderExecScorecard(currentA, prevA) {
     </div>
     <div class="exsum-row">
       ${cell(documented,     'Documented',     `Applicable ${escHtml(LL)} objectives covered by an owned policy or group-standard statement.`, pDoc)}
-      ${cell(operationalised, 'Operationalised', 'Statements linked to a risk-treatment-control or carrying a disclosed exception (draft/live status assured separately).', pOp)}
+      ${cell(operationalised, 'Implemented', 'Statements linked to a risk-treatment-control or carrying a disclosed exception (draft/live status assured separately).', pOp)}
       ${cell(effective,      'Effective',      'Implemented controls rated effective in the RCSA (of implemented controls only).',    pEff)}
     </div>
   </div>`;
@@ -606,7 +606,7 @@ function renderCapLensScorecard(p) {
   </div>`;
   return `<div class="exsum-row caplens-scorecard">
     ${cell(sc.documented,     'Documented',     'Objectives covered by an owned statement.')}
-    ${cell(sc.operationalised, 'Operationalised', 'Statements linked to a control or carrying a disclosed exception.')}
+    ${cell(sc.operationalised, 'Implemented', 'Statements linked to a control or carrying a disclosed exception.')}
     ${cell(sc.effective,      'Effective',      'Implemented controls rated effective in the RCSA.')}
   </div>`;
 }
@@ -873,7 +873,7 @@ function renderExecControl2(currentA, prevA) {
   const prevPct = prevCov ? (c2(prevCov).total ? Math.round(100 * c2(prevCov).opExc / c2(prevCov).total) : 0) : null;
   const head = desc => `<div class="measure-card-header">
       <span class="measure-icon">🗂️</span>
-      <div style="flex:1"><div class="exsc-eyebrow">Operationalised</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by risk-treatment-controls</h3><p class="measure-card-desc">${desc}</p></div>
+      <div style="flex:1"><div class="exsc-eyebrow">Implemented</div><h3 class="measure-card-title">Policy & Group Standard statement operationalised by risk-treatment-controls</h3><p class="measure-card-desc">${desc}</p></div>
     </div>`;
   if (!doc.rows.length) return `<div class="card measure-card">${head('No policy data uploaded for this assessment.')}</div>`;
 

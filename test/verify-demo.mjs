@@ -357,22 +357,24 @@ const ral = await page.evaluate(() => {
   const cellsOf = r => [...r.children].map(td => td.textContent.replace(/\s+/g, ' ').trim());
   const delayed = findRow('Delayed incident response');
   const sortable = !!tbl?.querySelector("thead th[onclick^='sortRiskActionList']");
-  // Columns: Risk(0) Action(1) Owner(2) Residual(3) Draft(4) Implemented(5) Tested(6) Effective(7) NotAssessed(8) Defensibility(9)
-  const actionBadges = rows.map(r => r.children[1].querySelector('.ral-badge')?.className || '');
-  const defBadges = rows.map(r => r.children[9].querySelector('.ral-badge')?.textContent.trim() || '');
-  const maturityHasMovement = rows[0] && [5, 6, 7].every(i => rows[0].children[i].querySelector('.ral-good,.ral-bad,.ral-dot'));
-  const delayedNaIsBad = delayed && !!delayed.children[8].querySelector('.ral-bad');   // not-assessed rose → red
+  // Columns: Capability(0) Risk(1) Action(2) Owner(3) Residual(4) Draft(5) Implemented(6) Tested(7) Effective(8) NotAssessed(9) Defensibility(10)
+  const actionBadges = rows.map(r => r.children[2].querySelector('.ral-badge')?.className || '');
+  const defBadges = rows.map(r => r.children[10].querySelector('.ral-badge')?.textContent.trim() || '');
+  const maturityHasMovement = rows[0] && [6, 7, 8].every(i => rows[0].children[i].querySelector('.ral-good,.ral-bad,.ral-dot'));
+  const delayedNaIsBad = delayed && !!delayed.children[9].querySelector('.ral-bad');   // not-assessed rose → red
+  const capCol = rows.map(r => r.children[0].textContent.trim());
   return {
     present: !!tbl, heads, rowCount: rows.length, detailCount: details.length,
     allDetailsHidden: details.every(d => d.hidden),
     afterHeat: !!afterHeat, beforeExtract: !!beforeExtract, sortable,
     anyGreen: actionBadges.some(c => /ral-b-green/.test(c)), anyAmber: actionBadges.some(c => /ral-b-amber/.test(c)),
     allHaveAction: actionBadges.every(Boolean), allHaveDef: defBadges.every(d => /% tested|n\/a/.test(d)),
-    maturityHasMovement, delayedNaIsBad,
+    maturityHasMovement, delayedNaIsBad, capPopulated: capCol.every(Boolean),
     delayedCells: delayed ? cellsOf(delayed) : null,
   };
 });
-assert(ral.present && ral.heads.join(',') === 'Risk,Action,Risk owner,Residual,Draft,Implemented,Tested,Effective,Not assessed,Defensibility', `Risk action list: columns (${ral.heads.join(', ')})`);
+assert(ral.present && ral.heads.join(',') === 'Capability,Risk,Action,Risk owner,Residual,Draft,Implemented,Tested,Effective,Not assessed,Defensibility', `Risk action list: columns (${ral.heads.join(', ')})`);
+assert(ral.capPopulated, 'Risk action list: Capability first column populated for every risk');
 assert(ral.rowCount === 7, `Risk action list: one row per risk (${ral.rowCount})`);
 assert(ral.afterHeat && ral.beforeExtract, 'Risk action list: located under the residual heatmap, above the full extract');
 assert(ral.allDetailsHidden && ral.detailCount === 7, 'Risk action list: control-name detail collapsed by default (numbers-only)');
@@ -395,7 +397,7 @@ assert(/ral-b-green/.test(badgeLogic.defGreen) && /ral-b-amber/.test(badgeLogic.
 assert(ral.maturityHasMovement, 'Risk action list: Implemented/Tested/Effective carry movement marks');
 assert(ral.delayedNaIsBad, 'Risk action list: a risen Not-assessed shows red (worsened), not green');
 // Delayed incident response: residual 14 ▼2, draft 0 ▼1, not-assessed 1 ▲1
-assert(ral.delayedCells && /14 ▼ 2/.test(ral.delayedCells[3]) && /0 ▼ 1/.test(ral.delayedCells[4]) && /1 ▲ 1/.test(ral.delayedCells[8]),
+assert(ral.delayedCells && /14 ▼ 2/.test(ral.delayedCells[4]) && /0 ▼ 1/.test(ral.delayedCells[5]) && /1 ▲ 1/.test(ral.delayedCells[9]),
   `Risk action list: movement marks (Delayed incident response → ${JSON.stringify(ral.delayedCells)})`);
 
 // Expanding a risk reveals its draft / not-assessed control names.

@@ -871,7 +871,7 @@ function ralDefBadge(r) {
   return `<span class="ral-badge ${cls}" title="${r.tested}/${r.total} controls tested — ${word}">${pct}% tested</span>`;
 }
 const RAL_FIELD = {
-  title: r => r.title, owner: r => r.owner, residual: r => r.residual || 0,
+  capName: r => r.capName, title: r => r.title, owner: r => r.owner, residual: r => r.residual || 0,
   draft: r => r.draft, implemented: r => r.implemented, tested: r => r.tested,
   effective: r => r.effective, notAssessed: r => r.notAssessed,
   // Default: most attention first — level, then not-assessed, then draft.
@@ -900,14 +900,15 @@ function ralMove(cur, prev, isNew, goodDown) {
 function ralHead() {
   const arrow = c => _ralSort.col === c ? `<span class="mrt-arrow">${_ralSort.dir === 1 ? '▲' : '▼'}</span>` : '';
   const th = (k, l, cls, title) => `<th class="mrt-sort${cls ? ' ' + cls : ''}"${title ? ` title="${title}"` : ''} onclick="sortRiskActionList('${k}')">${l}${arrow(k)}</th>`;
-  return `<tr>${th('title', 'Risk')}${th('action', 'Action', 'ral-badge-col', 'Does this risk need attention?')}${th('owner', 'Risk owner')}${th('residual', 'Residual', 'ral-num', 'Current residual score')}${th('draft', 'Draft', 'ral-num', 'Controls not yet live — risk owner reviews to make live')}${th('implemented', 'Implemented', 'ral-num', 'Live controls')}${th('tested', 'Tested', 'ral-num', 'Live & assessed — have an RCSA verdict')}${th('effective', 'Effective', 'ral-num', 'Assessed effective in the RCSA')}${th('notAssessed', 'Not assessed', 'ral-num', 'Live controls with no RCSA verdict — control owners to test')}${th('def', 'Defensibility', 'ral-badge-col', 'How well-evidenced the assessment is — % of controls tested')}</tr>`;
+  return `<tr>${th('capName', 'Capability')}${th('title', 'Risk')}${th('action', 'Action', 'ral-badge-col', 'Does this risk need attention?')}${th('owner', 'Risk owner')}${th('residual', 'Residual', 'ral-num', 'Current residual score')}${th('draft', 'Draft', 'ral-num', 'Controls not yet live — risk owner reviews to make live')}${th('implemented', 'Implemented', 'ral-num', 'Live controls')}${th('tested', 'Tested', 'ral-num', 'Live & assessed — have an RCSA verdict')}${th('effective', 'Effective', 'ral-num', 'Assessed effective in the RCSA')}${th('notAssessed', 'Not assessed', 'ral-num', 'Live controls with no RCSA verdict — control owners to test')}${th('def', 'Defensibility', 'ral-badge-col', 'How well-evidenced the assessment is — % of controls tested')}</tr>`;
 }
 function ralBody(rows) {
   return rows.map(r => {
     const hasDetail = r.draftList.length || r.naList.length;
     const caret = hasDetail ? '<span class="ral-caret">▸</span>' : '<span class="ral-caret ral-caret-none">·</span>';
     const main = `<tr class="ral-row" onclick="toggleRalRow(this)">
-      <td class="ral-risk">${caret}<span class="ral-risk-t" title="${escHtml(r.capName)}">${escHtml(r.title)}</span></td>
+      <td class="ral-cap" title="${escHtml(r.capName)}">${escHtml((typeof shortName === 'function') ? shortName(r.capName) : r.capName)}</td>
+      <td class="ral-risk">${caret}<span class="ral-risk-t">${escHtml(r.title)}</span></td>
       <td class="ral-badge-col">${ralActionBadge(r)}</td>
       <td class="ral-owner${r.owner === 'Unassigned' ? ' own-unassigned' : ''}">${escHtml(r.owner)}</td>
       <td class="ral-num">${r.residual || '—'} ${ralMove(r.residual, r.residualPrev, r.isNew, true)}</td>
@@ -919,7 +920,7 @@ function ralBody(rows) {
       <td class="ral-badge-col">${ralDefBadge(r)}</td>
     </tr>`;
     const dl = (lbl, cls, items) => `<div class="ral-dl"><b class="${cls}">${lbl}</b> ${items}</div>`;
-    const detail = `<tr class="ral-detail" hidden><td colspan="10">
+    const detail = `<tr class="ral-detail" hidden><td colspan="11">
       ${r.draftList.length ? dl('Draft — risk owner to review:', 'ral-lbl-draft', r.draftList.map(c => escHtml(c.label)).join(' · ')) : ''}
       ${r.naList.length ? dl('Not assessed — control owners to test:', 'ral-lbl-na', r.naList.map(c => escHtml(c.label) + (c.owner ? ` <span class="ral-co">(${escHtml(c.owner)})</span>` : '')).join(' · ')) : ''}
       ${!hasDetail ? '<div class="ral-dl ral-none">No outstanding control actions for this risk.</div>' : ''}

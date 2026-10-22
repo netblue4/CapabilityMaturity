@@ -434,10 +434,15 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .ral-caret { display: inline-block; width: 1.1em; color: var(--text-muted); }
 .ral-caret-none { opacity: .3; cursor: default; }
 .ral-risk-t { font-weight: 600; }
-.ral-down { color: var(--clr-success); font-weight: 700; }   /* reduced — good */
-.ral-up   { color: var(--clr-danger);  font-weight: 700; }   /* increased — bad */
+.ral-good { color: var(--clr-success); font-weight: 700; }   /* improved */
+.ral-bad  { color: var(--clr-danger);  font-weight: 700; }   /* worsened */
 .ral-dot, .ral-new { color: color-mix(in srgb, var(--text) 45%, transparent); }
 .ral-has { font-weight: 700; }
+.ral-badge-col { white-space: nowrap; text-align: center; }
+.ral-badge { display: inline-block; font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; letter-spacing: .02em; white-space: nowrap; }
+.ral-b-green { background: color-mix(in srgb, var(--clr-success) 20%, transparent); color: var(--clr-success); }
+.ral-b-amber { background: color-mix(in srgb, var(--clr-warning) 22%, transparent); color: var(--clr-warning); }
+.ral-b-red   { background: color-mix(in srgb, var(--clr-danger) 20%, transparent);  color: var(--clr-danger); }
 .ral-detail > td { background: var(--bg); font-size: .76rem; color: var(--text-muted); padding: .45rem .7rem; border-top: none; }
 .ral-dl { margin: .18rem 0; line-height: 1.5; }
 .ral-lbl-draft { color: var(--accent); }

@@ -331,6 +331,53 @@ const roc = await page.evaluate(() => ({
 assert(roc.charts === 3, `ROC Reporting: three progress charts (${roc.charts})`);
 assert(roc.extract === 13, `ROC Reporting: full extract one row per control (${roc.extract})`);
 
+// ── Risk control-action list: compact per-risk action table, under the heatmap,
+// above the full extract. Numbers only (collapsed), sortable, with ▼/▲/● movement
+// on Residual/Draft/Not-assessed and a plain number for Total controls. ──
+const ral = await page.evaluate(() => {
+  const root = document.getElementById('roc-report-content');
+  const tbl = root.querySelector('.ral-tbl');
+  const heads = [...(tbl?.querySelectorAll('thead th') || [])].map(t => t.textContent.replace(/[▲▼]/g, '').trim());
+  const rows = [...(tbl?.querySelectorAll('tbody tr.ral-row') || [])];
+  const details = [...(tbl?.querySelectorAll('tbody tr.ral-detail') || [])];
+  // position: after the residual heatmap, before the full extract
+  const heatmap = root.querySelector('[data-name="dora-risk-residual"], [data-name="dora-c3-heatmap"], .rrh') || root.querySelector('.exprog-chart:last-of-type');
+  const rcx = root.querySelector('.rcx-tbl');
+  const afterHeat = heatmap && (heatmap.compareDocumentPosition(tbl) & Node.DOCUMENT_POSITION_FOLLOWING);
+  const beforeExtract = rcx && (tbl.compareDocumentPosition(rcx) & Node.DOCUMENT_POSITION_FOLLOWING);
+  // find the "Delayed incident response" row and read its cells
+  const findRow = name => rows.find(r => (r.querySelector('.ral-risk-t')?.textContent || '').trim() === name);
+  const cellsOf = r => [...r.children].map(td => td.textContent.replace(/\s+/g, ' ').trim());
+  const delayed = findRow('Delayed incident response');
+  const sortable = !!tbl?.querySelector("thead th[onclick^='sortRiskActionList']");
+  // Controls column (index 3) must have NO movement mark
+  const ctrlColHasArrow = rows.some(r => r.children[3].querySelector('.ral-down,.ral-up,.ral-dot'));
+  return {
+    present: !!tbl, heads, rowCount: rows.length, detailCount: details.length,
+    allDetailsHidden: details.every(d => d.hidden),
+    afterHeat: !!afterHeat, beforeExtract: !!beforeExtract, sortable, ctrlColHasArrow,
+    delayedCells: delayed ? cellsOf(delayed) : null,
+  };
+});
+assert(ral.present && ral.heads.join(',') === 'Risk,Risk owner,Residual,Controls,Draft,Not assessed', `Risk action list: columns (${ral.heads.join(', ')})`);
+assert(ral.rowCount === 7, `Risk action list: one row per risk (${ral.rowCount})`);
+assert(ral.afterHeat && ral.beforeExtract, 'Risk action list: located under the residual heatmap, above the full extract');
+assert(ral.allDetailsHidden && ral.detailCount === 7, 'Risk action list: control-name detail collapsed by default (numbers-only)');
+assert(ral.sortable, 'Risk action list: columns are sortable');
+assert(!ral.ctrlColHasArrow, 'Risk action list: Total controls is a plain number (no movement arrow)');
+// Delayed incident response: residual 14 ▼2, draft 0 ▼1, not-assessed 1 ▲1 (red up)
+assert(ral.delayedCells && /14 ▼ 2/.test(ral.delayedCells[2]) && /0 ▼ 1/.test(ral.delayedCells[4]) && /1 ▲ 1/.test(ral.delayedCells[5]),
+  `Risk action list: movement marks (Delayed incident response → ${JSON.stringify(ral.delayedCells)})`);
+
+// Expanding a risk reveals its draft / not-assessed control names.
+const ralExpand = await page.evaluate(() => {
+  const row = [...document.querySelectorAll('#roc-report-content .ral-tbl tbody tr.ral-row')].find(r => (r.querySelector('.ral-risk-t')?.textContent || '').trim() === 'Delayed incident response');
+  toggleRalRow(row);
+  const d = row.nextElementSibling;
+  return { shown: !d.hidden, text: d.textContent.replace(/\s+/g, ' ').trim() };
+});
+assert(ralExpand.shown && /control owners to test/i.test(ralExpand.text) && /CTRL-1013/.test(ralExpand.text), 'Risk action list: expanding a risk shows the control names to action');
+
 // ── Risk & control (full extract): Risk description column + the AI Prompts
 // popup (per risk), fed from the Riskonnect import. ──
 const rcx = await page.evaluate(() => {

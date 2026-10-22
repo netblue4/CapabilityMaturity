@@ -786,6 +786,139 @@ function renderRiskControlExtract(assessment) {
     </div>`;
 }
 
+// ── Risk control-action list (ROC report) ────────────────────────
+// One compact row per risk, over the WHOLE register, for the Risk Oversight
+// Committee: what each risk owner must action. Two action buckets only (no
+// tested/effective — those need no action):
+//   Draft        — controls not yet live → risk owner reviews to make live.
+//   Not assessed — live controls with no RCSA verdict → control owners test.
+// Residual / Draft / Not-assessed each carry a QoQ movement mark (▼ fewer = good,
+// ▲ more = bad, ● no change / new). Total controls is a plain number. The control
+// names are tucked behind a per-row collapse so, collapsed, it is a numbers-only
+// snapshot that can be pasted into another report.
+let _ralRows = [], _ralSort = { col: 'action', dir: -1 };
+function buildRiskActionRows(currentA, prevA) {
+  const capName = id => (CONFIG.capabilities || []).find(c => c.id === id)?.name || id || '';
+  const groupsOf = a => {
+    const g = {};
+    ((a && a.riskPolicyFacts) || []).filter(f => !ftIsClosedControl(f) && (f.controlName || '').trim()).forEach(f => {
+      const rk = f.capId + '|' + ftNorm(f.riskTitle);
+      const grp = g[rk] || (g[rk] = { key: rk, capId: f.capId, title: (f.riskTitle || '').trim() || '(untitled risk)', owner: '', residual: 0, ctrls: new Map() });
+      if (!grp.owner && (f.riskOwner || '').trim()) grp.owner = f.riskOwner.trim();
+      if ((f.residualScore || 0) > grp.residual) grp.residual = f.residualScore || 0;
+      const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+      let c = grp.ctrls.get(ck);
+      if (!c) { c = { label: (f.controlNumber ? f.controlNumber + ' — ' : '') + (f.controlName || '').trim(), owner: '', impl: false, assessed: false }; grp.ctrls.set(ck, c); }
+      if (ftIsImplemented(f)) c.impl = true;
+      if (!ftIsNotAssessed(f)) c.assessed = true;                 // has a design/operating verdict
+      if ((f.controlOwner || '').trim() && !c.owner) c.owner = f.controlOwner.trim();
+    });
+    return g;
+  };
+  const metrics = grp => {
+    const ctrls = [...grp.ctrls.values()];
+    const draftList = ctrls.filter(c => !c.impl);                 // not yet live
+    const naList = ctrls.filter(c => c.impl && !c.assessed);      // live, no verdict
+    return { total: ctrls.length, draft: draftList.length, notAssessed: naList.length, draftList, naList };
+  };
+  const cur = groupsOf(currentA), prev = groupsOf(prevA);
+  return Object.values(cur).map(grp => {
+    const m = metrics(grp);
+    const pg = prev[grp.key];
+    const pm = pg ? metrics(pg) : null;
+    return {
+      key: grp.key, title: grp.title, capName: capName(grp.capId), owner: grp.owner || 'Unassigned',
+      residual: grp.residual, residualPrev: pg ? pg.residual : null,
+      total: m.total,
+      draft: m.draft, draftPrev: pm ? pm.draft : null,
+      notAssessed: m.notAssessed, notAssessedPrev: pm ? pm.notAssessed : null,
+      draftList: m.draftList, naList: m.naList, isNew: !pg,
+    };
+  });
+}
+const RAL_FIELD = {
+  title: r => r.title, owner: r => r.owner, residual: r => r.residual || 0, total: r => r.total,
+  draft: r => r.draft, notAssessed: r => r.notAssessed,
+  // Default: most outstanding action first (not-assessed, then draft, then residual).
+  action: r => r.notAssessed * 10000 + r.draft * 100 + (r.residual || 0),
+};
+function ralSortRows() {
+  const f = RAL_FIELD[_ralSort.col] || RAL_FIELD.action, dir = _ralSort.dir;
+  return _ralRows.slice().sort((a, b) => {
+    const va = f(a), vb = f(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.title.localeCompare(b.title);
+    return String(va).localeCompare(String(vb)) * dir || a.title.localeCompare(b.title);
+  });
+}
+// QoQ movement mark for a count where DOWN is good.
+function ralMove(cur, prev, isNew) {
+  if (isNew || prev == null) return '<span class="ral-dot ral-new" title="new this quarter">●</span>';
+  const d = cur - prev;
+  if (d === 0) return '<span class="ral-dot" title="no change">●</span>';
+  if (d < 0)  return `<span class="ral-down" title="reduced by ${-d}">▼ ${-d}</span>`;
+  return `<span class="ral-up" title="increased by ${d}">▲ ${d}</span>`;
+}
+function ralHead() {
+  const arrow = c => _ralSort.col === c ? `<span class="mrt-arrow">${_ralSort.dir === 1 ? '▲' : '▼'}</span>` : '';
+  const th = (k, l, cls, title) => `<th class="mrt-sort${cls ? ' ' + cls : ''}"${title ? ` title="${title}"` : ''} onclick="sortRiskActionList('${k}')">${l}${arrow(k)}</th>`;
+  return `<tr>${th('title', 'Risk')}${th('owner', 'Risk owner')}${th('residual', 'Residual', 'ral-num', 'Current residual score')}${th('total', 'Controls', 'ral-num', 'Total controls treating the risk')}${th('draft', 'Draft', 'ral-num', 'Controls not yet live — risk owner reviews to make live')}${th('notAssessed', 'Not assessed', 'ral-num', 'Live controls with no RCSA verdict — control owners to test')}</tr>`;
+}
+function ralBody(rows) {
+  return rows.map(r => {
+    const hasDetail = r.draftList.length || r.naList.length;
+    const caret = hasDetail ? '<span class="ral-caret">▸</span>' : '<span class="ral-caret ral-caret-none">·</span>';
+    const main = `<tr class="ral-row" onclick="toggleRalRow(this)">
+      <td class="ral-risk">${caret}<span class="ral-risk-t" title="${escHtml(r.capName)}">${escHtml(r.title)}</span></td>
+      <td class="ral-owner${r.owner === 'Unassigned' ? ' own-unassigned' : ''}">${escHtml(r.owner)}</td>
+      <td class="ral-num">${r.residual || '—'} ${ralMove(r.residual, r.residualPrev, r.isNew)}</td>
+      <td class="ral-num">${r.total}</td>
+      <td class="ral-num${r.draft ? ' ral-has' : ''}">${r.draft} ${ralMove(r.draft, r.draftPrev, r.isNew)}</td>
+      <td class="ral-num${r.notAssessed ? ' ral-has' : ''}">${r.notAssessed} ${ralMove(r.notAssessed, r.notAssessedPrev, r.isNew)}</td>
+    </tr>`;
+    const dl = (lbl, cls, items) => `<div class="ral-dl"><b class="${cls}">${lbl}</b> ${items}</div>`;
+    const detail = `<tr class="ral-detail" hidden><td colspan="6">
+      ${r.draftList.length ? dl('Draft — risk owner to review:', 'ral-lbl-draft', r.draftList.map(c => escHtml(c.label)).join(' · ')) : ''}
+      ${r.naList.length ? dl('Not assessed — control owners to test:', 'ral-lbl-na', r.naList.map(c => escHtml(c.label) + (c.owner ? ` <span class="ral-co">(${escHtml(c.owner)})</span>` : '')).join(' · ')) : ''}
+      ${!hasDetail ? '<div class="ral-dl ral-none">No outstanding control actions for this risk.</div>' : ''}
+    </td></tr>`;
+    return main + detail;
+  }).join('');
+}
+function sortRiskActionList(col) {
+  if (_ralSort.col === col) _ralSort.dir *= -1; else _ralSort = { col, dir: (col === 'title' || col === 'owner') ? 1 : -1 };
+  const tb = document.getElementById('ral-tbody'), th = document.getElementById('ral-thead');
+  if (tb) tb.innerHTML = ralBody(ralSortRows());
+  if (th) th.innerHTML = ralHead();
+}
+function toggleRalRow(tr) {
+  const d = tr.nextElementSibling;
+  if (!d || !d.classList.contains('ral-detail')) return;
+  d.hidden = !d.hidden;
+  const c = tr.querySelector('.ral-caret');
+  if (c && !c.classList.contains('ral-caret-none')) c.textContent = d.hidden ? '▸' : '▾';
+}
+function renderRiskActionList(currentA, prevA) {
+  _ralRows = buildRiskActionRows(currentA, prevA);
+  _ralSort = { col: 'action', dir: -1 };
+  const prevL = (typeof execQtr === 'function' && prevA) ? execQtr(prevA) : '';
+  const title = 'Risk control-action list';
+  const header = desc => `<div class="measure-card-header"><span class="measure-icon">✅</span>
+    <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div></div>`;
+  if (!_ralRows.length) {
+    return `<div class="card measure-card">${header('One row per risk — the draft &amp; not-assessed controls each risk owner must action. Import risk &amp; control data to populate.')}<p class="policy-no-data" style="margin:.5rem 0">No risk data yet.</p></div>`;
+  }
+  const desc = `One row per risk. <b>Draft</b> → risk owner reviews to make live; <b>Not assessed</b> → control owners finish their RCSA test. Movement vs ${prevL || 'the previous quarter'}: <span class="ral-down">▼ fewer</span> · <span class="ral-up">▲ more</span> · <span class="ral-dot">●</span> no change. Click a risk for the control names (collapsed = numbers-only snapshot); click a column to sort.`;
+  return `<div class="card measure-card ral-card">
+    ${header(desc)}
+    <div class="rcsa-table-wrap">
+      <table class="trace-tbl ral-tbl">
+        <thead id="ral-thead">${ralHead()}</thead>
+        <tbody id="ral-tbody">${ralBody(ralSortRows())}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
 // ── Control 2 action list: statements with no control ─────────────
 let _c2gapRows = [], _c2gapSort = { col: null, dir: 1 };
 const EXC_RANK = { '': 0, WT: 1, E: 2, WP: 3 };

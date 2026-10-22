@@ -424,6 +424,26 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 }
 .prompts-actions { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
 .prompt-hint { font-size: .78rem; color: var(--text-muted); }
+
+/* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
+.ral-tbl { font-size: .82rem; }
+.ral-tbl th, .ral-tbl td { padding: .3rem .55rem; }
+.ral-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ral-row { cursor: pointer; }
+.ral-row:hover { background: var(--bg3); }
+.ral-caret { display: inline-block; width: 1.1em; color: var(--text-muted); }
+.ral-caret-none { opacity: .3; cursor: default; }
+.ral-risk-t { font-weight: 600; }
+.ral-down { color: var(--clr-success); font-weight: 700; }   /* reduced — good */
+.ral-up   { color: var(--clr-danger);  font-weight: 700; }   /* increased — bad */
+.ral-dot, .ral-new { color: color-mix(in srgb, var(--text) 45%, transparent); }
+.ral-has { font-weight: 700; }
+.ral-detail > td { background: var(--bg); font-size: .76rem; color: var(--text-muted); padding: .45rem .7rem; border-top: none; }
+.ral-dl { margin: .18rem 0; line-height: 1.5; }
+.ral-lbl-draft { color: var(--accent); }
+.ral-lbl-na { color: var(--clr-warning); }
+.ral-co { color: var(--text-muted); }
+.ral-none { font-style: italic; }
 .modal-levels { display: flex; flex-direction: column; gap: .75rem; }
 .modal-level-row { display: flex; align-items: flex-start; gap: .75rem; }
 .modal-level-desc { font-size: .82rem; color: var(--text-muted); }

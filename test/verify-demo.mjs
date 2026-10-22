@@ -331,6 +331,13 @@ const roc = await page.evaluate(() => ({
 assert(roc.charts === 3, `ROC Reporting: three progress charts (${roc.charts})`);
 assert(roc.extract === 13, `ROC Reporting: full extract one row per control (${roc.extract})`);
 
+// Control maturity card: Effective now listed above Not assessed.
+const cmOrder = await page.evaluate(() => {
+  const svg = document.querySelector('#roc-report-content [data-name="dora-control-maturity"]')?.innerHTML || '';
+  return { eff: svg.indexOf('>Effective<'), na: svg.indexOf('>Not assessed<') };
+});
+assert(cmOrder.eff > -1 && cmOrder.na > -1 && cmOrder.eff < cmOrder.na, 'Control maturity card: Effective listed above Not assessed');
+
 // ── Risk control-action list: compact per-risk action table, under the heatmap,
 // above the full extract. Numbers only (collapsed), sortable, with ▼/▲/● movement
 // on Residual/Draft/Not-assessed and a plain number for Total controls. ──
@@ -350,23 +357,45 @@ const ral = await page.evaluate(() => {
   const cellsOf = r => [...r.children].map(td => td.textContent.replace(/\s+/g, ' ').trim());
   const delayed = findRow('Delayed incident response');
   const sortable = !!tbl?.querySelector("thead th[onclick^='sortRiskActionList']");
-  // Controls column (index 3) must have NO movement mark
-  const ctrlColHasArrow = rows.some(r => r.children[3].querySelector('.ral-down,.ral-up,.ral-dot'));
+  // Columns: Risk(0) Action(1) Owner(2) Residual(3) Draft(4) Implemented(5) Tested(6) Effective(7) NotAssessed(8) Defensibility(9)
+  const actionBadges = rows.map(r => r.children[1].querySelector('.ral-badge')?.className || '');
+  const defBadges = rows.map(r => r.children[9].querySelector('.ral-badge')?.textContent.trim() || '');
+  const maturityHasMovement = rows[0] && [5, 6, 7].every(i => rows[0].children[i].querySelector('.ral-good,.ral-bad,.ral-dot'));
+  const delayedNaIsBad = delayed && !!delayed.children[8].querySelector('.ral-bad');   // not-assessed rose → red
   return {
     present: !!tbl, heads, rowCount: rows.length, detailCount: details.length,
     allDetailsHidden: details.every(d => d.hidden),
-    afterHeat: !!afterHeat, beforeExtract: !!beforeExtract, sortable, ctrlColHasArrow,
+    afterHeat: !!afterHeat, beforeExtract: !!beforeExtract, sortable,
+    anyGreen: actionBadges.some(c => /ral-b-green/.test(c)), anyAmber: actionBadges.some(c => /ral-b-amber/.test(c)),
+    allHaveAction: actionBadges.every(Boolean), allHaveDef: defBadges.every(d => /% tested|n\/a/.test(d)),
+    maturityHasMovement, delayedNaIsBad,
     delayedCells: delayed ? cellsOf(delayed) : null,
   };
 });
-assert(ral.present && ral.heads.join(',') === 'Risk,Risk owner,Residual,Controls,Draft,Not assessed', `Risk action list: columns (${ral.heads.join(', ')})`);
+assert(ral.present && ral.heads.join(',') === 'Risk,Action,Risk owner,Residual,Draft,Implemented,Tested,Effective,Not assessed,Defensibility', `Risk action list: columns (${ral.heads.join(', ')})`);
 assert(ral.rowCount === 7, `Risk action list: one row per risk (${ral.rowCount})`);
 assert(ral.afterHeat && ral.beforeExtract, 'Risk action list: located under the residual heatmap, above the full extract');
 assert(ral.allDetailsHidden && ral.detailCount === 7, 'Risk action list: control-name detail collapsed by default (numbers-only)');
 assert(ral.sortable, 'Risk action list: columns are sortable');
-assert(!ral.ctrlColHasArrow, 'Risk action list: Total controls is a plain number (no movement arrow)');
-// Delayed incident response: residual 14 ▼2, draft 0 ▼1, not-assessed 1 ▲1 (red up)
-assert(ral.delayedCells && /14 ▼ 2/.test(ral.delayedCells[2]) && /0 ▼ 1/.test(ral.delayedCells[4]) && /1 ▲ 1/.test(ral.delayedCells[5]),
+assert(ral.allHaveAction && ral.anyAmber, 'Risk action list: Action badge on every row (amber Action present)');
+assert(ral.allHaveDef, 'Risk action list: Defensibility badge (% tested) on every row');
+// Badge logic: green when all effective, red when no controls, and the defensibility bands.
+const badgeLogic = await page.evaluate(() => ({
+  green: ralActionBadge({ total: 3, draft: 0, notAssessed: 0, tested: 3, effective: 3 }),
+  action: ralActionBadge({ total: 3, draft: 1, notAssessed: 1, tested: 1, effective: 1 }),
+  none: ralActionBadge({ total: 0, draft: 0, notAssessed: 0, tested: 0, effective: 0 }),
+  defGreen: ralDefBadge({ total: 10, tested: 9 }),   // 90%
+  defAmber: ralDefBadge({ total: 10, tested: 6 }),   // 60%
+  defRed: ralDefBadge({ total: 10, tested: 3 }),     // 30%
+}));
+assert(/ral-b-green/.test(badgeLogic.green) && /ral-b-amber/.test(badgeLogic.action) && /ral-b-red/.test(badgeLogic.none),
+  'Risk action list: Action badge — green=all effective, amber=outstanding, red=no controls');
+assert(/ral-b-green/.test(badgeLogic.defGreen) && /ral-b-amber/.test(badgeLogic.defAmber) && /ral-b-red/.test(badgeLogic.defRed),
+  'Risk action list: Defensibility bands — ≥80 green, 50–79 amber, <50 red');
+assert(ral.maturityHasMovement, 'Risk action list: Implemented/Tested/Effective carry movement marks');
+assert(ral.delayedNaIsBad, 'Risk action list: a risen Not-assessed shows red (worsened), not green');
+// Delayed incident response: residual 14 ▼2, draft 0 ▼1, not-assessed 1 ▲1
+assert(ral.delayedCells && /14 ▼ 2/.test(ral.delayedCells[3]) && /0 ▼ 1/.test(ral.delayedCells[4]) && /1 ▲ 1/.test(ral.delayedCells[8]),
   `Risk action list: movement marks (Delayed incident response → ${JSON.stringify(ral.delayedCells)})`);
 
 // Expanding a risk reveals its draft / not-assessed control names.

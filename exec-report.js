@@ -372,8 +372,8 @@ function renderExecProgress(currentA, prevA) {
       { label: 'Draft', prior: prev.cDraft, current: cur.cDraft, color: C.muted, caption: 'resourced — not yet implemented', goodUp: false },
       { label: 'Implemented', prior: prev.cImpl, current: cur.cImpl, color: C.accent, caption: 'live controls', goodUp: true },
       { label: 'Tested', prior: prev.cTested, current: cur.cTested, color: C.warn, caption: 'live & assessed — we know how they perform', goodUp: true },
-      { label: 'Not assessed', prior: prev.cImpl - prev.cTested, current: cur.cImpl - cur.cTested, color: C.danger, caption: 'live but no RCSA verdict — a blind spot', goodUp: false },
       { label: 'Effective', prior: prev.cEff, current: cur.cEff, color: C.success, caption: 'proven effective in the RCSA', goodUp: true },
+      { label: 'Not assessed', prior: prev.cImpl - prev.cTested, current: cur.cImpl - cur.cTested, color: C.danger, caption: 'live but no RCSA verdict — a blind spot', goodUp: false },
     ], { colors: C, priorLabel: prevL, curLabel: curL }));
 
   const sevOf = res => res >= 20 ? 0 : res >= 12 ? 1 : 2;

@@ -134,6 +134,7 @@ function generateRocReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecProgress(currentA, prevA)}
+    <div class="exec-rcsa-wrap">${renderRiskActionList(currentA, prevA)}</div>
     <div class="exec-rcsa-wrap">${renderRiskControlExtract(currentA)}</div>
   `);
   showView('roc-report');

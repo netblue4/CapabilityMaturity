@@ -224,6 +224,117 @@ function copyPromptText(btn) {
   } else { ta.select(); try { document.execCommand('copy'); done(true); } catch (e) { done(false); } }
 }
 
+// ── "Map a new DORA article" prompt (DORA Reporting → traceability card) ──
+// Authoring helper to speed up loading a newly-applicable DORA article: paste the
+// article/RTS text, tick the policies / group standards to map it against, and
+// generate a prompt that CREATES digital-resilience objectives and MAPS them to
+// those statements — output in the exact "Import DORA Mapping" column layout, so
+// the LLM's table pastes straight into that upload.
+var _amA = (typeof _amA !== 'undefined') ? _amA : null;
+var _amLens = (typeof _amLens !== 'undefined') ? _amLens : 'dora';
+
+function _amWithLens(fn) { const run = (typeof withLens === 'function') ? withLens : (k, f) => f(); return run(_amLens, fn); }
+function _amPolicy() { return _amWithLens(() => (typeof lensPolicy === 'function') ? lensPolicy(_amA) : ((_amA && _amA.policyRows) || [])); }
+function _amSrcLabel(t) {
+  if (typeof isLocPolType === 'function' && isLocPolType(t)) return 'Local Policy';
+  if (typeof isGrpStdType === 'function' && isGrpStdType(t)) return 'Group Standard';
+  return (t || '').trim() || 'Other';
+}
+// Distinct documents in the assessment's policy data, grouped for the picker.
+function _amDocList() {
+  const pol = _amPolicy();
+  const map = new Map();
+  pol.forEach(pr => {
+    const doc = (pr.document || '').trim(); if (!doc) return;
+    let d = map.get(doc);
+    if (!d) { d = { document: doc, type: _amSrcLabel(pr.type), count: 0, rows: [] }; map.set(doc, d); }
+    d.count++; d.rows.push(pr);
+  });
+  return [...map.values()].sort((a, b) => a.type.localeCompare(b.type) || a.document.localeCompare(b.document));
+}
+function _amCell(s) { return String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ').trim() || '—'; }
+function _amExtractTable(rows) {
+  const cols = ['Capability', 'Statement Ref', 'Document', 'Type', 'Statement Header', 'Statement Detail'];
+  const head = '| ' + cols.join(' | ') + ' |';
+  const sep = '| ' + cols.map(() => '---').join(' | ') + ' |';
+  const body = rows.map(r => '| ' + [r.cap, r.ref, r.doc, r.type, r.header, r.detail].map(_amCell).join(' | ') + ' |').join('\n');
+  return head + '\n' + sep + '\n' + body;
+}
+function _amPromptText(article, ext) {
+  return `You are a DORA (Digital Operational Resilience Act) regulatory-oversight analyst at a regulated financial entity.
+
+TASK
+Create digital-resilience objectives for the DORA article / RTS below, then map each objective to the policy / group-standard statements provided. Return a mapping table I can paste straight into our "Import DORA Mapping" upload.
+
+RULES
+1. The DORA article and the statements use DIFFERENT, non-matching taxonomies — the article is finer-grained; the statements are coarser, with catch-all capabilities such as "Ops". Use the Capability column only as a HINT to narrow candidates — never require the labels to match. Match on the MEANING of the requirement.
+2. Break the article into single-purpose digital-resilience objectives. An objective may map to MANY statements — list them all, ONE output row per (objective × matched statement).
+3. If an objective has NO adequate statement, output ONE row for it with Statement Ref, Statement Header and Document LEFT BLANK — this is a coverage gap to disclose (exception evidence); the objective still appears, as uncovered.
+4. Match a statement only when its text genuinely satisfies the objective. NEVER invent statement refs — use only refs that appear in the STATEMENTS EXTRACT below. Ignore any separator rows that carry only a capability name with an empty Statement Ref.
+5. Paragraph Reference = the article's own paragraph / point reference where it exists (e.g. 10(1), 10(2)(a)); otherwise number them <DORA Ref>-1, -2, … Order the output grouped by Paragraph Reference.
+
+DORA ARTICLE / RTS
+${article}
+
+STATEMENTS EXTRACT (policy / group-standard statements to map against)
+${_amExtractTable(ext)}
+
+OUTPUT
+Return ONLY a table as TAB-SEPARATED values inside a single code block, header row first, with EXACTLY these seven columns and no others:
+DORA Article\tParagraph Reference\tDigital Resilience Objective\tStatement Ref\tStatement Header\tDocument\tCapability
+- DORA Article — the article/RTS name (e.g. "RTS 10 — Vulnerability and patch management"), identical on every row.
+- Paragraph Reference — per rule 5 (this is the objective's id).
+- Digital Resilience Objective — one concise sentence stating the objective.
+- Statement Ref / Statement Header / Document — the matched statement, copied verbatim from the extract (all three blank on a coverage-gap row).
+- Capability — the matched statement's Capability (blank on a gap row).
+Output nothing except that single code block — no commentary, no extra columns.
+`;
+}
+function openArticleMapModal() {
+  const m = document.getElementById('article-map-modal');
+  if (!m || !_amA) return;
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  const docs = _amDocList();
+  const host = document.getElementById('am-docs');
+  if (host) {
+    if (!docs.length) host.innerHTML = '<p class="policy-no-data" style="margin:.3rem 0">No policy data in this assessment — import Policy Data first.</p>';
+    else {
+      const byType = {};
+      docs.forEach(d => { (byType[d.type] = byType[d.type] || []).push(d); });
+      host.innerHTML = Object.keys(byType).map(type =>
+        `<div class="am-doc-group"><div class="am-doc-type">${esc(type)}</div>${byType[type].map(d =>
+          `<label class="am-doc"><input type="checkbox" class="am-doc-cb" value="${esc(d.document)}"> ${esc(d.document)} <span class="am-doc-n">(${d.count})</span></label>`).join('')}</div>`).join('');
+    }
+  }
+  const art = document.getElementById('am-article'); if (art) art.value = '';
+  const out = document.getElementById('am-prompt'); if (out) out.value = '';
+  m.style.display = 'flex';
+}
+function generateArticleMapPrompt() {
+  const out = document.getElementById('am-prompt'); if (!out) return;
+  const article = (document.getElementById('am-article').value || '').trim();
+  const checked = [...document.querySelectorAll('#am-docs .am-doc-cb:checked')].map(c => c.value);
+  if (!article) { out.value = '⚠ Paste the DORA article / RTS text first.'; return; }
+  if (!checked.length) { out.value = '⚠ Tick at least one policy or group standard to map against.'; return; }
+  const cN = id => _amWithLens(() => (typeof lensCapName === 'function') ? lensCapName(_amA, id) : id);
+  const rows = [];
+  _amDocList().filter(d => checked.includes(d.document)).forEach(d => d.rows.forEach(pr => rows.push({
+    cap: cN(pr.capId), ref: pr.statementRef || '', doc: pr.document || '', type: d.type,
+    header: pr.statementHeader || '', detail: pr.statementDetail || '',
+  })));
+  const seen = new Set();
+  const ext = rows.filter(r => { const k = r.doc + '|' + (r.ref || '').toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  out.value = _amPromptText(article, ext);
+}
+function copyArticleMapPrompt(btn) {
+  const ta = document.getElementById('am-prompt'); if (!ta || !ta.value) return;
+  const done = ok => { const o = btn.textContent; btn.textContent = ok ? 'Copied ✓' : 'Copy failed'; setTimeout(() => { btn.textContent = o; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(() => done(true)).catch(() => { ta.select(); done(false); });
+  } else { ta.select(); try { document.execCommand('copy'); done(true); } catch (e) { done(false); } }
+}
+function closeArticleMapModal() { const m = document.getElementById('article-map-modal'); if (m) m.style.display = 'none'; }
+
 if (typeof window !== 'undefined') {
   window.openPromptsModal = openPromptsModal;
   window.closePromptsModal = closePromptsModal;
@@ -231,4 +342,8 @@ if (typeof window !== 'undefined') {
   window.updatePromptView = updatePromptView;
   window.copyPromptText = copyPromptText;
   window.buildPromptText = buildPromptText;
+  window.openArticleMapModal = openArticleMapModal;
+  window.generateArticleMapPrompt = generateArticleMapPrompt;
+  window.copyArticleMapPrompt = copyArticleMapPrompt;
+  window.closeArticleMapModal = closeArticleMapModal;
 }

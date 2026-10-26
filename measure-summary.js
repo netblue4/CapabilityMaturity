@@ -636,11 +636,18 @@ function renderTraceabilityCard(assessment) {
   const GL  = (typeof lensGroupLabel === 'function') ? lensGroupLabel() : 'DORA Pillar';
   const DL  = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
   const title = `${escHtml(LL)} &rarr; Control traceability (full export)`;
+  // Remember the assessment + lens for the "Map a new article" authoring popup
+  // (DORA only — it emits the Import DORA Mapping columns).
+  const isDora = (typeof activeLens === 'undefined') || activeLens === 'dora';
+  _amA = assessment;
+  _amLens = (typeof activeLens !== 'undefined') ? activeLens : 'dora';
+  const mapBtn = (isDora && typeof openArticleMapModal === 'function')
+    ? '<button class="btn btn-outline" onclick="openArticleMapModal()" title="Generate an AI prompt to create objectives for a new DORA article and map it to your statements">✨ Map a new article</button>' : '';
   const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">🧬</span>
       <div style="flex:1"><h3 class="measure-card-title">${title}</h3><p class="measure-card-desc">${desc}</p></div>
-      ${t.rows.length ? '<button class="btn btn-outline" onclick="copyTraceTable(this)">⧉ Copy for Excel</button>' : ''}
+      ${t.rows.length ? `<div class="trace-hdr-btns">${mapBtn}<button class="btn btn-outline" onclick="copyTraceTable(this)">⧉ Copy for Excel</button></div>` : ''}
     </div>`;
   if (!t.rows.length) {
     return `<div class="card measure-card">${header(`One row per ${escHtml(LL)} objective &times; statement &times; control — the full traceability spine. Import ${escHtml(LL)}, policy and risk data to populate.`)}<p class="policy-no-data" style="margin:.5rem 0">No data yet.</p></div>`;

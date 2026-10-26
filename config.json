@@ -237,6 +237,11 @@
       "id": "access_control",
       "name": "ICT Access Control Management",
       "description": "Management of user identities, access rights, and authentication controls to ensure only authorised individuals can access ICT systems and data."
+    },
+    {
+      "id": "ict_operations",
+      "name": "ICT Operations",
+      "description": "Day-to-day running of ICT services and infrastructure — monitoring, job scheduling, backup operations, event handling and operational procedures that keep ICT services available and performing."
     }
   ]
 }

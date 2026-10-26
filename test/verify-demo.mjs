@@ -196,9 +196,36 @@ await page.evaluate(() => { showReportModal('mica'); document.getElementById('ex
 await page.waitForSelector('#mica-report-content .trace-tbl');
 const micaMapBtn = await page.evaluate(() => !!document.querySelector('#mica-report-content button[onclick="openArticleMapModal()"]'));
 assert(!micaMapBtn, 'Map-article: button is DORA-only (absent on MiCA traceability)');
+const micaLinkBtn = await page.evaluate(() => !!document.querySelector('#mica-report-content button[onclick="openLinkCtrlModal()"]'));
+assert(!micaLinkBtn, 'Link-controls: button is DORA-only (absent on MiCA traceability)');
 // restore DORA report for the remaining DORA-report assertions
 await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
 await page.waitForSelector('#exec-report-content .trace-tbl');
+
+// ── "Link statements to controls" popup on the DORA traceability card ──
+const lc = await page.evaluate(() => {
+  const btn = !!document.querySelector('#exec-report-content button[onclick="openLinkCtrlModal()"]');
+  openLinkCtrlModal();
+  const risks = [...document.querySelectorAll('#lc-risks .lc-risk-cb')].map(c => c.value);
+  const riskGroups = [...document.querySelectorAll('#lc-risks .am-doc-type')].map(t => t.textContent.trim());
+  const docs = [...document.querySelectorAll('#lc-docs .lc-doc-cb')].map(c => c.value);
+  generateLinkCtrlPrompt();                       // nothing picked → nudge
+  const nudge = document.getElementById('lc-prompt').value;
+  const rcb = [...document.querySelectorAll('#lc-risks .lc-risk-cb')]; rcb[0].checked = true; if (rcb[1]) rcb[1].checked = true;
+  const dcb = [...document.querySelectorAll('#lc-docs .lc-doc-cb')]; dcb[0].checked = true; if (dcb[1]) dcb[1].checked = true;
+  generateLinkCtrlPrompt();
+  const prompt = document.getElementById('lc-prompt').value;
+  closeLinkCtrlModal();
+  return { btn, riskCount: risks.length, riskGroups, docCount: docs.length, nudge, prompt, pickedDoc: dcb[0].value };
+});
+assert(lc.btn, 'DORA traceability: "Link controls" button present');
+assert(lc.riskCount > 0 && lc.riskGroups.length > 0, `Link-controls: risks listed (all from Riskonnect), grouped by capability (${lc.riskCount})`);
+assert(lc.docCount > 0, `Link-controls: policy/GS documents listed (${lc.docCount})`);
+assert(/Select at least one risk/i.test(lc.nudge), 'Link-controls: nudges when nothing is selected');
+assert(/STATEMENTS \(policy/.test(lc.prompt) && /CONTROLS \(risk-treatment/.test(lc.prompt) && /DORA Objective\(s\) covered/.test(lc.prompt), 'Link-controls: prompt embeds the statements (+ their DORA objectives) and the controls');
+assert(lc.prompt.includes('DORA object\tDORA objective text\tStatement ref\tStatement header\tControl name\tControl objective\tControl description'),
+  'Link-controls: OUTPUT is the exact 7 columns requested (tab-separated)');
+assert(/map .* controls .* to .* statements .* by INTENT/i.test(lc.prompt.replace(/\n/g, ' ')), 'Link-controls: task asks to map controls to statements by intent');
 assert(!doraRep.pillGrid, 'DORA Reporting: DORA Pillar cards removed');
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');

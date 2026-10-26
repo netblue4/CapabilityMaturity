@@ -425,6 +425,18 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .prompts-actions { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
 .prompt-hint { font-size: .78rem; color: var(--text-muted); }
 
+/* "Map a new DORA article" popup */
+.am-intro { font-size: .82rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 .75rem; }
+.am-label { display: block; font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: .75rem 0 .3rem; }
+.am-article { min-height: 150px; }
+.am-docs { max-height: 200px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem .7rem; background: var(--bg); }
+.am-doc-group { margin-bottom: .5rem; }
+.am-doc-type { font-family: var(--font-mono); font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: .2rem 0 .25rem; }
+.am-doc { display: flex; align-items: center; gap: .45rem; font-size: .82rem; padding: .18rem 0 .18rem .3rem; cursor: pointer; }
+.am-doc:hover { color: var(--accent); }
+.am-doc input { accent-color: var(--accent); }
+.am-doc-n { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
 /* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
 .ral-tbl { font-size: .82rem; }
 .ral-tbl th, .ral-tbl td { padding: .3rem .55rem; }

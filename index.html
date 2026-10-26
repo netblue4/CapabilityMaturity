@@ -183,6 +183,30 @@
       </div>
     </div>
 
+    <!-- "Map a new DORA article" authoring popup (DORA traceability card) -->
+    <div id="article-map-modal" class="modal-overlay" onclick="if(event.target===this)closeArticleMapModal()" style="display:none">
+      <div class="modal-box prompts-box am-box">
+        <div class="modal-header">
+          <h3>✨ Map a new DORA article</h3>
+          <button class="modal-close" onclick="closeArticleMapModal()">✕</button>
+        </div>
+        <p class="am-intro">Paste a newly-applicable DORA article / RTS, pick the policies &amp; group standards to map it against, then generate a prompt that creates digital-resilience objectives and maps them — in the exact <b>Import DORA Mapping</b> columns, ready to paste into that upload.</p>
+        <label class="am-label">1 · DORA article / RTS text</label>
+        <textarea id="am-article" class="prompt-text am-article" spellcheck="false" placeholder="Paste the article or RTS text here…"></textarea>
+        <label class="am-label">2 · Policies / group standards to map against</label>
+        <div id="am-docs" class="am-docs"></div>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="generateArticleMapPrompt()">Generate prompt</button>
+          <span class="prompt-hint">Generate, copy, run in your LLM, then paste the table into <b>Import DORA Mapping</b>.</span>
+        </div>
+        <label class="am-label">Prompt</label>
+        <textarea id="am-prompt" class="prompt-text" readonly spellcheck="false"></textarea>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="copyArticleMapPrompt(this)">⧉ Copy prompt</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Riskonnect Import View -->
     <section id="view-riskonnect-import" class="view">
       <div class="section-header">

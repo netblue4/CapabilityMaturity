@@ -165,6 +165,40 @@ const traceClean = await page.evaluate(() => {
            noPrompts: !document.querySelector('#exec-report-content button[onclick="openPromptsModal()"]') };
 });
 assert(traceClean.noRiskCols && traceClean.noPrompts, 'Traceability table: no risk columns / Prompts (moved to the ROC extract)');
+
+// ── "Map a new DORA article" authoring popup on the DORA traceability card ──
+const am = await page.evaluate(() => {
+  const btn = !!document.querySelector('#exec-report-content button[onclick="openArticleMapModal()"]');
+  openArticleMapModal();
+  const docs = [...document.querySelectorAll('#am-docs .am-doc-cb')].map(c => c.value);
+  const types = [...document.querySelectorAll('#am-docs .am-doc-type')].map(t => t.textContent.trim());
+  // no article/doc selected → nudge message
+  generateArticleMapPrompt();
+  const empty = document.getElementById('am-prompt').value;
+  // fill + generate
+  document.getElementById('am-article').value = 'Article 10 — Detection\n2(a) detect anomalous activities; 2(b) identify single points of failure.';
+  const cbs = [...document.querySelectorAll('#am-docs .am-doc-cb')]; cbs[0].checked = true; if (cbs[1]) cbs[1].checked = true;
+  generateArticleMapPrompt();
+  const prompt = document.getElementById('am-prompt').value;
+  closeArticleMapModal();
+  return { btn, docCount: docs.length, types, empty, prompt, picked: [cbs[0].value, cbs[1] && cbs[1].value] };
+});
+assert(am.btn, 'DORA traceability: "Map a new article" button present');
+assert(am.docCount > 0 && am.types.some(t => /Group Standard|Local Policy/.test(t)), `Map-article: documents listed from policy data, grouped (${am.docCount})`);
+assert(/paste the DORA article/i.test(am.empty), 'Map-article: nudges when the article box is empty');
+assert(/TASK\b/.test(am.prompt) && /Article 10 — Detection/.test(am.prompt) && /STATEMENTS EXTRACT/.test(am.prompt), 'Map-article: prompt embeds the article + the selected statements extract');
+assert(am.prompt.includes('DORA Article\tParagraph Reference\tDigital Resilience Objective\tStatement Ref\tStatement Header\tDocument\tCapability'),
+  'Map-article: OUTPUT is the exact 7 Import DORA Mapping columns (tab-separated)');
+assert(/blank on a coverage-gap row|LEFT BLANK/.test(am.prompt) && /NEVER invent statement refs/.test(am.prompt), 'Map-article: rules include gap-as-blank-ref and no-invented-refs');
+assert(am.picked[0] && am.prompt.includes(am.picked[0]), 'Map-article: selected document appears in the statements extract');
+// Gated to DORA — not on the MiCA traceability.
+await page.evaluate(() => { showReportModal('mica'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
+await page.waitForSelector('#mica-report-content .trace-tbl');
+const micaMapBtn = await page.evaluate(() => !!document.querySelector('#mica-report-content button[onclick="openArticleMapModal()"]'));
+assert(!micaMapBtn, 'Map-article: button is DORA-only (absent on MiCA traceability)');
+// restore DORA report for the remaining DORA-report assertions
+await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
+await page.waitForSelector('#exec-report-content .trace-tbl');
 assert(!doraRep.pillGrid, 'DORA Reporting: DORA Pillar cards removed');
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');

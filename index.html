@@ -207,6 +207,30 @@
       </div>
     </div>
 
+    <!-- "Link statements to controls" authoring popup (DORA traceability card) -->
+    <div id="link-ctrl-modal" class="modal-overlay" onclick="if(event.target===this)closeLinkCtrlModal()" style="display:none">
+      <div class="modal-box prompts-box am-box">
+        <div class="modal-header">
+          <h3>✨ Link statements to controls</h3>
+          <button class="modal-close" onclick="closeLinkCtrlModal()">✕</button>
+        </div>
+        <p class="am-intro">Map your risk-treatment controls to policy / group-standard statements by intent. Pick the <b>risks</b> whose controls to map (all risks from the Riskonnect upload), and the <b>policies / group standards</b> whose statements to check against. The prompt lists those statements (with the DORA objectives they cover) and the controls, and asks the LLM to link them.</p>
+        <label class="am-label">1 · Risks — their controls will be mapped</label>
+        <div id="lc-risks" class="am-docs"></div>
+        <label class="am-label">2 · Policies / group standards — statements to map to</label>
+        <div id="lc-docs" class="am-docs"></div>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="generateLinkCtrlPrompt()">Generate prompt</button>
+          <span class="prompt-hint">Generate, copy, run in your LLM to get the statement → control mapping table.</span>
+        </div>
+        <label class="am-label">Prompt</label>
+        <textarea id="lc-prompt" class="prompt-text" readonly spellcheck="false"></textarea>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="copyLinkCtrlPrompt(this)">⧉ Copy prompt</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Riskonnect Import View -->
     <section id="view-riskonnect-import" class="view">
       <div class="section-header">

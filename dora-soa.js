@@ -19,22 +19,46 @@ function _soaNorm(s){ return (s==null?'':String(s)).trim(); }
 function soaChapterRoman(d){ var m=/chapter\s+([ivxlc]+)/i.exec(d||''); return m?m[1].toUpperCase():''; }
 function soaIndexKey(label){ var m=/(RTS|MIC|MIR|ITS|Article)\s*0*(\d+)/i.exec(label||''); return m?(m[1].toUpperCase()+m[2]):((label||'').toUpperCase().replace(/[^A-Z0-9]/g,'')); }
 function _soaTitleIndex(idx){ var m=/^(rts|mic|mir|its|article)\s*(\d+)/i.exec((idx||'').trim()); if(!m) return (idx||'').trim(); var t=m[1].toUpperCase()==='ARTICLE'?'Article':m[1].toUpperCase(); return t+' '+m[2]; }
-function soaEntryFromRow(row){
-  var rtsIdx=_soaNorm(row['RTS_Article_Index']); var hasRts=!!rtsIdx;
+// Article-level SOA entry — the DORA article itself, applicability from the
+// "Article Applicable" column. Emitted once per distinct DORA article even when
+// the article only ever appears alongside its RTS rows (e.g. Article 9), so
+// marking the article applicable is always honoured.
+function soaArticleEntry(row){
   var artIdx=_soaNorm(row['DORA_Article_Index']); var artTitle=_soaNorm(row['DORA_Title']);
-  var idxLabel=hasRts?rtsIdx:artIdx; var title=hasRts?_soaNorm(row['RTS_Article_Title']):artTitle;
-  var ref=_soaTitleIndex(idxLabel)+(title?' — '+title:'');
-  var applyRaw=hasRts?_soaNorm(row['RTS Applicable']):_soaNorm(row['Article Applicable']);
-  var kind=hasRts?(/^rts/i.test(rtsIdx)?'RTS':/^mic/i.test(rtsIdx)?'MIC':/^mir/i.test(rtsIdx)?'MIR':'RTS'):'Article';
-  return { order: parseFloat(_soaNorm(row['DisplayOrder']))||0, ref:ref, idx:soaIndexKey(idxLabel), kind:kind,
+  var ref=_soaTitleIndex(artIdx)+(artTitle?' — '+artTitle:'');
+  return { order: parseFloat(_soaNorm(row['DisplayOrder']))||0, ref:ref, idx:soaIndexKey(artIdx), kind:'Article',
+    chapter:soaChapterRoman(row['DORA_Chapter']), section:_soaNorm(row['DORA_Section']),
+    applicable:/^y/i.test(_soaNorm(row['Article Applicable'])),
+    url:_soaNorm(row['DORA_URL']),
+    article:ref, rationale:'' };
+}
+// RTS/MIC/MIR-level SOA entry — applicability from the "RTS Applicable" column.
+function soaRtsEntry(row){
+  var rtsIdx=_soaNorm(row['RTS_Article_Index']); var title=_soaNorm(row['RTS_Article_Title']);
+  var artIdx=_soaNorm(row['DORA_Article_Index']); var artTitle=_soaNorm(row['DORA_Title']);
+  var kind=/^mic/i.test(rtsIdx)?'MIC':/^mir/i.test(rtsIdx)?'MIR':'RTS';
+  return { order: parseFloat(_soaNorm(row['DisplayOrder']))||0, ref:_soaTitleIndex(rtsIdx)+(title?' — '+title:''), idx:soaIndexKey(rtsIdx), kind:kind,
     chapter:soaChapterRoman(row['DORA_Chapter']),
-    section:hasRts?(_soaNorm(row['RTS_Section'])||_soaNorm(row['DORA_Section'])):_soaNorm(row['DORA_Section']),
-    applicable:/^y/i.test(applyRaw),
-    url:hasRts?(_soaNorm(row['RTS_URL'])||_soaNorm(row['DORA_URL'])):_soaNorm(row['DORA_URL']),
+    section:_soaNorm(row['RTS_Section'])||_soaNorm(row['DORA_Section']),
+    applicable:/^y/i.test(_soaNorm(row['RTS Applicable'])),
+    url:_soaNorm(row['RTS_URL'])||_soaNorm(row['DORA_URL']),
     article:_soaTitleIndex(artIdx)+(artTitle?' — '+artTitle:''),
     rationale:'' };
 }
-function buildSoaEntries(rows){ return (rows||[]).map(soaEntryFromRow).filter(function(e){return e.ref;}).sort(function(a,b){return a.order-b.order;}); }
+// Back-compat: a single entry for one row (RTS where present, else the article).
+function soaEntryFromRow(row){ return _soaNorm(row['RTS_Article_Index']) ? soaRtsEntry(row) : soaArticleEntry(row); }
+// Build the full SOA: one article-level entry per distinct DORA article (so the
+// "Article Applicable" decision is always surfaced, even for articles that only
+// appear with RTS rows) PLUS one entry per RTS/MIC/MIR row.
+function buildSoaEntries(rows){
+  var out=[]; var seenArt={};
+  (rows||[]).forEach(function(row){
+    var artIdxRaw=_soaNorm(row['DORA_Article_Index']);
+    if(artIdxRaw){ var k=soaIndexKey(artIdxRaw); if(!seenArt[k]){ seenArt[k]=1; out.push(soaArticleEntry(row)); } }
+    if(_soaNorm(row['RTS_Article_Index'])) out.push(soaRtsEntry(row));
+  });
+  return out.filter(function(e){return e.ref;}).sort(function(a,b){return a.order-b.order;});
+}
 
 const DORA_SOA = [
   {

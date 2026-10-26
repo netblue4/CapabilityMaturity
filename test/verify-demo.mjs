@@ -73,6 +73,23 @@ assert(lensData.dora.rows > 0 && lensData.dora.soa > 0 && lensData.dora.pol === 
 assert(lensData.mica.rows > 0 && lensData.mica.soa > 0 && lensData.mica.pol > 0 && lensData.mica.facts > 0, `MiCA module: ${lensData.mica.rows} obj · ${lensData.mica.soa} SOA · ${lensData.mica.pol} policy · ${lensData.mica.facts} facts`);
 assert(lensData.nist.rows > 0 && lensData.nist.soa > 0 && lensData.nist.pol > 0 && lensData.nist.facts > 0, `NIST module: ${lensData.nist.rows} obj · ${lensData.nist.soa} SOA · ${lensData.nist.pol} policy · ${lensData.nist.facts} facts`);
 assert(lensData.dora.dim === 'Capability' && lensData.mica.dim === 'Service' && lensData.nist.dim === 'Category', 'Lens dimensions: Capability / Service / Category');
+
+// ── SOA: an article that only appears with RTS rows still gets its own
+// article-level entry, honouring "Article Applicable" (regression: Article 9
+// was never emitted, so marking it applicable did nothing). ──
+const soaArt = await page.evaluate(() => {
+  const mk = (artApp) => ([
+    { DisplayOrder: '1', DORA_Chapter: 'Chapter II', DORA_Section: 'section II', DORA_Article_Index: 'article 9', DORA_Title: 'Protection and prevention', 'Article Applicable': artApp, RTS_Article_Index: 'RTS 4', RTS_Article_Title: 'ICT asset mgmt', 'RTS Applicable': 'Y' },
+    { DisplayOrder: '2', DORA_Chapter: 'Chapter II', DORA_Section: 'section II', DORA_Article_Index: 'article 9', DORA_Title: 'Protection and prevention', 'Article Applicable': artApp, RTS_Article_Index: 'RTS 6', RTS_Article_Title: 'Encryption', 'RTS Applicable': 'N' },
+  ]);
+  const entN = buildSoaEntries(mk('N')).find(e => e.idx === 'ARTICLE9');
+  const entY = buildSoaEntries(mk('Y')).find(e => e.idx === 'ARTICLE9');
+  const hasRts = buildSoaEntries(mk('Y')).some(e => e.idx === 'RTS4');
+  return { emitted: !!entN, nApplicable: entN && entN.applicable, yApplicable: entY && entY.applicable, hasRts };
+});
+assert(soaArt.emitted, 'SOA: an article with only RTS rows still emits an article-level entry');
+assert(soaArt.nApplicable === false && soaArt.yApplicable === true, 'SOA: the article entry follows "Article Applicable" (N→out of scope, Y→applicable)');
+assert(soaArt.hasRts, 'SOA: RTS rows still emit their own RTS entries alongside the article');
 assert(lensData.mica.groups.some(g => /trading platform|custody/i.test(g)), `MiCA policy grouped by Service (${lensData.mica.groups.join(', ')})`);
 assert(lensData.nist.groups.some(g => /^ID\.|^PR\.|^GV\.|^RS\.|^DE\./.test(g)), `NIST policy grouped by Category (${lensData.nist.groups.join(', ')})`);
 // The MiCA facts differ from DORA facts (MiCA has its own statements incl. MP-xx).

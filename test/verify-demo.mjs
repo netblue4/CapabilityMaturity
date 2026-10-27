@@ -259,6 +259,7 @@ const c2 = await page.evaluate(() => {
     eyebrow, title: card?.querySelector('.measure-card-title')?.textContent.trim(),
     descReframe: /assured separately \(Control 3\)/.test(desc) && /no control and no disclosed exception/.test(desc),
     detailUnchanged: evHeads.includes('Backed by control') && evHeads.includes('Status') && evHeads.includes('Exception'),
+    stmtOwnerAfterHeader: evHeads[evHeads.indexOf('Statement header') + 1] === 'Statement owner',
     backedYes, evRowCount: evRows.length,
   };
 });
@@ -266,6 +267,7 @@ assert(c2.opLabel && /^11 \/ 13/.test(c2.opFrac), `Scorecard: middle metric labe
 assert(c2.eyebrow === 'Implemented' && /risk-treatment-controls/.test(c2.title), 'Control 2 card: Implemented eyebrow + reframed title');
 assert(c2.descReframe, 'Control 2 card: desc states implementation assured separately + the no-control/no-exception gap');
 assert(c2.detailUnchanged, 'Control 2 detail table unchanged (Backed / Status / Exception columns intact)');
+assert(c2.stmtOwnerAfterHeader, 'Control 2 detail: Statement owner column added after Statement header');
 assert(c2.backedYes === 11 && c2.evRowCount === 13, `Control 2: card figure reconciles with detail (11 backed of 13 in the table)`);
 
 // A statement with a disclosed exception (no control) counts toward Operationalised.

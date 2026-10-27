@@ -348,6 +348,7 @@
         <td>${esc(s.source)}</td>
         <td class="ev-ref-c"><span class="ev-ref">${esc(s.ref)}</span></td>
         <td>${esc(s.header)}</td>
+        <td>${esc(s.owner) || DASH}</td>
         <td>${s.hasControl ? YES : NO}</td>
         <td>${statusCell(s)}</td>
         <td>${s.exception ? `<span class="ev-exc">${esc(s.exception)}</span>` : DASH}</td>
@@ -359,7 +360,7 @@
 
     return pageHead('Control 2 · Policy & Group Standard statement operationalised by controls', 'statement → risk-treatment-control, with owner', meta, stat) + `
       <table class="ev-tbl ev-tbl-wide ev-sortable">
-        <thead><tr><th>${hGroup()}</th><th>${hDim()}</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Objective paragraph(s)</th></tr></thead>
+        <thead><tr><th>${hGroup()}</th><th>${hDim()}</th><th>Document</th><th>Document status</th><th>Source</th><th>Statement ref</th><th>Statement header</th><th>Statement owner</th><th>Backed by control</th><th>Status</th><th>Exception</th><th>Control Number &amp; Name</th><th>Control owner</th><th>Objective paragraph(s)</th></tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>`;
   }

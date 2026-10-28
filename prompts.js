@@ -30,17 +30,50 @@ const PROMPT_KINDS = [
     desc: 'Finds controls that pursue the same objective and suggests how to merge and reword them into a single control, keeping full coverage.' },
   { id: 'csa', label: '4 · Rewrite to CSA standard',
     desc: 'Rewrites controls, control tests and control test procedures to the CSA / RCSA standard. Standalone — it does NOT use the selected risk; copy it, then paste your own control rows (from the Riskonnect "MB - Controls with Control Tests" report) at the end where indicated.' },
+  { id: 'rating', label: '5 · Risk rationale & tier',
+    desc: 'Produces the Inherent + Residual risk rationales and per-category tier selections (Customer, Brand, Regulatory, Operational, Project) using the Utmost tier descriptions. The selected risk’s data (description, controls + effectiveness, inherent/residual scores) is appended automatically.' },
 ];
-// The CSA control-rewrite prompt is static text held in docs/csa-rewrite-prompt.md,
-// loaded once and cached (kept out of JS so its backticks / paths need no escaping).
-let _csaText = '';
-function _loadCsaText(cb) {
-  if (_csaText) { if (cb) cb(); return; }
-  try {
-    fetch('docs/csa-rewrite-prompt.md').then(r => r.ok ? r.text() : '').then(t => { if (t) _csaText = t; if (cb) cb(); }).catch(() => {});
-  } catch (e) {}
+// Static prompt texts held as repo files (kept out of JS so their backticks / paths /
+// angle-brackets need no escaping), loaded once and cached.
+let _csaText = '', _ratText = '';
+function _loadFileText(url, set, cb) {
+  try { fetch(url).then(r => r.ok ? r.text() : '').then(t => { if (t) set(t); if (cb) cb(); }).catch(() => {}); } catch (e) {}
 }
-if (typeof fetch === 'function') _loadCsaText();
+function _loadCsaText(cb) { if (_csaText) { if (cb) cb(); return; } _loadFileText('docs/csa-rewrite-prompt.md', t => { _csaText = t; }, cb); }
+function _loadRatText(cb) { if (_ratText) { if (cb) cb(); return; } _loadFileText('docs/risk-rationale-prompt.md', t => { _ratText = t; }, cb); }
+if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); }
+
+// One control's effectiveness as the CSA-style rating the rationale prompt expects.
+function _ratEffectiveness(f) {
+  if (typeof ftIsImplemented === 'function' && !ftIsImplemented(f)) return 'Not implemented (draft)';
+  if (typeof ftIsNotAssessed === 'function' && ftIsNotAssessed(f)) return 'Not assessed';
+  if (typeof ftIsEffective === 'function' && ftIsEffective(f)) return 'Effective';
+  if (typeof ftIsPartly === 'function' && ftIsPartly(f)) return 'Partially effective';
+  return 'Ineffective';
+}
+// The "Risk Content" block appended for the selected risk — one row per control.
+// The dataset holds composite inherent/residual SCORES, not separate Likelihood &
+// Impact ratings, so the columns carry the scores plus a note mapping them to the
+// prompt's placeholders.
+function _ratRiskContent(riskTitle) {
+  const facts = _promptFacts().filter(f => _promptIsLiveFact(f) && ftNorm(f.riskTitle) === ftNorm(riskTitle));
+  if (!facts.length) return `Risk: ${riskTitle}\n(no controls found for this risk in the risk-data upload)`;
+  const desc = (facts.find(f => (f.riskDesc || '').trim()) || {}).riskDesc || '';
+  const inh = Math.max(0, ...facts.map(f => f.inherentScore || 0)) || '';
+  const res = Math.max(0, ...facts.map(f => f.residualScore || 0)) || '';
+  const seen = new Set(), rows = [];
+  facts.forEach(f => {
+    const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    if (seen.has(ck)) return; seen.add(ck);
+    rows.push({ name: (f.controlNumber ? f.controlNumber + ' — ' : '') + (f.controlName || '').trim(), eff: _ratEffectiveness(f) });
+  });
+  const note = 'NOTE ON RATINGS: this dataset records Inherent and Residual risk as a single composite SCORE (0–25), not separate Likelihood and Impact ratings. For {InherentLikelihoodRating} and {InherentImpactRating} use the "Inherent Risk Score" below as the best available value and the Step-B ceiling; for {ResidualLikelihoodRating} and {ResidualImpactRating} use the "Residual Risk Score". State this assumption briefly in the rationales.';
+  const cols = ['Description', 'Inherent Risk Score', 'Control: Control Name', 'Control Effectiveness Score', 'Residual Risk Score'];
+  const head = '| ' + cols.join(' | ') + ' |';
+  const sep = '| ' + cols.map(() => '---').join(' | ') + ' |';
+  const body = rows.map(r => '| ' + [desc, inh, r.name, r.eff, res].map(_amCell).join(' | ') + ' |').join('\n');
+  return `Risk: ${riskTitle}\n\n${note}\n\n${head}\n${sep}\n${body}`;
+}
 
 // Run fn with the lens the card was drawn under, so the extract matches the table.
 function _promptsWithLens(fn) {
@@ -180,6 +213,11 @@ function buildPromptText() {
   const risks = _promptRiskList(all, facts);
   const risk = risks.find(r => r.title === _promptRisk) || risks[0];
   if (!risk) return 'No risks in the risk-data upload yet.';
+  // Option 5 — the risk-rationale prompt with the selected risk's data appended.
+  if (_promptKind === 'rating') {
+    if (!_ratText) return 'Loading the risk-rationale prompt… select "5 · Risk rationale & tier" again in a moment.';
+    return _ratText.replace('<<--["Risk you need to assess"]-->>', _ratRiskContent(risk.title));
+  }
   const ext = _promptExtractRows(all, facts, risk.title);
   const table = _promptExtractTable(ext, LL);
   return `${_promptPreamble(LL, risk, table)}\n\n${_promptBody(_promptKind, LL)}\n`;
@@ -214,7 +252,8 @@ function setPromptKind(kind) {
   document.querySelectorAll('#prompt-kind-tabs .prompt-kind-tab').forEach(b =>
     b.classList.toggle('prompt-kind-on', b.dataset.kind === kind));
   updatePromptView();
-  if (kind === 'csa' && !_csaText) _loadCsaText(updatePromptView);   // re-render once loaded
+  if (kind === 'csa' && !_csaText) _loadCsaText(updatePromptView);        // re-render once loaded
+  if (kind === 'rating' && !_ratText) _loadRatText(updatePromptView);
 }
 
 function updatePromptView() {

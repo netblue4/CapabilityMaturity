@@ -527,7 +527,7 @@ const promptsOut = await page.evaluate(() => {
 });
 assert(promptsOut.risks.length >= 5, `Prompts: risk dropdown lists all risks from the upload (${promptsOut.risks.length})`);
 assert(promptsOut.allRisks.includes('Standalone non-DORA risk'), 'Prompts: risk list is not filtered to DORA-linked risks (shows all uploaded)');
-assert(promptsOut.tabs.length === 4 && /Rewrite to CSA standard/.test(promptsOut.tabs[3]), 'Prompts: option 4 "Rewrite to CSA standard" present');
+assert(promptsOut.tabs.length === 5 && /Rewrite to CSA standard/.test(promptsOut.tabs[3]) && /Risk rationale & tier/.test(promptsOut.tabs[4]), 'Prompts: options 4 (CSA) and 5 (Risk rationale & tier) present');
 // Option 4 is the standalone CSA prompt loaded from docs/csa-rewrite-prompt.md.
 const csaOut = await page.evaluate(async () => {
   openPromptsModal(); setPromptKind('csa');
@@ -536,6 +536,18 @@ const csaOut = await page.evaluate(async () => {
 });
 assert(/Rewrite controls, control tests and control test procedures to the CSA standard/.test(csaOut) && /## INPUT/.test(csaOut) && /<paste control rows here>/.test(csaOut),
   'Prompts: option 4 shows the full CSA prompt with the <paste control rows here> placeholder (literal)');
+// Option 5 — risk-rationale prompt with the selected risk's data appended (not pasted).
+const ratOut = await page.evaluate(async () => {
+  openPromptsModal();
+  document.getElementById('prompt-risk-sel').value = 'Delayed incident response'; updatePromptView();
+  setPromptKind('rating');
+  for (let i = 0; i < 40 && !/Tier Descriptions/.test(document.getElementById('prompt-text').value); i++) { await new Promise(r => setTimeout(r, 50)); updatePromptView(); }
+  const v = document.getElementById('prompt-text').value; closePromptsModal(); return v;
+});
+assert(/Risk Rationale & Tier Selection/.test(ratOut) && /£20/.test(ratOut) && /Own Funds/.test(ratOut), 'Prompts: option 5 loads the full risk-rationale prompt (tier descriptions)');
+assert(!/<<--\["Risk you need to assess"\]-->>/.test(ratOut) && /Risk: Delayed incident response/.test(ratOut) && /\| Description \| Inherent Risk Score \| Control: Control Name \| Control Effectiveness Score \| Residual Risk Score \|/.test(ratOut),
+  'Prompts: option 5 appends the selected risk\'s data (placeholder replaced, not pasted)');
+assert(/NOTE ON RATINGS/.test(ratOut), 'Prompts: option 5 notes the composite-score → Likelihood/Impact mapping');
 assert(/RISK NAME: Delayed incident response/.test(promptsOut.out.validate) && /RISK DESCRIPTION: ICT-related incidents/.test(promptsOut.out.validate) && /TRACEABILITY EXTRACT/.test(promptsOut.out.validate), 'Prompts: embeds the selected risk (name + description) + DORA extract');
 assert(/TASK — VALIDATE THE RISK/.test(promptsOut.out.validate) && /VALID —/.test(promptsOut.out.validate) && /NEEDS REVISION/.test(promptsOut.out.validate), 'Prompts: Validate-the-risk prompt');
 assert(/TASK — CONTROL COVERAGE/.test(promptsOut.out.coverage) && /\| Statement ref \| Control name \| Control objective \| Control description \|/.test(promptsOut.out.coverage), 'Prompts: Control-coverage prompt + output table spec');

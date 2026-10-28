@@ -28,7 +28,19 @@ const PROMPT_KINDS = [
     desc: 'Looks at the policy statements and the controls behind them, and proposes new draft controls where a statement is not yet met by a live control.' },
   { id: 'reduce', label: '3 · Reduce number of controls',
     desc: 'Finds controls that pursue the same objective and suggests how to merge and reword them into a single control, keeping full coverage.' },
+  { id: 'csa', label: '4 · Rewrite to CSA standard',
+    desc: 'Rewrites controls, control tests and control test procedures to the CSA / RCSA standard. Standalone — it does NOT use the selected risk; copy it, then paste your own control rows (from the Riskonnect "MB - Controls with Control Tests" report) at the end where indicated.' },
 ];
+// The CSA control-rewrite prompt is static text held in docs/csa-rewrite-prompt.md,
+// loaded once and cached (kept out of JS so its backticks / paths need no escaping).
+let _csaText = '';
+function _loadCsaText(cb) {
+  if (_csaText) { if (cb) cb(); return; }
+  try {
+    fetch('docs/csa-rewrite-prompt.md').then(r => r.ok ? r.text() : '').then(t => { if (t) _csaText = t; if (cb) cb(); }).catch(() => {});
+  } catch (e) {}
+}
+if (typeof fetch === 'function') _loadCsaText();
 
 // Run fn with the lens the card was drawn under, so the extract matches the table.
 function _promptsWithLens(fn) {
@@ -50,16 +62,13 @@ function _promptIsLiveFact(f) {
   return !(typeof ftIsClosedControl === 'function' && ftIsClosedControl(f)) && (f.controlName || '').trim();
 }
 
-// Distinct risks (from the RCSA facts) that threaten a lens objective — i.e. a
-// control treating the risk backs a statement mapped to an objective. Carries the
-// risk description from the import. For the dropdown.
+// ALL distinct risks from the risk-data upload (not only those whose controls back
+// a lens objective), carrying the risk description from the import. For the dropdown.
 function _promptRiskList(all, facts) {
-  const objCtrlKeys = new Set(all.filter(r => r._oKey && r._cKey).map(r => r._cKey));
   const out = new Map();
   (facts || []).forEach(f => {
     if (!_promptIsLiveFact(f)) return;
     const rt = (f.riskTitle || '').trim(); if (!rt) return;
-    if (!objCtrlKeys.has(_promptCtrlKey(f))) return;   // this control backs no mapped objective
     if (!out.has(rt)) out.set(rt, (f.riskDesc || '').trim());
     else if (!out.get(rt) && (f.riskDesc || '').trim()) out.set(rt, f.riskDesc.trim());
   });
@@ -162,13 +171,15 @@ Assess whether the RISK DESCRIPTION above is genuinely related to, and actually 
 
 // Build the full prompt text for the current selection.
 function buildPromptText() {
+  // Option 4 is a standalone prompt (static text) — it does not use the risk extract.
+  if (_promptKind === 'csa') return _csaText || 'Loading the CSA prompt… select "4 · Rewrite to CSA standard" again in a moment.';
   if (!_promptsA) return '';
   const LL = _promptLensLabel();
   const all = _promptsWithLens(() => buildTraceabilityRows(_promptsA)).rows;
   const facts = _promptFacts();
   const risks = _promptRiskList(all, facts);
   const risk = risks.find(r => r.title === _promptRisk) || risks[0];
-  if (!risk) return 'No risks are linked to the ' + LL + ' objectives yet.';
+  if (!risk) return 'No risks in the risk-data upload yet.';
   const ext = _promptExtractRows(all, facts, risk.title);
   const table = _promptExtractTable(ext, LL);
   return `${_promptPreamble(LL, risk, table)}\n\n${_promptBody(_promptKind, LL)}\n`;
@@ -203,6 +214,7 @@ function setPromptKind(kind) {
   document.querySelectorAll('#prompt-kind-tabs .prompt-kind-tab').forEach(b =>
     b.classList.toggle('prompt-kind-on', b.dataset.kind === kind));
   updatePromptView();
+  if (kind === 'csa' && !_csaText) _loadCsaText(updatePromptView);   // re-render once loaded
 }
 
 function updatePromptView() {

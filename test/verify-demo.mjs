@@ -126,6 +126,12 @@ assert(!dash.controlCards, 'Dashboard: Control 1/2/3 cards removed');
 assert(!dash.lensSwitch, 'Dashboard: on-screen lens switch bar removed');
 assert(!dash.caplens, 'Dashboard: Capability Lens moved to DORA Reporting');
 assert(dash.planning && dash.history, 'Dashboard keeps Planning + Assessment History');
+// Planning table: Risk Owner after Risk, Control Owner after Control Name.
+const planCols = await page.evaluate(() => {
+  const heads = [...(document.querySelector('.plan-table')?.querySelectorAll('thead th') || [])].map(h => h.textContent.trim());
+  return { riskOwnerAfterRisk: heads[heads.indexOf('Risk') + 1] === 'Risk Owner', ctrlOwnerAfterName: heads[heads.indexOf('Control Name') + 1] === 'Control Owner' };
+});
+assert(planCols.riskOwnerAfterRisk && planCols.ctrlOwnerAfterName, 'Planning table: Risk Owner after Risk, Control Owner after Control Name');
 
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));

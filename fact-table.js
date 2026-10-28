@@ -870,6 +870,8 @@ function buildPlanningRows(policyRows, facts) {
       type: typeLabel(f.controlType),
       status: ftIsImplemented(f) ? 'Implemented' : 'Draft',
       risk: (f.riskTitle || '').trim(),
+      riskOwner: (f.riskOwner || '').trim(),
+      controlOwner: (f.controlOwner || '').trim(),
       desc: (f.controlDesc || '').trim(),
     };
     (f.matchedPolicyRows || []).forEach(mp => {
@@ -897,9 +899,9 @@ function buildPlanningRows(policyRows, facts) {
       seen.add(k); return true;
     });
     if (!ctrls.length) {
-      rows.push({ ...base, risk: '', controlName: '', controlType: '', controlStatus: '', desc: '' });
+      rows.push({ ...base, risk: '', riskOwner: '', controlName: '', controlOwner: '', controlType: '', controlStatus: '', desc: '' });
     } else {
-      ctrls.forEach(c => rows.push({ ...base, risk: c.risk, controlName: c.name, controlType: c.type, controlStatus: c.status, desc: c.desc }));
+      ctrls.forEach(c => rows.push({ ...base, risk: c.risk, riskOwner: c.riskOwner, controlName: c.name, controlOwner: c.controlOwner, controlType: c.type, controlStatus: c.status, desc: c.desc }));
     }
   });
 
@@ -916,7 +918,7 @@ function buildPlanningRows(policyRows, facts) {
     rows.push({
       capName: capName(f.capId), document: '', source: '', ref: '', header: '',
       owner: '', exception: '', planStatus: 'Pre-DORA (unmapped)',
-      risk, controlName: name, controlType: 'Pre-DORA',
+      risk, riskOwner: (f.riskOwner || '').trim(), controlName: name, controlOwner: (f.controlOwner || '').trim(), controlType: 'Pre-DORA',
       controlStatus: ftIsImplemented(f) ? 'Implemented' : 'Draft',
       desc: (f.controlDesc || '').trim(), preDora: true,
     });

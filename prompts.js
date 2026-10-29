@@ -29,7 +29,7 @@ const PROMPT_KINDS = [
   { id: 'reduce', label: '3 · Reduce number of controls',
     desc: 'Finds controls that pursue the same objective and suggests how to merge and reword them into a single control, keeping full coverage.' },
   { id: 'csa', label: '4 · Rewrite to CSA standard',
-    desc: 'Rewrites controls, control tests and control test procedures to the CSA / RCSA standard. Standalone — it does NOT use the selected risk; copy it, then paste your own control rows (from the Riskonnect "MB - Controls with Control Tests" report) at the end where indicated.' },
+    desc: 'Brings the selected risk’s controls up to the CSA / RCSA standard — drafts the Control Details, Control Test and Control Test Procedure for each. The controls are appended automatically (Control No, Name, Status, Frequency, Description, Owner); no pasting.' },
   { id: 'rating', label: '5 · Risk rationale & tier',
     desc: 'Produces the Inherent + Residual risk rationales and per-category tier selections (Customer, Brand, Regulatory, Operational, Project) using the Utmost tier descriptions. The selected risk’s data (description, controls + effectiveness, inherent/residual scores) is appended automatically.' },
 ];
@@ -43,6 +43,30 @@ function _loadCsaText(cb) { if (_csaText) { if (cb) cb(); return; } _loadFileTex
 function _loadRatText(cb) { if (_ratText) { if (cb) cb(); return; } _loadFileText('docs/risk-rationale-prompt.md', t => { _ratText = t; }, cb); }
 if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); }
 
+// The "CONTROLS TO PROCESS" block for option 4 — the selected risk's distinct
+// controls (Control No, Name, Status, Frequency, Description, Owner).
+function _csaControlData(riskTitle) {
+  const facts = _promptFacts().filter(f => _promptIsLiveFact(f) && ftNorm(f.riskTitle) === ftNorm(riskTitle));
+  if (!facts.length) return '(no controls found for this risk in the risk-data upload)';
+  const seen = new Set(), rows = [];
+  facts.forEach(f => {
+    const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    if (seen.has(ck)) return; seen.add(ck);
+    rows.push({
+      no: (f.controlNumber || '').trim(),
+      name: (f.controlName || '').trim(),
+      status: (typeof ftIsImplemented === 'function' && ftIsImplemented(f)) ? 'Implemented' : 'Draft',
+      freq: (f.controlFreq || '').trim(),
+      desc: (f.controlDesc || '').trim(),
+      owner: (f.controlOwner || '').trim(),
+    });
+  });
+  const cols = ['Control No', 'Control Name', 'Control Status', 'Control Frequency', 'Control Description', 'Control Owner'];
+  const head = '| ' + cols.join(' | ') + ' |';
+  const sep = '| ' + cols.map(() => '---').join(' | ') + ' |';
+  const body = rows.map(r => '| ' + [r.no, r.name, r.status, r.freq, r.desc, r.owner].map(_amCell).join(' | ') + ' |').join('\n');
+  return head + '\n' + sep + '\n' + body;
+}
 // One control's effectiveness as the CSA-style rating the rationale prompt expects.
 function _ratEffectiveness(f) {
   if (typeof ftIsImplemented === 'function' && !ftIsImplemented(f)) return 'Not implemented (draft)';
@@ -204,8 +228,6 @@ Assess whether the RISK DESCRIPTION above is genuinely related to, and actually 
 
 // Build the full prompt text for the current selection.
 function buildPromptText() {
-  // Option 4 is a standalone prompt (static text) — it does not use the risk extract.
-  if (_promptKind === 'csa') return _csaText || 'Loading the CSA prompt… select "4 · Rewrite to CSA standard" again in a moment.';
   if (!_promptsA) return '';
   const LL = _promptLensLabel();
   const all = _promptsWithLens(() => buildTraceabilityRows(_promptsA)).rows;
@@ -213,6 +235,11 @@ function buildPromptText() {
   const risks = _promptRiskList(all, facts);
   const risk = risks.find(r => r.title === _promptRisk) || risks[0];
   if (!risk) return 'No risks in the risk-data upload yet.';
+  // Option 4 — the CSA prompt with the selected risk's controls appended.
+  if (_promptKind === 'csa') {
+    if (!_csaText) return 'Loading the CSA prompt… select "4 · Rewrite to CSA standard" again in a moment.';
+    return _csaText.replace('{{CSA_CONTROLS}}', _csaControlData(risk.title));
+  }
   // Option 5 — the risk-rationale prompt with the selected risk's data appended.
   if (_promptKind === 'rating') {
     if (!_ratText) return 'Loading the risk-rationale prompt… select "5 · Risk rationale & tier" again in a moment.';

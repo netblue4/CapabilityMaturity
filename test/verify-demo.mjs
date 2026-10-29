@@ -528,14 +528,19 @@ const promptsOut = await page.evaluate(() => {
 assert(promptsOut.risks.length >= 5, `Prompts: risk dropdown lists all risks from the upload (${promptsOut.risks.length})`);
 assert(promptsOut.allRisks.includes('Standalone non-DORA risk'), 'Prompts: risk list is not filtered to DORA-linked risks (shows all uploaded)');
 assert(promptsOut.tabs.length === 5 && /Rewrite to CSA standard/.test(promptsOut.tabs[3]) && /Risk rationale & tier/.test(promptsOut.tabs[4]), 'Prompts: options 4 (CSA) and 5 (Risk rationale & tier) present');
-// Option 4 is the standalone CSA prompt loaded from docs/csa-rewrite-prompt.md.
+// Option 4 — CSA prompt (docs/csa-rewrite-prompt.md) with the selected risk's
+// controls appended automatically (no paste), incl. the Control Frequency column.
 const csaOut = await page.evaluate(async () => {
-  openPromptsModal(); setPromptKind('csa');
-  for (let i = 0; i < 40 && !/## INPUT/.test(document.getElementById('prompt-text').value); i++) { await new Promise(r => setTimeout(r, 50)); updatePromptView(); }
+  openPromptsModal();
+  document.getElementById('prompt-risk-sel').value = 'Delayed incident response'; updatePromptView();
+  setPromptKind('csa');
+  for (let i = 0; i < 40 && !/CONTROLS TO PROCESS/.test(document.getElementById('prompt-text').value); i++) { await new Promise(r => setTimeout(r, 50)); updatePromptView(); }
   const v = document.getElementById('prompt-text').value; closePromptsModal(); return v;
 });
-assert(/Rewrite controls, control tests and control test procedures to the CSA standard/.test(csaOut) && /## INPUT/.test(csaOut) && /<paste control rows here>/.test(csaOut),
-  'Prompts: option 4 shows the full CSA prompt with the <paste control rows here> placeholder (literal)');
+assert(/to the CSA standard/.test(csaOut) && /CONTROLS TO PROCESS/.test(csaOut) && !/<paste control rows here>/.test(csaOut) && !/{{CSA_CONTROLS}}/.test(csaOut),
+  'Prompts: option 4 loads the CSA prompt and auto-appends controls (no paste placeholder)');
+assert(/\| Control No \| Control Name \| Control Status \| Control Frequency \| Control Description \| Control Owner \|/.test(csaOut) && /\| (Quarterly|Monthly|Annually) \|/.test(csaOut),
+  'Prompts: option 4 appends the selected risk\'s controls incl. the Control Frequency column');
 // Option 5 — risk-rationale prompt with the selected risk's data appended (not pasted).
 const ratOut = await page.evaluate(async () => {
   openPromptsModal();

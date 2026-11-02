@@ -35,13 +35,14 @@ const PROMPT_KINDS = [
 ];
 // Static prompt texts held as repo files (kept out of JS so their backticks / paths /
 // angle-brackets need no escaping), loaded once and cached.
-let _csaText = '', _ratText = '';
+let _csaText = '', _ratText = '', _cdText = '';
 function _loadFileText(url, set, cb) {
   try { fetch(url).then(r => r.ok ? r.text() : '').then(t => { if (t) set(t); if (cb) cb(); }).catch(() => {}); } catch (e) {}
 }
 function _loadCsaText(cb) { if (_csaText) { if (cb) cb(); return; } _loadFileText('docs/csa-rewrite-prompt.md', t => { _csaText = t; }, cb); }
 function _loadRatText(cb) { if (_ratText) { if (cb) cb(); return; } _loadFileText('docs/risk-rationale-prompt.md', t => { _ratText = t; }, cb); }
-if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); }
+function _loadCdText(cb) { if (_cdText) { if (cb) cb(); return; } _loadFileText('docs/control-coverage-prompt.md', t => { _cdText = t; }, cb); }
+if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); _loadCdText(); }
 
 // The "CONTROLS TO PROCESS" block for option 4 — the selected risk's distinct
 // controls (Control No, Name, Status, Frequency, Description, Owner).
@@ -551,6 +552,103 @@ function copyLinkCtrlPrompt(btn) {
 }
 function closeLinkCtrlModal() { const m = document.getElementById('link-ctrl-modal'); if (m) m.style.display = 'none'; }
 
+// ── "Control descriptions" prompt (DORA Reporting → traceability card) ──
+// Reviews the controls mapped to one or more selected policies / group standards
+// and rewrites each control's Description to the CSA mandatory structure so its
+// Control Steps cover the intent of EVERY statement it is mapped to. Picking a
+// document brings in every control mapped to a statement in that document, and
+// for each such control ALL its mapped statements are included (across every
+// document, not only the selected ones) so the rewrite is complete.
+// De-duplicated by control (capability + number + name).
+function _cdBuildData(selectedDocs) {
+  const facts = _lcFacts();
+  const docSet = new Set((selectedDocs || []).map(d => String(d).trim()));
+  const ctrls = new Map();
+  (facts || []).forEach(f => {
+    if (typeof ftIsClosedControl === 'function' && ftIsClosedControl(f)) return;
+    if (!(f.controlName || '').trim()) return;
+    const mp = f.matchedPolicyRows || [];
+    if (!mp.some(pr => docSet.has((pr.document || '').trim()))) return;
+    const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+    let c = ctrls.get(ck);
+    if (!c) {
+      c = {
+        no: (f.controlNumber || '').trim(),
+        name: (f.controlName || '').trim(),
+        desc: (f.controlDesc || '').trim(),
+        stmts: new Map(),
+      };
+      ctrls.set(ck, c);
+    }
+    if (!c.desc && (f.controlDesc || '').trim()) c.desc = f.controlDesc.trim();
+    mp.forEach(pr => {
+      const sk = ftNorm(pr.statementRef) || ftNorm(pr.statementHeader);
+      if (!sk || c.stmts.has(sk)) return;
+      c.stmts.set(sk, {
+        ref: (pr.statementRef || '').trim(),
+        header: (pr.statementHeader || '').trim(),
+        detail: (pr.statementDetail || '').trim(),
+        doc: (pr.document || '').trim(),
+      });
+    });
+  });
+  return [...ctrls.values()].sort((a, b) => (a.no || a.name).localeCompare(b.no || b.name));
+}
+function _cdControlBlock(c) {
+  const label = (c.no ? c.no + ' — ' : '') + c.name;
+  const cols = ['Statement Ref', 'Statement Header', 'Statement Detail', 'Document'];
+  const head = '| ' + cols.join(' | ') + ' |';
+  const sep = '| ' + cols.map(() => '---').join(' | ') + ' |';
+  const rows = [...c.stmts.values()].sort((a, b) => (a.doc + a.ref).localeCompare(b.doc + b.ref));
+  const body = rows.map(r => '| ' + [r.ref, r.header, r.detail, r.doc].map(_amCell).join(' | ') + ' |').join('\n');
+  return `### CONTROL: ${label}
+
+Current Control Description:
+${c.desc || '(no description provided in the risk-data upload)'}
+
+Statements this control is mapped to (${rows.length}, across all documents):
+${head}
+${sep}
+${body}`;
+}
+function openCtrlDescModal() {
+  const m = document.getElementById('ctrl-desc-modal');
+  if (!m || !_amA) return;
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  const docs = _amDocList();
+  const host = document.getElementById('cd-docs');
+  if (host) {
+    if (!docs.length) host.innerHTML = '<p class="policy-no-data" style="margin:.3rem 0">No policy data in this assessment — import Policy Data first.</p>';
+    else {
+      const byType = {};
+      docs.forEach(d => { (byType[d.type] = byType[d.type] || []).push(d); });
+      host.innerHTML = Object.keys(byType).map(type =>
+        `<div class="am-doc-group"><div class="am-doc-type">${esc(type)}</div>${byType[type].map(d =>
+          `<label class="am-doc"><input type="checkbox" class="cd-doc-cb" value="${esc(d.document)}"> ${esc(d.document)} <span class="am-doc-n">(${d.count})</span></label>`).join('')}</div>`).join('');
+    }
+  }
+  const out = document.getElementById('cd-prompt'); if (out) out.value = '';
+  m.style.display = 'flex';
+}
+function generateCtrlDescPrompt() {
+  const out = document.getElementById('cd-prompt'); if (!out) return;
+  const docs = [...document.querySelectorAll('#cd-docs .cd-doc-cb:checked')].map(c => c.value);
+  if (!docs.length) { out.value = '⚠ Tick at least one policy or group standard — its mapped controls will be reviewed.'; return; }
+  const ctrls = _cdBuildData(docs);
+  if (!ctrls.length) { out.value = '⚠ No controls are mapped to statements in the selected document(s).'; return; }
+  if (!_cdText) { out.value = '⚠ Prompt template still loading — try again in a moment.'; _loadCdText(); return; }
+  const blocks = ctrls.map(_cdControlBlock).join('\n\n');
+  out.value = _cdText.replace('{{CTRL_DESC_DATA}}', blocks);
+}
+function copyCtrlDescPrompt(btn) {
+  const ta = document.getElementById('cd-prompt'); if (!ta || !ta.value) return;
+  const done = ok => { const o = btn.textContent; btn.textContent = ok ? 'Copied ✓' : 'Copy failed'; setTimeout(() => { btn.textContent = o; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(() => done(true)).catch(() => { ta.select(); done(false); });
+  } else { ta.select(); try { document.execCommand('copy'); done(true); } catch (e) { done(false); } }
+}
+function closeCtrlDescModal() { const m = document.getElementById('ctrl-desc-modal'); if (m) m.style.display = 'none'; }
+
 if (typeof window !== 'undefined') {
   window.openPromptsModal = openPromptsModal;
   window.closePromptsModal = closePromptsModal;
@@ -566,4 +664,8 @@ if (typeof window !== 'undefined') {
   window.generateLinkCtrlPrompt = generateLinkCtrlPrompt;
   window.copyLinkCtrlPrompt = copyLinkCtrlPrompt;
   window.closeLinkCtrlModal = closeLinkCtrlModal;
+  window.openCtrlDescModal = openCtrlDescModal;
+  window.generateCtrlDescPrompt = generateCtrlDescPrompt;
+  window.copyCtrlDescPrompt = copyCtrlDescPrompt;
+  window.closeCtrlDescModal = closeCtrlDescModal;
 }

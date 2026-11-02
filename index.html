@@ -231,6 +231,28 @@
       </div>
     </div>
 
+    <!-- "Control descriptions" authoring popup (DORA traceability card) -->
+    <div id="ctrl-desc-modal" class="modal-overlay" onclick="if(event.target===this)closeCtrlDescModal()" style="display:none">
+      <div class="modal-box prompts-box am-box">
+        <div class="modal-header">
+          <h3>✨ Control descriptions</h3>
+          <button class="modal-close" onclick="closeCtrlDescModal()">✕</button>
+        </div>
+        <p class="am-intro">Review the controls mapped to a policy or group standard and make sure each control's description actually implements every statement it is mapped to. Pick the <b>policies / group standards</b> below; the prompt then fetches each mapped control <i>with all the statements it covers (across every document)</i> and asks the LLM to state each statement's intent and rewrite the Control Description to the Group CSA structure so its Control Steps cover them all.</p>
+        <label class="am-label">1 · Policies / group standards — review their mapped controls</label>
+        <div id="cd-docs" class="am-docs"></div>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="generateCtrlDescPrompt()">Generate prompt</button>
+          <span class="prompt-hint">Generate, copy, run in your LLM to get the rewritten descriptions &amp; coverage check.</span>
+        </div>
+        <label class="am-label">Prompt</label>
+        <textarea id="cd-prompt" class="prompt-text" readonly spellcheck="false"></textarea>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="copyCtrlDescPrompt(this)">⧉ Copy prompt</button>
+        </div>
+      </div>
+    </div>
+
 
     <!-- Riskonnect Import View -->
     <section id="view-riskonnect-import" class="view">

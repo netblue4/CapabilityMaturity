@@ -238,8 +238,8 @@
           <h3>✨ Control descriptions</h3>
           <button class="modal-close" onclick="closeCtrlDescModal()">✕</button>
         </div>
-        <p class="am-intro">Review the controls mapped to a policy or group standard and make sure each control's description actually implements every statement it is mapped to. Pick the <b>policies / group standards</b> below; the prompt then fetches each mapped control <i>with all the statements it covers (across every document)</i> and asks the LLM to state each statement's intent and rewrite the Control Description to the Group CSA structure so its Control Steps cover them all.</p>
-        <label class="am-label">1 · Policies / group standards — review their mapped controls</label>
+        <p class="am-intro">Review the controls mapped to a policy or group standard and make sure each control's description actually implements every statement it is mapped to. <b>Expand a policy / group standard</b> below and <b>tick one or two controls</b> to process at a time (keeps the prompt short enough for your LLM). Each selected control is fetched <i>with all the statements it covers — across every document, not just the one it sits under</i>; the prompt then asks the LLM to state each statement's intent and rewrite the Control Description to the Group CSA structure so its Control Steps cover them all.</p>
+        <label class="am-label">1 · Policies / group standards — expand &amp; pick the controls to process</label>
         <div id="cd-docs" class="am-docs"></div>
         <div class="prompts-actions">
           <button class="btn btn-primary" onclick="generateCtrlDescPrompt()">Generate prompt</button>

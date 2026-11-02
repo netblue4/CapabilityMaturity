@@ -1,6 +1,6 @@
 # PROMPT — Make each control description implement the statements it is mapped to
 
-The controls to review are appended at the end under "CONTROLS TO REVIEW" — each with its current description and every policy / group-standard statement it is mapped to (across all documents, not only the one selected). Process about 10 controls per run.
+The controls to review are appended at the end under "CONTROLS TO REVIEW" — each with its current description and every policy / group-standard statement it is mapped to (across all documents, not only the one it was picked under). Process every control in that section.
 
 ---
 

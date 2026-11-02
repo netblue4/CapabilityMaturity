@@ -232,6 +232,34 @@ assert(/STATEMENTS \(policy/.test(lc.prompt) && /CONTROLS \(risk-treatment/.test
 assert(lc.prompt.includes('DORA object\tDORA objective text\tStatement ref\tStatement header\tControl name\tControl objective\tControl description'),
   'Link-controls: OUTPUT is the exact 7 columns requested (tab-separated)');
 assert(/map .* controls .* to .* statements .* by INTENT/i.test(lc.prompt.replace(/\n/g, ' ')), 'Link-controls: task asks to map controls to statements by intent');
+
+// ── "Control descriptions" popup on the DORA traceability card ──
+const cd = await page.evaluate(() => {
+  const btn = !!document.querySelector('#exec-report-content button[onclick="openCtrlDescModal()"]');
+  openCtrlDescModal();
+  const docs = [...document.querySelectorAll('#cd-docs .cd-doc-cb')].map(c => c.value);
+  const types = [...document.querySelectorAll('#cd-docs .am-doc-type')].map(t => t.textContent.trim());
+  generateCtrlDescPrompt();                       // nothing picked → nudge
+  const nudge = document.getElementById('cd-prompt').value;
+  const dcb = [...document.querySelectorAll('#cd-docs .cd-doc-cb')]; dcb.forEach(c => { c.checked = true; });
+  generateCtrlDescPrompt();
+  const prompt = document.getElementById('cd-prompt').value;
+  closeCtrlDescModal();
+  return { btn, docCount: docs.length, types, nudge, prompt, picked: docs[0] };
+});
+assert(cd.btn, 'DORA traceability: "Control descriptions" button present');
+assert(cd.docCount > 0 && cd.types.some(t => /Group Standard|Local Policy/.test(t)), `Control-desc: policy/GS documents listed, grouped (${cd.docCount})`);
+assert(/at least one policy or group standard/i.test(cd.nudge), 'Control-desc: nudges when no document is selected');
+assert(/REWRITTEN CONTROL DESCRIPTION/.test(cd.prompt) && /DESCRIPTION STRUCTURE \(mandatory/.test(cd.prompt), 'Control-desc: prompt carries the CSA mandatory description structure');
+assert(/STATEMENT INTENTS/.test(cd.prompt) && /COVERAGE CHECK/.test(cd.prompt), 'Control-desc: output states statement intents + coverage check');
+assert(/### CONTROL:/.test(cd.prompt) && /Statements this control is mapped to/.test(cd.prompt), 'Control-desc: appends each mapped control with its statements (placeholder replaced)');
+assert(!/\{\{CTRL_DESC_DATA\}\}/.test(cd.prompt), 'Control-desc: {{CTRL_DESC_DATA}} placeholder is filled, not left literal');
+const cdMicaBtn = await page.evaluate(() => { showReportModal('mica'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); return !!document.querySelector('#mica-report-content button[onclick="openCtrlDescModal()"]'); });
+assert(!cdMicaBtn, 'Control-desc: button is DORA-only (absent on MiCA traceability)');
+// restore DORA report for the remaining DORA-report assertions
+await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
+await page.waitForSelector('#exec-report-content .trace-tbl');
+
 assert(!doraRep.pillGrid, 'DORA Reporting: DORA Pillar cards removed');
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');

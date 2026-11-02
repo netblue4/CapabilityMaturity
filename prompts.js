@@ -553,46 +553,67 @@ function copyLinkCtrlPrompt(btn) {
 function closeLinkCtrlModal() { const m = document.getElementById('link-ctrl-modal'); if (m) m.style.display = 'none'; }
 
 // ── "Control descriptions" prompt (DORA Reporting → traceability card) ──
-// Reviews the controls mapped to one or more selected policies / group standards
-// and rewrites each control's Description to the CSA mandatory structure so its
-// Control Steps cover the intent of EVERY statement it is mapped to. Picking a
-// document brings in every control mapped to a statement in that document, and
-// for each such control ALL its mapped statements are included (across every
-// document, not only the selected ones) so the rewrite is complete.
-// De-duplicated by control (capability + number + name).
-function _cdBuildData(selectedDocs) {
+// Reviews individual controls mapped to policies / group standards and rewrites
+// each control's Description to the CSA mandatory structure so its Control Steps
+// cover the intent of EVERY statement it is mapped to. The picker lists each
+// policy / group standard, expandable to the controls mapped to a statement in
+// it; the user ticks one or two controls at a time (so the generated prompt stays
+// short enough for an LLM). For each selected control ALL its mapped statements
+// are included — across every document, not only the one it was picked under —
+// so the rewrite is complete.
+// Every control is de-duplicated by its key (capability + number + name).
+function _cdAllControls() {
   const facts = _lcFacts();
-  const docSet = new Set((selectedDocs || []).map(d => String(d).trim()));
   const ctrls = new Map();
   (facts || []).forEach(f => {
     if (typeof ftIsClosedControl === 'function' && ftIsClosedControl(f)) return;
     if (!(f.controlName || '').trim()) return;
     const mp = f.matchedPolicyRows || [];
-    if (!mp.some(pr => docSet.has((pr.document || '').trim()))) return;
+    if (!mp.length) return; // only controls mapped to at least one statement
     const ck = f.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
     let c = ctrls.get(ck);
     if (!c) {
       c = {
+        key: ck,
         no: (f.controlNumber || '').trim(),
         name: (f.controlName || '').trim(),
         desc: (f.controlDesc || '').trim(),
         stmts: new Map(),
+        docs: new Set(),
       };
       ctrls.set(ck, c);
     }
     if (!c.desc && (f.controlDesc || '').trim()) c.desc = f.controlDesc.trim();
     mp.forEach(pr => {
+      const doc = (pr.document || '').trim();
+      if (doc) c.docs.add(doc);
       const sk = ftNorm(pr.statementRef) || ftNorm(pr.statementHeader);
       if (!sk || c.stmts.has(sk)) return;
       c.stmts.set(sk, {
         ref: (pr.statementRef || '').trim(),
         header: (pr.statementHeader || '').trim(),
         detail: (pr.statementDetail || '').trim(),
-        doc: (pr.document || '').trim(),
+        doc,
       });
     });
   });
-  return [...ctrls.values()].sort((a, b) => (a.no || a.name).localeCompare(b.no || b.name));
+  return ctrls;
+}
+// Documents (policies / group standards) each with the controls mapped to a
+// statement in them — for the expandable picker. A control appears under every
+// document it is mapped to.
+function _cdDocControls() {
+  const ctrls = _cdAllControls();
+  const typeByDoc = {};
+  _amDocList().forEach(d => { typeByDoc[d.document] = d.type; });
+  const byDoc = new Map();
+  ctrls.forEach(c => c.docs.forEach(doc => {
+    let g = byDoc.get(doc);
+    if (!g) { g = { document: doc, type: typeByDoc[doc] || 'Other', ctrls: [] }; byDoc.set(doc, g); }
+    g.ctrls.push(c);
+  }));
+  byDoc.forEach(g => g.ctrls.sort((a, b) => (a.no || a.name).localeCompare(b.no || b.name)));
+  return [...byDoc.values()].sort((a, b) => a.type.localeCompare(b.type) || a.document.localeCompare(b.document));
 }
 function _cdControlBlock(c) {
   const label = (c.no ? c.no + ' — ' : '') + c.name;
@@ -615,16 +636,17 @@ function openCtrlDescModal() {
   const m = document.getElementById('ctrl-desc-modal');
   if (!m || !_amA) return;
   const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
-  const docs = _amDocList();
+  const groups = _cdDocControls();
   const host = document.getElementById('cd-docs');
   if (host) {
-    if (!docs.length) host.innerHTML = '<p class="policy-no-data" style="margin:.3rem 0">No policy data in this assessment — import Policy Data first.</p>';
+    if (!groups.length) host.innerHTML = '<p class="policy-no-data" style="margin:.3rem 0">No controls are mapped to policy / group-standard statements in this assessment.</p>';
     else {
       const byType = {};
-      docs.forEach(d => { (byType[d.type] = byType[d.type] || []).push(d); });
+      groups.forEach(g => { (byType[g.type] = byType[g.type] || []).push(g); });
       host.innerHTML = Object.keys(byType).map(type =>
-        `<div class="am-doc-group"><div class="am-doc-type">${esc(type)}</div>${byType[type].map(d =>
-          `<label class="am-doc"><input type="checkbox" class="cd-doc-cb" value="${esc(d.document)}"> ${esc(d.document)} <span class="am-doc-n">(${d.count})</span></label>`).join('')}</div>`).join('');
+        `<div class="am-doc-group"><div class="am-doc-type">${esc(type)}</div>${byType[type].map(g =>
+          `<details class="cd-doc-det"><summary class="cd-doc-sum">${esc(g.document)} <span class="am-doc-n">(${g.ctrls.length} control${g.ctrls.length === 1 ? '' : 's'})</span></summary>${g.ctrls.map(c =>
+            `<label class="am-doc cd-ctrl"><input type="checkbox" class="cd-ctrl-cb" value="${esc(c.key)}"> ${esc((c.no ? c.no + ' — ' : '') + c.name)} <span class="am-doc-n">(${c.stmts.size} statement${c.stmts.size === 1 ? '' : 's'})</span></label>`).join('')}</details>`).join('')}</div>`).join('');
     }
   }
   const out = document.getElementById('cd-prompt'); if (out) out.value = '';
@@ -632,11 +654,12 @@ function openCtrlDescModal() {
 }
 function generateCtrlDescPrompt() {
   const out = document.getElementById('cd-prompt'); if (!out) return;
-  const docs = [...document.querySelectorAll('#cd-docs .cd-doc-cb:checked')].map(c => c.value);
-  if (!docs.length) { out.value = '⚠ Tick at least one policy or group standard — its mapped controls will be reviewed.'; return; }
-  const ctrls = _cdBuildData(docs);
-  if (!ctrls.length) { out.value = '⚠ No controls are mapped to statements in the selected document(s).'; return; }
+  const keys = [...document.querySelectorAll('#cd-docs .cd-ctrl-cb:checked')].map(c => c.value);
+  if (!keys.length) { out.value = '⚠ Expand a policy / group standard and tick one or two controls to process.'; return; }
   if (!_cdText) { out.value = '⚠ Prompt template still loading — try again in a moment.'; _loadCdText(); return; }
+  const all = _cdAllControls();
+  const ctrls = keys.map(k => all.get(k)).filter(Boolean).sort((a, b) => (a.no || a.name).localeCompare(b.no || b.name));
+  if (!ctrls.length) { out.value = '⚠ The selected control(s) are no longer in the data — reopen the popup.'; return; }
   const blocks = ctrls.map(_cdControlBlock).join('\n\n');
   out.value = _cdText.replace('{{CTRL_DESC_DATA}}', blocks);
 }

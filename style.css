@@ -436,6 +436,11 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .am-doc:hover { color: var(--accent); }
 .am-doc input { accent-color: var(--accent); }
 .am-doc-n { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.cd-doc-det { margin: .1rem 0 .2rem; }
+.cd-doc-sum { font-size: .82rem; padding: .18rem 0; cursor: pointer; list-style-position: inside; }
+.cd-doc-sum:hover { color: var(--accent); }
+.cd-doc-det[open] > .cd-doc-sum { color: var(--accent); font-weight: 600; }
+.cd-ctrl { margin-left: 1.1rem; }
 
 /* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
 .ral-tbl { font-size: .82rem; }

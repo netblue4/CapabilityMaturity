@@ -237,22 +237,27 @@ assert(/map .* controls .* to .* statements .* by INTENT/i.test(lc.prompt.replac
 const cd = await page.evaluate(() => {
   const btn = !!document.querySelector('#exec-report-content button[onclick="openCtrlDescModal()"]');
   openCtrlDescModal();
-  const docs = [...document.querySelectorAll('#cd-docs .cd-doc-cb')].map(c => c.value);
+  const docDets = [...document.querySelectorAll('#cd-docs .cd-doc-det')];
   const types = [...document.querySelectorAll('#cd-docs .am-doc-type')].map(t => t.textContent.trim());
+  const ctrlCbs = [...document.querySelectorAll('#cd-docs .cd-ctrl-cb')];
   generateCtrlDescPrompt();                       // nothing picked → nudge
   const nudge = document.getElementById('cd-prompt').value;
-  const dcb = [...document.querySelectorAll('#cd-docs .cd-doc-cb')]; dcb.forEach(c => { c.checked = true; });
+  // Pick a single control (keeps the prompt short for the LLM).
+  ctrlCbs[0].checked = true;
   generateCtrlDescPrompt();
   const prompt = document.getElementById('cd-prompt').value;
+  const ctrlBlocks = (prompt.match(/### CONTROL:/g) || []).length;
   closeCtrlDescModal();
-  return { btn, docCount: docs.length, types, nudge, prompt, picked: docs[0] };
+  return { btn, docCount: docDets.length, types, ctrlCount: ctrlCbs.length, nudge, prompt, ctrlBlocks };
 });
 assert(cd.btn, 'DORA traceability: "Control descriptions" button present');
-assert(cd.docCount > 0 && cd.types.some(t => /Group Standard|Local Policy/.test(t)), `Control-desc: policy/GS documents listed, grouped (${cd.docCount})`);
-assert(/at least one policy or group standard/i.test(cd.nudge), 'Control-desc: nudges when no document is selected');
+assert(cd.docCount > 0 && cd.types.some(t => /Group Standard|Local Policy/.test(t)), `Control-desc: policy/GS documents listed, expandable & grouped (${cd.docCount})`);
+assert(cd.ctrlCount > 0, `Control-desc: controls listed under the policies/standards, selectable (${cd.ctrlCount})`);
+assert(/tick one or two controls/i.test(cd.nudge), 'Control-desc: nudges to pick one or two controls when none selected');
+assert(cd.ctrlBlocks === 1, `Control-desc: only the selected control is appended (1 block, got ${cd.ctrlBlocks})`);
 assert(/REWRITTEN CONTROL DESCRIPTION/.test(cd.prompt) && /DESCRIPTION STRUCTURE \(mandatory/.test(cd.prompt), 'Control-desc: prompt carries the CSA mandatory description structure');
 assert(/STATEMENT INTENTS/.test(cd.prompt) && /COVERAGE CHECK/.test(cd.prompt), 'Control-desc: output states statement intents + coverage check');
-assert(/### CONTROL:/.test(cd.prompt) && /Statements this control is mapped to/.test(cd.prompt), 'Control-desc: appends each mapped control with its statements (placeholder replaced)');
+assert(/### CONTROL:/.test(cd.prompt) && /Statements this control is mapped to/.test(cd.prompt), 'Control-desc: appends the selected control with its statements (placeholder replaced)');
 assert(!/\{\{CTRL_DESC_DATA\}\}/.test(cd.prompt), 'Control-desc: {{CTRL_DESC_DATA}} placeholder is filled, not left literal');
 const cdMicaBtn = await page.evaluate(() => { showReportModal('mica'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); return !!document.querySelector('#mica-report-content button[onclick="openCtrlDescModal()"]'); });
 assert(!cdMicaBtn, 'Control-desc: button is DORA-only (absent on MiCA traceability)');

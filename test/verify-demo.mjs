@@ -266,6 +266,8 @@ assert(/SOFTWARE-ENFORCED \(AUTOMATED\) CONTROLS/.test(cd.prompt) && /extract th
 assert(/WORKED EXAMPLE/.test(cd.prompt) && /Third-party/.test(cd.prompt) && /vulnerability/i.test(cd.prompt), 'Operationalise: worked example (third-party software, tool-based) present');
 assert(/SUMMARY TABLE/.test(cd.prompt) && /Control No \| Control Name \| Type \| Nature \| Owner \| Control Frequency \| Control Cost \(man-hrs\) \| CT Sample Size \| Control Objective/.test(cd.prompt), 'Operationalise: paste-back summary table incl. Control Cost + CT Sample Size');
 assert(/STATEMENT INTENTS/.test(cd.prompt) && /COVERAGE CHECK/.test(cd.prompt), 'Operationalise: output states statement intents + coverage check');
+assert(/HOW THIS PROMPT WORKS — two steps/.test(cd.prompt) && /STEP 1 — Plan/.test(cd.prompt) && /STEP 2 — Build/.test(cd.prompt), 'Operationalise: runs as a two-step dialogue (plan, then build)');
+assert(/PROPOSED CONTROL SET/.test(cd.prompt) && /STOP and ask/.test(cd.prompt), 'Operationalise: Step 1 returns statement intents + proposed control set, then stops for confirmation');
 assert(/### CONTROL:/.test(cd.prompt) && /Statements this control is mapped to/.test(cd.prompt), 'Operationalise: appends the selected control with its statements (placeholder replaced)');
 assert(/Current Control Owner:/.test(cd.prompt) && /Current Control Frequency:/.test(cd.prompt), 'Operationalise: data block feeds the control owner + frequency');
 assert(!/\{\{CTRL_DESC_DATA\}\}/.test(cd.prompt), 'Operationalise: {{CTRL_DESC_DATA}} placeholder is filled, not left literal');

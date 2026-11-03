@@ -238,12 +238,12 @@
           <h3>✨ Operationalise controls</h3>
           <button class="modal-close" onclick="closeCtrlDescModal()">✕</button>
         </div>
-        <p class="am-intro">Turn the controls mapped to a policy or group standard into true <b>operational controls</b> to the 2nd-line (Risk) standard. <b>Expand a policy / group standard</b> below and <b>tick one or two controls</b> to process at a time (the output can triple per control, so keep it short). Each selected control is fetched <i>with its owner, frequency and all the statements it covers — across every document, not just the one it sits under</i>; the prompt then asks the LLM to assess whether it is a requirements list, split it into Execution / Monitoring / Governance where needed, classify each (Preventive/Detective/Corrective · Manual/Automated/IT-dependent) and rewrite each to the Group CSA structure, with a coverage check and a paste-back summary table.</p>
+        <p class="am-intro">Turn the controls mapped to a policy or group standard into true <b>operational controls</b> to the 2nd-line (Risk) standard, and draft the <b>control test</b> for each. <b>Expand a policy / group standard</b> below and <b>tick one control</b> at a time (a control can become several, each with its own test, so the output is long). Each selected control is fetched <i>with its owner, frequency and all the statements it covers — across every document, not just the one it sits under</i>; the prompt then assesses whether it is a requirements list, keeps it as one Execution control (plus a Governance control only where there's a change-approval function), folds the monitoring intent into the control test (flagging when a standing monitoring control would be stronger), classifies each (Preventive/Detective/Corrective · Manual/Automated/IT-dependent), rewrites each to the Group CSA §2.1 structure incl. <b>Control Cost (man-hours)</b>, drafts each <b>Control Test</b> (roles + sampling + test steps), and ends with a coverage check and a paste-back summary table.</p>
         <label class="am-label">1 · Policies / group standards — expand &amp; pick the controls to process</label>
         <div id="cd-docs" class="am-docs"></div>
         <div class="prompts-actions">
           <button class="btn btn-primary" onclick="generateCtrlDescPrompt()">Generate prompt</button>
-          <span class="prompt-hint">Generate, copy, run in your LLM to get the operational controls, coverage check &amp; summary table.</span>
+          <span class="prompt-hint">Generate, copy, run in your LLM to get the operational controls, their control tests, coverage check &amp; summary table.</span>
         </div>
         <label class="am-label">Prompt</label>
         <textarea id="cd-prompt" class="prompt-text" readonly spellcheck="false"></textarea>

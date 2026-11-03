@@ -262,6 +262,7 @@ assert(/Control Type:/.test(cd.prompt) && /Preventive \/ Detective \/ Corrective
 assert(/Control Cost:/.test(cd.prompt) && /man-hours/.test(cd.prompt), 'Operationalise: §2.1 structure adds Control Cost (man-hours)');
 assert(/CONTROL TEST \(§2\.3\)/.test(cd.prompt) && /Control Test Reviewer:/.test(cd.prompt) && /Test Sample Size:/.test(cd.prompt) && /Reperformance/.test(cd.prompt), 'Operationalise: drafts the Control Test (roles + sampling + test steps)');
 assert(/Automated control \| 1 \| 1/.test(cd.prompt) && /25% of samples/.test(cd.prompt), 'Operationalise: CT carries the RCSA sample-size table + rating methodology');
+assert(/SOFTWARE-ENFORCED \(AUTOMATED\) CONTROLS/.test(cd.prompt) && /extract the enforcing configuration/.test(cd.prompt) && /configuration test, not a sample of executions/.test(cd.prompt), 'Operationalise: software-enforced (automated) controls default shape — config test, not sampled executions');
 assert(/WORKED EXAMPLE/.test(cd.prompt) && /Third-party/.test(cd.prompt) && /vulnerability/i.test(cd.prompt), 'Operationalise: worked example (third-party software, tool-based) present');
 assert(/SUMMARY TABLE/.test(cd.prompt) && /Control No \| Control Name \| Type \| Nature \| Owner \| Control Frequency \| Control Cost \(man-hrs\) \| CT Sample Size \| Control Objective/.test(cd.prompt), 'Operationalise: paste-back summary table incl. Control Cost + CT Sample Size');
 assert(/STATEMENT INTENTS/.test(cd.prompt) && /COVERAGE CHECK/.test(cd.prompt), 'Operationalise: output states statement intents + coverage check');

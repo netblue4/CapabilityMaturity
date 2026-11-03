@@ -21,7 +21,7 @@ For each control in the CONTROLS TO REVIEW section:
    - **Smart flag:** if a *standing* monitoring control would materially strengthen assurance (high change velocity, high impact, or an automated gate that can be overridden between tests), **FLAG** it and recommend it as an additional control, with a one-line reason. Only when it genuinely beats the periodic test — otherwise leave the monitoring to the control test.
 4. **Classify** each resulting control: **Control Type** (Preventive / Detective / Corrective) + **Nature** (Manual / Automated / IT-dependent manual) + a one-line rationale.
 5. **Write** each control to the §2.1 structure (including **Control Cost**).
-6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling and test steps. For an **automated** Execution control, the Test Steps MUST include confirming the tool result was honoured and not overridden / ignored without a documented, approved exception (this is the monitoring intent).
+6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling and test steps. When the control is enforced by software (Nature = Automated), apply the **"Software-enforced (automated) controls — default shape"** section below: the Execution control documents how the tool enforces the objective, and its Control Test extracts the enforcing configuration from the tool and checks it was not changed, disabled or overridden.
 7. **Coverage check** — every mapped statement addressed by a Control Step across the resulting controls.
 8. Flag every missing detail with `[CONFIRM: …]` — never invent systems, people, thresholds, volumes or tools.
 
@@ -63,7 +63,7 @@ Control numbering for a split: derive each new number from the original — `<Co
 
 **Details** (reflect the checks performed on the sample)
 - Test Purpose: `To confirm the adequacy of the execution and documentation of <Control No> based on the current control details.`
-- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for automated controls, the tool result was honoured — nothing was overridden or ignored without a documented, approved exception**; (e) exceptions were escalated/remediated; (f) evidence is retained in the Evidence Path.
+- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, extract the enforcing configuration from the tool and confirm it still enforces the control objective; confirm the change log shows no unauthorised change that disabled or weakened it; and confirm no one with override rights bypassed it without a documented, approved exception**; (e) exceptions were escalated/remediated; (f) evidence is retained in the Evidence Path.
 - Test Sample Size: from the tables below, using the control's Frequency. Format `<n> - <Frequency> Control` (e.g. `6 - Weekly Control`), or for ad hoc `<n> - Ad hoc (population <x–y>)`. Use the **Standard** size (first test). An **automated** control = **1** sample.
 - Test Type: `Reperformance`.
 
@@ -84,6 +84,13 @@ Ad hoc (non-time-dependent), by transaction population: 1–10 → 1 · 11–19 
 - **Fail**: more than 25% of samples not appropriately executed or no evidence.
 - **Pass with observation**: less than 25% not appropriately executed or no evidence.
 - **Pass**: all samples appropriately executed and evidenced, or only minor documentation gaps.
+
+## SOFTWARE-ENFORCED (AUTOMATED) CONTROLS — default shape
+Many IT controls are enforced by software (a pipeline gate, a platform setting, a system-enforced approval or segregation rule). When the control objective is met because a tool enforces it — not because a person performs a recurring task — use this shape by default (Nature = **Automated**):
+- **Execution control** — the Control Steps describe **how the software enforces the objective**: name the tool, the exact rule / setting / configuration that enforces it, and the role that **owns and configures** it (e.g. "GitLab blocks a merge to a protected branch unless the pipeline passes and ≥ N approvals are recorded"). Do not write recurring manual steps the team does not actually perform. Control Type is **Preventive** if the tool blocks, **Detective** if it only flags.
+- **Control Test** — this is a **configuration test, not a sample of executions**: (1) extract the enforcing configuration from the tool (export / screenshot the rule, policy or setting) and confirm it still enforces the control objective; (2) confirm the **change log** shows no unauthorised change that disabled or weakened it since the last test; (3) confirm **no one with override rights bypassed it** without a documented, approved exception. Sample size = **1** (automated).
+- **Governance control** — add one where changes to that configuration (the rule, threshold, override rights) go through formal change approval. This is what keeps the automated control trustworthy **between** tests, so for a software-enforced control it is usually warranted.
+- **Why**: a correctly configured tool does what it is set to do every time, so re-sampling executions adds little. The real residual risk is that the **configuration is changed/disabled** or **overridden** — which is exactly what the Control Test and the Governance control cover.
 
 ## WORKED EXAMPLE (illustrative — follow its shape, not its content)
 Original control "Third-party software vulnerability management", mapped to CISVM SR1, ITIM SR9. The check is built into tooling, so it does **not** split into execution + monitoring:

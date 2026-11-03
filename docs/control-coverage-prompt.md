@@ -99,7 +99,7 @@ For each original control:
 ASSESSMENT: <operational control | requirements list> — <one line>. Control set: Execution [+ Governance] [+ Monitoring FLAGGED] — <one line why>.
 
 STATEMENT INTENTS
-- <Statement Ref> (<Document>): <intent>
+- <Statement Ref> (<Document> — <Statement Header>): <intent>
 
 --- <new Control No> — <new Control Name> ---  [CONFIRM: new control number]
 Control Type: <…>   Nature: <…>   (rationale: <one line>)

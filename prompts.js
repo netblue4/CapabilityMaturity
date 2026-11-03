@@ -578,12 +578,16 @@ function _cdAllControls() {
         no: (f.controlNumber || '').trim(),
         name: (f.controlName || '').trim(),
         desc: (f.controlDesc || '').trim(),
+        owner: (f.controlOwner || '').trim(),
+        freq: (f.controlFreq || '').trim(),
         stmts: new Map(),
         docs: new Set(),
       };
       ctrls.set(ck, c);
     }
     if (!c.desc && (f.controlDesc || '').trim()) c.desc = f.controlDesc.trim();
+    if (!c.owner && (f.controlOwner || '').trim()) c.owner = f.controlOwner.trim();
+    if (!c.freq && (f.controlFreq || '').trim()) c.freq = f.controlFreq.trim();
     mp.forEach(pr => {
       const doc = (pr.document || '').trim();
       if (doc) c.docs.add(doc);
@@ -623,6 +627,9 @@ function _cdControlBlock(c) {
   const rows = [...c.stmts.values()].sort((a, b) => (a.doc + a.ref).localeCompare(b.doc + b.ref));
   const body = rows.map(r => '| ' + [r.ref, r.header, r.detail, r.doc].map(_amCell).join(' | ') + ' |').join('\n');
   return `### CONTROL: ${label}
+
+Current Control Owner: ${c.owner || '(not given — use [CONFIRM: owner role])'}
+Current Control Frequency: ${c.freq || '(not given — use [CONFIRM: frequency])'}
 
 Current Control Description:
 ${c.desc || '(no description provided in the risk-data upload)'}

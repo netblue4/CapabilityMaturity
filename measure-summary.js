@@ -646,7 +646,7 @@ function renderTraceabilityCard(assessment) {
   const linkBtn = (isDora && typeof openLinkCtrlModal === 'function')
     ? '<button class="btn btn-outline" onclick="openLinkCtrlModal()" title="Generate an AI prompt to map your risk-treatment controls to policy/GS statements by intent">✨ Link controls</button>' : '';
   const cdBtn = (isDora && typeof openCtrlDescModal === 'function')
-    ? '<button class="btn btn-outline" onclick="openCtrlDescModal()" title="Generate an AI prompt to rewrite mapped control descriptions so they implement every statement, to the CSA standard">✨ Control descriptions</button>' : '';
+    ? '<button class="btn btn-outline" onclick="openCtrlDescModal()" title="Generate an AI prompt to turn mapped controls into operational controls — split into Execution/Monitoring/Governance, classified, in the CSA standard">✨ Operationalise controls</button>' : '';
   const header = desc => `
     <div class="measure-card-header">
       <span class="measure-icon">🧬</span>

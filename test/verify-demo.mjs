@@ -233,9 +233,9 @@ assert(lc.prompt.includes('DORA object\tDORA objective text\tStatement ref\tStat
   'Link-controls: OUTPUT is the exact 7 columns requested (tab-separated)');
 assert(/map .* controls .* to .* statements .* by INTENT/i.test(lc.prompt.replace(/\n/g, ' ')), 'Link-controls: task asks to map controls to statements by intent');
 
-// ── "Control descriptions" popup on the DORA traceability card ──
+// ── "Operationalise controls" popup on the DORA traceability card ──
 const cd = await page.evaluate(() => {
-  const btn = !!document.querySelector('#exec-report-content button[onclick="openCtrlDescModal()"]');
+  const btn = document.querySelector('#exec-report-content button[onclick="openCtrlDescModal()"]');
   openCtrlDescModal();
   const docDets = [...document.querySelectorAll('#cd-docs .cd-doc-det')];
   const types = [...document.querySelectorAll('#cd-docs .am-doc-type')].map(t => t.textContent.trim());
@@ -248,19 +248,24 @@ const cd = await page.evaluate(() => {
   const prompt = document.getElementById('cd-prompt').value;
   const ctrlBlocks = (prompt.match(/### CONTROL:/g) || []).length;
   closeCtrlDescModal();
-  return { btn, docCount: docDets.length, types, ctrlCount: ctrlCbs.length, nudge, prompt, ctrlBlocks };
+  return { btnText: btn ? btn.textContent.trim() : '', docCount: docDets.length, types, ctrlCount: ctrlCbs.length, nudge, prompt, ctrlBlocks };
 });
-assert(cd.btn, 'DORA traceability: "Control descriptions" button present');
-assert(cd.docCount > 0 && cd.types.some(t => /Group Standard|Local Policy/.test(t)), `Control-desc: policy/GS documents listed, expandable & grouped (${cd.docCount})`);
-assert(cd.ctrlCount > 0, `Control-desc: controls listed under the policies/standards, selectable (${cd.ctrlCount})`);
-assert(/tick one or two controls/i.test(cd.nudge), 'Control-desc: nudges to pick one or two controls when none selected');
-assert(cd.ctrlBlocks === 1, `Control-desc: only the selected control is appended (1 block, got ${cd.ctrlBlocks})`);
-assert(/REWRITTEN CONTROL DESCRIPTION/.test(cd.prompt) && /DESCRIPTION STRUCTURE \(mandatory/.test(cd.prompt), 'Control-desc: prompt carries the CSA mandatory description structure');
-assert(/STATEMENT INTENTS/.test(cd.prompt) && /COVERAGE CHECK/.test(cd.prompt), 'Control-desc: output states statement intents + coverage check');
-assert(/### CONTROL:/.test(cd.prompt) && /Statements this control is mapped to/.test(cd.prompt), 'Control-desc: appends the selected control with its statements (placeholder replaced)');
-assert(!/\{\{CTRL_DESC_DATA\}\}/.test(cd.prompt), 'Control-desc: {{CTRL_DESC_DATA}} placeholder is filled, not left literal');
+assert(/Operationalise controls/i.test(cd.btnText), `DORA traceability: "Operationalise controls" button present (got "${cd.btnText}")`);
+assert(cd.docCount > 0 && cd.types.some(t => /Group Standard|Local Policy/.test(t)), `Operationalise: policy/GS documents listed, expandable & grouped (${cd.docCount})`);
+assert(cd.ctrlCount > 0, `Operationalise: controls listed under the policies/standards, selectable (${cd.ctrlCount})`);
+assert(/tick one or two controls/i.test(cd.nudge), 'Operationalise: nudges to pick one or two controls when none selected');
+assert(cd.ctrlBlocks === 1, `Operationalise: only the selected control is appended (1 block, got ${cd.ctrlBlocks})`);
+assert(/DESCRIPTION STRUCTURE \(mandatory/.test(cd.prompt) && /Evidence Path:/.test(cd.prompt), 'Operationalise: prompt carries the CSA mandatory description structure');
+assert(/Execution/.test(cd.prompt) && /Monitoring/.test(cd.prompt) && /Governance/.test(cd.prompt), 'Operationalise: prompt asks to split into Execution / Monitoring / Governance');
+assert(/Control Type:/.test(cd.prompt) && /Preventive \/ Detective \/ Corrective/.test(cd.prompt) && /Nature:/.test(cd.prompt), 'Operationalise: prompt adds Control Type + Nature classification');
+assert(/WORKED EXAMPLE/.test(cd.prompt) && /C-23948/.test(cd.prompt), 'Operationalise: worked example (C-23948 split) retained');
+assert(/SUMMARY TABLE/.test(cd.prompt) && /Control No \| Control Name \| Type \| Nature \| Owner \| Frequency \| Control Objective/.test(cd.prompt), 'Operationalise: paste-back summary table spec present');
+assert(/STATEMENT INTENTS/.test(cd.prompt) && /COVERAGE CHECK/.test(cd.prompt), 'Operationalise: output states statement intents + coverage check');
+assert(/### CONTROL:/.test(cd.prompt) && /Statements this control is mapped to/.test(cd.prompt), 'Operationalise: appends the selected control with its statements (placeholder replaced)');
+assert(/Current Control Owner:/.test(cd.prompt) && /Current Control Frequency:/.test(cd.prompt), 'Operationalise: data block feeds the control owner + frequency');
+assert(!/\{\{CTRL_DESC_DATA\}\}/.test(cd.prompt), 'Operationalise: {{CTRL_DESC_DATA}} placeholder is filled, not left literal');
 const cdMicaBtn = await page.evaluate(() => { showReportModal('mica'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); return !!document.querySelector('#mica-report-content button[onclick="openCtrlDescModal()"]'); });
-assert(!cdMicaBtn, 'Control-desc: button is DORA-only (absent on MiCA traceability)');
+assert(!cdMicaBtn, 'Operationalise: button is DORA-only (absent on MiCA traceability)');
 // restore DORA report for the remaining DORA-report assertions
 await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
 await page.waitForSelector('#exec-report-content .trace-tbl');

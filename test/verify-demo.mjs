@@ -255,7 +255,8 @@ assert(cd.docCount > 0 && cd.types.some(t => /Group Standard|Local Policy/.test(
 assert(cd.ctrlCount > 0, `Operationalise: controls listed under the policies/standards, selectable (${cd.ctrlCount})`);
 assert(/tick one or two controls/i.test(cd.nudge), 'Operationalise: nudges to pick one or two controls when none selected');
 assert(cd.ctrlBlocks === 1, `Operationalise: only the selected control is appended (1 block, got ${cd.ctrlBlocks})`);
-assert(/DESCRIPTION STRUCTURE \(mandatory/.test(cd.prompt) && /Evidence Path:/.test(cd.prompt), 'Operationalise: prompt carries the CSA mandatory description structure');
+assert(/DESCRIPTION STRUCTURE \(mandatory/.test(cd.prompt) && /Control Frequency:/.test(cd.prompt), 'Operationalise: §2.1 description structure incl. Control Frequency');
+assert(/the performer saves the evidence for each sample to the Evidence Path/i.test(cd.prompt) && /last two bullet points at the bottom of the Test Steps/.test(cd.prompt) && /Evidence retained/.test(cd.prompt), 'Operationalise: Test Steps prompt saving evidence + end with Evidence Path / Evidence retained bullets');
 assert(/one operational \(Execution\) control/i.test(cd.prompt) && /Governance control/.test(cd.prompt) && /Do not create a separate Monitoring control by default/.test(cd.prompt), 'Operationalise: one Execution control + conditional Governance, no default Monitoring split');
 assert(/Smart flag:/.test(cd.prompt) && /MONITORING FLAG/.test(cd.prompt), 'Operationalise: smart-flag for a standing monitoring control');
 assert(/Control Type:/.test(cd.prompt) && /Preventive \/ Detective \/ Corrective/.test(cd.prompt) && /Nature:/.test(cd.prompt), 'Operationalise: prompt adds Control Type + Nature classification');

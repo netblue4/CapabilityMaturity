@@ -27,9 +27,9 @@ For each control in the CONTROLS TO REVIEW section:
    - **Do not create a separate Monitoring control by default.** The assurance that the control was honoured — e.g. the tool result was not overridden or ignored — is drafted as the **Control Test** of the Execution control (step 6).
    - **Smart flag:** if a *standing* monitoring control would materially strengthen assurance (high change velocity, high impact, or an automated gate that can be overridden between tests), **FLAG** it and recommend it as an additional control, with a one-line reason. Only when it genuinely beats the periodic test — otherwise leave the monitoring to the control test.
 4. **Classify** each resulting control: **Control Type** (Preventive / Detective / Corrective) + **Nature** (Manual / Automated / IT-dependent manual) + a one-line rationale.
-5. **Write** each control to the §2.1 structure (including **Control Cost**).
-6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling and test steps. When the control is enforced by software (Nature = Automated), apply the **"Software-enforced (automated) controls — default shape"** section below: the Execution control documents how the tool enforces the objective, and its Control Test extracts the enforcing configuration from the tool and checks it was not changed, disabled or overridden.
-7. **Coverage check** — every mapped statement addressed by a Control Step across the resulting controls.
+5. **Write** each control to the §2.1 structure (including **Control Cost**), **tagging every Control Step with the statement(s) it implements** `[implements: …]` (see "Step-level traceability").
+6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling and test steps, with each substantive Test Step tagged `[verifies: …]` back to the statement it checks. When the control is enforced by software (Nature = Automated), apply the **"Software-enforced (automated) controls — default shape"** section below: the Execution control documents how the tool enforces the objective, and its Control Test extracts the enforcing configuration from the tool and checks it was not changed, disabled or overridden.
+7. **Coverage check** — reconcile every mapped statement to the Control Step(s) that implement it (from the `[implements: …]` tags) and the Test Step(s) that verify it; any statement with no implementing step is a gap.
 8. Flag every missing detail with `[CONFIRM: …]` — never invent systems, people, thresholds, volumes or tools.
 
 Steps 1–4 are your **STEP 1 plan** (statement intents + proposed control set); steps 5–7 are produced in **STEP 2**, after the user confirms.
@@ -53,13 +53,17 @@ Linked Policy & Group Standard statements: <every statement reference this contr
 Control Objective: <one or two sentences: the risk mitigated and the outcome ensured>
 Control Frequency: <how often the control runs / its trigger — e.g. Weekly, Monthly, Quarterly, Ad hoc / event-driven, or Automated (continuous). Use the Current Control Frequency given for the control; if blank, infer from the steps and mark [CONFIRM: frequency].>
 Control Steps:
-  1. <who> <does what> <when / trigger> <using which source/tool>
+  1. <who> <does what> <when / trigger> <using which source/tool> [implements: <Statement Ref(s)>]
   2. ...
-  (each step observable and testable; name the role, not a person; one action per step; these steps are the source for the Control Test's Test Steps)
+  (each step observable and testable; name the role, not a person; one action per step; these steps are the source for the Control Test's Test Steps.
+  END EVERY STEP with, in brackets, the policy / group-standard statement reference(s) it implements — e.g. `[implements: LP-23 PS11, D SR4.3]`. A step may implement several statements, and a statement may be implemented by several steps. If a step is a necessary operational action that implements no mapped statement, tag it `[implements: none — operational]`. Tag a statement to a step ONLY when the step genuinely delivers that statement's intent — never pad a tag to look like coverage. Every mapped statement MUST appear in at least one step's tag; if one cannot be placed in a real step, it is a coverage gap — leave it untagged and record it in the Coverage Check, do not invent a step for it.)
 Scope: <population covered: entities, business units, systems, documents, period; and what is explicitly out of scope>
 Control Cost: <estimated effort to execute ONE cycle, in man-hours, × the frequency, e.g. "≈2 hrs/run × weekly ≈ 8 hrs/month"; for an automated control "≈0 per run after setup; ~1 hr/month to review exceptions". If unknown, write [CONFIRM: man-hours] for the team to fill.>
 ```
 (Evidence Path and Evidence retained are not part of the Control Description — they are stated in the Control Test's Test Steps, see §2.3.)
+
+**Step-level traceability (so each step can be challenged).** The `[implements: …]` tag on every Control Step exists so the control owner can be challenged step by step. When the owner reviews the control they confirm, for each step, that it is actually performed. If the owner says a step is NOT performed, then the statement(s) in that step's tag are no longer implemented — so either the step stays, or that policy / group-standard statement link is removed and the statement is recorded as **not implemented**. This stops "yes, we cover that" when the control does not: each claim of coverage is pinned to a specific, testable step. Keep the tags exact so a reader can trace every statement to the step(s) that deliver it and the test step(s) that verify it.
+
 Control numbering for a split: derive each new number from the original — `<Control No>-E` (Execution), `-G` (Governance), `-M` (a flagged Monitoring control) — and mark it `[CONFIRM: new control number]`. Keep the original Control Name's meaning (tidy wording only; never remove a leading number) and append " — Execution / Governance / Monitoring". Keep every mapped statement reference. UK English, plain and concise.
 
 ## §2.3 CONTROL TEST (CT) — draft one per control
@@ -72,7 +76,7 @@ Control numbering for a split: derive each new number from the original — `<Co
 
 **Details** (reflect the checks performed on the sample)
 - Test Purpose: `To confirm the adequacy of the execution and documentation of <Control No> based on the current control details.`
-- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, extract the enforcing configuration from the tool and confirm it still enforces the control objective; confirm the change log shows no unauthorised change that disabled or weakened it; and confirm no one with override rights bypassed it without a documented, approved exception**; (e) exceptions were escalated/remediated; (f) **the performer saves the evidence for each sample to the Evidence Path, named per the sample.** Then, as the **last two bullet points at the bottom of the Test Steps**, list: **Evidence Path** — `\\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>`; and **Evidence retained** — the artefacts each test produces (e.g. raw scan logs, signed checklist, approved exception, exported configuration, minutes).
+- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. **End every substantive Test Step with the statement reference(s) it verifies in brackets — e.g. `[verifies: LP-23 PS11]` — mirroring the `[implements: …]` tag on the Control Step it checks**, so each test step traces back to a statement. Tag housekeeping steps (evidence save, exceptions escalated) `[verifies: none]`. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, extract the enforcing configuration from the tool and confirm it still enforces the control objective; confirm the change log shows no unauthorised change that disabled or weakened it; and confirm no one with override rights bypassed it without a documented, approved exception**; (e) exceptions were escalated/remediated; (f) **the performer saves the evidence for each sample to the Evidence Path, named per the sample.** Then, as the **last two bullet points at the bottom of the Test Steps**, list: **Evidence Path** — `\\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>`; and **Evidence retained** — the artefacts each test produces (e.g. raw scan logs, signed checklist, approved exception, exported configuration, minutes).
 - Test Sample Size: from the tables below, using the control's Frequency. Format `<n> - <Frequency> Control` (e.g. `6 - Weekly Control`), or for ad hoc `<n> - Ad hoc (population <x–y>)`. Use the **Standard** size (first test). An **automated** control = **1** sample.
 - Test Type: `Reperformance`.
 
@@ -139,6 +143,8 @@ Linked Policy & Group Standard statements:
 Control Objective:
 Control Frequency:
 Control Steps:
+  1. <who does what, when, using what> [implements: <Statement Ref(s)> | none — operational]
+  2. …
 Scope:
 Control Cost:
 CONTROL TEST (§2.3)
@@ -149,17 +155,17 @@ Control Test Status:
 Result:
 Test Purpose:
 Test Steps:
-  1. Check that … (derived from the Control Steps)
+  1. Check that … (derived from the Control Steps) [verifies: <Statement Ref(s)> | none]
   …
-  n. Save the evidence for each sample to the Evidence Path, named per the sample.
+  n. Save the evidence for each sample to the Evidence Path, named per the sample. [verifies: none]
   - Evidence Path: <CSA folder path for this control>
   - Evidence retained: <artefacts each test produces>
 Test Sample Size:
 Test Type:
 (repeat the --- block for each resulting control)
 
-COVERAGE CHECK
-- <Statement Ref>: covered by <new Control No> Step <n> | NOT COVERED — <added step / [CONFIRM]>
+COVERAGE CHECK (reconcile every statement to the step(s) that implement and test it)
+- <Statement Ref>: implemented by <new Control No> Step <n> [, Step <m>] · verified by Test Step <n> | NOT COVERED — <no step implements it: add a step, or remove the statement link and record it as not implemented>
 ```
 Then re-output the paste-back SUMMARY TABLE of every resulting control (the Proposed Control Set, updated for any agreed changes):
 `Control No | Control Name | Type | Nature | Owner | Control Frequency | Control Cost (man-hrs) | CT Sample Size | Control Objective`

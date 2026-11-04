@@ -22,13 +22,13 @@ For each control in the CONTROLS TO REVIEW section:
 1. **Statement intents** — for every mapped statement, write a one-sentence intent (what it requires).
 2. **Assess** — is this a true operational control or a requirements list (names what must happen but lacks a named owner role, a trigger/frequency or a source/tool)? State which, in one line, and why.
 3. **Decide the control set:**
-   - **One operational (Execution) control** — the activity that treats the risk. Its Nature may be **Manual / IT-dependent manual / Automated**; write the Control Steps so the team can tune them toward automation. Where the check is built into tooling (e.g. a scanner in the pipeline), the Execution control *is* that tool-based check — there is no separate human execution step.
+   - **One operational (Execution) control** — the activity that treats the risk. Its Nature may be **Manual / IT-dependent manual / Automated**; write the Control Steps so the team can tune them toward automation. Where the check is built into tooling, the Execution control *is* that tool-based check (see "Software-enforced (automated) controls").
    - **Governance control** — add one ONLY where a distinct change-approval function exists (changes to scope, baseline, thresholds or frequency must be approved). Otherwise omit it.
    - **Do not create a separate Monitoring control by default.** The assurance that the control was honoured — e.g. the tool result was not overridden or ignored — is drafted as the **Control Test** of the Execution control (step 6).
    - **Smart flag:** if a *standing* monitoring control would materially strengthen assurance (high change velocity, high impact, or an automated gate that can be overridden between tests), **FLAG** it and recommend it as an additional control, with a one-line reason. Only when it genuinely beats the periodic test — otherwise leave the monitoring to the control test.
 4. **Classify** each resulting control: **Control Type** (Preventive / Detective / Corrective) + **Nature** (Manual / Automated / IT-dependent manual) + a one-line rationale.
 5. **Write** each control to the §2.1 structure (including **Control Cost**), **tagging every Control Step with the statement(s) it implements** `[implements: …]` (see "Step-level traceability").
-6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling and test steps, with each substantive Test Step tagged `[verifies: …]` back to the statement it checks. When the control is enforced by software (Nature = Automated), apply the **"Software-enforced (automated) controls — default shape"** section below: the Execution control documents how the tool enforces the objective, and its Control Test extracts the enforcing configuration from the tool and checks it was not changed, disabled or overridden.
+6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling and test steps, with each substantive Test Step tagged `[verifies: …]` back to the statement it checks. When Nature = Automated, follow the **"Software-enforced (automated) controls"** section below.
 7. **Coverage check** — reconcile every mapped statement to the Control Step(s) that implement it (from the `[implements: …]` tags) and the Test Step(s) that verify it; any statement with no implementing step is a gap.
 8. Flag every missing detail with `[CONFIRM: …]` — never invent systems, people, thresholds, volumes or tools.
 
@@ -76,7 +76,7 @@ Control numbering for a split: derive each new number from the original — `<Co
 
 **Details** (reflect the checks performed on the sample)
 - Test Purpose: `To confirm the adequacy of the execution and documentation of <Control No> based on the current control details.`
-- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. **End every substantive Test Step with the statement reference(s) it verifies in brackets — e.g. `[verifies: LP-23 PS11]` — mirroring the `[implements: …]` tag on the Control Step it checks**, so each test step traces back to a statement. Tag housekeeping steps (evidence save, exceptions escalated) `[verifies: none]`. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, extract the enforcing configuration from the tool and confirm it still enforces the control objective; confirm the change log shows no unauthorised change that disabled or weakened it; and confirm no one with override rights bypassed it without a documented, approved exception**; (e) exceptions were escalated/remediated; (f) **the performer saves the evidence for each sample to the Evidence Path, named per the sample.** Then, as the **last two bullet points at the bottom of the Test Steps**, list: **Evidence Path** — `\\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>`; and **Evidence retained** — the artefacts each test produces (e.g. raw scan logs, signed checklist, approved exception, exported configuration, minutes).
+- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. **End every substantive Test Step with the statement reference(s) it verifies in brackets — e.g. `[verifies: LP-23 PS11]` — mirroring the `[implements: …]` tag on the Control Step it checks**, so each test step traces back to a statement. Tag housekeeping steps (evidence save, exceptions escalated) `[verifies: none]`. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, the configuration checks from the "Software-enforced (automated) controls" section** (config still enforces the objective · no unauthorised change · no override bypass); (e) exceptions were escalated/remediated; (f) **the performer saves the evidence for each sample to the Evidence Path, named per the sample.** Then, as the **last two bullet points at the bottom of the Test Steps**, list: **Evidence Path** — `\\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>`; and **Evidence retained** — the artefacts each test produces (e.g. raw scan logs, signed checklist, approved exception, exported configuration, minutes).
 - Test Sample Size: from the tables below, using the control's Frequency. Format `<n> - <Frequency> Control` (e.g. `6 - Weekly Control`), or for ad hoc `<n> - Ad hoc (population <x–y>)`. Use the **Standard** size (first test). An **automated** control = **1** sample.
 - Test Type: `Reperformance`.
 
@@ -113,7 +113,6 @@ Original control "Third-party software vulnerability management", mapped to CISV
 - **Smart flag:** if releases are frequent and overrides are possible between annual tests, recommend a standing Monitoring control (e.g. Head of Engineering reviews a weekly exception/override report) in addition to the test.
 
 ## OUTPUT FORMAT
-For each original control:
 ### STEP 1 — Plan (present this first, then STOP and ask)
 For each original control:
 ```
@@ -174,7 +173,7 @@ Then re-output the paste-back SUMMARY TABLE of every resulting control (the Prop
 - Review only the statements and controls in the CONTROLS TO REVIEW section — never invent statement refs, controls, volumes, thresholds or man-hours.
 - If a current description is truncated (ends in "…"), say so and work only from what is visible.
 - Where an owner, frequency, population or man-hour figure is not given, use `[CONFIRM: …]` — do not assume one.
-- Derive sample size only from the tables above; an automated control = 1 sample.
+- Derive sample size only from the tables above.
 - CSA year = <YYYY> (default: the current year, e.g. CSA 2026).
 
 ## CONTROLS TO REVIEW

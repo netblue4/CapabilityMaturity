@@ -89,7 +89,10 @@
       // control description. Optional: older files without it import fine.
       riskDesc:       findExcept(controlDescHdr, 'risk: description', 'risk description', 'risk: detail', 'risk detail', 'risk: summary', 'risk summary', 'risk statement', 'description'),
       status:         find('status'),
-      owner:          findExcept(riskOwner, 'control: owner', 'control owner', 'owner'),
+      // Control owner. Prefer the "Control: Control Owner (User)" column (the one
+      // that holds the correct owner); fall back to the older "Control: Owner [Name]"
+      // headers for files that still use them.
+      owner:          findExcept(riskOwner, 'control: control owner (user)', 'control: control owner', 'control owner (user)', 'control: owner', 'control owner', 'owner'),
       riskOwner:      riskOwner,
       designAss:      find('design assess', 'design effectiveness', 'design rating', 'design'),
       opAss:          find('operation assess', 'operational assess', 'operation effectiveness', 'operation rating', 'operation'),

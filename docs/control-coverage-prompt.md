@@ -51,15 +51,15 @@ Write each resulting control to contain exactly these elements, in this order an
 ```
 Linked Policy & Group Standard statements: <every statement reference this control addresses, exactly>
 Control Objective: <one or two sentences: the risk mitigated and the outcome ensured>
+Control Frequency: <how often the control runs / its trigger — e.g. Weekly, Monthly, Quarterly, Ad hoc / event-driven, or Automated (continuous). Use the Current Control Frequency given for the control; if blank, infer from the steps and mark [CONFIRM: frequency].>
 Control Steps:
   1. <who> <does what> <when / trigger> <using which source/tool>
   2. ...
   (each step observable and testable; name the role, not a person; one action per step; these steps are the source for the Control Test's Test Steps)
 Scope: <population covered: entities, business units, systems, documents, period; and what is explicitly out of scope>
 Control Cost: <estimated effort to execute ONE cycle, in man-hours, × the frequency, e.g. "≈2 hrs/run × weekly ≈ 8 hrs/month"; for an automated control "≈0 per run after setup; ~1 hr/month to review exceptions". If unknown, write [CONFIRM: man-hours] for the team to fill.>
-Evidence Path: \\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>
-Evidence retained: <artefacts each execution produces, e.g. raw scan logs, signed checklist, approved exception, minutes>
 ```
+(Evidence Path and Evidence retained are not part of the Control Description — they are stated in the Control Test's Test Steps, see §2.3.)
 Control numbering for a split: derive each new number from the original — `<Control No>-E` (Execution), `-G` (Governance), `-M` (a flagged Monitoring control) — and mark it `[CONFIRM: new control number]`. Keep the original Control Name's meaning (tidy wording only; never remove a leading number) and append " — Execution / Governance / Monitoring". Keep every mapped statement reference. UK English, plain and concise.
 
 ## §2.3 CONTROL TEST (CT) — draft one per control
@@ -72,7 +72,7 @@ Control numbering for a split: derive each new number from the original — `<Co
 
 **Details** (reflect the checks performed on the sample)
 - Test Purpose: `To confirm the adequacy of the execution and documentation of <Control No> based on the current control details.`
-- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, extract the enforcing configuration from the tool and confirm it still enforces the control objective; confirm the change log shows no unauthorised change that disabled or weakened it; and confirm no one with override rights bypassed it without a documented, approved exception**; (e) exceptions were escalated/remediated; (f) evidence is retained in the Evidence Path.
+- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, extract the enforcing configuration from the tool and confirm it still enforces the control objective; confirm the change log shows no unauthorised change that disabled or weakened it; and confirm no one with override rights bypassed it without a documented, approved exception**; (e) exceptions were escalated/remediated; (f) **the performer saves the evidence for each sample to the Evidence Path, named per the sample.** Then, as the **last two bullet points at the bottom of the Test Steps**, list: **Evidence Path** — `\\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>`; and **Evidence retained** — the artefacts each test produces (e.g. raw scan logs, signed checklist, approved exception, exported configuration, minutes).
 - Test Sample Size: from the tables below, using the control's Frequency. Format `<n> - <Frequency> Control` (e.g. `6 - Weekly Control`), or for ad hoc `<n> - Ad hoc (population <x–y>)`. Use the **Standard** size (first test). An **automated** control = **1** sample.
 - Test Type: `Reperformance`.
 
@@ -137,11 +137,10 @@ Control Type: <…>   Nature: <…>   (rationale: <one line>)
 CONTROL DESCRIPTION (§2.1)
 Linked Policy & Group Standard statements:
 Control Objective:
+Control Frequency:
 Control Steps:
 Scope:
 Control Cost:
-Evidence Path:
-Evidence retained:
 CONTROL TEST (§2.3)
 Control Test Reviewer:
 Control Test Performer:
@@ -150,6 +149,11 @@ Control Test Status:
 Result:
 Test Purpose:
 Test Steps:
+  1. Check that … (derived from the Control Steps)
+  …
+  n. Save the evidence for each sample to the Evidence Path, named per the sample.
+  - Evidence Path: <CSA folder path for this control>
+  - Evidence retained: <artefacts each test produces>
 Test Sample Size:
 Test Type:
 (repeat the --- block for each resulting control)

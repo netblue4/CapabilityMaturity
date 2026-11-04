@@ -442,6 +442,28 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .cd-doc-det[open] > .cd-doc-sum { color: var(--accent); font-weight: 600; }
 .cd-ctrl { margin-left: 1.1rem; }
 
+/* ── CBI evidence-pack generator ── */
+.cbi-box { max-width: 1040px; }
+.cbi-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin: .2rem 0 .5rem; }
+.cbi-controls .am-label { display: flex; align-items: center; gap: .4rem; margin: 0; }
+.cbi-select { font-size: .82rem; padding: .25rem .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); max-width: 360px; }
+.cbi-sel-btns { font-size: .78rem; color: var(--text-muted); }
+.cbi-questions { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: .4rem .6rem; background: var(--bg); }
+.cbi-q { display: flex; align-items: flex-start; gap: .5rem; padding: .4rem .2rem; border-bottom: 1px solid var(--border); cursor: pointer; text-transform: none; letter-spacing: normal; font-weight: 400; color: var(--text); }
+.cbi-q:last-child { border-bottom: none; }
+.cbi-q:hover { background: var(--bg-subtle, rgba(127,127,127,.06)); }
+.cbi-q input { accent-color: var(--accent); margin-top: .15rem; }
+.cbi-q-ref { font-family: var(--font-mono); font-size: .72rem; color: var(--text-muted); min-width: 2.6rem; font-variant-numeric: tabular-nums; }
+.cbi-q-main { flex: 1; min-width: 0; }
+.cbi-q-text { display: block; font-size: .82rem; line-height: 1.4; color: var(--text); font-weight: 400; text-transform: none; }
+.cbi-q-meta { display: flex; flex-wrap: wrap; gap: .3rem .6rem; margin-top: .2rem; font-size: .72rem; }
+.cbi-q-art { font-family: var(--font-mono); color: var(--accent); }
+.cbi-ev { color: var(--text-muted); }
+.cbi-ev-dim { color: var(--text-muted); opacity: .8; }
+.cbi-ev-none { color: var(--text-muted); font-style: italic; }
+.cbi-gap { color: var(--danger, #c0392b); }
+.cbi-exc { color: var(--warn, #b8860b); }
+
 /* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
 .ral-tbl { font-size: .82rem; }
 .ral-tbl th, .ral-tbl td { padding: .3rem .55rem; }

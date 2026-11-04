@@ -888,6 +888,7 @@ function buildPlanningRows(policyRows, facts) {
       source: srcLabel(pr.type),
       ref: pr.statementRef || '',
       header: pr.statementHeader || '',
+      detail: (pr.statementDetail || '').trim(),
       owner: (pr.owner || '').trim(),
       exception: ftException(pr.exception),   // raw code (E/WT/WP) for its own column
       planStatus: cls[key] || 'Uncovered',
@@ -916,7 +917,7 @@ function buildPlanningRows(policyRows, facts) {
     if (preSeen.has(k)) return;
     preSeen.add(k);
     rows.push({
-      capName: capName(f.capId), document: '', source: '', ref: '', header: '',
+      capName: capName(f.capId), document: '', source: '', ref: '', header: '', detail: '',
       owner: '', exception: '', planStatus: 'Pre-DORA (unmapped)',
       risk, riskOwner: (f.riskOwner || '').trim(), controlName: name, controlOwner: (f.controlOwner || '').trim(), controlType: 'Pre-DORA',
       controlStatus: ftIsImplemented(f) ? 'Implemented' : 'Draft',

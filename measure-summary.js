@@ -1099,6 +1099,7 @@ function renderPlanningCard(assessment) {
     <td class="plan-src">${escHtml(r.source)}</td>
     <td class="plan-ref">${escHtml(r.ref)}</td>
     <td class="plan-hdr">${escHtml(r.header)}</td>
+    <td class="plan-detail"><div class="plan-desc-clip" title="${escHtml(r.detail)}">${escHtml(r.detail)}</div></td>
     <td class="plan-owner">${escHtml(r.owner)}</td>
     <td class="plan-exc">${escHtml(r.exception)}</td>
     <td class="plan-plan">${planCell(r.planStatus)}</td>
@@ -1116,7 +1117,7 @@ function renderPlanningCard(assessment) {
       <div class="rcsa-table-wrap trace-wrap">
         <table class="plan-table">
           <thead><tr>
-            <th>Capability</th><th>Document</th><th>RTM Source</th><th>Statement Ref</th><th>Statement Header</th>
+            <th>Capability</th><th>Document</th><th>RTM Source</th><th>Statement Ref</th><th>Statement Header</th><th>Statement Detail</th>
             <th>Statement Owner</th><th>Exception</th><th>Planning Status</th><th>Risk</th><th>Risk Owner</th><th>Control Name</th><th>Control Owner</th><th>Control Type</th><th>Control Status</th><th>Control Description</th>
           </tr></thead>
           <tbody>${body}</tbody>

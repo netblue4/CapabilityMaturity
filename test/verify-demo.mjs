@@ -138,6 +138,35 @@ const planCols = await page.evaluate(() => {
 assert(planCols.riskOwnerAfterRisk && planCols.ctrlOwnerAfterName, 'Planning table: Risk Owner after Risk, Control Owner after Control Name');
 assert(planCols.detailAfterHeader, 'Planning table: Statement Detail column after Statement Header');
 
+// ── CBI evidence-pack generator ──
+const cbiBtn = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()).find(t => /CBI evidence-pack/.test(t)) || '');
+assert(/CBI evidence-pack generator/.test(cbiBtn), 'CBI: generator button present in the dashboard header');
+const cbi = await page.evaluate(() => {
+  const d = window.CBI_SECTION4;
+  openCbiModal();
+  const cats = [...document.querySelectorAll('#cbi-category option')].length;
+  const asmts = [...document.querySelectorAll('#cbi-assessment option')].map(o => o.value);
+  // Information Security (4.3) — RTS-labelled objectives, matched via capabilities.
+  const csel = document.getElementById('cbi-category'); csel.value = String([...csel.options].findIndex(o => o.textContent.startsWith('4.3'))); renderCbiQuestions();
+  const qCount = document.querySelectorAll('#cbi-questions .cbi-q').length;
+  const anyEvidence = [...document.querySelectorAll('#cbi-questions .cbi-ev')].some(e => /Ctrl [1-9]/.test(e.textContent));
+  document.querySelector('#cbi-questions .cbi-q-cb').checked = true;
+  generateCbiPrompt();
+  const prompt = document.getElementById('cbi-prompt').value;
+  closeCbiModal();
+  return {
+    totalQ: d.categories.reduce((n, c) => n + c.questions.length, 0), cats, asmtCount: asmts.length,
+    qCount, anyEvidence, prompt,
+  };
+});
+assert(cbi.cats === 7 && cbi.totalQ === 87, `CBI: questionnaire loaded (7 categories, ${cbi.totalQ} questions)`);
+assert(cbi.asmtCount >= 2, `CBI: assessment selector populated (${cbi.asmtCount})`);
+assert(cbi.qCount > 0, `CBI: questions list rendered for the chosen category (${cbi.qCount})`);
+assert(cbi.anyEvidence, 'CBI: evidence matched to questions (controls surfaced, incl. RTS-labelled via capability join)');
+assert(/CBI MATURITY CRITERIA/.test(cbi.prompt) && /Best controls in place/.test(cbi.prompt), 'CBI: prompt embeds the maturity 1–4 criteria');
+assert(/Our evidence/.test(cbi.prompt) && /CBI Ref\\tQuestion\\tDORA Article\(s\)\\tSuggested Maturity/.test(cbi.prompt), 'CBI: prompt carries our evidence + the 6-column Excel output table');
+assert(!/\{\{CBI_QUESTIONS\}\}/.test(cbi.prompt), 'CBI: {{CBI_QUESTIONS}} placeholder is filled');
+
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));
 assert(btns.some(b => b.includes('DORA Reporting')), 'Button: DORA Reporting');

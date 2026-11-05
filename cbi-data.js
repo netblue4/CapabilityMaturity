@@ -9,22 +9,26 @@ window.CBI_SECTION4 = {
   {
    "level": 1,
    "label": "Best controls in place",
-   "criteria": "Controls mature and well established: formally documented with defined requirements, tested regularly, reviewed in scheduled risk assessments, operating effectively (verified by independent testing), and optimised/automated. No investment planned beyond maintenance."
+   "criteria": "Controls mature and well established: formally documented with defined requirements, tested regularly, reviewed in scheduled risk assessments, operating effectively (verified by independent testing), and optimised/automated. No investment planned beyond maintenance.",
+   "signal": "Every mapped objective is covered by a documented statement, backed by a control that is Implemented AND Effective (design + operating tested green), with no coverage gaps and no disclosed exceptions — ideally with an automated / scheduled control test. (Our funnel: Documented = Implemented = Effective, 100%.)"
   },
   {
    "level": 2,
    "label": "Generally effective",
-   "criteria": "Controls generally operating effectively and consistently; risks generally mitigated. Documented, tested regularly, reviewed, operating effectively (independent testing). Improvements identified through testing/review."
+   "criteria": "Controls generally operating effectively and consistently; risks generally mitigated. Documented, tested regularly, reviewed, operating effectively (independent testing). Improvements identified through testing/review.",
+   "signal": "Mapped objectives covered and controls Implemented and mostly Effective, but with minor gaps — a few partly-effective items or observations. (Our funnel: Documented = Implemented, Effective high but < 100%.)"
   },
   {
    "level": 3,
    "label": "Partial / inconsistent",
-   "criteria": "Some controls in place but not consistent and/or not operating effectively across the whole organisation. Documented, tested, reviewed — but a need for improvement/investment exists and risks are not fully mitigated yet."
+   "criteria": "Some controls in place but not consistent and/or not operating effectively across the whole organisation. Documented, tested, reviewed — but a need for improvement/investment exists and risks are not fully mitigated yet.",
+   "signal": "Controls exist and are Implemented but NOT yet Effective (partly-effective / not assessed / draft-heavy), or coverage is inconsistent — some mapped objectives uncovered. (Our funnel: Documented ≥ Implemented, Effective low.)"
   },
   {
    "level": 4,
    "label": "Not in place",
-   "criteria": "Controls not in place and/or risks not effectively mitigated. Mitigation activities may be identified but not started."
+   "criteria": "Controls not in place and/or risks not effectively mitigated. Mitigation activities may be identified but not started.",
+   "signal": "Mapped objectives uncovered or backed only by draft controls (not Implemented), or a disclosed permanent exception with no control. (Our funnel: little/nothing Implemented.)"
   }
  ],
  "categories": [

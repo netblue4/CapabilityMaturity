@@ -488,6 +488,18 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .cbi-obj-req { color: var(--text); }
 .cbi-ev-dim { color: var(--text-muted); opacity: .85; font-size: .72rem; }
 @media (max-width: 820px) { .cbi-mapper { grid-template-columns: 1fr; } .cbi-pane-body { max-height: 320px; } }
+/* maturity reference */
+.cbi-maturity { margin: 0 0 .9rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.cbi-maturity > summary { cursor: pointer; padding: .5rem .7rem; font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.cbi-maturity[open] > summary { border-bottom: 1px solid var(--border); color: var(--accent); }
+.cbi-mat-tbl { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.cbi-mat-tbl th { text-align: left; padding: .5rem .7rem; font-family: var(--font-mono); font-size: .64rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); border-bottom: 1px solid var(--border); vertical-align: bottom; }
+.cbi-mat-tbl td { padding: .55rem .7rem; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.4; color: var(--text); }
+.cbi-mat-tbl tr:last-child td { border-bottom: none; }
+.cbi-mat-lvl { font-family: var(--font-mono); font-weight: 700; font-size: 1rem; white-space: nowrap; }
+.cbi-mat-lbl { display: block; font-size: .64rem; font-weight: 400; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; margin-top: .15rem; }
+.cbi-mat-sig { color: var(--text); background: var(--bg-subtle, rgba(80,130,220,.06)); }
+.cbi-mat-note { padding: .5rem .7rem; margin: 0; font-size: .72rem; color: var(--text-muted); border-top: 1px solid var(--border); }
 
 /* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
 .ral-tbl { font-size: .82rem; }

@@ -49,7 +49,7 @@
           <button class="btn btn-outline" onclick="showReportModal('mica')">🪙 MiCA Reporting</button>
           <button class="btn btn-outline" onclick="showReportModal('nist')">🔐 NIST CSF Reporting</button>
           <button class="btn btn-outline" onclick="showReportModal('roc')">📊 Risk Oversight Committee Reporting</button>
-          <button class="btn btn-outline" onclick="openCbiModal()" title="Answer the CBI ICT Self-Assessment (Section 4) from our DORA evidence">📝 CBI evidence-pack generator</button>
+          <button class="btn btn-outline" onclick="showCbiView()" title="Answer the CBI ICT Self-Assessment (Section 4) from our DORA evidence">📝 CBI evidence-pack generator</button>
           <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
         </div>
       </div>
@@ -254,35 +254,45 @@
       </div>
     </div>
 
-    <!-- CBI evidence-pack generator (Section 4 ICT Risk Control) -->
-    <div id="cbi-modal" class="modal-overlay" onclick="if(event.target===this)closeCbiModal()" style="display:none">
-      <div class="modal-box prompts-box am-box cbi-box">
-        <div class="modal-header">
-          <h3>📝 CBI evidence-pack generator</h3>
-          <button class="modal-close" onclick="closeCbiModal()">✕</button>
+    <!-- CBI evidence-pack generator (Section 4 ICT Risk Control) — full page -->
+    <section id="view-cbi" class="view">
+      <div class="section-header">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>📝 CBI evidence-pack generator</h2>
+      </div>
+      <p class="am-intro">Answer the <b>Central Bank of Ireland ICT Self-Assessment — Section 4 (ICT Risk Control)</b> from our DORA control framework. Pick a category; for each question, <b>map it to the DORA objective(s)</b> in your Import DORA Mapping (right pane) — tick the paragraph references / digital-resilience objectives that question covers, or mark it <b>Not applicable</b>. <b>Suggest</b> pre-fills a best guess you can edit. Your mapping is saved and exports with your data. Then <b>Generate prompt</b> for the ticked questions — your LLM drafts a <b>suggested maturity level (1–4), Strengths and Weaknesses</b> as a table for the CBI spreadsheet.</p>
+      <div class="cbi-controls">
+        <label class="am-label">Evidence from
+          <select id="cbi-assessment" class="cbi-select" onchange="setCbiAssessment()"></select>
+        </label>
+        <label class="am-label">Category
+          <select id="cbi-category" class="cbi-select" onchange="setCbiCategory()"></select>
+        </label>
+        <span class="cbi-sel-btns">
+          <button class="btn-link" onclick="cbiSelectAll(true)">Tick all</button> ·
+          <button class="btn-link" onclick="cbiSelectAll(false)">None</button> ·
+          <button class="btn-link" onclick="cbiSuggestAll()">✨ Suggest all unmapped</button>
+        </span>
+        <span class="cbi-controls-spacer"></span>
+        <button class="btn btn-primary" onclick="generateCbiPrompt()">Generate prompt</button>
+      </div>
+      <div class="cbi-mapper">
+        <div class="cbi-pane">
+          <div class="cbi-pane-hd"><span>Questions</span><input id="cbi-qsearch" class="cbi-search" placeholder="Filter questions…" oninput="renderCbiQuestions()"></div>
+          <div id="cbi-questions" class="cbi-pane-body"></div>
         </div>
-        <p class="am-intro">Answer the <b>Central Bank of Ireland ICT Self-Assessment — Section 4 (ICT Risk Control)</b> from our DORA control framework. Pick a category; each question is shown with the DORA article(s) it cites and the evidence we hold for those articles (mapped statements, controls, test status, gaps). Tick the questions to process and generate a prompt — your LLM drafts a <b>suggested maturity level (1–4), Strengths and Weaknesses</b> as a table you paste into the CBI spreadsheet.</p>
-        <div class="cbi-controls">
-          <label class="am-label">Evidence from
-            <select id="cbi-assessment" class="cbi-select" onchange="setCbiAssessment()"></select>
-          </label>
-          <label class="am-label">Category
-            <select id="cbi-category" class="cbi-select" onchange="renderCbiQuestions()"></select>
-          </label>
-          <span class="cbi-sel-btns"><button class="btn-link" onclick="cbiSelectAll(true)">Select all</button> · <button class="btn-link" onclick="cbiSelectAll(false)">None</button></span>
-        </div>
-        <div id="cbi-questions" class="cbi-questions"></div>
-        <div class="prompts-actions">
-          <button class="btn btn-primary" onclick="generateCbiPrompt()">Generate prompt</button>
-          <span class="prompt-hint">Generate, copy, run in your LLM to get the Strengths / Weaknesses / maturity table for Excel.</span>
-        </div>
-        <label class="am-label">Prompt</label>
-        <textarea id="cbi-prompt" class="prompt-text" readonly spellcheck="false"></textarea>
-        <div class="prompts-actions">
-          <button class="btn btn-primary" onclick="copyCbiPrompt(this)">⧉ Copy prompt</button>
+        <div class="cbi-pane">
+          <div class="cbi-pane-hd"><span id="cbi-map-title">Map to DORA objectives</span><input id="cbi-msearch" class="cbi-search" placeholder="Filter articles / objectives…" oninput="renderCbiMapTree()"></div>
+          <div id="cbi-maptree" class="cbi-pane-body"></div>
         </div>
       </div>
-    </div>
+      <label class="am-label">Prompt</label>
+      <textarea id="cbi-prompt" class="prompt-text" readonly spellcheck="false"></textarea>
+      <div class="prompts-actions">
+        <button class="btn btn-primary" onclick="copyCbiPrompt(this)">⧉ Copy prompt</button>
+        <span class="prompt-hint">Run in your LLM to get the Strengths / Weaknesses / maturity table for Excel.</span>
+      </div>
+    </section>
 
 
     <!-- Riskonnect Import View -->

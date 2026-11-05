@@ -143,29 +143,50 @@ const cbiBtn = await page.$$eval('.header-actions button', b => b.map(x => x.tex
 assert(/CBI evidence-pack generator/.test(cbiBtn), 'CBI: generator button present in the dashboard header');
 const cbi = await page.evaluate(() => {
   const d = window.CBI_SECTION4;
-  openCbiModal();
+  showCbiView();
+  const viewActive = document.getElementById('view-cbi').classList.contains('active');
   const cats = [...document.querySelectorAll('#cbi-category option')].length;
-  const asmts = [...document.querySelectorAll('#cbi-assessment option')].map(o => o.value);
-  // Information Security (4.3) — RTS-labelled objectives, matched via capabilities.
-  const csel = document.getElementById('cbi-category'); csel.value = String([...csel.options].findIndex(o => o.textContent.startsWith('4.3'))); renderCbiQuestions();
+  const asmtCount = [...document.querySelectorAll('#cbi-assessment option')].length;
+  // Information Security (4.3) — RTS-labelled objectives.
+  const csel = document.getElementById('cbi-category'); csel.value = String([...csel.options].findIndex(o => o.textContent.startsWith('4.3'))); setCbiCategory();
   const qCount = document.querySelectorAll('#cbi-questions .cbi-q').length;
-  const anyEvidence = [...document.querySelectorAll('#cbi-questions .cbi-ev')].some(e => /Ctrl [1-9]/.test(e.textContent));
-  document.querySelector('#cbi-questions .cbi-q-cb').checked = true;
+  // focus first question -> tree populates with articles + objective checkboxes
+  const ref = document.querySelector('#cbi-questions .cbi-q-cb').value;
+  cbiFocusQuestion(ref);
+  const treeArts = document.querySelectorAll('#cbi-maptree .cbi-art').length;
+  const naRow = !!document.querySelector('#cbi-maptree .cbi-na');
+  // manual map: expand first article, tick first objective -> persists to db.cbiMapping
+  document.querySelector('#cbi-maptree .cbi-art-hd').click();
+  const objCb = document.querySelector('#cbi-maptree .cbi-obj input'); objCb.checked = true; objCb.dispatchEvent(new Event('change'));
+  const persisted = (db.cbiMapping[ref] || {}).objectives || [];
+  const chipShown = !!document.querySelector(`#cbi-questions .cbi-q .cbi-chip`);
+  // Suggest pre-fills another question
+  const refs = [...document.querySelectorAll('#cbi-questions .cbi-q-cb')].map(c => c.value);
+  cbiSuggestQuestion(refs[1]);
+  const suggestedN = ((db.cbiMapping[refs[1]] || {}).objectives || []).length;
+  // N/A toggle
+  cbiFocusQuestion(refs[2]); cbiToggleNA();
+  const naState = (db.cbiMapping[refs[2]] || {}).na === true;
+  // generate for the manually-mapped question only
+  document.querySelectorAll('#cbi-questions .cbi-q-cb').forEach(c => { c.checked = false; });
+  document.querySelector(`#cbi-questions .cbi-q-cb[value="${ref}"]`).checked = true;
   generateCbiPrompt();
   const prompt = document.getElementById('cbi-prompt').value;
-  closeCbiModal();
   return {
-    totalQ: d.categories.reduce((n, c) => n + c.questions.length, 0), cats, asmtCount: asmts.length,
-    qCount, anyEvidence, prompt,
+    totalQ: d.categories.reduce((n, c) => n + c.questions.length, 0), cats, asmtCount, viewActive,
+    qCount, treeArts, naRow, persistedN: persisted.length, chipShown, suggestedN, naState, prompt,
   };
 });
 assert(cbi.cats === 7 && cbi.totalQ === 87, `CBI: questionnaire loaded (7 categories, ${cbi.totalQ} questions)`);
-assert(cbi.asmtCount >= 2, `CBI: assessment selector populated (${cbi.asmtCount})`);
-assert(cbi.qCount > 0, `CBI: questions list rendered for the chosen category (${cbi.qCount})`);
-assert(cbi.anyEvidence, 'CBI: evidence matched to questions (controls surfaced, incl. RTS-labelled via capability join)');
+assert(cbi.viewActive, 'CBI: opens as a full-page view');
+assert(cbi.asmtCount >= 2 && cbi.qCount > 0, `CBI: assessment selector + question list populated (${cbi.asmtCount} assmts, ${cbi.qCount} questions)`);
+assert(cbi.treeArts > 0 && cbi.naRow, `CBI: DORA mapping tree renders (${cbi.treeArts} articles) with an "Article/RTS not applicable" option`);
+assert(cbi.persistedN >= 1 && cbi.chipShown, 'CBI: ticking an objective maps it (persisted to db.cbiMapping, shown as a chip)');
+assert(cbi.suggestedN >= 1, `CBI: Suggest pre-fills a best-guess mapping (${cbi.suggestedN} objectives)`);
+assert(cbi.naState, 'CBI: a question can be marked Not applicable');
+assert(/Mapped to DORA objective/.test(cbi.prompt), 'CBI: prompt pulls evidence for exactly the mapped objective(s)');
 assert(/CBI MATURITY CRITERIA/.test(cbi.prompt) && /Best controls in place/.test(cbi.prompt), 'CBI: prompt embeds the maturity 1–4 criteria');
-assert(/Our evidence/.test(cbi.prompt) && /CBI Ref\\tQuestion\\tDORA Article\(s\)\\tSuggested Maturity/.test(cbi.prompt), 'CBI: prompt carries our evidence + the 6-column Excel output table');
-assert(!/\{\{CBI_QUESTIONS\}\}/.test(cbi.prompt), 'CBI: {{CBI_QUESTIONS}} placeholder is filled');
+assert(/CBI Ref\\tQuestion\\tDORA Article\(s\)\\tSuggested Maturity/.test(cbi.prompt) && !/\{\{CBI_QUESTIONS\}\}/.test(cbi.prompt), 'CBI: prompt has the 6-column Excel output table, placeholder filled');
 
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));

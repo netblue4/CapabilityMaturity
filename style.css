@@ -442,27 +442,52 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .cd-doc-det[open] > .cd-doc-sum { color: var(--accent); font-weight: 600; }
 .cd-ctrl { margin-left: 1.1rem; }
 
-/* ── CBI evidence-pack generator ── */
-.cbi-box { max-width: 1040px; }
-.cbi-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin: .2rem 0 .5rem; }
+/* ── CBI evidence-pack generator (two-pane mapper) ── */
+.cbi-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1rem; margin: .2rem 0 .7rem; }
 .cbi-controls .am-label { display: flex; align-items: center; gap: .4rem; margin: 0; }
-.cbi-select { font-size: .82rem; padding: .25rem .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); max-width: 360px; }
+.cbi-controls-spacer { flex: 1; }
+.cbi-select { font-size: .82rem; padding: .25rem .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); max-width: 360px; text-transform: none; }
 .cbi-sel-btns { font-size: .78rem; color: var(--text-muted); }
-.cbi-questions { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: .4rem .6rem; background: var(--bg); }
-.cbi-q { display: flex; align-items: flex-start; gap: .5rem; padding: .4rem .2rem; border-bottom: 1px solid var(--border); cursor: pointer; text-transform: none; letter-spacing: normal; font-weight: 400; color: var(--text); }
+.cbi-mapper { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+.cbi-pane { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); display: flex; flex-direction: column; min-width: 0; }
+.cbi-pane-hd { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .45rem .6rem; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.cbi-search { font-size: .78rem; padding: .2rem .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); text-transform: none; min-width: 160px; }
+.cbi-pane-body { max-height: 460px; overflow: auto; padding: .3rem .5rem; }
+/* questions */
+.cbi-q { display: flex; align-items: flex-start; gap: .5rem; padding: .45rem .3rem; border-bottom: 1px solid var(--border); text-transform: none; letter-spacing: normal; font-weight: 400; color: var(--text); }
 .cbi-q:last-child { border-bottom: none; }
-.cbi-q:hover { background: var(--bg-subtle, rgba(127,127,127,.06)); }
-.cbi-q input { accent-color: var(--accent); margin-top: .15rem; }
-.cbi-q-ref { font-family: var(--font-mono); font-size: .72rem; color: var(--text-muted); min-width: 2.6rem; font-variant-numeric: tabular-nums; }
-.cbi-q-main { flex: 1; min-width: 0; }
-.cbi-q-text { display: block; font-size: .82rem; line-height: 1.4; color: var(--text); font-weight: 400; text-transform: none; }
-.cbi-q-meta { display: flex; flex-wrap: wrap; gap: .3rem .6rem; margin-top: .2rem; font-size: .72rem; }
-.cbi-q-art { font-family: var(--font-mono); color: var(--accent); }
-.cbi-ev { color: var(--text-muted); }
-.cbi-ev-dim { color: var(--text-muted); opacity: .8; }
-.cbi-ev-none { color: var(--text-muted); font-style: italic; }
-.cbi-gap { color: var(--danger, #c0392b); }
-.cbi-exc { color: var(--warn, #b8860b); }
+.cbi-q-focus { background: var(--bg-subtle, rgba(80,130,220,.1)); outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
+.cbi-q input { accent-color: var(--accent); margin-top: .2rem; }
+.cbi-q-main { flex: 1; min-width: 0; cursor: pointer; }
+.cbi-q-line { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.cbi-q-ref { font-family: var(--font-mono); font-size: .72rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.cbi-q-art { font-family: var(--font-mono); font-size: .68rem; color: var(--accent); }
+.cbi-q-text { display: block; font-size: .8rem; line-height: 1.38; color: var(--text); margin: .15rem 0; text-transform: none; font-weight: 400; }
+.cbi-q-chips { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .15rem; }
+.cbi-q-suggest { white-space: nowrap; font-size: .72rem; align-self: flex-start; }
+.cbi-st { font-family: var(--font-mono); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; padding: .05rem .3rem; border-radius: 3px; }
+.cbi-st-map { background: rgba(40,160,90,.16); color: var(--ok, #2e9e5b); }
+.cbi-st-na { background: rgba(127,127,127,.16); color: var(--text-muted); }
+.cbi-st-un { background: rgba(200,120,20,.14); color: var(--warn, #b8860b); }
+.cbi-chip { display: inline-block; font-family: var(--font-mono); font-size: .66rem; padding: .05rem .35rem; border: 1px solid var(--border); border-radius: 3px; color: var(--text-muted); background: var(--bg-subtle, rgba(127,127,127,.06)); }
+.cbi-chip-na { color: var(--text-muted); font-style: italic; }
+.cbi-chip-un { color: var(--warn, #b8860b); border-color: transparent; background: transparent; font-style: italic; }
+/* mapping tree */
+.cbi-na { display: flex; align-items: center; gap: .45rem; padding: .35rem .3rem .5rem; border-bottom: 1px solid var(--border); margin-bottom: .3rem; font-size: .8rem; cursor: pointer; text-transform: none; font-weight: 400; color: var(--text); }
+.cbi-na input { accent-color: var(--accent); }
+.cbi-art { margin-bottom: .1rem; }
+.cbi-art-hd { display: flex; align-items: center; gap: .4rem; padding: .3rem .2rem; cursor: pointer; font-size: .78rem; }
+.cbi-art-hd:hover { color: var(--accent); }
+.cbi-art-caret { font-family: var(--font-mono); color: var(--text-muted); width: .9rem; }
+.cbi-art-name { flex: 1; min-width: 0; }
+.cbi-art-n { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.cbi-art-objs { padding: .1rem 0 .3rem 1.3rem; }
+.cbi-obj { display: flex; align-items: flex-start; gap: .4rem; padding: .18rem 0; font-size: .76rem; cursor: pointer; text-transform: none; font-weight: 400; color: var(--text); }
+.cbi-obj input { accent-color: var(--accent); margin-top: .15rem; }
+.cbi-obj-ref { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); white-space: nowrap; }
+.cbi-obj-req { color: var(--text); }
+.cbi-ev-dim { color: var(--text-muted); opacity: .85; font-size: .72rem; }
+@media (max-width: 820px) { .cbi-mapper { grid-template-columns: 1fr; } .cbi-pane-body { max-height: 320px; } }
 
 /* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
 .ral-tbl { font-size: .82rem; }

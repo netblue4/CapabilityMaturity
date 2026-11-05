@@ -28,7 +28,7 @@ For each control in the CONTROLS TO REVIEW section:
    - **Smart flag:** if a *standing* monitoring control would materially strengthen assurance (high change velocity, high impact, or an automated gate that can be overridden between tests), **FLAG** it and recommend it as an additional control, with a one-line reason. Only when it genuinely beats the periodic test — otherwise leave the monitoring to the control test.
 4. **Classify** each resulting control: **Control Type** (Preventive / Detective / Corrective) + **Nature** (Manual / Automated / IT-dependent manual) + a one-line rationale.
 5. **Write** each control to the §2.1 structure (including **Control Cost**), **tagging every Control Step with the statement(s) it implements** `[implements: …]` (see "Step-level traceability").
-6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling and test steps, with each substantive Test Step tagged `[verifies: …]` back to the statement it checks. When Nature = Automated, follow the **"Software-enforced (automated) controls"** section below.
+6. **Draft each control's Control Test (CT)** per §2.3 below — roles, CT frequency, sampling, and test steps in **two parts: Step 1 Evidence Generation** (select the sample and extract/save the evidence) and **Step 2 Control Verification** (the checks that the control steps were performed, each tagged `[verifies: …]`). When Nature = Automated, follow the **"Software-enforced (automated) controls"** section below.
 7. **Coverage check** — reconcile every mapped statement to the Control Step(s) that implement it (from the `[implements: …]` tags) and the Test Step(s) that verify it; any statement with no implementing step is a gap.
 8. Flag every missing detail with `[CONFIRM: …]` — never invent systems, people, thresholds, volumes or tools.
 
@@ -76,9 +76,11 @@ Control numbering for a split: derive each new number from the original — `<Co
 
 **Details** (reflect the checks performed on the sample)
 - Test Purpose: `To confirm the adequacy of the execution and documentation of <Control No> based on the current control details.`
-- Test Steps: numbered, derived from the Control Steps. Each starts "Check that…" / "Check if…" and is answerable yes/no with evidence. **End every substantive Test Step with the statement reference(s) it verifies in brackets — e.g. `[verifies: LP-23 PS11]` — mirroring the `[implements: …]` tag on the Control Step it checks**, so each test step traces back to a statement. Tag housekeeping steps (evidence save, exceptions escalated) `[verifies: none]`. Include at least: (a) the control ran at the stated frequency/trigger; (b) each control step was performed completely; (c) the right role performed it / segregation held; (d) **for a software-enforced (automated) control, the configuration checks from the "Software-enforced (automated) controls" section** (config still enforces the objective · no unauthorised change · no override bypass); (e) exceptions were escalated/remediated; (f) **the performer saves the evidence for each sample to the Evidence Path, named per the sample.** Then, as the **last two bullet points at the bottom of the Test Steps**, list: **Evidence Path** — `\\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>`; and **Evidence retained** — the artefacts each test produces (e.g. raw scan logs, signed checklist, approved exception, exported configuration, minutes).
 - Test Sample Size: from the tables below, using the control's Frequency. Format `<n> - <Frequency> Control` (e.g. `6 - Weekly Control`), or for ad hoc `<n> - Ad hoc (population <x–y>)`. Use the **Standard** size (first test). An **automated** control = **1** sample.
 - Test Type: `Reperformance`.
+- Test Steps: structure them in **two steps**:
+  - **Step 1 — Evidence Generation.** `1.1` Select the sample (the number in Test Sample Size, over the test period) and, for each selected item, extract the specific evidence the control produces — **name each artefact** (e.g. the system export / report, the dashboard screenshot, the signed checklist, the approval email, the minutes; for a software-enforced (automated) control, the **exported configuration / rule** and the **change log**). `1.2` Save all gathered evidence to the Evidence Path, named per the selected sample. **Evidence Path:** `\\prd-fs-it01\IT\Management\Management_Controls\CSA <YYYY>\IT\<Control No> - <Control Name>\<Latest Control Test Procedure No.>`.
+  - **Step 2 — Control Verification.** Numbered checks (`2.1`, `2.2`, …), each derived from the Control Steps, that confirm the control was actually performed on each sample. Each starts "Verify that…" / "Check that…", is answerable yes/no against the Step-1 evidence, and **ends with the statement reference(s) it verifies in brackets** — e.g. `[verifies: LP-22 PS02, ITIM SR2]` — mirroring the `[implements: …]` tag on the Control Step it checks. Cover at least: the control ran at the stated frequency/trigger; each control step was performed completely; the right role performed it / segregation held; exceptions were identified and escalated/remediated. For a **software-enforced (automated)** control, Step 2 is the configuration checks from the "Software-enforced (automated) controls" section (config still enforces the objective · no unauthorised change · no override bypass).
 
 ### Sample sizes (RCSA §2.2.5 — minimum per key control over 12 months, use Standard)
 | Control Frequency | Standard | Reduced |
@@ -152,19 +154,22 @@ Control Test Performer:
 Frequency:
 Control Test Status:
 Result:
-Test Purpose:
-Test Steps:
-  1. Check that … (derived from the Control Steps) [verifies: <Statement Ref(s)> | none]
-  …
-  n. Save the evidence for each sample to the Evidence Path, named per the sample. [verifies: none]
-  - Evidence Path: <CSA folder path for this control>
-  - Evidence retained: <artefacts each test produces>
 Test Sample Size:
 Test Type:
+Test Purpose:
+Test Steps:
+  Step 1 — Evidence Generation
+    1.1 Select a sample of <Test Sample Size> over the test period and extract for each: <the evidence artefacts the control produces>.
+    1.2 Save all gathered evidence to the Evidence Path, named per the selected sample.
+    Evidence Path: <CSA folder path for this control>
+  Step 2 — Control Verification
+    2.1 Verify that … (derived from a Control Step) [verifies: <Statement Ref(s)>]
+    2.2 Check that … [verifies: <Statement Ref(s)>]
+    … (one per control step / statement intent to confirm)
 (repeat the --- block for each resulting control)
 
 COVERAGE CHECK (reconcile every statement to the step(s) that implement and test it)
-- <Statement Ref>: implemented by <new Control No> Step <n> [, Step <m>] · verified by Test Step <n> | NOT COVERED — <no step implements it: add a step, or remove the statement link and record it as not implemented>
+- <Statement Ref>: implemented by <new Control No> Step <n> [, Step <m>] · verified by Verification Step <n> | NOT COVERED — <no step implements it: add a step, or remove the statement link and record it as not implemented>
 ```
 Then re-output the paste-back SUMMARY TABLE of every resulting control (the Proposed Control Set, updated for any agreed changes):
 `Control No | Control Name | Type | Nature | Owner | Control Frequency | Control Cost (man-hrs) | CT Sample Size | Control Objective`

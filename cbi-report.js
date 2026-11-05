@@ -113,8 +113,25 @@ function showCbiView() {
   if (csel) { csel.innerHTML = _cbiQ().categories.map((c, i) => `<option value="${i}">${_cbiEsc(c.id + ' ' + c.name)}</option>`).join(''); csel.value = String(_cbiCatIdx); }
   const out = document.getElementById('cbi-prompt'); if (out) out.value = '';
   _cbiFocusRef = null;
+  renderCbiMaturityRef();
   renderCbiQuestions(); renderCbiMapTree();
   if (typeof showView === 'function') showView('cbi');
+}
+
+// Reference table: how our Documented -> Implemented -> Effective funnel maps
+// onto the CBI maturity scale (1 = best … 4 = worst).
+function renderCbiMaturityRef() {
+  const host = document.getElementById('cbi-maturity-ref'); if (!host) return;
+  const rows = (_cbiQ().maturity || []).map(m =>
+    `<tr>
+      <td class="cbi-mat-lvl">${m.level}<span class="cbi-mat-lbl">${_cbiEsc(m.label)}</span></td>
+      <td>${_cbiEsc(m.criteria)}</td>
+      <td class="cbi-mat-sig">${_cbiEsc(m.signal || '')}</td>
+    </tr>`).join('');
+  host.innerHTML = `<table class="cbi-mat-tbl">
+    <thead><tr><th>Maturity Level</th><th>CBI criteria</th><th>How we determine it (our approach)</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p class="cbi-mat-note">The prompt suggests a level on this basis; you confirm it. Note the scale is inverted vs our funnel — <b>CBI 1 = best</b> (fully effective), <b>4 = worst</b>.</p>`;
 }
 function setCbiAssessment() { const a = document.getElementById('cbi-assessment'); if (a) _cbiActiveId = a.value; renderCbiQuestions(); renderCbiMapTree(); }
 function setCbiCategory() { const c = document.getElementById('cbi-category'); _cbiCatIdx = c ? (parseInt(c.value, 10) || 0) : 0; _cbiFocusRef = null; renderCbiQuestions(); renderCbiMapTree(); }

@@ -187,6 +187,13 @@ assert(cbi.naState, 'CBI: a question can be marked Not applicable');
 assert(/Mapped to DORA objective/.test(cbi.prompt), 'CBI: prompt pulls evidence for exactly the mapped objective(s)');
 assert(/CBI MATURITY CRITERIA/.test(cbi.prompt) && /Best controls in place/.test(cbi.prompt), 'CBI: prompt embeds the maturity 1–4 criteria');
 assert(/CBI Ref\\tQuestion\\tDORA Article\(s\)\\tSuggested Maturity/.test(cbi.prompt) && !/\{\{CBI_QUESTIONS\}\}/.test(cbi.prompt), 'CBI: prompt has the 6-column Excel output table, placeholder filled');
+const cbiMat = await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('#cbi-maturity-ref .cbi-mat-tbl tbody tr')];
+  const hdrs = [...document.querySelectorAll('#cbi-maturity-ref .cbi-mat-tbl th')].map(t => t.textContent.trim());
+  return { rows: rows.length, hasApproachCol: hdrs.some(h => /our approach/i.test(h)), hasSignal: rows.some(r => /Implemented AND Effective|Documented = Implemented/.test(r.textContent)) };
+});
+assert(cbiMat.rows === 4 && cbiMat.hasApproachCol, 'CBI: maturity reference table shows the 4 CBI levels with a "how we determine it" column');
+assert(cbiMat.hasSignal, 'CBI: maturity column maps CBI levels to our Documented/Implemented/Effective signals');
 
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));

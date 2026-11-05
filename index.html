@@ -261,6 +261,10 @@
         <h2>📝 CBI evidence-pack generator</h2>
       </div>
       <p class="am-intro">Answer the <b>Central Bank of Ireland ICT Self-Assessment — Section 4 (ICT Risk Control)</b> from our DORA control framework. Pick a category; for each question, <b>map it to the DORA objective(s)</b> in your Import DORA Mapping (right pane) — tick the paragraph references / digital-resilience objectives that question covers, or mark it <b>Not applicable</b>. <b>Suggest</b> pre-fills a best guess you can edit. Your mapping is saved and exports with your data. Then <b>Generate prompt</b> for the ticked questions — your LLM drafts a <b>suggested maturity level (1–4), Strengths and Weaknesses</b> as a table for the CBI spreadsheet.</p>
+      <details class="cbi-maturity">
+        <summary>How we determine maturity — CBI levels 1–4 ↔ our evidence</summary>
+        <div id="cbi-maturity-ref"></div>
+      </details>
       <div class="cbi-controls">
         <label class="am-label">Evidence from
           <select id="cbi-assessment" class="cbi-select" onchange="setCbiAssessment()"></select>

@@ -501,6 +501,18 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .cbi-mat-sig { color: var(--text); background: var(--bg-subtle, rgba(80,130,220,.06)); }
 .cbi-mat-note { padding: .5rem .7rem; margin: 0; font-size: .72rem; color: var(--text-muted); border-top: 1px solid var(--border); }
 
+/* ── Hidden Prompt Console ── */
+/* Unlabelled header hotspot — deliberately unobtrusive, no hover affordance. */
+.prompt-hotspot { width: 14px; height: 28px; padding: 0; border: none; background: transparent; cursor: default; opacity: 0; }
+.pc-group { margin: 0 0 1rem; }
+.pc-group-hd { font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 0 0 .4rem; }
+.pc-item { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding: .6rem .8rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); margin-bottom: .4rem; }
+.pc-item-main { flex: 1; min-width: 220px; }
+.pc-item-title { font-weight: 600; font-size: .9rem; }
+.pc-item-desc { font-size: .78rem; color: var(--text-muted); margin-top: .15rem; line-height: 1.4; }
+.pc-item-note { font-size: .7rem; color: var(--text-muted); width: 100%; }
+.pc-open { white-space: nowrap; }
+
 /* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
 .ral-tbl { font-size: .82rem; }
 .ral-tbl th, .ral-tbl td { padding: .3rem .55rem; }

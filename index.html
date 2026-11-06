@@ -49,8 +49,8 @@
           <button class="btn btn-outline" onclick="showReportModal('mica')">🪙 MiCA Reporting</button>
           <button class="btn btn-outline" onclick="showReportModal('nist')">🔐 NIST CSF Reporting</button>
           <button class="btn btn-outline" onclick="showReportModal('roc')">📊 Risk Oversight Committee Reporting</button>
-          <button class="btn btn-outline" onclick="showCbiView()" title="Answer the CBI ICT Self-Assessment (Section 4) from our DORA evidence">📝 CBI evidence-pack generator</button>
           <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
+          <button id="btn-prompt-hotspot" class="prompt-hotspot" onclick="promptHotspot()" aria-hidden="true" tabindex="-1"></button>
         </div>
       </div>
 
@@ -298,6 +298,28 @@
       </div>
     </section>
 
+    <!-- Prompt Console (hidden — opened by 4 clicks on the unlabelled header hotspot) -->
+    <section id="view-prompts" class="view">
+      <div class="section-header">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>✨ Prompt console</h2>
+      </div>
+      <p class="am-intro">All AI-prompt generators in one place. Pick the assessment (and lens) the prompts should read from, then open a generator. This page is not linked anywhere in the normal UI.</p>
+      <div class="cbi-controls">
+        <label class="am-label">Prompts read from
+          <select id="pc-assessment" class="cbi-select"></select>
+        </label>
+        <label class="am-label">Lens
+          <select id="pc-lens" class="cbi-select">
+            <option value="dora">DORA</option>
+            <option value="mica">MiCA</option>
+            <option value="nist">NIST CSF</option>
+          </select>
+        </label>
+      </div>
+      <div id="pc-index"></div>
+    </section>
+
 
     <!-- Riskonnect Import View -->
     <section id="view-riskonnect-import" class="view">
@@ -513,6 +535,7 @@
   <script src="prompts.js"></script>
   <script src="cbi-data.js"></script>
   <script src="cbi-report.js"></script>
+  <script src="prompt-console.js"></script>
   <script src="demo-seed.js"></script>
   <script>
     // Sync theme toggle button label after DOM ready

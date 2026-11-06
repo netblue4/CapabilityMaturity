@@ -679,7 +679,16 @@ function copyCtrlDescPrompt(btn) {
 }
 function closeCtrlDescModal() { const m = document.getElementById('ctrl-desc-modal'); if (m) m.style.display = 'none'; }
 
+// Set the shared context the prompt popups read, so they can be launched from
+// the hidden Prompt Console (not only from the cards that normally render them).
+function setPromptContext(assessment, lens) {
+  const l = lens || 'dora';
+  _promptsA = assessment; _promptsLens = l;
+  _amA = assessment; _amLens = l;
+}
+
 if (typeof window !== 'undefined') {
+  window.setPromptContext = setPromptContext;
   window.openPromptsModal = openPromptsModal;
   window.closePromptsModal = closePromptsModal;
   window.setPromptKind = setPromptKind;

@@ -140,7 +140,7 @@ assert(planCols.detailAfterHeader, 'Planning table: Statement Detail column afte
 
 // ── CBI evidence-pack generator ──
 const cbiBtn = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()).find(t => /CBI evidence-pack/.test(t)) || '');
-assert(/CBI evidence-pack generator/.test(cbiBtn), 'CBI: generator button present in the dashboard header');
+assert(cbiBtn === '', 'CBI: header button removed (generator now launched from the hidden Prompt Console)');
 const cbi = await page.evaluate(() => {
   const d = window.CBI_SECTION4;
   showCbiView();
@@ -194,6 +194,32 @@ const cbiMat = await page.evaluate(() => {
 });
 assert(cbiMat.rows === 4 && cbiMat.hasApproachCol, 'CBI: maturity reference table shows the 4 CBI levels with a "how we determine it" column');
 assert(cbiMat.hasSignal, 'CBI: maturity column maps CBI levels to our Documented/Implemented/Effective signals');
+
+// ── Hidden Prompt Console (4 clicks on the unlabelled header hotspot) ──
+const pc = await page.evaluate(() => {
+  showView('dashboard');
+  const hotspot = document.getElementById('btn-prompt-hotspot');
+  const hasHotspot = !!hotspot;
+  // a single click must NOT open it
+  hotspot.click();
+  const openedEarly = document.getElementById('view-prompts').classList.contains('active');
+  // 3 more → opens (4 total)
+  hotspot.click(); hotspot.click(); hotspot.click();
+  const opened = document.getElementById('view-prompts').classList.contains('active');
+  const launchers = [...document.querySelectorAll('#pc-index .pc-open')].map(b => b.getAttribute('onclick'));
+  const asmts = [...document.querySelectorAll('#pc-assessment option')].length;
+  // launch Operationalise from the console: sets context + opens the popup
+  window._amA = null;
+  pcOperationalise();
+  const opReady = document.getElementById('ctrl-desc-modal').style.display === 'flex' && !!window._amA;
+  closeCtrlDescModal();
+  return { hasHotspot, openedEarly, opened, launchers, asmts, opReady };
+});
+assert(pc.hasHotspot, 'Prompt Console: unlabelled header hotspot present');
+assert(!pc.openedEarly && pc.opened, 'Prompt Console: opens on 4 hotspot clicks, not fewer');
+assert(pc.asmts >= 2, `Prompt Console: assessment selector populated (${pc.asmts})`);
+assert(['pcRiskPrompts()', 'pcMapArticle()', 'pcLinkControls()', 'pcOperationalise()', 'pcCbi()'].every(x => pc.launchers.includes(x)), 'Prompt Console: indexes all prompt launchers (risk, map, link, operationalise, CBI)');
+assert(pc.opReady, 'Prompt Console: a launcher sets the shared context and opens its popup');
 
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));
@@ -251,7 +277,7 @@ const am = await page.evaluate(() => {
   closeArticleMapModal();
   return { btn, docCount: docs.length, types, empty, prompt, picked: [cbs[0].value, cbs[1] && cbs[1].value] };
 });
-assert(am.btn, 'DORA traceability: "Map a new article" button present');
+assert(!am.btn, 'DORA traceability: "Map a new article" button removed from the card (moved to Prompt Console)');
 assert(am.docCount > 0 && am.types.some(t => /Group Standard|Local Policy/.test(t)), `Map-article: documents listed from policy data, grouped (${am.docCount})`);
 assert(/paste the DORA article/i.test(am.empty), 'Map-article: nudges when the article box is empty');
 assert(/TASK\b/.test(am.prompt) && /Article 10 — Detection/.test(am.prompt) && /STATEMENTS EXTRACT/.test(am.prompt), 'Map-article: prompt embeds the article + the selected statements extract');
@@ -286,7 +312,7 @@ const lc = await page.evaluate(() => {
   closeLinkCtrlModal();
   return { btn, riskCount: risks.length, riskGroups, docCount: docs.length, nudge, prompt, pickedDoc: dcb[0].value };
 });
-assert(lc.btn, 'DORA traceability: "Link controls" button present');
+assert(!lc.btn, 'DORA traceability: "Link controls" button removed from the card (moved to Prompt Console)');
 assert(lc.riskCount > 0 && lc.riskGroups.length > 0, `Link-controls: risks listed (all from Riskonnect), grouped by capability (${lc.riskCount})`);
 assert(lc.docCount > 0, `Link-controls: policy/GS documents listed (${lc.docCount})`);
 assert(/Select at least one risk/i.test(lc.nudge), 'Link-controls: nudges when nothing is selected');
@@ -312,7 +338,7 @@ const cd = await page.evaluate(() => {
   closeCtrlDescModal();
   return { btnText: btn ? btn.textContent.trim() : '', docCount: docDets.length, types, ctrlCount: ctrlCbs.length, nudge, prompt, ctrlBlocks };
 });
-assert(/Operationalise controls/i.test(cd.btnText), `DORA traceability: "Operationalise controls" button present (got "${cd.btnText}")`);
+assert(!cd.btnText, 'DORA traceability: "Operationalise controls" button removed from the card (moved to Prompt Console)');
 assert(cd.docCount > 0 && cd.types.some(t => /Group Standard|Local Policy/.test(t)), `Operationalise: policy/GS documents listed, expandable & grouped (${cd.docCount})`);
 assert(cd.ctrlCount > 0, `Operationalise: controls listed under the policies/standards, selectable (${cd.ctrlCount})`);
 assert(/tick one or two controls/i.test(cd.nudge), 'Operationalise: nudges to pick one or two controls when none selected');
@@ -626,7 +652,7 @@ const rcx = await page.evaluate(() => {
 });
 assert(rcx.hasRiskDesc, 'Risk & control extract: Risk description column present');
 assert(rcx.descsPopulated, 'Risk & control extract: risk descriptions flow through from the import');
-assert(rcx.promptsBtn, 'Risk & control extract: ✨ Prompts button present');
+assert(!rcx.promptsBtn, 'Risk & control extract: ✨ Prompts button removed from the card (moved to Prompt Console)');
 
 const promptsOut = await page.evaluate(() => {
   openPromptsModal();

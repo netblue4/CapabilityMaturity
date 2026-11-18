@@ -98,17 +98,20 @@ function generateDoraForumReport() {
   if (typeof setImportLens === 'function') setImportLens('dora');
   if (typeof updateSiteSubtitle === 'function') updateSiteSubtitle();
   const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
-  document.getElementById('exec-report-content').innerHTML = runWithLens('dora', () => `
-    <div class="exec-report-top no-print" style="justify-content:flex-end">
-      <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
-    </div>
-    ${renderExecScorecard(currentA, prevA)}
-    <div class="exec-rcsa-wrap">${renderCapabilityLensCard(currentA)}</div>
-    <div class="exec-rcsa-wrap">${renderExecCoverageMatrix(currentA)}</div>
-    <div class="exec-rcsa-wrap">${renderExecControl2(currentA, prevA)}</div>
-    <div class="exec-rcsa-wrap">${renderExecControl3(currentA, prevA)}</div>
-    <div class="exec-rcsa-wrap">${renderOwnershipCard(currentA)}</div>
-    <div class="exec-rcsa-wrap">${renderTraceabilityCard(currentA)}</div>
+  // Board paper: the summary the board reads, the live trace used to answer
+  // questions in the meeting, then the working detail folded into an appendix.
+  const content = document.getElementById('exec-report-content');
+  content.classList.add('board');
+  content.innerHTML = runWithLens('dora', () => `
+    ${renderBoardSummary(currentA, prevA)}
+    <div class="exec-rcsa-wrap" id="board-live-view">${renderCapabilityLensCard(currentA)}</div>
+    ${renderBoardAppendix([
+      ['Coverage by DORA article', renderExecCoverageMatrix(currentA)],
+      ['Statement operationalisation', renderExecControl2(currentA, prevA)],
+      ['Effectiveness and residual risk', renderExecControl3(currentA, prevA)],
+      ['Policy statement ownership', renderOwnershipCard(currentA)],
+      ['Full DORA → control traceability', renderTraceabilityCard(currentA)],
+    ])}
   `);
   showView('exec-report');
 }
@@ -411,7 +414,9 @@ function execScDelta(cur, prev) {
   const up = d > 0;
   return `<span class="exsc-${up ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${up ? '+' : ''}${d}%</span>`;
 }
-function renderExecScorecard(currentA, prevA) {
+// The three scorecard metrics for the active lens (+ previous-quarter %s), shared
+// by the classic scorecard and the board summary so both report one set of figures.
+function execScorecardMetrics(currentA, prevA) {
   const LRows = a => (typeof lensRows === 'function') ? lensRows(a) : (a.doraRows || []);
   const LPol  = a => (typeof lensPolicy === 'function') ? lensPolicy(a) : (a.policyRows || []);
   const LFac  = a => (typeof lensFacts === 'function') ? lensFacts(a) : (a.riskPolicyFacts || []);
@@ -419,8 +424,6 @@ function renderExecScorecard(currentA, prevA) {
   const cur  = buildExecScorecard(LRows(currentA), LPol(currentA), LFac(currentA));
   const cov  = buildStatementCoverage(LPol(currentA), LFac(currentA));
   const bops = buildBackingControlOps(LPol(currentA), LFac(currentA));
-  const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
-  const subVs = prevA ? ` &nbsp;·&nbsp; vs ${escHtml(prevA.label)}` : '';
 
   // Operationalised (Control 2) = statements linked to a risk-treatment-control OR
   // carrying a disclosed exception / total — the coverage-&-ownership measure.
@@ -447,6 +450,12 @@ function renderExecScorecard(currentA, prevA) {
     pOp   = pv.total ? Math.round(100 * c2n(pv) / pv.total) : 0;
     pEff  = pic ? Math.round(100 * pb.liveEffective / pic) : 0;
   }
+  return { documented, operationalised, effective, pDoc, pOp, pEff, bops, LL };
+}
+function renderExecScorecard(currentA, prevA) {
+  const { documented, operationalised, effective, pDoc, pOp, pEff, LL } = execScorecardMetrics(currentA, prevA);
+  const app  = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
+  const subVs = prevA ? ` &nbsp;·&nbsp; vs ${escHtml(prevA.label)}` : '';
 
   const cell = (m, label, desc, prevPct) => `<div class="exsum-cell">
     <div class="exsum-lbl">${label}</div>

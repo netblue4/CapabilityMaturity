@@ -429,206 +429,219 @@ function renderCapabilityLensCard(assessment) {
   _capLensA = assessment;
   const dims = lensDims(assessment);
   if (!dims.length) return '';
-  const dimLbl   = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
-  const dimLower = dimLbl.toLowerCase();
+  const dimLbl = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
   const trace   = buildTraceabilityRows(assessment);
   const present = new Set(trace.rows.map(r => r.capability).filter(Boolean));
-  const firstCap = dims.find(c => present.has(c.name)) || dims[0];
-  const opts = dims.map(c => `<option value="${escHtml(c.id)}"${c.id === firstCap.id ? ' selected' : ''}>${escHtml(c.name)}</option>`).join('');
+  // Only dimension values with mapped data get a button; fall back to all of them.
+  const shown = dims.filter(c => present.has(c.name));
+  _capLensDims = shown.length ? shown : dims;
+  _capLensSel = null;
+  // Open on the worst-rated one — the capability the board is most likely to ask about.
+  const RANK = { red: 0, amber: 1, green: 2 };
+  const ragOf = c => { const s = buildCapabilitySummary(assessment, c.id, 'all'); return s && s.hasData ? (RANK[s.rag] ?? 3) : 4; };
+  const worst = _capLensDims.reduce((best, c) => (ragOf(c) < ragOf(best) ? c : best), _capLensDims[0]);
+  const firstCap = _capLensDims.find(c => c.id === _capLensCapId) || worst;
   return `
-    <div class="card measure-card caplens-card">
-      <div class="measure-card-header">
-        <span class="measure-icon">🔎</span>
-        <div style="flex:1">
-          <h3 class="measure-card-title">${escHtml(dimLbl)} lens &mdash; relate a ${escHtml(dimLower)} to its ${escHtml(lensLabel())} objectives</h3>
-          <p class="measure-card-desc">Pick a ${escHtml(dimLower)} to see its coverage, operationalisation and effectiveness scoped to that ${escHtml(dimLower)}, for the ${escHtml(lensLabel())} lens.</p>
+    <div class="card measure-card caplens-card bd-lens">
+      <div class="bd-lens-hd">
+        <div>
+          <h3 class="measure-card-title">Live view &mdash; trace a ${escHtml(dimLbl.toLowerCase())} to its ${escHtml(lensLabel())} objectives</h3>
+          <p class="measure-card-desc">From ${escHtml(lensLabel())} objective to the policy statement and the control that proves it. Select any item for its details.</p>
         </div>
-        <label class="caplens-sel-lbl">${escHtml(dimLbl)}
-          <select id="caplens-sel" class="caplens-sel" onchange="updateCapabilityLens(this.value)">${opts}</select>
-        </label>
-        <div class="caplens-src-lbl">Source lens
+        <div class="caplens-src-lbl">Source
           <div class="caplens-src" role="tablist" aria-label="Statement source">
             ${CAPLENS_SOURCES.map(([v, l]) => `<button type="button" class="cls-tab${v === _capLensSource ? ' cls-tab-on' : ''}" role="tab" aria-selected="${v === _capLensSource}" data-src="${v}" onclick="capLensSetSource('${v}')">${v === 'all' ? escHtml(lensLabel()) : l}</button>`).join('')}
           </div>
         </div>
       </div>
+      <nav class="bd-pills" id="caplens-pills" aria-label="${escHtml(dimLbl)}">${capLensPills(firstCap.id)}</nav>
       <div id="caplens-body">${capLensBody(assessment, firstCap.id)}</div>
     </div>`;
 }
-// Statement-source lens for the capability card: DORA (all sources combined),
-// Policy (Local Policy statements only), Group Standard only. Re-scopes the
-// funnel bars + drill-down to the selected source; the Applicable count stays.
+// Statement-source lens: DORA (all sources combined), Policy (Local Policy
+// statements only), Group Standard only. Re-scopes the scorecard and trace.
 const CAPLENS_SOURCES = [['all', 'DORA'], ['policy', 'Policy'], ['group', 'Group Standard']];
 let _capLensSource = 'all';
-let _capLensView = 'implemented';
 let _capLensCapId = null;
-function capLensBody(a, capId) {
-  _capLensCapId = capId;
-  // The pillar card's coverage funnel is the view selector here: its lower three
-  // stages (Documented / Implemented / Effective) are clickable and filter the
-  // drill-down below — opts.activeView marks the current one. The funnel + tree
-  // are both scoped to the selected statement source (_capLensSource).
-  return renderExecPillar(buildCapabilitySummary(a, capId, _capLensSource), { interactive: true, capId, activeView: _capLensView })
-    + `<div id="caplens-tree">${renderCapLensTree(a, capId, _capLensView, _capLensSource)}</div>`;
+let _capLensDims = [];
+let _capLensGaps = false;   // "Only what needs attention"
+let _capLensSel = null;     // selected trace item key (o0-1, o0-1-s0, o0-1-s0-k1)
+function capLensPills(activeId) {
+  return _capLensDims.map(c => {
+    const s = _capLensA ? buildCapabilitySummary(_capLensA, c.id, 'all') : null;
+    const rag = s && s.hasData ? s.rag : '';
+    const on = c.id === activeId;
+    return `<button type="button" class="bd-pill${on ? ' is-on' : ''}" data-cap="${escHtml(c.id)}" aria-pressed="${on}" onclick="updateCapabilityLens('${escHtml(c.id)}')"><i class="bd-dot bd-dot-${rag || 'none'}" aria-hidden="true"></i>${escHtml(c.name.replace(/^ICT /, ''))}</button>`;
+  }).join('');
 }
-function updateCapabilityLens(capId) {
-  const body = document.getElementById('caplens-body');
-  if (body && _capLensA) body.innerHTML = capLensBody(_capLensA, capId);
-}
-// Clicking a funnel stage selects the drill-down view. Re-render the whole body
-// so the funnel highlight (active stage) and the tree below update together.
-function capLensSetView(view) {
-  _capLensView = view;
+function capLensRefresh() {
   if (!_capLensA || _capLensCapId == null) return;
   const body = document.getElementById('caplens-body');
   if (body) body.innerHTML = capLensBody(_capLensA, _capLensCapId);
 }
-// Switch the statement-source lens (DORA / Policy / Group Standard). Updates the
-// toggle's active chip (it lives in the card header, outside #caplens-body) then
-// re-renders the funnel + drill-down scoped to that source.
+function updateCapabilityLens(capId) {
+  _capLensCapId = capId;
+  _capLensSel = null;
+  const pills = document.getElementById('caplens-pills');
+  if (pills) pills.innerHTML = capLensPills(capId);
+  capLensRefresh();
+}
 function capLensSetSource(src) {
   _capLensSource = src;
+  _capLensSel = null;
   document.querySelectorAll('.caplens-src .cls-tab').forEach(b => {
     const on = b.dataset.src === src; b.classList.toggle('cls-tab-on', on); b.setAttribute('aria-selected', on);
   });
-  if (!_capLensA || _capLensCapId == null) return;
-  const body = document.getElementById('caplens-body');
-  if (body) body.innerHTML = capLensBody(_capLensA, _capLensCapId);
+  capLensRefresh();
 }
-// Short scope note appended to a drill-down title when a single source is active.
+function capLensSetGaps(on) { _capLensGaps = !!on; capLensRefresh(); }
+function capLensSelect(key) { _capLensSel = _capLensSel === key ? null : key; capLensRefresh(); }
+// Short scope note shown when a single source is active.
 function capLensSrcNote(source) {
-  return source === 'policy' ? ' &middot; Local Policy only'
-       : source === 'group'  ? ' &middot; Group Standard only' : '';
+  return source === 'policy' ? ' · Local Policy only'
+       : source === 'group'  ? ' · Group Standard only' : '';
 }
-// Drill-down for the current funnel stage. Documented roots at the DORA Article
-// (the regulatory lineage — "what must exist"); Implemented shows the full
-// article → objective → statement → control tree; Effective re-roots at Risk
-// (the risk lineage — "does it work"). All resolve to the same control records.
-function renderCapLensTree(a, capId, view, source) {
-  source = source || 'all';
-  return view === 'documented' ? renderDocumentedTree(a, capId, source)
-       : view === 'effective'  ? renderEffectiveTree(a, capId, source)
-       :                          renderCapabilityTree(a, capId, source);
-}
-// Documented view — DORA article → objective, coverage completeness only.
-function renderDocumentedTree(a, capId, source) {
-  source = source || 'all';
-  const arts = buildCapabilityTree(a, capId, source).filter(x => !x.noArt);
-  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ ${escHtml(lensRef())} → objective &middot; is every applicable objective covered by an owned statement?${capLensSrcNote(source)}</div>${inner}</div>`;
-  if (!arts.length) return wrap(`<div class="mm-empty">No ${escHtml(lensRef())}s mapped to this capability yet.</div>`);
-  const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
-  const objRow = o => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">🎯</span><span class="mm-lbl">${escHtml(o.id || '')}${o.text ? ` — ${escHtml(o.text)}` : ''}</span>${o.covered === 'Yes' ? badge('mm-b-green', '✓ covered') : badge('mm-b-red', '▲ uncovered')}</div></li>`;
-  const renderArt = x => {
-    const cov = x.objectives.filter(o => o.covered === 'Yes').length, tot = x.objectives.length;
-    const lvl = cov === tot ? 0 : cov > 0 ? 1 : 3;
-    const cls = ['mm-b-green', 'mm-b-amber', 'mm-b-blue', 'mm-b-red'][lvl];
-    return `<li class="mm-node mm-lvl-${lvl}"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">📘</span><span class="mm-lbl"><b>${escHtml(x.article)}</b></span><span class="mm-badge ${cls}">${cov}/${tot} covered</span></div><ul class="mm-children">${x.objectives.map(objRow).join('')}</ul></li>`;
-  };
-  const legend = `<div class="mm-legend"><span class="mm-leg"><i class="mm-dot mm-b-green"></i>covered</span><span class="mm-leg"><i class="mm-dot mm-b-red"></i>uncovered — needs an owned statement</span></div>`;
-  return wrap(legend + `<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
-}
-// Effective view — Risk → control, effectiveness badges (per risk, from the RCSA).
-// The risk → control lineage is inherently cross-source (a control can treat a
-// risk regardless of which document its statement sits in), so this detail is
-// shown across all sources even under a Policy / Group Standard lens; a note says
-// so. The funnel's Effective bar above still reflects the selected source.
-function renderEffectiveTree(a, capId, source) {
-  source = source || 'all';
-  const risks = buildRiskControlTree(a, capId);
-  const note = source === 'all' ? '' : ' &middot; all sources (effectiveness is judged per risk)';
-  const wrap = inner => `<div class="mm-wrap"><div class="mm-title">↳ Risk → control &middot; do the controls treating each risk actually work? (RCSA)${note}</div>${inner}</div>`;
-  if (!risks.length) return wrap('<div class="mm-empty">No risks with controls mapped to this capability yet.</div>');
-  const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
-  const ctrlBadge = c => !c.implemented ? badge('mm-b-amber', 'Draft') : c.effective ? badge('mm-b-green', 'Effective') : badge('mm-b-red', 'Not effective');
-  const cLevel = c => !c.implemented ? 1 : c.effective ? 0 : 3;   // draft=amber, effective=green, not-effective=red
-  const leaf = c => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">🛠</span><span class="mm-lbl">${escHtml((c.number ? c.number + ' — ' : '') + c.name)} ${ctrlBadge(c)}</span></div></li>`;
-  const renderRisk = r => {
-    const worst = r.controls.length ? Math.max(...r.controls.map(cLevel)) : 3;
-    const cls = ['mm-b-green', 'mm-b-amber', 'mm-b-blue', 'mm-b-red'][worst];
-    const eff = r.controls.filter(c => c.implemented && c.effective).length;
-    return `<li class="mm-node mm-lvl-${worst}"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">⚠️</span><span class="mm-lbl">${escHtml(r.risk)}</span><span class="mm-badge ${cls}">${eff}/${r.controls.length} effective</span></div><ul class="mm-children">${r.controls.map(leaf).join('')}</ul></li>`;
-  };
-  const legend = `<div class="mm-legend"><span class="mm-leg"><i class="mm-dot mm-b-green"></i>effective</span><span class="mm-leg"><i class="mm-dot mm-b-red"></i>not effective</span><span class="mm-leg"><i class="mm-dot mm-b-amber"></i>draft (not implemented)</span><span class="mm-leg-note">— effectiveness is judged per risk, from the RCSA</span></div>`;
-  return wrap(legend + `<ul class="mm-tree">${risks.map(renderRisk).join('')}</ul>`);
-}
-// Expand / collapse a mind-map node (article / objective / statement / risk).
-function mmToggle(el) { const li = el.closest('.mm-node'); if (li) li.classList.toggle('mm-open'); }
-// Clickable hierarchy: DORA article → objective → policy statement → control.
-function renderCapabilityTree(assessment, capId, source) {
-  source = source || 'all';
-  const arts = buildCapabilityTree(assessment, capId, source);
-  const wrap = inner => `<div class="mm-wrap">
-    <div class="mm-title">↳ ${escHtml(lensRef())} → objective → statement → control &middot; click a node to expand${capLensSrcNote(source)}</div>${inner}</div>`;
-  if (!arts.length) return wrap(`<div class="mm-empty">No ${escHtml(lensRef())}s mapped to this capability yet.</div>`);
 
-  const badge = (cls, txt) => `<span class="mm-badge ${cls}">${txt}</span>`;
-  // Roll the worst status up the tree so a collapsed parent still flags work
-  // below it. Severity: 0 effective · 1 live-but-not-effective · 2 draft (not
-  // live) · 3 gap (no control / uncovered). A node is green only at level 0.
-  const LVL_CLS = ['mm-b-green', 'mm-b-amber', 'mm-b-blue', 'mm-b-red'];
+// The selected capability: summary, three-stage scorecard, then the trace.
+function capLensBody(a, capId) {
+  _capLensCapId = capId;
+  const s = buildCapabilitySummary(a, capId, _capLensSource);
+  const sc = s.scorecard;
+  const rag = BD_RAG[s.rag] || null;
+  const tree = buildCapabilityTree(a, capId, _capLensSource);
+  const trace = renderCapTrace(tree, _capLensSource);
+  const cell = (label, m, unit) => `<div class="exsum-cell bd-mini"><span class="exsum-lbl">${label}</span><b>${m.d ? m.pct + '%' : '—'}</b><span class="exsum-frac">${m.d ? `${m.n} of ${m.d} ${unit}` : `No ${unit} yet`}</span></div>`;
+  return `
+    <div class="bd-lens-sum">
+      <div class="bd-lens-id">
+        <span class="bd-lens-meta">${escHtml(s.short || '')}${rag ? ` · <b class="bd-txt-${s.rag}">${rag.label}</b>` : ''}${capLensSrcNote(_capLensSource)}</span>
+        <h4 class="bd-lens-name">${escHtml(s.name || '')}</h4>
+        <p class="bd-lens-sentence">${trace.sentence}</p>
+      </div>
+      <div class="caplens-scorecard bd-minis">
+        ${cell('Documented', sc.documented, 'objectives')}${cell('Implemented', sc.operationalised, 'statements')}${cell('Effective', sc.effective, 'live controls')}
+      </div>
+    </div>
+    <div class="bd-lens-bar">
+      <div class="bd-seg" role="group" aria-label="Show">
+        <button type="button" aria-pressed="${!_capLensGaps}" onclick="capLensSetGaps(false)">Everything</button>
+        <button type="button" aria-pressed="${_capLensGaps}" onclick="capLensSetGaps(true)">Only what needs attention</button>
+      </div>
+      <div class="bd-legend">
+        <span><i class="bd-dot bd-dot-ok" aria-hidden="true"></i>Effective</span>
+        <span><i class="bd-dot bd-dot-warn" aria-hidden="true"></i>Live, not yet effective</span>
+        <span><i class="bd-dot bd-dot-draft" aria-hidden="true"></i>Draft</span>
+        <span><i class="bd-dot bd-dot-gap" aria-hidden="true"></i>Gap</span>
+      </div>
+    </div>
+    <div class="bd-lens-grid">
+      <div class="bd-trace">${trace.html}</div>
+      <aside class="bd-detail" aria-label="Details" aria-live="polite">${trace.detail}</aside>
+    </div>`;
+}
+
+// Objective → statement → control, one row per objective, so the whole chain is
+// on screen at once. Gaps are drawn as dashed empty slots. Status rolls up the
+// worst level below: 0 effective · 1 live, not yet effective · 2 draft · 3 gap.
+function renderCapTrace(arts, source) {
+  const LL = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
+  const ST = [
+    { key: 'ok',    label: 'Effective' },
+    { key: 'warn',  label: 'Live, not yet effective' },
+    { key: 'draft', label: 'Draft' },
+    { key: 'gap',   label: 'Gap' },
+  ];
   const cLevel = c => c.status === 'Implemented' ? (c.effectiveness === 'Effective' ? 0 : 1) : 2;
   const sLevel = s => s.controls.length ? Math.max(...s.controls.map(cLevel)) : 3;
   const oLevel = o => o.covered !== 'Yes' ? 3 : (o.statements.length ? Math.max(...o.statements.map(sLevel)) : 3);
-  const aLevel = a => { const L = a.noArt ? a.objectives.flatMap(o => o.statements).map(sLevel) : a.objectives.map(oLevel); return L.length ? Math.max(...L) : 3; };
-  const roll = (lvl, labels) => badge(LVL_CLS[lvl], labels[lvl]);
-  const stmtBadge = s => roll(sLevel(s), ['✓ effective', '● not yet effective', '● draft — not live', '▲ no control']);
-  const objBadge  = o => o.covered !== 'Yes'
-    ? badge('mm-b-red', '▲ uncovered — no statement')
-    : roll(oLevel(o), ['✓ all effective', '● effectiveness gap below', '● draft control below', '▲ no control below']);
-  // Per-article compact trio: Coverage (C1) · Operationalised (C2) · Effective (C3).
-  const pctCls = p => p >= 100 ? 'mm-b-green' : p > 0 ? 'mm-b-amber' : 'mm-b-red';
-  const triCell = (lbl, n, d, tip) => {
-    const p = d ? Math.round(100 * n / d) : null;
-    const cls = p === null ? 'mm-tri-na' : pctCls(p);
-    return `<span class="mm-tri ${cls}" title="${tip}: ${p === null ? 'n/a' : p + '% (' + n + '/' + d + ')'}"><b>${lbl}</b> ${p === null ? '—' : p + '%'}</span>`;
+  const excOf = s => /^(E|WT|WP)\b/.test(s.disposition || '') ? String(s.disposition).replace(/^\w+\s*—\s*/, '') : '';
+  const sel = _capLensSel;
+  const on = k => k === sel ? ' is-sel' : '';
+  const pick = k => `onclick="capLensSelect('${k}')" aria-pressed="${k === sel}"`;
+  const chip = lvl => `<span class="bd-chip bd-tone-${ST[lvl].key}">${ST[lvl].label}</span>`;
+  let detail = '';
+  const setDetail = (kind, code, title, lvl, labelOverride, says, rows) => {
+    detail = `<span class="bd-detail-kind">${kind}</span>
+      ${code ? `<span class="bd-detail-code">${escHtml(code)}</span>` : ''}
+      <h4 class="bd-detail-title">${escHtml(title)}</h4>
+      <span class="bd-chip bd-tone-${ST[lvl].key}">${labelOverride || ST[lvl].label}</span>
+      <p class="bd-detail-says">${escHtml(says)}</p>
+      <dl>${rows.filter(r => r[1]).map(([k, v]) => `<div><dt>${escHtml(k)}</dt><dd>${escHtml(v)}</dd></div>`).join('')}</dl>`;
   };
-  const artTrio = a => {
-    const objT = a.noArt ? 0 : a.objectives.length;
-    const objC = a.noArt ? 0 : a.objectives.filter(o => o.covered === 'Yes').length;
-    const stmts = a.objectives.flatMap(o => o.statements);
-    const sSeen = new Map(), cSeen = new Map();
-    stmts.forEach(s => {
-      const sk = s.ref || s.header; if (!sSeen.has(sk)) sSeen.set(sk, s.operationalised);
-      s.controls.forEach(c => { if (!cSeen.has(c.name)) cSeen.set(c.name, c); });
-    });
-    const sT = sSeen.size, sLive = [...sSeen.values()].filter(v => v === 'Live').length;
-    const cT = cSeen.size, cEff = [...cSeen.values()].filter(c => c.status === 'Implemented' && c.effectiveness === 'Effective').length;
-    return `<span class="mm-trio">${triCell('C1', objC, objT, 'Coverage · Control 1')}${triCell('C2', sLive, sT, 'Operationalised · Control 2')}${triCell('C3', cEff, cT, 'Effective · Control 3')}</span>`;
-  };
-  const ctrlBadge = c => {
-    const st = c.status === 'Implemented' ? badge('mm-b-green', 'Implemented') : badge('mm-b-blue', 'Draft');
-    const eff = c.status === 'Implemented'
-      ? (c.effectiveness === 'Effective' ? badge('mm-b-green', 'Effective') : badge('mm-b-amber', 'Not yet effective')) : '';
-    return st + eff;
-  };
-  const legend = `<div class="mm-legend">
-    <span class="mm-leg"><i class="mm-dot mm-b-green"></i>all effective</span>
-    <span class="mm-leg"><i class="mm-dot mm-b-amber"></i>live, not yet effective</span>
-    <span class="mm-leg"><i class="mm-dot mm-b-blue"></i>control still draft</span>
-    <span class="mm-leg"><i class="mm-dot mm-b-red"></i>coverage gap</span>
-    <span class="mm-leg-note">— a node is green only when every control beneath it is effective</span>
-  </div>`;
-  const leaf = (ic, cls, html) => `<li class="mm-leaf"><div class="mm-row mm-row-leaf"><span class="mm-caret mm-caret-none">▸</span><span class="mm-ic">${ic}</span><span class="mm-lbl ${cls || ''}">${html}</span></div></li>`;
-  const node = (ic, lbl, right, kids, lvl) => `<li class="mm-node mm-lvl-${lvl}"><div class="mm-row" onclick="mmToggle(this)"><span class="mm-caret">▸</span><span class="mm-ic">${ic}</span><span class="mm-lbl">${lbl}</span>${right || ''}</div><ul class="mm-children">${kids}</ul></li>`;
 
-  const renderCtrl = c => leaf('🛠', '', `${escHtml(c.name)} ${ctrlBadge(c)}${c.provenance ? `<span class="mm-ref"> · ${escHtml(c.provenance)}</span>` : ''}`);
-  const renderStmt = s => {
-    const kids = s.controls.length ? s.controls.map(renderCtrl).join('') : leaf('∅', 'mm-muted', 'No control operationalising this statement');
-    const lbl  = `${escHtml(s.header || s.ref)}${s.ref ? ` <span class="mm-ref">${escHtml(s.ref)}</span>` : ''}`;
-    return node('📄', lbl, stmtBadge(s), kids, sLevel(s));
-  };
-  const renderObj = o => {
-    const kids = o.statements.length ? o.statements.map(renderStmt).join('') : leaf('⚠', 'mm-muted', 'No owned statement — coverage gap');
-    const lbl  = `${escHtml(o.id || '')}${o.text ? ` — ${escHtml(o.text)}` : ''}`;
-    return node('🎯', lbl, objBadge(o), kids, oLevel(o));
-  };
-  const renderArt = a => {
-    const kids = a.noArt
-      ? (a.objectives.flatMap(o => o.statements).length ? a.objectives.flatMap(o => o.statements).map(renderStmt).join('') : leaf('·', 'mm-muted', 'No statements'))
-      : a.objectives.map(renderObj).join('');
-    return node(a.noArt ? '🗂️' : '📘', `<b>${escHtml(a.article)}</b>`, artTrio(a), kids, aLevel(a));
-  };
-  return wrap(legend + `<ul class="mm-tree">${arts.map(renderArt).join('')}</ul>`);
+  let total = 0, needing = 0;
+  const html = arts.map((a, ai) => {
+    // Unmapped statements sit under one pseudo-objective with no objective card.
+    const objs = a.noArt
+      ? [{ id: '', text: '', covered: 'Yes', statements: a.objectives.flatMap(o => o.statements), unmapped: true }]
+      : a.objectives;
+    const rows = objs.map((o, oi) => {
+      const lvl = oLevel(o);
+      if (!o.unmapped) { total++; if (lvl > 0) needing++; }
+      if (_capLensGaps && lvl === 0) return '';
+      const oKey = `o${ai}-${oi}`;
+      const uncovered = o.covered !== 'Yes' || !o.statements.length;
+      if (sel === oKey) setDetail(`${LL} objective`, o.id, o.text || o.id, lvl, uncovered ? 'Coverage gap' : '',
+        uncovered ? 'No policy or group-standard statement covers this objective, so nothing commits us to it yet.'
+          : lvl === 0 ? 'Every control beneath this objective is live and rated effective.'
+          : 'Covered by policy, but at least one control beneath it is not yet proven to work.',
+        [['Article', a.article], ['Policy statements', String(o.statements.length)]]);
+      const objCell = o.unmapped
+        ? `<div class="bd-obj bd-obj-none">Not mapped to a ${escHtml(LL)} objective</div>`
+        : `<button type="button" class="bd-obj${on(oKey)}" ${pick(oKey)}><span class="bd-obj-id"><i class="bd-dot bd-dot-${ST[lvl].key}" aria-hidden="true"></i>${escHtml(o.id || '')}</span><span class="bd-obj-text">${escHtml(o.text || '')}</span></button>`;
+      const stmts = uncovered
+        ? `<button type="button" class="bd-gap${on(oKey)}" ${pick(oKey)}><b>No policy statement</b><span>Nothing in our policies or group standards covers this objective yet.</span></button>`
+        : o.statements.map((s, si) => {
+          const sKey = `${oKey}-s${si}`;
+          const slvl = sLevel(s);
+          const exc = excOf(s);
+          const declared = !s.controls.length && /^(Implemented|Part-implemented)$/.test(s.disposition || '');
+          const gapNote = exc ? `No control — exception disclosed (${exc}).`
+            : declared ? 'Self-declared implemented, but no control tracks it.'
+            : 'Nothing puts this statement into practice yet.';
+          if (sel === sKey) setDetail('Policy statement', s.ref, s.header || s.ref, slvl, s.controls.length ? '' : 'No control',
+            s.controls.length ? `Put into practice by ${s.controls.length} control${s.controls.length > 1 ? 's' : ''}.` : gapNote,
+            [['Document', s.document], ['Source', s.source], ['Exception', exc || 'None'], ['Implements', o.unmapped ? '' : `${o.id} — ${o.text || ''}`]]);
+          const ctrls = s.controls.length
+            ? s.controls.map((c, ki) => {
+              const kKey = `${sKey}-k${ki}`;
+              const klvl = cLevel(c);
+              const p = bdCtrlParts(c.name);
+              if (sel === kKey) setDetail('Control', p.num, p.name, klvl, '',
+                klvl === 0 ? 'Live and rated effective in the latest RCSA.' : klvl === 1 ? 'Live, but the latest RCSA has not rated it effective.' : 'Designed but not yet live.',
+                [['Implements statement', `${s.ref || ''} — ${s.header || ''}`], ['Document', s.document], ['Origin', c.provenance]]);
+              return `<button type="button" class="bd-ctrl bd-ctrl-${ST[klvl].key}${on(kKey)}" ${pick(kKey)}><span class="bd-ctrl-top"><span class="bd-code">${escHtml(p.num)}</span>${chip(klvl)}</span><span class="bd-ctrl-name">${escHtml(p.name)}</span></button>`;
+            }).join('')
+            : `<button type="button" class="bd-gap${exc ? ' bd-gap-exc' : ''}${on(sKey)}" ${pick(sKey)}><b>No control</b><span>${escHtml(gapNote)}</span></button>`;
+          return `<div class="bd-stmt-row">
+            <button type="button" class="bd-stmt${on(sKey)}" ${pick(sKey)}>
+              <span class="bd-code">${escHtml(s.ref || '')}</span>
+              <span class="bd-stmt-head">${escHtml(s.header || s.ref || '')}</span>
+              <span class="bd-stmt-doc">${escHtml(s.document || '')}</span>
+              ${exc ? `<span class="bd-chip bd-tone-muted">${escHtml(exc)}</span>` : ''}
+            </button>
+            <div class="bd-ctrls">${ctrls}</div>
+          </div>`;
+        }).join('');
+      return `<div class="bd-obj-row">${objCell}<div class="bd-stmts">${stmts}</div></div>`;
+    }).join('');
+    if (!rows) return '';
+    const covered = a.noArt ? 0 : a.objectives.filter(o => o.covered === 'Yes' && o.statements.length).length;
+    return `<section class="bd-art">
+      <div class="bd-art-hd"><h5>${escHtml(a.article)}</h5>${a.noArt ? '' : `<span>${covered} of ${a.objectives.length} objectives covered</span>`}</div>
+      ${rows}
+    </section>`;
+  }).join('');
+
+  const head = `<div class="bd-trace-head" aria-hidden="true"><span>${escHtml(LL)} objective</span><span>Policy statement</span><span>Control</span></div>`;
+  const body = !arts.length
+    ? `<div class="bd-empty">No ${escHtml(lensRef())}s mapped to this ${escHtml(((typeof lensDimLabel === 'function') ? lensDimLabel() : 'capability').toLowerCase())} yet.</div>`
+    : html || `<div class="bd-empty">Nothing needs attention here — every objective traces through to an effective control.</div>`;
+  if (!detail) detail = `<h4 class="bd-detail-title">Ask “what proves this?”</h4><p class="bd-detail-says">Select any objective, policy statement or control to see what it is, which document it sits in, and whether it is working.</p>`;
+  const sentence = !total ? 'No objectives mapped yet.'
+    : needing ? `${needing} of ${total} objective${total > 1 ? 's' : ''} need${needing === 1 ? 's' : ''} attention.`
+    : 'Every objective traces through to an effective control.';
+  return { html: head + body, detail, sentence: escHtml(sentence) };
 }
 function renderTraceabilityCard(assessment) {
   const t = buildTraceabilityRows(assessment);

@@ -294,7 +294,7 @@ const micaLinkBtn = await page.evaluate(() => !!document.querySelector('#mica-re
 assert(!micaLinkBtn, 'Link-controls: button is DORA-only (absent on MiCA traceability)');
 // restore DORA report for the remaining DORA-report assertions
 await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
-await page.waitForSelector('#exec-report-content .trace-tbl');
+await page.waitForSelector('#exec-report-content .trace-tbl', { state: 'attached' });  // folded into the board appendix
 
 // ── "Link statements to controls" popup on the DORA traceability card ──
 const lc = await page.evaluate(() => {
@@ -375,7 +375,7 @@ const cdMicaBtn = await page.evaluate(() => { showReportModal('mica'); document.
 assert(!cdMicaBtn, 'Operationalise: button is DORA-only (absent on MiCA traceability)');
 // restore DORA report for the remaining DORA-report assertions
 await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
-await page.waitForSelector('#exec-report-content .trace-tbl');
+await page.waitForSelector('#exec-report-content .trace-tbl', { state: 'attached' });  // folded into the board appendix
 
 assert(!doraRep.pillGrid, 'DORA Reporting: DORA Pillar cards removed');
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
@@ -435,7 +435,7 @@ const c2exc = await page.evaluate(() => {
 });
 assert(c2exc.after === c2exc.before + 1, `Control 2: a disclosed exception on an uncovered statement counts toward Operationalised (${c2exc.before} → ${c2exc.after})`);
 
-// ── Capability lens mini-scorecard: three cells (Documented / Operationalised /
+// ── Capability lens (live view) mini-scorecard: three cells (Documented / Operationalised /
 // Effective) above the funnel, scoped to the selected capability, reconciling
 // with that capability's own coverage/ops/controls figures. ──
 const capSc = await page.evaluate(() => {
@@ -443,11 +443,11 @@ const capSc = await page.evaluate(() => {
   const sc = card?.querySelector('.caplens-scorecard');
   const labels = [...(sc?.querySelectorAll('.exsum-lbl') || [])].map(l => l.textContent.trim());
   // scorecard must come before the funnel in the DOM
-  const scBeforeFunnel = sc && card.querySelector('.exfun') && (sc.compareDocumentPosition(card.querySelector('.exfun')) & Node.DOCUMENT_POSITION_FOLLOWING);
+  const scBeforeFunnel = sc && card.querySelector('.bd-trace') && (sc.compareDocumentPosition(card.querySelector('.bd-trace')) & Node.DOCUMENT_POSITION_FOLLOWING);
   // reconcile against the builder for the selected capability
   activeLens = 'dora';
   const a = db.assessments.find(x => x.id === 'demo');
-  const capId = document.getElementById('caplens-sel').value;
+  const capId = card?.querySelector('.bd-pill.is-on')?.dataset.cap;
   const s = buildCapabilitySummary(a, capId, 'all');
   const sameLook = s.scorecard.documented.n === s.coverage.covered && s.scorecard.documented.d === s.coverage.total
     && s.scorecard.effective.n === s.controls.effective && s.scorecard.effective.d === s.controls.implemented
@@ -455,7 +455,7 @@ const capSc = await page.evaluate(() => {
   return { cells: (sc?.querySelectorAll('.exsum-cell') || []).length, labels, scBeforeFunnel: !!scBeforeFunnel, sameLook };
 });
 assert(capSc.cells === 3 && capSc.labels.join(',') === 'Documented,Implemented,Effective', `Capability lens: 3-cell mini scorecard (${capSc.labels.join(', ')})`);
-assert(capSc.scBeforeFunnel, 'Capability lens: mini scorecard sits above the Applicable funnel');
+assert(capSc.scBeforeFunnel, 'Capability lens: mini scorecard sits above the trace');
 assert(capSc.sameLook, 'Capability lens: scorecard figures reconcile with the capability coverage/ops/controls');
 
 // Control 3 heatmap is filtered to risks that threaten DORA objectives (fewer
@@ -500,7 +500,7 @@ const micaRep = await page.evaluate(() => {
 });
 assert(/MiCA/.test(micaRep.titles), `MiCA Reporting titled for MiCA`);
 assert(micaRep.scorecard && /MiCA Operationalisation Scorecard/.test(micaRep.titles), 'MiCA Reporting: scorecard present and MiCA-titled');
-assert(/Service lens — relate a service to its MiCA objectives/.test(micaRep.titles), 'MiCA Reporting: Service lens card (not Capability)');
+assert(/Live view — trace a service to its MiCA objectives/.test(micaRep.titles), 'MiCA Reporting: Service lens card (not Capability)');
 assert(/Applicable MiCA articles objectives/.test(micaRep.titles), 'MiCA Reporting Control 1 reads MiCA articles');
 assert(micaRep.embeds >= 3, `MiCA Reporting embeds Control 1/2/3 evidence (${micaRep.embeds})`);
 assert(micaRep.soa, 'MiCA Reporting Control 1 evidence carries the MiCA SOA');
@@ -528,7 +528,7 @@ const nistRep = await page.evaluate(() => {
   return {
     titles,
     scorecard: /NIST CSF Operationalisation Scorecard/.test(titles),
-    caplens: /Category lens — relate a category to its NIST CSF objectives/.test(titles),
+    caplens: /Live view — trace a category to its NIST CSF objectives/.test(titles),
     c1: /Applicable NIST CSF subcategories objectives/.test(titles),
     embeds: root.querySelectorAll('.ev-embed-title').length,
     heatLegend: (root.querySelector('.rrh-legend-note') || {}).textContent || '',

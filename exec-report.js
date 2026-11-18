@@ -106,9 +106,9 @@ function generateDoraForumReport() {
     ${renderBoardSummary(currentA, prevA)}
     <div class="exec-rcsa-wrap" id="board-live-view">${renderCapabilityLensCard(currentA)}</div>
     ${renderBoardAppendix([
-      ['Coverage by DORA article', renderExecCoverageMatrix(currentA)],
-      ['Statement operationalisation', renderExecControl2(currentA, prevA)],
-      ['Effectiveness and residual risk', renderExecControl3(currentA, prevA)],
+      ['Documented', renderExecCoverageMatrix(currentA)],
+      ['Implemented', renderExecControl2(currentA, prevA)],
+      ['Effective', renderExecControl3(currentA, prevA)],
       ['Policy statement ownership', renderOwnershipCard(currentA)],
       ['Full DORA → control traceability', renderTraceabilityCard(currentA)],
     ])}

@@ -471,7 +471,6 @@ let _capLensOpen = {};      // article index → open; unset = the mode's defaul
 // articles that have something to show.
 const CAPLENS_MODES = [
   ['all',       'Everything'],
-  ['attention', 'Needs attention'],
   ['undoc',     'Not documented'],
   ['unimpl',    'Not implemented'],
   ['uneff',     'Not effective'],
@@ -604,7 +603,6 @@ function renderCapTrace(arts, source) {
   const keep = o => {
     const unc = isUncovered(o);
     if (mode === 'all') return { stmts: o.statements.map(s => ({ s, ctrls: s.controls })) };
-    if (mode === 'attention') return oLevel(o) > 0 ? { stmts: o.statements.map(s => ({ s, ctrls: s.controls })) } : null;
     if (mode === 'undoc') return unc ? { stmts: [] } : null;
     if (mode === 'unimpl') {
       const st = unc ? [] : o.statements.filter(s => !s.controls.length).map(s => ({ s, ctrls: [] }));
@@ -703,7 +701,6 @@ function renderCapTrace(arts, source) {
 
   const EMPTY = {
     all: 'Nothing mapped yet.',
-    attention: 'Nothing needs attention here — every objective traces through to an effective control.',
     undoc: `Every applicable ${escHtml(LL)} objective is covered by a policy statement.`,
     unimpl: 'Every policy statement has at least one control.',
     uneff: 'Every control here is live and rated effective.',

@@ -140,6 +140,108 @@ READINESS
 - Clearly marked for a fresh TESTER? Yes — every gap carried as a named placeholder.
 ```
 
+## WORKED EXAMPLE 2 — a REAL before → after (study this transformation)
+This is an actual control, as its owner first wrote it, next to the two documents this prompt must produce from it. **The single most important move is here:** the owner's **"Control Description" was really the *process* (the doing)** and the owner's **"Control Test" was really the *control* (the checking)**. The fix is to **swap them** — the control becomes the *review*, and the old test's checks become **Control Steps that each save a named evidence artefact**. Kept as **ONE control** (the user asked for no split). (Names and the file path below are generalised to placeholders — never carry a real person or server into the draft; mark them `[@…]`.)
+
+### BEFORE — the control as the owner wrote it (this is the kind of input that arrives under CONTROLS TO REVIEW)
+```
+Control Name: Effectiveness oversight of risk-treatment controls
+Linked statements: LP-26 PS01, LP-26 PS02, LP-26 PS07, LP-07 PS3
+Control Objective: Ongoing oversight that operationalised controls are effective and that
+  not-effective controls are escalated and remediated.
+Control Description: Quarterly, map every live risk-treatment control to the ICT risk(s) it
+  treats, inherit its design + operating effectiveness verdict from the latest RCSA cycle,
+  identify any live control with no verdict as a blind spot, and track residual-risk movement.
+Control Frequency: Quarterly
+Control Evidence: the RCSA effectiveness view and the findings register, stored at
+  \\<file-server>\...\CSA <YYYY>\IT\<Control No>\<Latest CTP>.
+Control Test (test frequency: Annually):
+  1. Obtain the effectiveness view and the findings register.
+  2. Check every live control carries a current verdict; identify blind spots.
+  3. Check not-effective controls and blind spots are escalated to the owner with a remediation reference.
+  4. Check residual-risk movement is consistent with the inherited ratings.
+```
+The two tells: the **Description is the *doing*** (map / inherit / identify / track), and the **"Control Test" steps are the actual checking**. The checking is the control.
+
+### AFTER — the two documents (Description ↔ Test swapped; the old test's checks become named-evidence Control Steps)
+```
+DOCUMENT A — THE CONTROL (for the control owner)
+
+Control Name: Quarterly RCSA effectiveness-oversight review (Dashboard Monitoring)
+Control Objective: Assurance that every operationalised (live) risk-treatment control carries a
+  current effectiveness verdict, that not-effective controls and blind spots are escalated and
+  remediated, and that residual-risk movement is consistent with the inherited effectiveness ratings.
+Control Description: Each quarter the [@controller_seniority] Control Owner (2nd-line Risk) reviews
+  the RCSA effectiveness view ([@effectiveness_view_location]) for the live risk-treatment controls
+  operationalising DORA, confirming verdict completeness, escalating not-effective controls and blind
+  spots, and checking residual-risk movement. Effectiveness is inherited from the RCSA — the RCSA
+  testing is the source this control oversees, not re-tested here.
+Control Steps:
+  1. Pull the RCSA effectiveness view ([@effectiveness_view_location]) for every live risk-treatment
+     control mapped to the ICT risk(s) it treats, with its design + operating verdict and residual-risk
+     movement from the latest RCSA cycle.
+     → Save evidence of the view as "RCSA Effectiveness View – <quarter>" to the evidence location below.
+  2. Confirm every live control carries a current RCSA verdict; flag any live control with no verdict as
+     a blind spot (completeness of the verdict set).
+     → Save evidence of the completeness check as "Verdict Completeness Check – <quarter>" (listing any
+       blind spots) to the evidence location below.
+  3. Record every not-effective control and every blind spot in the findings register
+     ([@findings_register_location]) and escalate each to its control owner with a remediation reference,
+     within [@escalation_timeframe].
+     → Save evidence as "Effectiveness Findings & Escalation Register – <quarter>" to the evidence location below.
+  4. Confirm residual-risk movement is consistent with the inherited effectiveness ratings; note and query
+     any inconsistency.
+     → Save evidence as "Residual-Movement Consistency Check – <quarter>" to the evidence location below.
+Control Frequency: Quarterly
+Control Evidence location: [@evidence_folder_path]
+Control Evidence: "RCSA Effectiveness View – <quarter>", "Verdict Completeness Check – <quarter>",
+  "Effectiveness Findings & Escalation Register – <quarter>", "Residual-Movement Consistency Check – <quarter>"
+Linked Policy & Group Standard statements: LP-26 PS01, LP-26 PS02, LP-26 PS07, LP-07 PS3
+Control Cost (supplementary — not part of the standard record): [@man_hours] × quarterly
+
+
+DOCUMENT B — THE CSA TEST (for the tester; separate, for CSA documentation)
+
+Control Test Reviewer: [@reviewer] (the Control Owner)
+Control Test Performer: [@performer]
+CT Frequency: Annually    Control Test Status: Pending    Result: Pending → Pass / Pass w. Observation / Fail
+Test Method: Inspection + Reperformance
+Test Sample Size: 2 (Quarterly control, Standard) — two of the four quarterly reviews
+Test Purpose: To confirm the adequacy of the execution and documentation of <Control No> (Effectiveness
+  oversight) based on the current control details.
+Test Steps:
+  a. Obtain — population = the four quarterly reviews in the period; select 2 quarters; for each, retrieve
+     from [@evidence_folder_path]: "RCSA Effectiveness View – <quarter>", "Verdict Completeness Check – <quarter>",
+     "Effectiveness Findings & Escalation Register – <quarter>", "Residual-Movement Consistency Check – <quarter>".
+  b. Check —
+     - From "RCSA Effectiveness View": every live control is mapped to its ICT risk(s) and carries a current
+       (latest-cycle) design + operating verdict — inherited, not re-tested.            [verifies: LP-26 PS02]
+     - From "Verdict Completeness Check": every live control has a verdict; blind spots identified.  [verifies: LP-26 PS01]
+     - From "Effectiveness Findings & Escalation Register": every not-effective control and blind spot is
+       recorded and escalated to its owner with a remediation reference.                 [verifies: LP-07 PS3]
+     - From "Residual-Movement Consistency Check": residual movement is consistent with the inherited ratings.  [verifies: LP-26 PS07]
+     - (Reperformance) re-check a sub-sample of live controls' verdicts/escalations against the RCSA ([@effectiveness_view_location]).
+
+COVERAGE CHECK (every statement assured by a step)
+- LP-26 PS01: assured by step 2 · tested by check (Verdict Completeness)
+- LP-26 PS02: assured by step 1 · tested by check (Effectiveness View)
+- LP-26 PS07: assured by step 4 · tested by check (Residual-Movement)
+- LP-07 PS3:  assured by step 3 · tested by check (Findings & Escalation)
+
+READINESS
+- Clearly marked for a fresh OWNER?  Yes — owner to complete: [@controller_seniority], [@effectiveness_view_location],
+  [@findings_register_location], [@escalation_timeframe], [@evidence_folder_path], [@man_hours].
+- Clearly marked for a fresh TESTER? Yes — every gap carried as a named placeholder.
+```
+
+### WHAT CHANGED (the exact transformation you must perform — do not skip any)
+1. **Description → the review.** The owner's process (map / inherit / identify / track) is named as the *source overseen*; the new Control Description states the *checking*.
+2. **Old "Control Test" checks → Control Steps**, each ending by saving a **named** artefact ("RCSA Effectiveness View – <quarter>", …).
+3. **A real CSA test is spun out** that *obtains those named artefacts by name* and checks them, one `[verifies: <ref>]` per check.
+4. **Frequency reconciled** — the old test said *Annually* while the control is *Quarterly* → the CT samples **2 of the 4** quarterly reviews (from the table), not 1.
+5. **Unknowns became placeholders** — the file path, controller seniority, register location, escalation timeframe, hours → `[@evidence_folder_path]`, `[@controller_seniority]`, `[@findings_register_location]`, `[@escalation_timeframe]`, `[@man_hours]`. **Nothing was invented.**
+6. **One control, no split** (the user asked to keep it single).
+
 ## OUTPUT FORMAT
 ### STEP 1 — Reason & propose (present this first, then STOP and ask)
 For each original control:

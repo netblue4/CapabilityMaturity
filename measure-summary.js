@@ -446,7 +446,7 @@ function renderCapabilityLensCard(assessment) {
       <div class="bd-lens-hd">
         <div>
           <h3 class="measure-card-title">Live view &mdash; trace a ${escHtml(dimLbl.toLowerCase())} to its ${escHtml(lensLabel())} objectives</h3>
-          <p class="measure-card-desc">From ${escHtml(lensLabel())} objective to the policy statement and the control that proves it. Select any item for its details.</p>
+          <p class="measure-card-desc">From ${escHtml(lensLabel())} objective to the policy statement and the control that proves it. Open an article, then select any item for its details.</p>
         </div>
         <div class="caplens-src-lbl">Source
           <div class="caplens-src" role="tablist" aria-label="Statement source">
@@ -464,8 +464,18 @@ const CAPLENS_SOURCES = [['all', 'DORA'], ['policy', 'Policy'], ['group', 'Group
 let _capLensSource = 'all';
 let _capLensCapId = null;
 let _capLensDims = [];
-let _capLensGaps = false;   // "Only what needs attention"
+let _capLensMode = 'all';   // trace filter — see CAPLENS_MODES
 let _capLensSel = null;     // selected trace item key (o0-1, o0-1-s0, o0-1-s0-k1)
+let _capLensOpen = {};      // article index → open; unset = the mode's default
+// Trace filters. "all" starts every article collapsed; the others open the
+// articles that have something to show.
+const CAPLENS_MODES = [
+  ['all',       'Everything'],
+  ['attention', 'Needs attention'],
+  ['undoc',     'Not documented'],
+  ['unimpl',    'Not implemented'],
+  ['uneff',     'Not effective'],
+];
 function capLensPills(activeId) {
   return _capLensDims.map(c => {
     const s = _capLensA ? buildCapabilitySummary(_capLensA, c.id, 'all') : null;
@@ -477,11 +487,18 @@ function capLensPills(activeId) {
 function capLensRefresh() {
   if (!_capLensA || _capLensCapId == null) return;
   const body = document.getElementById('caplens-body');
-  if (body) body.innerHTML = capLensBody(_capLensA, _capLensCapId);
+  if (!body) return;
+  body.innerHTML = capLensBody(_capLensA, _capLensCapId);
+  // Keep keyboard focus on the item that was just selected or toggled.
+  const keep = _capLensFocus && body.querySelector(`[data-key="${_capLensFocus}"]`);
+  if (keep) keep.focus({ preventScroll: true });
+  _capLensFocus = null;
 }
+let _capLensFocus = null;
 function updateCapabilityLens(capId) {
   _capLensCapId = capId;
   _capLensSel = null;
+  _capLensOpen = {};
   const pills = document.getElementById('caplens-pills');
   if (pills) pills.innerHTML = capLensPills(capId);
   capLensRefresh();
@@ -489,13 +506,20 @@ function updateCapabilityLens(capId) {
 function capLensSetSource(src) {
   _capLensSource = src;
   _capLensSel = null;
+  _capLensOpen = {};
   document.querySelectorAll('.caplens-src .cls-tab').forEach(b => {
     const on = b.dataset.src === src; b.classList.toggle('cls-tab-on', on); b.setAttribute('aria-selected', on);
   });
   capLensRefresh();
 }
-function capLensSetGaps(on) { _capLensGaps = !!on; capLensRefresh(); }
-function capLensSelect(key) { _capLensSel = _capLensSel === key ? null : key; capLensRefresh(); }
+function capLensSetMode(mode) { _capLensMode = mode; _capLensSel = null; _capLensOpen = {}; capLensRefresh(); }
+function capLensSelect(key) { _capLensSel = _capLensSel === key ? null : key; _capLensFocus = key; capLensRefresh(); }
+function capLensToggleArt(i) {
+  const open = _capLensOpen[i] !== undefined ? _capLensOpen[i] : _capLensMode !== 'all';
+  _capLensOpen[i] = !open;
+  _capLensFocus = 'art' + i;
+  capLensRefresh();
+}
 // Short scope note shown when a single source is active.
 function capLensSrcNote(source) {
   return source === 'policy' ? ' · Local Policy only'
@@ -524,8 +548,7 @@ function capLensBody(a, capId) {
     </div>
     <div class="bd-lens-bar">
       <div class="bd-seg" role="group" aria-label="Show">
-        <button type="button" aria-pressed="${!_capLensGaps}" onclick="capLensSetGaps(false)">Everything</button>
-        <button type="button" aria-pressed="${_capLensGaps}" onclick="capLensSetGaps(true)">Only what needs attention</button>
+        ${CAPLENS_MODES.map(([v, l]) => `<button type="button" aria-pressed="${v === _capLensMode}" onclick="capLensSetMode('${v}')">${l}${v === 'all' ? '' : ` <span class="bd-seg-n">${trace.counts[v]}</span>`}</button>`).join('')}
       </div>
       <div class="bd-legend">
         <span><i class="bd-dot bd-dot-ok" aria-hidden="true"></i>Effective</span>
@@ -534,10 +557,7 @@ function capLensBody(a, capId) {
         <span><i class="bd-dot bd-dot-gap" aria-hidden="true"></i>Gap</span>
       </div>
     </div>
-    <div class="bd-lens-grid">
-      <div class="bd-trace">${trace.html}</div>
-      <aside class="bd-detail" aria-label="Details" aria-live="polite">${trace.detail}</aside>
-    </div>`;
+    <div class="bd-trace">${trace.html}</div>`;
 }
 
 // Objective → statement → control, one row per objective, so the whole chain is
@@ -551,47 +571,90 @@ function renderCapTrace(arts, source) {
     { key: 'draft', label: 'Draft' },
     { key: 'gap',   label: 'Gap' },
   ];
+  const mode = _capLensMode;
   const cLevel = c => c.status === 'Implemented' ? (c.effectiveness === 'Effective' ? 0 : 1) : 2;
   const sLevel = s => s.controls.length ? Math.max(...s.controls.map(cLevel)) : 3;
   const oLevel = o => o.covered !== 'Yes' ? 3 : (o.statements.length ? Math.max(...o.statements.map(sLevel)) : 3);
+  const isUncovered = o => !o.unmapped && (o.covered !== 'Yes' || !o.statements.length);
   const excOf = s => /^(E|WT|WP)\b/.test(s.disposition || '') ? String(s.disposition).replace(/^\w+\s*—\s*/, '') : '';
   const sel = _capLensSel;
   const on = k => k === sel ? ' is-sel' : '';
-  const pick = k => `onclick="capLensSelect('${k}')" aria-pressed="${k === sel}"`;
+  const pick = k => `data-key="${k}" onclick="capLensSelect('${k}')" aria-pressed="${k === sel}"`;
   const chip = lvl => `<span class="bd-chip bd-tone-${ST[lvl].key}">${ST[lvl].label}</span>`;
   let detail = '';
   const setDetail = (kind, code, title, lvl, labelOverride, says, rows) => {
-    detail = `<span class="bd-detail-kind">${kind}</span>
-      ${code ? `<span class="bd-detail-code">${escHtml(code)}</span>` : ''}
-      <h4 class="bd-detail-title">${escHtml(title)}</h4>
-      <span class="bd-chip bd-tone-${ST[lvl].key}">${labelOverride || ST[lvl].label}</span>
-      <p class="bd-detail-says">${escHtml(says)}</p>
-      <dl>${rows.filter(r => r[1]).map(([k, v]) => `<div><dt>${escHtml(k)}</dt><dd>${escHtml(v)}</dd></div>`).join('')}</dl>`;
+    detail = `<div class="bd-detail" role="region" aria-label="Details">
+      <div class="bd-detail-main">
+        <span class="bd-detail-kind">${kind}${code ? ` · <span class="bd-detail-code">${escHtml(code)}</span>` : ''}</span>
+        <h4 class="bd-detail-title">${escHtml(title)}</h4>
+        <span class="bd-chip bd-tone-${ST[lvl].key}">${labelOverride || ST[lvl].label}</span>
+        <p class="bd-detail-says">${escHtml(says)}</p>
+      </div>
+      <dl>${rows.filter(r => r[1]).map(([k, v]) => `<div><dt>${escHtml(k)}</dt><dd>${escHtml(v)}</dd></div>`).join('')}</dl>
+      <button type="button" class="bd-detail-close" onclick="capLensSelect('${sel}')" aria-label="Close details">×</button>
+    </div>`;
   };
 
-  let total = 0, needing = 0;
+  // Each article's objectives; unmapped statements sit under one pseudo-objective.
+  const objsOf = a => a.noArt
+    ? [{ id: '', text: '', covered: 'Yes', statements: a.objectives.flatMap(o => o.statements), unmapped: true }]
+    : a.objectives;
+  // What each filter keeps of an objective: its statements (and their controls),
+  // or null when nothing in it matches.
+  const keep = o => {
+    const unc = isUncovered(o);
+    if (mode === 'all') return { stmts: o.statements.map(s => ({ s, ctrls: s.controls })) };
+    if (mode === 'attention') return oLevel(o) > 0 ? { stmts: o.statements.map(s => ({ s, ctrls: s.controls })) } : null;
+    if (mode === 'undoc') return unc ? { stmts: [] } : null;
+    if (mode === 'unimpl') {
+      const st = unc ? [] : o.statements.filter(s => !s.controls.length).map(s => ({ s, ctrls: [] }));
+      return st.length ? { stmts: st } : null;
+    }
+    if (mode === 'uneff') {
+      const st = unc ? [] : o.statements.map(s => ({ s, ctrls: s.controls.filter(c => cLevel(c) > 0) })).filter(x => x.ctrls.length);
+      return st.length ? { stmts: st } : null;
+    }
+    return null;
+  };
+
+  // Counts for the filter buttons, over the whole capability.
+  const counts = { attention: 0, undoc: 0, unimpl: 0, uneff: 0 };
+  let total = 0;
+  arts.forEach(a => objsOf(a).forEach(o => {
+    if (!o.unmapped) { total++; if (oLevel(o) > 0) counts.attention++; if (isUncovered(o)) counts.undoc++; }
+    if (isUncovered(o)) return;
+    o.statements.forEach(s => { if (!s.controls.length) counts.unimpl++; counts.uneff += s.controls.filter(c => cLevel(c) > 0).length; });
+  }));
+
+  const chev = '<svg class="bd-art-chev" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const html = arts.map((a, ai) => {
-    // Unmapped statements sit under one pseudo-objective with no objective card.
-    const objs = a.noArt
-      ? [{ id: '', text: '', covered: 'Yes', statements: a.objectives.flatMap(o => o.statements), unmapped: true }]
-      : a.objectives;
-    const rows = objs.map((o, oi) => {
+    const objs = objsOf(a);
+    const kept = objs.map((o, oi) => ({ o, oi, k: keep(o) })).filter(x => x.k);
+    if (!kept.length) return '';
+    const open = _capLensOpen[ai] !== undefined ? _capLensOpen[ai] : mode !== 'all';
+    const worst = Math.max(...objs.map(o => o.unmapped ? Math.max(0, ...o.statements.map(sLevel)) : oLevel(o)));
+    const needs = objs.filter(o => !o.unmapped && oLevel(o) > 0).length;
+    const covered = a.noArt ? 0 : a.objectives.filter(o => !isUncovered(o)).length;
+    const meta = a.noArt ? `${objs[0].statements.length} statement${objs[0].statements.length === 1 ? '' : 's'}`
+      : mode === 'all' ? `${covered} of ${a.objectives.length} objectives covered${needs ? ` · ${needs} need${needs === 1 ? 's' : ''} attention` : ''}`
+      : `${kept.length} matching objective${kept.length === 1 ? '' : 's'}`;
+    const rows = !open ? '' : kept.map(({ o, oi, k }) => {
       const lvl = oLevel(o);
-      if (!o.unmapped) { total++; if (lvl > 0) needing++; }
-      if (_capLensGaps && lvl === 0) return '';
       const oKey = `o${ai}-${oi}`;
-      const uncovered = o.covered !== 'Yes' || !o.statements.length;
-      if (sel === oKey) setDetail(`${LL} objective`, o.id, o.text || o.id, lvl, uncovered ? 'Coverage gap' : '',
-        uncovered ? 'No policy or group-standard statement covers this objective, so nothing commits us to it yet.'
+      const before = detail;
+      const unc = isUncovered(o);
+      if (sel === oKey) setDetail(`${LL} objective`, o.id, o.text || o.id, lvl, unc ? 'Coverage gap' : '',
+        unc ? 'No policy or group-standard statement covers this objective, so nothing commits us to it yet.'
           : lvl === 0 ? 'Every control beneath this objective is live and rated effective.'
           : 'Covered by policy, but at least one control beneath it is not yet proven to work.',
         [['Article', a.article], ['Policy statements', String(o.statements.length)]]);
       const objCell = o.unmapped
         ? `<div class="bd-obj bd-obj-none">Not mapped to a ${escHtml(LL)} objective</div>`
         : `<button type="button" class="bd-obj${on(oKey)}" ${pick(oKey)}><span class="bd-obj-id"><i class="bd-dot bd-dot-${ST[lvl].key}" aria-hidden="true"></i>${escHtml(o.id || '')}</span><span class="bd-obj-text">${escHtml(o.text || '')}</span></button>`;
-      const stmts = uncovered
+      const stmts = unc
         ? `<button type="button" class="bd-gap${on(oKey)}" ${pick(oKey)}><b>No policy statement</b><span>Nothing in our policies or group standards covers this objective yet.</span></button>`
-        : o.statements.map((s, si) => {
+        : k.stmts.map(({ s, ctrls }) => {
+          const si = o.statements.indexOf(s);
           const sKey = `${oKey}-s${si}`;
           const slvl = sLevel(s);
           const exc = excOf(s);
@@ -602,8 +665,9 @@ function renderCapTrace(arts, source) {
           if (sel === sKey) setDetail('Policy statement', s.ref, s.header || s.ref, slvl, s.controls.length ? '' : 'No control',
             s.controls.length ? `Put into practice by ${s.controls.length} control${s.controls.length > 1 ? 's' : ''}.` : gapNote,
             [['Document', s.document], ['Source', s.source], ['Exception', exc || 'None'], ['Implements', o.unmapped ? '' : `${o.id} — ${o.text || ''}`]]);
-          const ctrls = s.controls.length
-            ? s.controls.map((c, ki) => {
+          const ctrlHtml = s.controls.length
+            ? ctrls.map(c => {
+              const ki = s.controls.indexOf(c);
               const kKey = `${sKey}-k${ki}`;
               const klvl = cLevel(c);
               const p = bdCtrlParts(c.name);
@@ -620,28 +684,37 @@ function renderCapTrace(arts, source) {
               <span class="bd-stmt-doc">${escHtml(s.document || '')}</span>
               ${exc ? `<span class="bd-chip bd-tone-muted">${escHtml(exc)}</span>` : ''}
             </button>
-            <div class="bd-ctrls">${ctrls}</div>
+            <div class="bd-ctrls">${ctrlHtml}</div>
           </div>`;
         }).join('');
-      return `<div class="bd-obj-row">${objCell}<div class="bd-stmts">${stmts}</div></div>`;
+      // The details box opens directly beneath the row that holds the selection.
+      const here = detail !== before ? detail : '';
+      return `<div class="bd-obj-row${here ? ' has-detail' : ''}">${objCell}<div class="bd-stmts">${stmts}</div></div>${here}`;
     }).join('');
-    if (!rows) return '';
-    const covered = a.noArt ? 0 : a.objectives.filter(o => o.covered === 'Yes' && o.statements.length).length;
-    return `<section class="bd-art">
-      <div class="bd-art-hd"><h5>${escHtml(a.article)}</h5>${a.noArt ? '' : `<span>${covered} of ${a.objectives.length} objectives covered</span>`}</div>
-      ${rows}
+    return `<section class="bd-art${open ? ' is-open' : ''}">
+      <button type="button" class="bd-art-hd" data-key="art${ai}" aria-expanded="${open}" onclick="capLensToggleArt(${ai})">
+        <i class="bd-dot bd-dot-${ST[worst].key}" aria-hidden="true"></i>
+        <span class="bd-art-title">${escHtml(a.article)}</span>
+        <span class="bd-art-meta">${meta}</span>${chev}
+      </button>
+      ${open ? `<div class="bd-art-body"><div class="bd-trace-head" aria-hidden="true"><span>${escHtml(LL)} objective</span><span>Policy statement</span><span>Control</span></div>${rows}</div>` : ''}
     </section>`;
   }).join('');
 
-  const head = `<div class="bd-trace-head" aria-hidden="true"><span>${escHtml(LL)} objective</span><span>Policy statement</span><span>Control</span></div>`;
+  const EMPTY = {
+    all: 'Nothing mapped yet.',
+    attention: 'Nothing needs attention here — every objective traces through to an effective control.',
+    undoc: `Every applicable ${escHtml(LL)} objective is covered by a policy statement.`,
+    unimpl: 'Every policy statement has at least one control.',
+    uneff: 'Every control here is live and rated effective.',
+  };
   const body = !arts.length
     ? `<div class="bd-empty">No ${escHtml(lensRef())}s mapped to this ${escHtml(((typeof lensDimLabel === 'function') ? lensDimLabel() : 'capability').toLowerCase())} yet.</div>`
-    : html || `<div class="bd-empty">Nothing needs attention here — every objective traces through to an effective control.</div>`;
-  if (!detail) detail = `<h4 class="bd-detail-title">Ask “what proves this?”</h4><p class="bd-detail-says">Select any objective, policy statement or control to see what it is, which document it sits in, and whether it is working.</p>`;
+    : html || `<div class="bd-empty">${EMPTY[mode]}</div>`;
   const sentence = !total ? 'No objectives mapped yet.'
-    : needing ? `${needing} of ${total} objective${total > 1 ? 's' : ''} need${needing === 1 ? 's' : ''} attention.`
+    : counts.attention ? `${counts.attention} of ${total} objective${total > 1 ? 's' : ''} need${counts.attention === 1 ? 's' : ''} attention.`
     : 'Every objective traces through to an effective control.';
-  return { html: head + body, detail, sentence: escHtml(sentence) };
+  return { html: body, counts, sentence: escHtml(sentence) };
 }
 function renderTraceabilityCard(assessment) {
   const t = buildTraceabilityRows(assessment);

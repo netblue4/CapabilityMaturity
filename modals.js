@@ -168,6 +168,62 @@ function showConfidenceModal() {
   document.getElementById("ratings-modal").style.display = "flex";
 }
 
+// ── "How to write a control" guide popup (Prompt Console) ──────────────
+// Renders docs/control-design-method.md in the shared modal, so the in-app
+// guide is the SAME file committed to the repo (one source of truth). A small
+// Markdown renderer covers the subset the guide uses (headings, blockquote,
+// hr, ordered/unordered lists, **bold**, *italic*, `code`).
+let _guideText = '';
+function _cgEscape(s) { return (typeof escHtml === 'function') ? escHtml(s) : String(s == null ? '' : s); }
+function _cgInline(s) {
+  let t = _cgEscape(s);
+  const codes = [];
+  t = t.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000'; });
+  t = t.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+  t = t.replace(/\u0000(\d+)\u0000/g, (_, n) => '<code class="cg-code">' + codes[+n] + '</code>');
+  return t;
+}
+function _mdToHtml(md) {
+  const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
+  let html = '', para = [], listType = null, bq = [];
+  const flushPara = () => { if (para.length) { html += '<p>' + _cgInline(para.join(' ')) + '</p>'; para = []; } };
+  const closeList = () => { if (listType) { html += '</' + listType + '>'; listType = null; } };
+  const flushBq = () => { if (bq.length) { html += '<blockquote class="cg-bq">' + _cgInline(bq.join(' ')) + '</blockquote>'; bq = []; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    if (/^\s*$/.test(line)) { flushPara(); flushBq(); closeList(); continue; }
+    if (/^>\s?/.test(line)) { flushPara(); closeList(); bq.push(line.replace(/^>\s?/, '')); continue; }
+    flushBq();
+    if (/^#{1,6}\s/.test(line)) { flushPara(); closeList(); const lvl = line.match(/^#+/)[0].length; html += '<h' + lvl + ' class="cg-h' + lvl + '">' + _cgInline(line.replace(/^#+\s/, '')) + '</h' + lvl + '>'; continue; }
+    if (/^---+\s*$/.test(line)) { flushPara(); closeList(); html += '<hr class="cg-hr">'; continue; }
+    let m;
+    if ((m = line.match(/^(\d+)\.\s+(.*)$/))) { flushPara(); if (listType !== 'ol') { closeList(); html += '<ol class="cg-ol">'; listType = 'ol'; } html += '<li>' + _cgInline(m[2]) + '</li>'; continue; }
+    if ((m = line.match(/^[-*]\s+(.*)$/))) { flushPara(); if (listType !== 'ul') { closeList(); html += '<ul class="cg-ul">'; listType = 'ul'; } html += '<li>' + _cgInline(m[1]) + '</li>'; continue; }
+    closeList(); para.push(line.trim());
+  }
+  flushPara(); flushBq(); closeList();
+  return html;
+}
+function _loadGuideText(cb) {
+  if (_guideText) { if (cb) cb(); return; }
+  if (typeof _loadFileText === 'function') _loadFileText('docs/control-design-method.md', t => { _guideText = t; }, cb);
+  else if (cb) cb();
+}
+function showControlGuideModal() {
+  const render = () => {
+    document.getElementById('modal-title').textContent = 'How to write a control — field-by-field guide';
+    const body = document.getElementById('modal-body');
+    body.innerHTML = _guideText
+      ? '<div class="ctrl-guide">' + _mdToHtml(_guideText) + '</div>'
+      : '<p class="modal-desc">Couldn’t load the guide (docs/control-design-method.md).</p>';
+    const modal = document.getElementById('ratings-modal');
+    const box = modal.querySelector('.modal-box'); if (box) box.classList.add('modal-wide');
+    modal.style.display = 'flex';
+  };
+  if (_guideText) render(); else _loadGuideText(render);
+}
+
 // ── Under-assured drill-down — are risk ratings backed by control evidence? ──
 function showUnderAssuredModal(assessmentId, theme) {
   const a = db.assessments.find(x => x.id === assessmentId);

@@ -221,6 +221,29 @@ assert(pc.asmts >= 2, `Prompt Console: assessment selector populated (${pc.asmts
 assert(['pcRiskPrompts()', 'pcMapArticle()', 'pcLinkControls()', 'pcOperationalise()', 'pcCbi()'].every(x => pc.launchers.includes(x)), 'Prompt Console: indexes all prompt launchers (risk, map, link, operationalise, CBI)');
 assert(pc.opReady, 'Prompt Console: a launcher sets the shared context and opens its popup');
 
+// ── "How to write a control" guide popup (ℹ on the Operationalise card) ──
+const guide = await page.evaluate(async () => {
+  showPromptConsole();
+  const hasInfo = !!document.querySelector('#pc-index .pc-info');
+  await new Promise(res => {
+    showControlGuideModal();
+    const t = setInterval(() => { if (document.querySelector('.ctrl-guide')) { clearInterval(t); res(); } }, 50);
+    setTimeout(() => { clearInterval(t); res(); }, 4000);
+  });
+  const g = document.querySelector('.ctrl-guide');
+  const html = g ? g.innerHTML : '';
+  const shown = document.getElementById('ratings-modal').style.display === 'flex';
+  const wide = !!document.querySelector('#ratings-modal .modal-box.modal-wide');
+  closeRatingsModal();
+  return { hasInfo, shown, wide,
+    hasLine: /Control is linked to following Policy &amp; Group Standard statements/.test(html),
+    hasField: /Linked Policy &amp; Group Standard statements/.test(html) };
+});
+assert(guide.hasInfo, 'Prompt Console: Operationalise card carries the ℹ Guide button');
+assert(guide.shown && guide.wide, 'Control guide: popup opens wide from the console');
+assert(guide.hasLine, 'Control guide: renders the guide incl. the exact "Control is linked to following…" line');
+assert(guide.hasField, 'Control guide: linked-statements is its own field in the guide');
+
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));
 assert(btns.some(b => b.includes('DORA Reporting')), 'Button: DORA Reporting');

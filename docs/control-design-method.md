@@ -26,43 +26,43 @@ Every control is built from **two inputs**:
 **What:** a short, self-explanatory name that includes the **control type**.
 **How:** name it by the assurance activity — *4-eye check, reconciliation, approval / sign-off, variance check, sample testing, dashboard monitoring* (or a plain review). E.g. *"Quarterly RCSA effectiveness-oversight review (Dashboard Monitoring)"*. The type tells the reader (and the tester) what kind of check this is.
 
-### 2. Control Objective
-**What:** one sentence stating the assurance the control gives.
-**How:** **read the policy statements** and write the point of comfort — what a reader can rely on once this control has run. Objective, not activity: *"Assurance that every live risk-treatment control carries a current effectiveness verdict and that not-effective controls are escalated,"* not *"review the dashboard."*
+### 2. Linked Policy & Group Standard statements — the control's opening line
+**What:** the single most important line in the control. It is written as the **first line of the control**, naming every policy and group-standard statement the control satisfies. It stands on its own — not buried inside the description.
+**How:** add it **exactly**, in the house wording:
 
-### 3. Control Description
+> **Control is linked to following Policy & Group Standard statements: (`<refs>`)**
+
+For example: *Control is linked to following Policy & Group Standard statements: (LP-26 PS02, LP-26 PS07, LP-26 PS01, LP-07 PS3)*.
+
+**Why this matters:** this line **hard-links the control to the exact statements it satisfies**. It means (a) coverage can be proven end to end — statement → control; (b) an auditor or a new owner instantly sees *which regulatory obligation this control exists to discharge*; and (c) if a statement later changes, you can find every control linked to it. It is the thread that ties the control framework back to the policy.
+
+### 3. Control Objective
+**What:** one sentence stating the assurance the control gives.
+**How:** **read the policy statements** and write the point of comfort — what a reader can rely on once this control has run. Objective, not activity: *"Provide ongoing oversight of the effectiveness of the risk-treatment-controls operationalising DORA,"* not *"review the dashboard."*
+
+### 4. Control Description
 **What:** a concise paragraph explaining **what the control checks**, naming the **systems/documents used** and the **seniority of the person** who performs it.
 **How:** describe the checking activity (not the end-to-end business process). Name the real tools and the controller's role/seniority so a new owner knows *who* does it and *where*. Mark anything you don't know `[@…]` (e.g. `[@controller_seniority]`, `[@system_location]`).
 
-**Then add — exactly — the "implements" line:**
-
-> **This control implements the following Policy and Group Standard statements: `[<refs>]` — `<one-line restatement of the obligation>`.**
-
-**Why this matters:** this line **hard-links the control to the exact statements it satisfies**. It means (a) coverage can be proven end to end — statement → control; (b) an auditor or a new owner instantly sees *which regulatory obligation this control exists to discharge*; and (c) if a statement later changes, you can find every control that implements it. It is the thread that ties the control framework back to the policy.
-
-### 4. Control Steps
+### 5. Control Steps
 **What:** the numbered actions the owner performs — the heart of the control.
 **How:** one action per step, each a **real, observable check** a first-time owner can follow, written with the real system/document and the criterion checked (mark a missing criterion `[@exact_criteria_to_check]`). **Every evidence-producing step ends by saving a named artefact:**
 
 > *…→ Save evidence of the `<thing>` as `"<Evidence Name> – <id>"` to the evidence location below.*
 
-Use the **same evidence names** here, in the Evidence list (field 7) and in the test. The name is the join key.
+Use the **same evidence names** here, in the Evidence list (field 8) and in the test. The name is the join key.
 
-### 5. Control Frequency
+### 6. Control Frequency
 **What:** how often the control runs.
 **How:** Daily / Weekly / Monthly / Quarterly / Ad hoc / Automated. This drives the test sample size later, so be exact.
 
-### 6. Control Evidence location
+### 7. Control Evidence location
 **What:** where the saved evidence lives.
 **How:** the folder / path / system location. If the existing control doesn't state it, mark `[@evidence_folder_path]`.
 
-### 7. Control Evidence
+### 8. Control Evidence
 **What:** the list of **named artefacts** the steps produce.
 **How:** repeat, exactly, the names from the Control Steps (`"<Evidence Name> – <id>"`, …). This list is what the tester will go and retrieve.
-
-### 8. Linked Policy & Group Standard statements
-**What:** the statement references this control is mapped to.
-**How:** list the refs (the same ones named in the "implements" line). Mark `[@other_statements]` if unsure.
 
 ### 9. Control Cost *(supplementary)*
 **What:** the effort the control takes — typically **man-hours × frequency**.
@@ -118,10 +118,11 @@ Two parts, mirroring the named evidence:
 
 **The control**
 1. Name carries the **control type**.
-2. Objective states the **assurance**, read from the statements.
-3. Description names **systems + controller seniority**, and includes the **"This control implements…"** line (the link back to policy).
-4. Steps are **runnable by a new owner** and each **saves a named artefact**.
-5. Frequency · 6. Evidence location · 7. named Evidence list · 8. Linked statements.
+2. **"Control is linked to following Policy & Group Standard statements: (refs)"** — the opening line that links the control back to policy.
+3. Objective states the **assurance**, read from the statements.
+4. Description names **systems + controller seniority**.
+5. Steps are **runnable by a new owner** and each **saves a named artefact**.
+6. Frequency · 7. Evidence location · 8. named Evidence list.
 9. **Cost** recorded (man-hours × frequency) so Risk can weigh cost vs benefit.
 
 **The test**

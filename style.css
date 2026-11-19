@@ -3697,9 +3697,15 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .bd-cap-row:last-child { border-bottom: 0; }
 .bd-cap-row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 
-/* Policy & Group Standards Attenuation report (capability cards) */
-.pgsa-table { min-width: 720px; }
-.pgsa-head, .pgsa-row { display: grid; grid-template-columns: minmax(220px, 2.2fr) minmax(110px, .8fr) minmax(240px, 2.4fr); gap: 1rem; padding: .7rem 1.5rem; }
+/* Policy & Group Standards Attestation (RICA) report — collapsible capability cards */
+.pgsa-summary { cursor: pointer; list-style: none; }
+.pgsa-summary::-webkit-details-marker { display: none; }
+.pgsa-summary h2 { display: inline-flex; align-items: center; gap: .5rem; }
+.pgsa-summary h2::before { content: '▸'; color: var(--text-muted); font-size: .85em; transition: transform .15s; }
+.pgsa-card[open] .pgsa-summary h2::before { transform: rotate(90deg); }
+.pgsa-doc { font-size: .85rem; font-weight: 500; }
+.pgsa-table { min-width: 820px; }
+.pgsa-head, .pgsa-row { display: grid; grid-template-columns: minmax(150px, 1.3fr) minmax(190px, 2fr) minmax(100px, .7fr) minmax(220px, 2.2fr); gap: 1rem; padding: .7rem 1.5rem; }
 .pgsa-head { padding-top: .9rem; padding-bottom: .9rem; border-bottom: 1px solid var(--border); font-size: .8rem; font-weight: 600; color: var(--text-muted); }
 .pgsa-row { min-height: 56px; align-items: center; border-bottom: 1px solid var(--border-subtle); }
 .pgsa-row:last-child { border-bottom: 0; }

@@ -41,6 +41,7 @@ function renderPgsaReport(currentA) {
           ? `<span class="pgsa-none pgsa-exc">Disclosed exception: ${escHtml(s.exception)}</span>`
           : `<span class="pgsa-none">No control yet</span>`);
     return `<div class="pgsa-row">
+      <span class="pgsa-doc">${escHtml(s.document || '—')}</span>
       <span class="pgsa-stmt"><b>${escHtml(s.ref || '—')}</b><small>${escHtml(s.header || '')}</small></span>
       <span class="pgsa-srccell">${pgsaSrcChip(s.source)}</span>
       <span class="pgsa-ctrls">${ctrlCell}</span>
@@ -51,13 +52,13 @@ function renderPgsaReport(currentA) {
     const list = byCap[id].slice().sort((a, b) => String(a.ref).localeCompare(String(b.ref)));
     const n = list.length;
     const withCtrl = list.filter(s => s.hasControl).length;
-    return `<section class="bd-sec bd-pillar pgsa-card">
-      <div class="bd-sec-hd"><h2>${escHtml(capNm(id))}</h2><span>${withCtrl}/${n} statement${n === 1 ? '' : 's'} implemented by a control</span></div>
+    return `<details class="bd-sec bd-pillar pgsa-card">
+      <summary class="bd-sec-hd pgsa-summary"><h2>${escHtml(capNm(id))}</h2><span>${withCtrl}/${n} statement${n === 1 ? '' : 's'} implemented by a control</span></summary>
       <div class="bd-table-wrap"><div class="pgsa-table">
-        <div class="pgsa-head"><span>Policy / Group Standard statement</span><span>Source</span><span>Control(s) &amp; effectiveness</span></div>
+        <div class="pgsa-head"><span>Document</span><span>Policy / Group Standard statement</span><span>Source</span><span>Control(s) &amp; effectiveness</span></div>
         ${list.map(stmtRow).join('')}
       </div></div>
-    </section>`;
+    </details>`;
   }).join('');
 
   const app = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
@@ -65,8 +66,8 @@ function renderPgsaReport(currentA) {
     <div class="bd-top">
       <div>
         <div class="exsc-eyebrow">◈ ${escHtml(app)}</div>
-        <h2 class="exsc-title bd-doc-title">Policy &amp; Group Standards Attenuation</h2>
-        <div class="bd-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)} · how each statement is attenuated by its controls</div>
+        <h2 class="exsc-title bd-doc-title">Policy and Group Standards Attestation (RICA)</h2>
+        <div class="bd-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)} · each statement attested by its controls — open a capability to see its statements</div>
       </div>
       <div class="bd-actions no-print">
         <button type="button" class="bd-btn" onclick="window.print()">Print / save PDF</button>

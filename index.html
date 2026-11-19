@@ -264,6 +264,28 @@
       </div>
     </div>
 
+    <!-- Attestation statement generator -->
+    <div id="attest-modal" class="modal-overlay" onclick="if(event.target===this)closeAttestModal()" style="display:none">
+      <div class="modal-box prompts-box am-box">
+        <div class="modal-header">
+          <h3>📝 Write an attestation statement</h3>
+          <button class="modal-close" onclick="closeAttestModal()">✕</button>
+        </div>
+        <p class="am-intro">Pick one policy or group-standard statement; the prompt fetches it with the controls that implement it (and each control's status &amp; effectiveness), then writes an <b>attestation statement</b>: it breaks the statement into short <b>key phrases</b>, matches controls to each by intent, and writes — from the control wording — how each control meets the phrase, marking every key phrase <b>Met / Partially met / Not met</b> (a Draft or not-yet-effective control can only be <i>partially</i> met). Key phrases with no control are flagged as not met yet.</p>
+        <label class="am-label">1 · Policies / group standards — expand &amp; pick one statement to attest</label>
+        <div id="att-stmts" class="am-docs"></div>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="generateAttestPrompt()">Generate prompt</button>
+          <span class="prompt-hint">Generate, copy, run in your LLM to get the attestation statement.</span>
+        </div>
+        <label class="am-label">Prompt</label>
+        <textarea id="att-prompt" class="prompt-text" readonly spellcheck="false"></textarea>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="copyAttestPrompt(this)">⧉ Copy prompt</button>
+        </div>
+      </div>
+    </div>
+
     <!-- CBI evidence-pack generator (Section 4 ICT Risk Control) — full page -->
     <section id="view-cbi" class="view">
       <div class="section-header">

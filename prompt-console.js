@@ -32,6 +32,7 @@ function pcRiskPrompts() { _pcLaunch(window.openPromptsModal, false); }
 function pcMapArticle() { _pcLaunch(window.openArticleMapModal, true); }
 function pcLinkControls() { _pcLaunch(window.openLinkCtrlModal, true); }
 function pcOperationalise() { _pcLaunch(window.openCtrlDescModal, true); }
+function pcAttest() { _pcLaunch(window.openAttestModal, true); }
 function pcCbi() { if (typeof showCbiView === 'function') showCbiView(); }
 
 function showPromptConsole() {
@@ -58,6 +59,7 @@ function renderPromptIndex() {
       ${card('✨ Map a new article', 'Paste a new DORA article/RTS, pick documents → objectives mapped to your statements in the Import DORA Mapping columns.', 'pcMapArticle()')}
       ${card('✨ Link controls', 'Pick risks + policies/standards → map your controls to statements by intent.', 'pcLinkControls()')}
       ${card('✨ Operationalise controls', 'Expand a policy/standard, tick controls → reason through the rewrite, then build operational control(s) + control test(s) to the CSA standard.', 'pcOperationalise()', '', 'showControlGuideModal()')}
+      ${card('✍️ Write an attestation statement', 'Pick one policy/standard statement → break it into key phrases, match the implementing controls by intent, and write the attestation (Met / Partially met / Not met, reflecting control effectiveness).', 'pcAttest()')}
     </div>
     <div class="pc-group"><div class="pc-group-hd">CBI self-assessment</div>
       ${card('📝 CBI evidence-pack generator', 'Map CBI Section-4 questions to your DORA objectives, then generate the Strengths / Weaknesses / maturity table for Excel.', 'pcCbi()', 'Has its own assessment picker.')}
@@ -72,5 +74,6 @@ if (typeof window !== 'undefined') {
   window.pcMapArticle = pcMapArticle;
   window.pcLinkControls = pcLinkControls;
   window.pcOperationalise = pcOperationalise;
+  window.pcAttest = pcAttest;
   window.pcCbi = pcCbi;
 }

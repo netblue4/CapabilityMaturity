@@ -218,7 +218,7 @@ const pc = await page.evaluate(() => {
 assert(pc.hasHotspot, 'Prompt Console: unlabelled header hotspot present');
 assert(!pc.openedEarly && pc.opened, 'Prompt Console: opens on 4 hotspot clicks, not fewer');
 assert(pc.asmts >= 2, `Prompt Console: assessment selector populated (${pc.asmts})`);
-assert(['pcRiskPrompts()', 'pcMapArticle()', 'pcLinkControls()', 'pcOperationalise()', 'pcCbi()'].every(x => pc.launchers.includes(x)), 'Prompt Console: indexes all prompt launchers (risk, map, link, operationalise, CBI)');
+assert(['pcRiskPrompts()', 'pcMapArticle()', 'pcLinkControls()', 'pcOperationalise()', 'pcAttest()', 'pcCbi()'].every(x => pc.launchers.includes(x)), 'Prompt Console: indexes all prompt launchers (risk, map, link, operationalise, attestation, CBI)');
 assert(pc.opReady, 'Prompt Console: a launcher sets the shared context and opens its popup');
 
 // ── "How to write a control" guide popup (ℹ on the Operationalise card) ──
@@ -243,6 +243,33 @@ assert(guide.hasInfo, 'Prompt Console: Operationalise card carries the ℹ Guide
 assert(guide.shown && guide.wide, 'Control guide: popup opens wide from the console');
 assert(guide.hasLine, 'Control guide: renders the guide incl. the exact "Control is linked to following…" line');
 assert(guide.hasField, 'Control guide: linked-statements is its own field in the guide');
+
+// ── Attestation prompt: pick one statement → statement + implementing controls (with effectiveness) ──
+const att = await page.evaluate(async () => {
+  const a = db.assessments.find(x => x.id === 'demo');
+  setPromptContext(a, 'dora');
+  openAttestModal();
+  await new Promise(res => { const t = setInterval(() => { if (typeof _attText !== 'undefined' && _attText) { clearInterval(t); res(); } }, 50); setTimeout(() => { clearInterval(t); res(); }, 4000); });
+  const radios = [...document.querySelectorAll('#att-stmts .att-stmt-rb')];
+  const withCtrl = radios.find(rb => /\([1-9]\d* control/.test(rb.closest('label')?.textContent || '')) || radios[0];
+  if (withCtrl) withCtrl.checked = true;
+  generateAttestPrompt();
+  const out = document.getElementById('att-prompt').value;
+  closeAttestModal();
+  return {
+    radios: radios.length,
+    method: /Decompose the statement into KEY PHRASES/.test(out),
+    verdicts: /MET \| PARTIALLY MET \| NOT MET/.test(out),
+    stmt: /## STATEMENT TO ATTEST/.test(out),
+    ctrls: /## IMPLEMENTING CONTROLS/.test(out),
+    eff: /Status: .* · Effectiveness:/.test(out),
+    filled: !/\{\{ATTEST_DATA\}\}/.test(out),
+  };
+});
+assert(att.radios > 0, `Attestation: statement picker populated (${att.radios})`);
+assert(att.method && att.verdicts, 'Attestation: prompt carries the key-phrase method + Met/Partially/Not-met verdicts');
+assert(att.stmt && att.ctrls && att.eff, 'Attestation: appends the selected statement + its controls with status & effectiveness');
+assert(att.filled, 'Attestation: {{ATTEST_DATA}} placeholder is filled, not left literal');
 
 // ── Report buttons renamed / added ──
 const btns = await page.$$eval('.header-actions button', b => b.map(x => x.textContent.trim()));

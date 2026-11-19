@@ -35,14 +35,15 @@ const PROMPT_KINDS = [
 ];
 // Static prompt texts held as repo files (kept out of JS so their backticks / paths /
 // angle-brackets need no escaping), loaded once and cached.
-let _csaText = '', _ratText = '', _cdText = '';
+let _csaText = '', _ratText = '', _cdText = '', _attText = '';
 function _loadFileText(url, set, cb) {
   try { fetch(url).then(r => r.ok ? r.text() : '').then(t => { if (t) set(t); if (cb) cb(); }).catch(() => {}); } catch (e) {}
 }
 function _loadCsaText(cb) { if (_csaText) { if (cb) cb(); return; } _loadFileText('docs/csa-rewrite-prompt.md', t => { _csaText = t; }, cb); }
 function _loadRatText(cb) { if (_ratText) { if (cb) cb(); return; } _loadFileText('docs/risk-rationale-prompt.md', t => { _ratText = t; }, cb); }
 function _loadCdText(cb) { if (_cdText) { if (cb) cb(); return; } _loadFileText('docs/control-coverage-prompt.md', t => { _cdText = t; }, cb); }
-if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); _loadCdText(); }
+function _loadAttText(cb) { if (_attText) { if (cb) cb(); return; } _loadFileText('docs/attestation-prompt.md', t => { _attText = t; }, cb); }
+if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); _loadCdText(); _loadAttText(); }
 
 // The "CONTROLS TO PROCESS" block for option 4 — the selected risk's distinct
 // controls (Control No, Name, Status, Frequency, Description, Owner).
@@ -679,6 +680,109 @@ function copyCtrlDescPrompt(btn) {
 }
 function closeCtrlDescModal() { const m = document.getElementById('ctrl-desc-modal'); if (m) m.style.display = 'none'; }
 
+// ── Attestation prompt — one policy / group-standard statement + its controls ──
+// Each statement (deduped by capId||ref) with the controls mapped to it, carrying
+// control description, status (Implemented/Draft) and effectiveness — so the
+// attestation can reflect whether a requirement is actually met, partially met or
+// not met. Grouped by source type → document for the picker.
+function _attStatements() {
+  const pol   = _amPolicy();
+  const facts = _lcFacts();
+  const cN = id => _amWithLens(() => (typeof lensCapName === 'function') ? lensCapName(_amA, id) : id);
+  // Controls per statement key, with description + status + effectiveness.
+  const ctrlByKey = {};
+  (facts || []).forEach(f => {
+    if (typeof ftIsClosedControl === 'function' && ftIsClosedControl(f)) return;
+    if (!(f.controlName || '').trim()) return;
+    const c = {
+      no: (f.controlNumber || '').trim(), name: (f.controlName || '').trim(),
+      desc: (f.controlDesc || '').trim(), owner: (f.controlOwner || '').trim(),
+      status: (typeof ftIsImplemented === 'function' && ftIsImplemented(f)) ? 'Implemented' : 'Draft',
+      effective: typeof ftIsEffective === 'function' ? ftIsEffective(f) : false,
+    };
+    (f.matchedPolicyRows || []).forEach(mp => {
+      const key = mp.capId + '||' + ftNorm(mp.statementRef);
+      const ck = mp.capId + '|' + ftNorm(f.controlNumber) + '|' + ftNorm(f.controlName);
+      const arr = ctrlByKey[key] = ctrlByKey[key] || [];
+      if (!arr.some(x => x._ck === ck)) arr.push(Object.assign({ _ck: ck }, c));
+    });
+  });
+  const seen = new Set(), out = [];
+  (pol || []).forEach(pr => {
+    const key = pr.capId + '||' + ftNorm(pr.statementRef);
+    if (seen.has(key)) return; seen.add(key);
+    out.push({
+      key, capId: pr.capId, capName: cN(pr.capId),
+      ref: (pr.statementRef || '').trim(), header: (pr.statementHeader || '').trim(),
+      detail: (pr.statementDetail || '').trim(), document: (pr.document || '').trim() || '(no document)',
+      source: _amSrcLabel(pr.type), owner: (pr.owner || '').trim(),
+      exception: (typeof ftException === 'function' ? ftException(pr.exception) : (pr.exception || '')),
+      controls: (ctrlByKey[key] || []).sort((a, b) => (a.no || a.name).localeCompare(b.no || b.name)),
+    });
+  });
+  return out;
+}
+function _attBlock(s) {
+  const eff = c => c.status !== 'Implemented' ? '— (not implemented)' : (c.effective ? 'Effective' : 'Not effective');
+  const ctrls = (s.controls || []).map(c =>
+`### CONTROL: ${(c.no ? c.no + ' — ' : '') + c.name}
+Status: ${c.status} · Effectiveness: ${eff(c)}
+Owner: ${c.owner || '(not given)'}
+Control description (use this wording for the attestation):
+${c.desc || '(no description provided in the risk-data upload)'}`).join('\n\n');
+  return `## STATEMENT TO ATTEST
+Document: ${s.document} (${s.source}) · Capability: ${s.capName}
+Statement Ref: ${s.ref || '(none)'}
+Statement Header: ${s.header || '(none)'}
+Statement text (may contain multiple bullet-point requirements):
+${s.detail || '(no statement detail provided)'}
+
+Statement owner: ${s.owner || '(not given)'}
+Disclosed exception: ${s.exception || 'None'}
+
+## IMPLEMENTING CONTROLS (${(s.controls || []).length})
+${(s.controls || []).length ? ctrls : 'No implementing controls are mapped to this statement — judge every key phrase NOT MET (unless the disclosed exception above applies).'}`;
+}
+function openAttestModal() {
+  const m = document.getElementById('attest-modal');
+  if (!m || !_amA) return;
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  const stmts = _attStatements();
+  const host = document.getElementById('att-stmts');
+  if (host) {
+    if (!stmts.length) host.innerHTML = '<p class="policy-no-data" style="margin:.3rem 0">No policy / group-standard statements in this assessment yet.</p>';
+    else {
+      const byDoc = new Map();
+      stmts.forEach(s => { const g = byDoc.get(s.document) || { type: s.source, list: [] }; g.list.push(s); byDoc.set(s.document, g); });
+      const byType = {};
+      [...byDoc.entries()].forEach(([doc, g]) => { (byType[g.type] = byType[g.type] || []).push([doc, g.list]); });
+      host.innerHTML = Object.keys(byType).sort().map(type =>
+        `<div class="am-doc-group"><div class="am-doc-type">${esc(type)}</div>${byType[type].sort((a, b) => a[0].localeCompare(b[0])).map(([doc, list]) =>
+          `<details class="cd-doc-det"><summary class="cd-doc-sum">${esc(doc)} <span class="am-doc-n">(${list.length} statement${list.length === 1 ? '' : 's'})</span></summary>${list.map(s =>
+            `<label class="am-doc cd-ctrl"><input type="radio" name="att-stmt" class="att-stmt-rb" value="${esc(s.key)}"> ${esc((s.ref ? s.ref + ' — ' : '') + s.header)} <span class="am-doc-n">(${s.controls.length} control${s.controls.length === 1 ? '' : 's'})</span></label>`).join('')}</details>`).join('')}</div>`).join('');
+    }
+  }
+  const out = document.getElementById('att-prompt'); if (out) out.value = '';
+  m.style.display = 'flex';
+}
+function generateAttestPrompt() {
+  const out = document.getElementById('att-prompt'); if (!out) return;
+  const sel = document.querySelector('#att-stmts .att-stmt-rb:checked');
+  if (!sel) { out.value = '⚠ Expand a policy / group standard and pick one statement to attest.'; return; }
+  if (!_attText) { out.value = '⚠ Prompt template still loading — try again in a moment.'; _loadAttText(); return; }
+  const s = _attStatements().find(x => x.key === sel.value);
+  if (!s) { out.value = '⚠ That statement is no longer in the data — reopen the popup.'; return; }
+  out.value = _attText.replace('{{ATTEST_DATA}}', _attBlock(s));
+}
+function copyAttestPrompt(btn) {
+  const ta = document.getElementById('att-prompt'); if (!ta || !ta.value) return;
+  const done = ok => { const o = btn.textContent; btn.textContent = ok ? 'Copied ✓' : 'Copy failed'; setTimeout(() => { btn.textContent = o; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(() => done(true)).catch(() => { ta.select(); done(false); });
+  } else { ta.select(); try { document.execCommand('copy'); done(true); } catch (e) { done(false); } }
+}
+function closeAttestModal() { const m = document.getElementById('attest-modal'); if (m) m.style.display = 'none'; }
+
 // Set the shared context the prompt popups read, so they can be launched from
 // the hidden Prompt Console (not only from the cards that normally render them).
 function setPromptContext(assessment, lens) {
@@ -704,6 +808,10 @@ if (typeof window !== 'undefined') {
   window.copyLinkCtrlPrompt = copyLinkCtrlPrompt;
   window.closeLinkCtrlModal = closeLinkCtrlModal;
   window.openCtrlDescModal = openCtrlDescModal;
+  window.openAttestModal = openAttestModal;
+  window.generateAttestPrompt = generateAttestPrompt;
+  window.copyAttestPrompt = copyAttestPrompt;
+  window.closeAttestModal = closeAttestModal;
   window.generateCtrlDescPrompt = generateCtrlDescPrompt;
   window.copyCtrlDescPrompt = copyCtrlDescPrompt;
   window.closeCtrlDescModal = closeCtrlDescModal;

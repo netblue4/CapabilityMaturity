@@ -436,19 +436,29 @@ const pgsa = await page.evaluate(() => {
   showReportModal('pgsa'); document.getElementById('exec-curr-sel').value = 'demo'; generateReport();
   const root = document.getElementById('pgsa-report-content');
   const cards = [...root.querySelectorAll('.pgsa-card')];
+  const collapsed = cards.length > 0 && cards.every(c => c.querySelector('.bd-art-hd')?.getAttribute('aria-expanded') === 'false' && !c.querySelector('.pgsa-row'));
+  pgsaToggleCap(0);   // open the first capability to inspect its rows
+  const first = root.querySelector('.pgsa-card');
+  // Selecting a control opens the details box directly beneath its row.
+  first.querySelector('.pgsa-ctrl')?.click();
+  const det = root.querySelector('.pgsa-detail');
   return {
     view: document.getElementById('view-pgsa-report').classList.contains('active'),
     cards: cards.length,
-    collapsed: cards.length > 0 && cards.every(c => !c.open),
-    headers: cards[0] ? [...cards[0].querySelectorAll('.pgsa-head span')].map(s => s.textContent.trim()) : [],
+    collapsed,
+    headers: [...first.querySelectorAll('.pgsa-head span')].map(s => s.textContent.trim()),
     hasEff: !!root.querySelector('.pgsa-ctrl .bd-chip'),
     hasSrc: !!root.querySelector('.pgsa-src'),
+    detailUnderRow: !!det && det.previousElementSibling?.classList.contains('has-detail'),
+    filters: [...root.querySelectorAll('.bd-seg button')].map(b => b.firstChild.textContent.trim()),
   };
 });
 assert(pgsa.view && pgsa.cards >= 3, `Attestation (RICA) report: one card per capability (${pgsa.cards})`);
 assert(pgsa.collapsed, 'Attestation (RICA) report: each capability card is collapsed by default (details, click to open)');
 assert(pgsa.headers.join(' | ') === 'Document | Policy / Group Standard statement | Source | Control(s) & effectiveness', `Attestation (RICA) report: Document is the first column (${pgsa.headers.join(' | ')})`);
 assert(pgsa.hasSrc && pgsa.hasEff, 'Attestation (RICA) report: statements show their source + each control\'s effectiveness');
+assert(pgsa.detailUnderRow, 'Attestation (RICA) report: selecting a control opens the details box beneath its row');
+assert(pgsa.filters.join(',') === 'Everything,Not implemented,Not effective', `Attestation (RICA) report: gap filters (${pgsa.filters.join(', ')})`);
 // restore the DORA report for the assertions that follow
 await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
 await page.waitForSelector('#exec-report-content .bd-summary');

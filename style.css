@@ -513,6 +513,20 @@ details[open] .cap-filter-toggle::before { transform: rotate(90deg); }
 .pc-item-desc { font-size: .78rem; color: var(--text-muted); margin-top: .15rem; line-height: 1.4; }
 .pc-item-note { font-size: .7rem; color: var(--text-muted); width: 100%; }
 .pc-open { white-space: nowrap; }
+.pc-info { white-space: nowrap; }
+
+/* "How to write a control" guide popup (renders docs/control-design-method.md) */
+.ctrl-guide { font-size: .82rem; line-height: 1.55; color: var(--text); }
+.ctrl-guide .cg-h1 { font-size: 1.05rem; margin: 0 0 .4rem; }
+.ctrl-guide .cg-h2 { font-family: var(--font-mono); font-size: .9rem; margin: 1.1rem 0 .5rem; padding-bottom: .25rem; border-bottom: 1px solid var(--border); }
+.ctrl-guide .cg-h3 { font-size: .86rem; margin: .9rem 0 .3rem; }
+.ctrl-guide p { margin: .4rem 0; }
+.ctrl-guide .cg-ol, .ctrl-guide .cg-ul { margin: .3rem 0 .6rem; padding-left: 1.3rem; }
+.ctrl-guide li { margin: .2rem 0; }
+.ctrl-guide .cg-hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+.ctrl-guide .cg-bq { margin: .5rem 0; padding: .5rem .8rem; border-left: 3px solid var(--accent); background: var(--bg3); border-radius: 4px; }
+.ctrl-guide .cg-code { font-family: var(--font-mono); font-size: .9em; background: var(--bg3); padding: .05rem .3rem; border-radius: 3px; }
+.ctrl-guide strong { font-weight: 600; }
 
 /* ── Risk control-action list (ROC report) — compact, numbers-only snapshot ── */
 .ral-tbl { font-size: .82rem; }

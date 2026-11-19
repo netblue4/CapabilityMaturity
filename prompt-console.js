@@ -44,8 +44,9 @@ function showPromptConsole() {
 
 function renderPromptIndex() {
   const host = document.getElementById('pc-index'); if (!host) return;
-  const card = (title, desc, onclick, note) => `<div class="pc-item">
+  const card = (title, desc, onclick, note, info) => `<div class="pc-item">
     <div class="pc-item-main"><div class="pc-item-title">${_pcEsc(title)}</div><div class="pc-item-desc">${_pcEsc(desc)}</div></div>
+    ${info ? `<button class="btn pc-info" title="How to write a control" onclick="${info}">ℹ Guide</button>` : ''}
     <button class="btn btn-primary pc-open" onclick="${onclick}">Open</button>
     ${note ? `<div class="pc-item-note">${_pcEsc(note)}</div>` : ''}
   </div>`;
@@ -56,7 +57,7 @@ function renderPromptIndex() {
     <div class="pc-group"><div class="pc-group-hd">DORA authoring (traceability)</div>
       ${card('✨ Map a new article', 'Paste a new DORA article/RTS, pick documents → objectives mapped to your statements in the Import DORA Mapping columns.', 'pcMapArticle()')}
       ${card('✨ Link controls', 'Pick risks + policies/standards → map your controls to statements by intent.', 'pcLinkControls()')}
-      ${card('✨ Operationalise controls', 'Expand a policy/standard, tick controls → reason through the rewrite, then build operational control(s) + control test(s) to the CSA standard.', 'pcOperationalise()')}
+      ${card('✨ Operationalise controls', 'Expand a policy/standard, tick controls → reason through the rewrite, then build operational control(s) + control test(s) to the CSA standard.', 'pcOperationalise()', '', 'showControlGuideModal()')}
     </div>
     <div class="pc-group"><div class="pc-group-hd">CBI self-assessment</div>
       ${card('📝 CBI evidence-pack generator', 'Map CBI Section-4 questions to your DORA objectives, then generate the Strengths / Weaknesses / maturity table for Excel.', 'pcCbi()', 'Has its own assessment picker.')}

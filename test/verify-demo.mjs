@@ -592,6 +592,19 @@ const cmOrder = await page.evaluate(() => {
 });
 assert(cmOrder.eff > -1 && cmOrder.na > -1 && cmOrder.eff < cmOrder.na, 'Control maturity card: Effective listed above Not assessed');
 
+// Risk coverage card: High / Moderate / Low severity rows; Control maturity: "All controls" first row.
+const newRows = await page.evaluate(() => {
+  const rc = document.querySelector('#roc-report-content [data-name="dora-risk-coverage"]')?.innerHTML || '';
+  const cm = document.querySelector('#roc-report-content [data-name="dora-control-maturity"]')?.innerHTML || '';
+  return {
+    rcHigh: rc.indexOf('>High<'), rcMod: rc.indexOf('>Moderate<'), rcLow: rc.indexOf('>Low<'), rcAssessed: rc.indexOf('>Assessed<'),
+    cmAll: cm.indexOf('>All controls<'), cmDraft: cm.indexOf('>Draft<'),
+  };
+});
+assert(newRows.rcHigh > -1 && newRows.rcMod > -1 && newRows.rcLow > -1, 'Risk coverage card: High / Moderate / Low rows present');
+assert(newRows.rcAssessed > -1 && newRows.rcAssessed < newRows.rcHigh && newRows.rcHigh < newRows.rcMod && newRows.rcMod < newRows.rcLow, 'Risk coverage card: High → Moderate → Low ordered under Assessed');
+assert(newRows.cmAll > -1 && newRows.cmDraft > -1 && newRows.cmAll < newRows.cmDraft, 'Control maturity card: "All controls" is the first row (above Draft)');
+
 // ── Risk control-action list: compact per-risk action table, under the heatmap,
 // above the full extract. Numbers only (collapsed), sortable, with ▼/▲/● movement
 // on Residual/Draft/Not-assessed and a plain number for Total controls. ──

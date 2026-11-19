@@ -239,9 +239,14 @@ function execProgMetrics(a) {
   const facts = (a && a.riskPolicyFacts) || [];
   const risks = buildRiskProfile(facts);
   const ctrl  = fullRegisterControls(facts);
+  // Assessed risks split by residual severity band (same thresholds as the heatmap).
+  let rHigh = 0, rMod = 0, rLow = 0;
+  risks.forEach(k => { const r = k.residual || 0; if (r > 0) { if (r >= 20) rHigh++; else if (r >= 12) rMod++; else rLow++; } });
   return {
     totalRisks:    risks.length,
     assessedRisks: risks.filter(k => (k.residual || 0) > 0).length,   // has a current residual rating
+    rHigh, rMod, rLow,              // severity split of the assessed risks
+    cTotal: ctrl.total,            // every non-closed control (implemented + draft)
     cDraft: ctrl.total - ctrl.implemented,
     cImpl:  ctrl.implemented,
     cTested: ctrl.assured,          // live controls carrying an RCSA verdict
@@ -366,12 +371,16 @@ function renderExecProgress(currentA, prevA) {
     execDumbbell([
       { label: 'Risks in register', prior: prev.totalRisks, current: cur.totalRisks, color: C.accent, caption: 'total ICT risks tracked', goodUp: true },
       { label: 'Assessed', prior: prev.assessedRisks, current: cur.assessedRisks, color: C.success, caption: 'risks with a current RCSA residual rating', goodUp: true },
+      { label: 'High', prior: prev.rHigh, current: cur.rHigh, color: C.danger, caption: 'assessed risks — residual ≥ 20', goodUp: false },
+      { label: 'Moderate', prior: prev.rMod, current: cur.rMod, color: C.warn, caption: 'assessed risks — residual 12–19', goodUp: false },
+      { label: 'Low', prior: prev.rLow, current: cur.rLow, color: C.success, caption: 'assessed risks — residual < 12', goodUp: true },
       { label: 'Not assessed', prior: prev.totalRisks - prev.assessedRisks, current: cur.totalRisks - cur.assessedRisks, color: C.danger, caption: 'risks with no current RCSA residual rating', goodUp: false },
     ], { colors: C, priorLabel: prevL, curLabel: curL }));
 
   const ctrlChart = execChartCard('dora-control-maturity', 'Control maturity',
     'Draft → Implemented → Tested → Effective — maturing the ICT risk framework',
     execDumbbell([
+      { label: 'All controls', prior: prev.cTotal, current: cur.cTotal, color: C.accent, caption: 'total in the register — implemented + draft', goodUp: true },
       { label: 'Draft', prior: prev.cDraft, current: cur.cDraft, color: C.muted, caption: 'resourced — not yet implemented', goodUp: false },
       { label: 'Implemented', prior: prev.cImpl, current: cur.cImpl, color: C.accent, caption: 'live controls', goodUp: true },
       { label: 'Tested', prior: prev.cTested, current: cur.cTested, color: C.warn, caption: 'live & assessed — we know how they perform', goodUp: true },

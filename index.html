@@ -271,7 +271,7 @@
           <h3>📝 Write an attestation statement</h3>
           <button class="modal-close" onclick="closeAttestModal()">✕</button>
         </div>
-        <p class="am-intro">Pick one policy or group-standard statement; the prompt fetches it with the controls that implement it (and each control's status &amp; effectiveness), then writes an <b>attestation statement</b>: it breaks the statement into short <b>key phrases</b>, matches controls to each by intent, and writes — from the control wording — how each control meets the phrase, marking every key phrase <b>Met / Partially met / Not met</b> (a Draft or not-yet-effective control can only be <i>partially</i> met). Key phrases with no control are flagged as not met yet.</p>
+        <p class="am-intro">Pick one policy or group-standard statement; the prompt fetches it with the controls that implement it (and each control's status &amp; effectiveness), then writes an <b>attestation statement</b>: it breaks the statement into short <b>key phrases</b>, matches controls to each by intent, and writes — from the control wording — how each control meets the phrase — <b>citing the supporting evidence</b> (procedures, reports, trainings, systems, with title/frequency/recipients) — and marking every key phrase <b>Met / Partially met / Not met</b> (a Draft or not-yet-effective control can only be <i>partially</i> met). Key phrases with no control are flagged as not met yet; missing evidence detail is left as a placeholder for the owner.</p>
         <label class="am-label">1 · Policies / group standards — expand &amp; pick one statement to attest</label>
         <div id="att-stmts" class="am-docs"></div>
         <div class="prompts-actions">

@@ -263,12 +263,15 @@ const att = await page.evaluate(async () => {
     stmt: /## STATEMENT TO ATTEST/.test(out),
     ctrls: /## IMPLEMENTING CONTROLS/.test(out),
     eff: /Status: .* · Effectiveness:/.test(out),
+    evidence: /## SUPPORTING EVIDENCE/.test(out) && /Procedures \/ supporting documents/.test(out) && /Reports, notes, minutes/.test(out) && /Trainings/.test(out) && /Evidence:/.test(out),
+    freq: /· Frequency:/.test(out),
     filled: !/\{\{ATTEST_DATA\}\}/.test(out),
   };
 });
 assert(att.radios > 0, `Attestation: statement picker populated (${att.radios})`);
 assert(att.method && att.verdicts, 'Attestation: prompt carries the key-phrase method + Met/Partially/Not-met verdicts');
-assert(att.stmt && att.ctrls && att.eff, 'Attestation: appends the selected statement + its controls with status & effectiveness');
+assert(att.stmt && att.ctrls && att.eff && att.freq, 'Attestation: appends the selected statement + its controls with status, effectiveness & frequency');
+assert(att.evidence, 'Attestation: prompt requires supporting evidence (procedures/reports/trainings/systems) with a per-bullet Evidence line');
 assert(att.filled, 'Attestation: {{ATTEST_DATA}} placeholder is filled, not left literal');
 
 // ── Report buttons renamed / added ──

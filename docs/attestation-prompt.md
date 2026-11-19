@@ -18,11 +18,22 @@ A statement often bundles several obligations (bullet points, "(a)…(b)…", or
 - **PARTIALLY MET** — a matching control exists but is **Draft / not yet effective**, OR it covers only part of the intent.
 - **NOT MET** — no matching control.
 
-**4. Write the attestation from the CONTROL WORDING.** For each key phrase, write bullet(s) — **one per matching control** — describing how that control meets the key phrase, in the control's own terms (do not overstate what the control does). **Every bullet must name the control (number + name) and its status/effectiveness.**
+**4. Write the attestation from the CONTROL WORDING.** For each key phrase, write bullet(s) — **one per matching control** — describing how that control meets the key phrase, in the control's own terms (do not overstate what the control does). **Every bullet must name the control (number + name), its status/effectiveness, and cite the SUPPORTING EVIDENCE that demonstrates compliance** (see *Supporting evidence* below) — the justification must be as detailed as the control data allows.
 
 **5. For NOT MET key phrases**, state plainly that the requirement is **not met yet** — no control is in place. (If the statement carries a disclosed exception, note it.)
 
 **6. For PARTIALLY MET key phrases**, say what is in place and what is missing (e.g. the control is not yet effective, or only part of the intent is covered).
+
+## SUPPORTING EVIDENCE — what a good justification cites
+
+A justification must be **as detailed as possible**, citing the supporting evidence that demonstrates compliance. For each attestation bullet, draw the evidence from the control's **description, owner and frequency**, and cite whichever of these apply:
+- **Procedures / supporting documents** — with **title and reference**.
+- **Reports, notes, minutes** — with **title, frequency and recipients**.
+- **Trainings** — with **frequency and audience**.
+- **Databases, inventories and systems** — name the system/register.
+- **Other** relevant explanations or evidence.
+
+**Never invent** an evidence title, reference, recipient, audience or frequency. Where the control data does not give a required detail, cite what you can and mark the missing part with a clearly-named placeholder `[@…]` for the control owner to supply — e.g. `[@document_reference]`, `[@report_recipients]`, `[@training_audience]`, `[@system_name]`. A bullet may cite more than one piece of evidence.
 
 ## OUTPUT FORMAT
 
@@ -36,6 +47,7 @@ Then one block per key phrase, in order:
 ### KP<n>: <the key phrase>   —   [MET | PARTIALLY MET | NOT MET]
 Source: "<the exact clause / bullet this key phrase was drawn from>"
 - <attestation sentence written from the control's wording> — **<CTRL no> <name>** (<Implemented|Draft> · <Effective|Not effective|—>)
+  Evidence: <supporting evidence demonstrating compliance — procedures/documents (title + ref), reports (title, frequency, recipients), trainings (frequency, audience), systems/registers, … — with [@…] for any detail the control data does not give>
 - <… one bullet per matching control …>
 ```
 - For **PARTIALLY MET**, add a final line: `Gap: <what is missing / why only partial>`.
@@ -49,7 +61,8 @@ End with:
 - Use **only** the appended statement and controls. Never invent a control, a requirement, or a compliance claim.
 - **Never** attest a key phrase as **MET** on a control that is **Draft** or **Not effective** — that is at most **PARTIALLY MET**. An attestation must not claim compliance on the back of a control that is not working.
 - Write in the control's own terms; do not inflate what a control does.
-- Every attestation bullet names its control and states that control's status and effectiveness.
+- Every attestation bullet names its control, states that control's status and effectiveness, and cites its supporting evidence.
+- **Never invent** supporting evidence — a document title or reference, a report's recipients or frequency, a training audience, a system name. Cite what the control data gives and mark anything missing as `[@…]` for the owner.
 - Keep key phrases faithful to the source: every clause of the statement must appear as a key phrase, and no key phrase may introduce a requirement the statement does not contain.
 
 ## STATEMENT & CONTROLS

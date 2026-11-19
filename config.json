@@ -209,11 +209,6 @@
       "description": "Restoration of normal service operation as quickly as possible following unplanned disruptions."
     },
     {
-      "id": "major_incident_mgmt",
-      "name": "ICT Major Incident Management",
-      "description": "Coordinated response to high-impact ICT incidents to minimise business disruption and enable rapid service restoration."
-    },
-    {
       "id": "third_party_risk",
       "name": "ICT Third-Party Risk Management",
       "description": "Assessment and ongoing management of risks introduced by third-party vendors, suppliers, and managed service providers."

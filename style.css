@@ -3696,13 +3696,32 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .bd-cap-row { width: 100%; min-height: 64px; border: 0; border-bottom: 1px solid var(--border-subtle); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .bd-cap-row:last-child { border-bottom: 0; }
 .bd-cap-row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+/* Policy & Group Standards Attenuation report (capability cards) */
+.pgsa-table { min-width: 720px; }
+.pgsa-head, .pgsa-row { display: grid; grid-template-columns: minmax(220px, 2.2fr) minmax(110px, .8fr) minmax(240px, 2.4fr); gap: 1rem; padding: .7rem 1.5rem; }
+.pgsa-head { padding-top: .9rem; padding-bottom: .9rem; border-bottom: 1px solid var(--border); font-size: .8rem; font-weight: 600; color: var(--text-muted); }
+.pgsa-row { min-height: 56px; align-items: center; border-bottom: 1px solid var(--border-subtle); }
+.pgsa-row:last-child { border-bottom: 0; }
+.pgsa-stmt { display: flex; flex-direction: column; gap: .15rem; }
+.pgsa-stmt small { color: var(--text-muted); font-size: .8rem; }
+.pgsa-src { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+.pgsa-src-lp { background: color-mix(in srgb, var(--accent) 14%, transparent); color: color-mix(in srgb, var(--accent) 85%, var(--text)); }
+.pgsa-src-gs { background: color-mix(in srgb, var(--clr-warning) 16%, transparent); color: color-mix(in srgb, var(--clr-warning) 82%, var(--text)); }
+.pgsa-ctrls { display: flex; flex-direction: column; gap: .4rem; }
+.pgsa-ctrl { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.pgsa-ctrl-name { font-size: .85rem; }
+.pgsa-none { color: var(--text-muted); font-size: .85rem; font-style: italic; }
+.pgsa-exc { color: color-mix(in srgb, var(--clr-warning) 80%, var(--text)); font-style: normal; }
 .bd-cap-name { display: flex; flex-direction: column; font-size: 1rem; font-weight: 500; }
 .bd-cap-name small { font-size: .8rem; font-weight: 400; color: var(--text-muted); }
 .bd-cap-cell { display: flex; flex-direction: column; gap: .35rem; font-size: .95rem; }
 .bd-chip { justify-self: start; align-self: flex-start; display: inline-block; padding: .2rem .65rem; border-radius: 999px; font-size: .78rem; font-weight: 600; white-space: nowrap; background: color-mix(in srgb, var(--tone) 14%, transparent); color: color-mix(in srgb, var(--tone) 80%, var(--text)); }
 
 .bd-risks { display: flex; flex-direction: column; padding: .4rem 1.5rem; border-radius: 16px; background: var(--bg); border: 1px solid var(--border); }
-.bd-risk-row { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 2fr) 110px; gap: 1.2rem; align-items: center; min-height: 56px; border-bottom: 1px solid var(--border-subtle); }
+.bd-risk-head { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(160px, 1.5fr) minmax(130px, 1.8fr) 110px; gap: 1.2rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--border); font-size: .78rem; font-weight: 600; color: var(--text-muted); }
+.bd-risk-cap { font-size: .9rem; font-weight: 500; }
+.bd-risk-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(160px, 1.5fr) minmax(130px, 1.8fr) 110px; gap: 1.2rem; align-items: center; min-height: 56px; border-bottom: 1px solid var(--border-subtle); }
 .bd-risk-row:last-child { border-bottom: 0; }
 .bd-risk-name { font-size: 1rem; }
 .bd-risk-name small { font-size: .8rem; color: var(--text-muted); }

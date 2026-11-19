@@ -242,6 +242,11 @@
       "id": "ict_operations",
       "name": "ICT Operations",
       "description": "Day-to-day running of ICT services and infrastructure — monitoring, job scheduling, backup operations, event handling and operational procedures that keep ICT services available and performing."
+    },
+    {
+      "id": "ai_acceptable_use",
+      "name": "AI Acceptable Use",
+      "description": "Governance and acceptable-use controls for artificial intelligence and GenAI tools — approved use cases, data handling, human oversight and the group standard that governs their use."
     }
   ]
 }

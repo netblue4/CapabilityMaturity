@@ -51,8 +51,9 @@ function bdRisks(currentA, prevA) {
   return buildRiskProfile(LFac(currentA)).filter(k => titles.has(k.title)).map(k => {
     const r = k.residual || 0;
     const sev = r > 0 ? sevOf(r) : 3;
-    const pillarId = (typeof doraPillarForCapabilityName === 'function') ? doraPillarForCapabilityName(capNm(k.capId)) : 'riskmgmt';
-    return { title: k.title, residual: r, sev, pillarId, dropped: r > 0 && prevSev[k.title] != null && sev > prevSev[k.title] };
+    const capName = capNm(k.capId);
+    const pillarId = (typeof doraPillarForCapabilityName === 'function') ? doraPillarForCapabilityName(capName) : 'riskmgmt';
+    return { title: k.title, residual: r, sev, pillarId, capId: k.capId, capName, dropped: r > 0 && prevSev[k.title] != null && sev > prevSev[k.title] };
   }).sort((a, b) => a.sev - b.sev || b.residual - a.residual);
 }
 
@@ -111,7 +112,9 @@ function renderBoardSummary(currentA, prevA) {
   // Risks grouped under the DORA pillar they threaten (the risk's owning
   // capability → pillar). Only pillars with ≥1 threatening risk are shown.
   const BAND = [['High', 'bd-tone-gap'], ['Moderate', 'bd-tone-warn'], ['Low', 'bd-tone-ok'], ['Not assessed', 'bd-tone-muted']];
+  const riskHead = `<div class="bd-risk-head"><span>Capability</span><span>Risk</span><span>Residual</span><span>Band</span></div>`;
   const riskRow = r => `<div class="bd-risk-row">
+      <span class="bd-risk-cap">${escHtml(r.capName || '—')}</span>
       <span class="bd-risk-name">${escHtml(r.title)}${r.dropped ? ' <small>▼ down a band</small>' : r.sev === 3 ? ' <small>no current RCSA rating</small>' : ''}</span>
       <span class="bd-risk-score"><span class="bd-bar"><i class="${BAND[r.sev][1]}" style="width:${Math.min(100, r.residual / 25 * 100)}%"></i></span><b>${r.sev === 3 ? '—' : r.residual}</b></span>
       <span class="bd-chip ${BAND[r.sev][1]}">${BAND[r.sev][0]}</span>
@@ -119,11 +122,14 @@ function renderBoardSummary(currentA, prevA) {
   const seenPillars = BD_PILLAR_ORDER.slice();
   risks.forEach(r => { if (!seenPillars.includes(r.pillarId)) seenPillars.push(r.pillarId); });
   const riskGroups = seenPillars.map(pid => {
-    const rs = risks.filter(r => r.pillarId === pid);
+    // Within a pillar, group the risks by the capability they impact (cluster
+    // same-capability risks together), then by severity / residual.
+    const rs = risks.filter(r => r.pillarId === pid).slice()
+      .sort((a, b) => String(a.capName).localeCompare(String(b.capName)) || a.sev - b.sev || b.residual - a.residual);
     if (!rs.length) return '';
     return `<div class="bd-risk-group">
       <h3 class="bd-risk-pillar">${escHtml(bdPillarDef(pid).name)}<span class="bd-risk-pillar-n">${rs.length} risk${rs.length === 1 ? '' : 's'}</span></h3>
-      <div class="bd-risks">${rs.map(riskRow).join('')}</div>
+      <div class="bd-risks">${riskHead}${rs.map(riskRow).join('')}</div>
     </div>`;
   }).join('');
 

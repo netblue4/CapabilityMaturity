@@ -49,6 +49,7 @@
           <button class="btn btn-outline" onclick="showReportModal('mica')">🪙 MiCA Reporting</button>
           <button class="btn btn-outline" onclick="showReportModal('nist')">🔐 NIST CSF Reporting</button>
           <button class="btn btn-outline" onclick="showReportModal('roc')">📊 Risk Oversight Committee Reporting</button>
+          <button class="btn btn-outline" onclick="showReportModal('pgsa')">📑 Policy and Group Standards Attenuation</button>
           <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
           <button id="btn-prompt-hotspot" class="prompt-hotspot" onclick="promptHotspot()" aria-hidden="true" tabindex="-1"></button>
         </div>
@@ -138,6 +139,15 @@
         <h2>Risk Oversight Committee Reporting</h2>
       </div>
       <div id="roc-report-content"></div>
+    </section>
+
+    <!-- Policy & Group Standards Attenuation View -->
+    <section id="view-pgsa-report" class="view">
+      <div class="section-header no-print">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>Policy and Group Standards Attenuation</h2>
+      </div>
+      <div id="pgsa-report-content"></div>
     </section>
 
     <!-- Report Chooser Modal (DORA Forum / ROC) -->
@@ -528,6 +538,7 @@
   <script src="dashboard.js"></script>
   <script src="exec-report.js"></script>
   <script src="board-report.js"></script>
+  <script src="pgsa-report.js"></script>
   <script src="riskonnect-import.js"></script>
   <script src="policy-import.js"></script>
   <script src="dora-import.js"></script>

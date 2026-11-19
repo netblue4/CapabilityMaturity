@@ -421,6 +421,36 @@ assert(doraRep.heatLegend, 'DORA Reporting Control 3: heatmap legend explains ri
 assert(doraRep.copyBtns >= 4, `DORA Reporting: Copy-for-Excel on each detail block (${doraRep.copyBtns})`);
 assert(doraRep.ownCollapsed, 'DORA Reporting: ownership detail table is collapsible');
 
+// ── Risks section: Capability column + grouped by capability within each pillar ──
+const riskCaps = await page.evaluate(() => {
+  const g = [...document.querySelectorAll('#exec-report-content .bd-risk-group')].find(x => /ICT Risk Management/.test(x.querySelector('.bd-risk-pillar')?.textContent || ''));
+  return { head: !!g?.querySelector('.bd-risk-head'), caps: [...(g?.querySelectorAll('.bd-risk-cap') || [])].map(c => c.textContent.trim()) };
+});
+assert(riskCaps.head && riskCaps.caps.length >= 2, 'DORA Reporting risks: Capability column present on the risk rows');
+assert(riskCaps.caps.every((c, i, a) => i === 0 || a[i - 1].localeCompare(c) <= 0), `DORA Reporting risks: grouped by capability (${riskCaps.caps.join(', ')})`);
+
+// ── New report: Policy and Group Standards Attenuation (capability cards) ──
+const pgsaBtn = await page.evaluate(() => !!document.querySelector('#view-dashboard button[onclick="showReportModal(\'pgsa\')"]'));
+assert(pgsaBtn, 'Dashboard: "Policy and Group Standards Attenuation" report button present');
+const pgsa = await page.evaluate(() => {
+  showReportModal('pgsa'); document.getElementById('exec-curr-sel').value = 'demo'; generateReport();
+  const root = document.getElementById('pgsa-report-content');
+  const cards = [...root.querySelectorAll('.pgsa-card')];
+  return {
+    view: document.getElementById('view-pgsa-report').classList.contains('active'),
+    cards: cards.length,
+    headers: cards[0] ? [...cards[0].querySelectorAll('.pgsa-head span')].map(s => s.textContent.trim()) : [],
+    hasEff: !!root.querySelector('.pgsa-ctrl .bd-chip'),
+    hasSrc: !!root.querySelector('.pgsa-src'),
+  };
+});
+assert(pgsa.view && pgsa.cards >= 3, `Attenuation report: one card per capability (${pgsa.cards})`);
+assert(pgsa.headers.join(' | ') === 'Policy / Group Standard statement | Source | Control(s) & effectiveness', `Attenuation report: statement/source/controls columns (${pgsa.headers.join(' | ')})`);
+assert(pgsa.hasSrc && pgsa.hasEff, 'Attenuation report: statements show their source + each control\'s effectiveness');
+// restore the DORA report for the assertions that follow
+await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
+await page.waitForSelector('#exec-report-content .bd-summary');
+
 // ── Control 2 reframe: coverage & ownership (linked-or-excepted), not live-only.
 // A draft-only control no longer fails Control 2; the figure reconciles with the
 // unchanged evidence detail (Backed / Exception columns). Demo: 11 backed + 0

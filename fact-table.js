@@ -1248,6 +1248,7 @@ function buildStatementCoverage(policyRows, facts) {
       number:     (f.controlNumber || '').trim(),
       status:     ftIsImplemented(f) ? 'implemented' : 'draft',
       effective:  ftIsEffective(f),
+      risk:       (f.riskTitle || '').trim(),
     };
     (f.matchedPolicyRows || []).forEach(mp => {
       const k = mp.capId + '||' + ftNorm(mp.statementRef);

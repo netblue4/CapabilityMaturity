@@ -170,7 +170,7 @@
   "capabilities": [
     {
       "id": "risk_mgmt",
-      "name": "ICT Risk Management",
+      "name": "ICT Risk Management Framework",
       "description": "Overarching ICT risk management framework, governance and oversight of ICT risk (DORA Chapter II)."
     },
     {

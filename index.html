@@ -274,6 +274,8 @@
         <p class="am-intro">Pick one policy or group-standard statement; the prompt fetches it with the controls that implement it (and each control's status &amp; effectiveness), then writes an <b>attestation statement</b>: it breaks the statement into short <b>key phrases</b>, matches controls to each by intent, and writes — from the control wording — how each control meets the phrase — <b>citing the supporting evidence</b> (procedures, reports, trainings, systems, with title/frequency/recipients) — and marking every key phrase <b>Met / Partially met / Not met</b> (a Draft or not-yet-effective control can only be <i>partially</i> met). Key phrases with no control are flagged as not met yet; missing evidence detail is left as a placeholder for the owner.</p>
         <label class="am-label">1 · Policies / group standards — expand &amp; pick one statement to attest</label>
         <div id="att-stmts" class="am-docs"></div>
+        <label class="am-label">2 · Last year's attestation for this statement <span style="font-weight:400;opacity:.7">(optional — paste to reuse &amp; update; leave blank if none)</span></label>
+        <textarea id="att-prior" class="prompt-text" spellcheck="false" style="min-height:90px" placeholder="Paste last year's attestation / justification for the selected statement here. The prompt will reuse what still holds, update what changed, and flag year-on-year movement — re-verifying every claim against this year's controls."></textarea>
         <div class="prompts-actions">
           <button class="btn btn-primary" onclick="generateAttestPrompt()">Generate prompt</button>
           <span class="prompt-hint">Generate, copy, run in your LLM to get the attestation statement.</span>

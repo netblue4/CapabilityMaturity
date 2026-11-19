@@ -764,6 +764,7 @@ function openAttestModal() {
     }
   }
   const out = document.getElementById('att-prompt'); if (out) out.value = '';
+  const prior = document.getElementById('att-prior'); if (prior) prior.value = '';
   m.style.display = 'flex';
 }
 function generateAttestPrompt() {
@@ -773,7 +774,10 @@ function generateAttestPrompt() {
   if (!_attText) { out.value = '⚠ Prompt template still loading — try again in a moment.'; _loadAttText(); return; }
   const s = _attStatements().find(x => x.key === sel.value);
   if (!s) { out.value = '⚠ That statement is no longer in the data — reopen the popup.'; return; }
-  out.value = _attText.replace('{{ATTEST_DATA}}', _attBlock(s));
+  let block = _attBlock(s);
+  const prior = (document.getElementById('att-prior') && document.getElementById('att-prior').value || '').trim();
+  if (prior) block += '\n\n## LAST YEAR\'S ATTESTATION (for consideration — reuse & update, then re-verify against this year\'s controls)\n' + prior;
+  out.value = _attText.replace('{{ATTEST_DATA}}', block);
 }
 function copyAttestPrompt(btn) {
   const ta = document.getElementById('att-prompt'); if (!ta || !ta.value) return;

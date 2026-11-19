@@ -697,6 +697,7 @@ function _attStatements() {
     const c = {
       no: (f.controlNumber || '').trim(), name: (f.controlName || '').trim(),
       desc: (f.controlDesc || '').trim(), owner: (f.controlOwner || '').trim(),
+      freq: (f.controlFreq || '').trim(),
       status: (typeof ftIsImplemented === 'function' && ftIsImplemented(f)) ? 'Implemented' : 'Draft',
       effective: typeof ftIsEffective === 'function' ? ftIsEffective(f) : false,
     };
@@ -727,8 +728,8 @@ function _attBlock(s) {
   const ctrls = (s.controls || []).map(c =>
 `### CONTROL: ${(c.no ? c.no + ' — ' : '') + c.name}
 Status: ${c.status} · Effectiveness: ${eff(c)}
-Owner: ${c.owner || '(not given)'}
-Control description (use this wording for the attestation):
+Owner: ${c.owner || '(not given)'} · Frequency: ${c.freq || '(not given)'}
+Control description (use this wording + evidence for the attestation):
 ${c.desc || '(no description provided in the risk-data upload)'}`).join('\n\n');
   return `## STATEMENT TO ATTEST
 Document: ${s.document} (${s.source}) · Capability: ${s.capName}

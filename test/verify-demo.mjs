@@ -266,7 +266,10 @@ const doraRep = await page.evaluate(() => ({
   trace: !!document.querySelector('#exec-report-content .trace-tbl'),
   boardHero: !!document.querySelector('#exec-report-content .bd-hero') || !!document.querySelector('#exec-report-content .bd-stages'),
   boardPillars: [...document.querySelectorAll('#exec-report-content .bd-pillar h2')].map(h => h.textContent.trim()),
-  boardTestingNote: [...document.querySelectorAll('#exec-report-content .bd-pillar-empty')].some(e => /InfoSec/i.test(e.textContent)),
+  boardTestingRow: (() => {
+    const t = [...document.querySelectorAll('#exec-report-content .bd-pillar')].find(c => /Digital Operational Resilience Testing/.test(c.querySelector('h2')?.textContent || ''));
+    return !!t && !!t.querySelector('.bd-cap-row');
+  })(),
   boardRiskPillars: [...document.querySelectorAll('#exec-report-content .bd-risk-pillar')].map(h => h.textContent.trim()),
   caplens: !!document.querySelector('#exec-report-content .caplens-card'),
   heatmap: !!document.querySelector('#exec-report-content [data-name="dora-c3-heatmap"] .rrh'),
@@ -410,7 +413,7 @@ assert(doraRep.boardPillars.length === 4
   && /Resilience Testing/.test(doraRep.boardPillars[2])
   && doraRep.boardPillars[3] === 'ICT Risk Management',
   `DORA Reporting: four DORA-pillar cards in order (${doraRep.boardPillars.join(' · ')})`);
-assert(doraRep.boardTestingNote, 'DORA Reporting: Resilience Testing pillar shows the InfoSec out-of-scope note (no rows)');
+assert(doraRep.boardTestingRow, 'DORA Reporting: Resilience Testing pillar is in scope with a capability row (testing objectives mapped)');
 assert(doraRep.boardRiskPillars.some(p => /Incident/.test(p)) && doraRep.boardRiskPillars.some(p => /Risk Management/.test(p)), `DORA Reporting: risks grouped under their DORA pillar (${doraRep.boardRiskPillars.join(' · ')})`);
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');

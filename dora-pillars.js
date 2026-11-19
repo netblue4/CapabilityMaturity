@@ -3,18 +3,18 @@
 // doraPillarForCapabilityName at the bottom): everything the app groups into a
 // pillar — the pillar cards, every table's DORA Pillar column and the full
 // traceability table — uses that one rule, so their numbers reconcile exactly.
-//   · capability name contains "incident"    → Incident Management (Ch III)
-//   · capability name contains "third party" → Third-Party Risk (Ch V)
-//   · everything else                         → ICT Risk Management (Ch II)
-// No capability maps to Resilience Testing or Information-Sharing, so those
-// pillars stay out of scope.
+//   · capability name contains "incident"        → Incident Management (Ch III)
+//   · capability name contains "third party"     → Third-Party Risk (Ch V)
+//   · capability name contains "resilience test" → Resilience Testing (Ch IV)
+//   · everything else                             → ICT Risk Management (Ch II)
+// No capability maps to Information-Sharing, so that pillar stays out of scope.
 //
 // The article/RTS resolver below (doraPillarOf) is retained for reference only
 // and is no longer used to assign pillars.
 const DORA_PILLARS = [
   { id: 'riskmgmt',    chapter: 'II',  name: 'ICT Risk Management',                                   short: 'Risk Management',    icon: '🛡️', inScope: true },
   { id: 'incident',    chapter: 'III', name: 'ICT Incident Management, Classification & Reporting',    short: 'Incident Management', icon: '🚨', inScope: true },
-  { id: 'testing',     chapter: 'IV',  name: 'Digital Operational Resilience Testing',                 short: 'Resilience Testing', icon: '🧪', inScope: false, outNote: 'Owned by InfoSec — no applicable articles or RTS for our scope.' },
+  { id: 'testing',     chapter: 'IV',  name: 'Digital Operational Resilience Testing',                 short: 'Resilience Testing', icon: '🧪', inScope: true },
   { id: 'thirdparty',  chapter: 'V',   name: 'ICT Third-Party Risk Management',                        short: 'Third-Party Risk',   icon: '🤝', inScope: true },
   { id: 'infosharing', chapter: 'VI',  name: 'Information-Sharing Arrangements',                       short: 'Information Sharing', icon: '🔗', inScope: false, outNote: 'Not applicable (Article 45 is voluntary and not adopted).' },
 ];
@@ -42,17 +42,18 @@ function doraPillarOf(articleText, obligationId) {
 
 // ── Capability → pillar (the authoritative mapping) ──────────────────
 // The forum groups everything by the OWNING CAPABILITY, not the DORA article:
-//   · capability name contains "incident"     → Incident Management (Ch III)
-//   · capability name contains "third party"  → Third-Party Risk (Ch V)
-//   · everything else                          → ICT Risk Management (Ch II)
-// (No capability maps to Resilience Testing or Information-Sharing, so those
-// pillars stay out of scope.) This is the single source of truth for the
-// pillar cards, every table's DORA Pillar column, and the traceability table,
-// so their numbers reconcile exactly.
+//   · capability name contains "incident"        → Incident Management (Ch III)
+//   · capability name contains "third party"     → Third-Party Risk (Ch V)
+//   · capability name contains "resilience test" → Resilience Testing (Ch IV)
+//   · everything else                             → ICT Risk Management (Ch II)
+// (No capability maps to Information-Sharing, so that pillar stays out of scope.)
+// This is the single source of truth for the pillar cards, every table's DORA
+// Pillar column, and the traceability table, so their numbers reconcile exactly.
 function doraPillarForCapabilityName(name) {
   const n = (name || '').toLowerCase();
   if (n.includes('incident')) return 'incident';
   if (n.replace(/[^a-z]/g, '').includes('thirdparty')) return 'thirdparty';
+  if (n.includes('resilience test')) return 'testing';
   return 'riskmgmt';
 }
 

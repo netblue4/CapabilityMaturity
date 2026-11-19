@@ -92,7 +92,7 @@ function renderBoardSummary(currentA, prevA) {
     const rows = caps.filter(c => (typeof doraPillarForCapabilityName === 'function') && doraPillarForCapabilityName(c.name) === pid);
     const chap = pdef.chapter ? `Chapter ${pdef.chapter}` : '';
     if (!rows.length) {
-      const note = pdef.outNote || 'No capabilities in scope for this pillar.';
+      const note = pdef.outNote || (pdef.inScope ? 'No capabilities with data in this pillar yet.' : 'Out of scope for us.');
       return `<section class="bd-sec bd-pillar">
         <div class="bd-sec-hd"><h2>${escHtml(pdef.name)}</h2><span>${escHtml(chap)}</span></div>
         <p class="bd-pillar-empty">${escHtml(note)}</p>

@@ -264,7 +264,10 @@ const doraRep = await page.evaluate(() => ({
   embeds: document.querySelectorAll('#exec-report-content .ev-embed-title').length,
   soa: !!document.querySelector('#exec-report-content .ev-soa-tbl'),
   trace: !!document.querySelector('#exec-report-content .trace-tbl'),
-  pillGrid: !!document.querySelector('#exec-report-content .pil-grid'),
+  boardHero: !!document.querySelector('#exec-report-content .bd-hero') || !!document.querySelector('#exec-report-content .bd-stages'),
+  boardPillars: [...document.querySelectorAll('#exec-report-content .bd-pillar h2')].map(h => h.textContent.trim()),
+  boardTestingNote: [...document.querySelectorAll('#exec-report-content .bd-pillar-empty')].some(e => /InfoSec/i.test(e.textContent)),
+  boardRiskPillars: [...document.querySelectorAll('#exec-report-content .bd-risk-pillar')].map(h => h.textContent.trim()),
   caplens: !!document.querySelector('#exec-report-content .caplens-card'),
   heatmap: !!document.querySelector('#exec-report-content [data-name="dora-c3-heatmap"] .rrh'),
   heatLegend: !!document.querySelector('#exec-report-content .rrh-legend-note'),
@@ -400,7 +403,15 @@ assert(!cdMicaBtn, 'Operationalise: button is DORA-only (absent on MiCA traceabi
 await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
 await page.waitForSelector('#exec-report-content .trace-tbl', { state: 'attached' });  // folded into the board appendix
 
-assert(!doraRep.pillGrid, 'DORA Reporting: DORA Pillar cards removed');
+assert(!doraRep.boardHero, 'DORA Reporting board summary: hero / stages / "what the board should know" removed (starts at the pillar cards)');
+assert(doraRep.boardPillars.length === 4
+  && doraRep.boardPillars[0].startsWith('ICT Incident Management')
+  && /Third-Party/.test(doraRep.boardPillars[1])
+  && /Resilience Testing/.test(doraRep.boardPillars[2])
+  && doraRep.boardPillars[3] === 'ICT Risk Management',
+  `DORA Reporting: four DORA-pillar cards in order (${doraRep.boardPillars.join(' · ')})`);
+assert(doraRep.boardTestingNote, 'DORA Reporting: Resilience Testing pillar shows the InfoSec out-of-scope note (no rows)');
+assert(doraRep.boardRiskPillars.some(p => /Incident/.test(p)) && doraRep.boardRiskPillars.some(p => /Risk Management/.test(p)), `DORA Reporting: risks grouped under their DORA pillar (${doraRep.boardRiskPillars.join(' · ')})`);
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');
 assert(doraRep.heatLegend, 'DORA Reporting Control 3: heatmap legend explains risks threaten DORA objectives');
@@ -413,12 +424,6 @@ assert(doraRep.ownCollapsed, 'DORA Reporting: ownership detail table is collapsi
 // excepted = 11/13; the 2 gaps have no control and no exception. ──
 const c2 = await page.evaluate(() => {
   const root = document.getElementById('exec-report-content');
-  // Scorecard middle metric
-  const cells = [...root.querySelectorAll('.exsum-cell')].map(c => ({
-    lbl: c.querySelector('.exsum-lbl')?.textContent.trim(),
-    frac: c.querySelector('.exsum-frac')?.textContent.trim(),
-  }));
-  const op = cells.find(c => c.lbl === 'Implemented');
   // Control 2 card
   const card = [...root.querySelectorAll('.measure-card')].find(c => /operationalised by risk-treatment-controls/i.test(c.querySelector('.measure-card-title')?.textContent || ''));
   const eyebrow = card?.querySelector('.exsc-eyebrow')?.textContent.trim();
@@ -429,7 +434,6 @@ const c2 = await page.evaluate(() => {
   const evRows = [...(card?.querySelectorAll('.ev-tbl tbody tr') || [])];
   const backedYes = evRows.filter(tr => (tr.children[backedIdx]?.textContent || '').trim() === 'Yes').length;
   return {
-    opLabel: !!op, opFrac: op?.frac,
     eyebrow, title: card?.querySelector('.measure-card-title')?.textContent.trim(),
     descReframe: /assured separately \(Control 3\)/.test(desc) && /no control and no disclosed exception/.test(desc),
     detailUnchanged: evHeads.includes('Backed by control') && evHeads.includes('Status') && evHeads.includes('Exception'),
@@ -437,7 +441,6 @@ const c2 = await page.evaluate(() => {
     backedYes, evRowCount: evRows.length,
   };
 });
-assert(c2.opLabel && /^11 \/ 13/.test(c2.opFrac), `Scorecard: middle metric labelled Implemented, 11/13 (${c2.opFrac})`);
 assert(c2.eyebrow === 'Implemented' && /risk-treatment-controls/.test(c2.title), 'Control 2 card: Implemented eyebrow + reframed title');
 assert(c2.descReframe, 'Control 2 card: desc states implementation assured separately + the no-control/no-exception gap');
 assert(c2.detailUnchanged, 'Control 2 detail table unchanged (Backed / Status / Exception columns intact)');
@@ -740,23 +743,20 @@ assert(/TASK — CONTROL COVERAGE/.test(promptsOut.out.coverage) && /\| Statemen
 assert(/TASK — REDUCE NUMBER OF CONTROLS/.test(promptsOut.out.reduce) && /\| Controls to merge \| Control name \| Control objective \| Control description \|/.test(promptsOut.out.reduce), 'Prompts: Reduce-controls prompt + output table spec');
 
 // ── Capability lens: funnel APPLICABLE must equal the drill-down's distinct
-// objective count, even when a statement is filed under several capabilities
-// (shared incident / major-incident policy). Regression for the funnel
-// undercounting because it leaned on the GLOBAL firstObj flag. ──
+// objective count when a statement is filed under a capability. Regression for
+// the funnel undercounting because it leaned on the GLOBAL firstObj flag. ──
 const capLensConsistency = await page.evaluate(() => {
   if (typeof activeLens !== 'undefined') activeLens = 'dora';
   const pol = (capId) => [{ capId, statementRef: 'IM-01.PS01', statementHeader: 'Incident response', statementDetail: 'Respond', type: 'locPol', document: 'ICT Incident Management Policy', owner: 'CISO', exception: '' }];
-  const doraRows = [{ obligationId: 'ART-99-1', article: 'Article 99', requirement: 'Handle major incidents', capability: 'ICT Major Incident Management', statementRef: 'IM-01.PS01', group: '' }];
+  const doraRows = [{ obligationId: 'ART-99-1', article: 'Article 99', requirement: 'Handle incidents', capability: 'ICT Incident Management', statementRef: 'IM-01.PS01', group: '' }];
   const mkFact = (capId) => ({ capId, controlName: 'C-IM-1', controlNumber: 'C1', controlType: 'locPol', controlOwner: 'Ops', riskTitle: 'Incident risk', controlDesc: 'x', designAssess: 'Green', opAssess: 'Green', residualScore: 5, inherentScore: 20, status: 'Implemented', matchedPolicyRows: [{ capId, statementRef: 'IM-01.PS01', document: 'ICT Incident Management Policy', owner: 'CISO' }] });
-  const a = { id: 'synthetic', label: 'S', date: '2026-01-01', doraRows, policyRows: [...pol('incident_mgmt'), ...pol('major_incident_mgmt')], riskPolicyFacts: [mkFact('incident_mgmt'), mkFact('major_incident_mgmt')] };
+  const a = { id: 'synthetic', label: 'S', date: '2026-01-01', doraRows, policyRows: pol('incident_mgmt'), riskPolicyFacts: [mkFact('incident_mgmt')] };
   const treeObjs = (t) => { const o = new Set(); t.forEach(art => art.objectives.forEach(x => { if (x.id) o.add(x.id); })); return o.size; };
   const check = (capId) => ({ applicable: buildCapabilitySummary(a, capId, 'all').funnel.applicable, tree: treeObjs(buildCapabilityTree(a, capId, 'all')) });
-  return { major: check('major_incident_mgmt'), incident: check('incident_mgmt') };
+  return { incident: check('incident_mgmt') };
 });
-assert(capLensConsistency.major.applicable === capLensConsistency.major.tree && capLensConsistency.major.tree === 1,
-  `Capability lens: shared objective counts under Major Incident (funnel ${capLensConsistency.major.applicable} = tree ${capLensConsistency.major.tree})`);
 assert(capLensConsistency.incident.applicable === capLensConsistency.incident.tree && capLensConsistency.incident.tree === 1,
-  `Capability lens: shared objective counts under Incident (funnel ${capLensConsistency.incident.applicable} = tree ${capLensConsistency.incident.tree})`);
+  `Capability lens: funnel APPLICABLE equals the drill-down tree (funnel ${capLensConsistency.incident.applicable} = tree ${capLensConsistency.incident.tree})`);
 
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();

@@ -401,8 +401,7 @@ window.CBI_SECTION4 = {
     "vulnerability_mgmt",
     "asset_mgmt",
     "data_mgmt",
-    "incident_mgmt",
-    "major_incident_mgmt"
+    "incident_mgmt"
    ],
    "questions": [
     {

@@ -16,3 +16,5 @@ RTS 10 — Vulnerability and patch management,RTS-10-3,Prioritise remediation by
 RTS 10 — Vulnerability and patch management,RTS-10-3,Prioritise remediation by asset criticality,GS-03 SR01,Patch SLAs defined,Group ICT Security Standard,ICT Vulnerability Management
 RTS 21 — Access control,RTS-21-1,Perform periodic access recertification,LP-06 PS01,Access reviews performed quarterly,Local ICT Access Control Policy,ICT Access Control Management
 RTS 21 — Access control,RTS-21-2,Restrict and monitor privileged access,LP-06 PS02,Privileged access restricted,Local ICT Access Control Policy,ICT Access Control Management
+Article 24 — General requirements for the performance of digital operational resilience testing,ART-24-1,Establish and maintain a risk-based digital operational resilience testing programme covering all critical ICT systems,,,,Digital Operational Resilience Testing
+Article 25 — Testing of ICT tools and systems,ART-25-1,Run the full range of appropriate tests (vulnerability scans and scenario-based tests) on critical ICT systems at least yearly,,,,Digital Operational Resilience Testing

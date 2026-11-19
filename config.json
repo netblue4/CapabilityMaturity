@@ -209,6 +209,11 @@
       "description": "Restoration of normal service operation as quickly as possible following unplanned disruptions."
     },
     {
+      "id": "resilience_testing",
+      "name": "Digital Operational Resilience Testing",
+      "description": "Planning, execution and follow-up of the digital operational resilience testing programme — vulnerability assessments, scenario-based tests and threat-led penetration testing (TLPT)."
+    },
+    {
       "id": "third_party_risk",
       "name": "ICT Third-Party Risk Management",
       "description": "Assessment and ongoing management of risks introduced by third-party vendors, suppliers, and managed service providers."

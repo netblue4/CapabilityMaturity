@@ -3647,7 +3647,14 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .bd-sec-hd > span { font-size: .9rem; color: var(--text-muted); }
 
 /* DORA-pillar cards (the "By capability" table split per pillar) + pillar-grouped risks */
-.bd-pillar h2 { font-size: 1.25rem; }
+.bd-pillars { display: flex; flex-direction: column; gap: .6rem; }
+.bd-pillar-h { margin: 0; font: inherit; }
+.bd-art-body[hidden] { display: none; }
+.bd-art-hd-static { cursor: default; }
+.bd-art-hd-static:hover .bd-art-title { color: inherit; }
+.bd-pillar .bd-art-body .bd-table-wrap { border-radius: 12px; }
+.bd-risks-card { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem; }
+.bd-risks-note { margin: 0; font-size: .9rem; color: var(--text-muted); }
 .bd-pillar-empty { margin: 0; padding: 1.1rem 1.5rem; border-radius: 16px; background: var(--bg); border: 1px dashed var(--border); color: var(--text-muted); font-size: .95rem; }
 .bd-risk-group { display: flex; flex-direction: column; gap: .6rem; }
 .bd-risk-group + .bd-risk-group { margin-top: 1.2rem; }

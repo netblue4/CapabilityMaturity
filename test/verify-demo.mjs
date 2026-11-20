@@ -501,22 +501,37 @@ const ccov = await page.evaluate(() => {
   showReportModal('ctrlcov'); document.getElementById('exec-curr-sel').value = 'demo'; generateReport();
   const root = document.getElementById('ctrlcov-report-content');
   const cards = [...root.querySelectorAll('.ccov-card')];
-  const firstRow = cards[0] && (cards[0].open = true, cards[0].querySelector('.ccov-row'));
+  const collapsed = cards.length > 0 && cards.every(c => c.querySelector('.bd-art-hd')?.getAttribute('aria-expanded') === 'false' && !c.querySelector('.ccov-row'));
+  const weight = root.querySelector('.ccov-card .bd-art-meta')?.textContent || '';
+  ccovToggleCap(0);   // open the first capability to inspect its rows
+  const first = root.querySelector('.ccov-card');
+  const stmt = first.querySelector('.ccov-ref .ccov-item-text')?.textContent.trim() || '';
+  const obj = first.querySelector('.ccov-obj .ccov-item-text')?.textContent.trim() || '';
+  // Selecting an objective opens the details box beneath its row, listing every control that covers it.
+  first.querySelector('.ccov-obj')?.click();
+  const det = root.querySelector('.ccov-detail');
   return {
     view: document.getElementById('view-ctrlcov-report').classList.contains('active'),
     cards: cards.length,
-    collapsed: cards.length > 0 && cards.every((c, i) => i === 0 ? true : !c.open),
-    headers: cards[0] ? [...cards[0].querySelectorAll('.ccov-head span')].map(s => s.textContent.trim()) : [],
+    collapsed,
+    headers: [...first.querySelectorAll('.ccov-head span')].map(s => s.textContent.trim()),
     hasStmtRef: !!root.querySelector('.ccov-ref'),
     hasObjRef: !!root.querySelector('.ccov-obj'),
     hasEff: !!root.querySelector('.ccov-ctrl .bd-chip'),
-    hasWeight: /control.*·.*statement.*·.*DORA objective/.test(cards[0]?.querySelector('.ccov-summary span')?.textContent || ''),
+    hasWeight: /control.*·.*statement.*·.*DORA objective/.test(weight),
+    textShown: stmt.length > 3 && obj.length > 3,
+    detailUnderRow: !!det && det.previousElementSibling?.classList.contains('has-detail') && /Covered by/.test(det.textContent),
+    filters: [...root.querySelectorAll('.bd-seg button')].map(b => b.firstChild.textContent.trim()),
   };
 });
 assert(ccov.view && ccov.cards >= 3, `Control Coverage: one card per capability (${ccov.cards})`);
 assert(ccov.headers.join(' | ') === 'Control | Implements (policy / GS statements) | Covers (DORA objectives)', `Control Coverage: control → statements → DORA columns (${ccov.headers.join(' | ')})`);
 assert(ccov.hasStmtRef && ccov.hasObjRef && ccov.hasEff, 'Control Coverage: each control lists its statements + DORA objectives with an effectiveness chip');
 assert(ccov.hasWeight, 'Control Coverage: capability summary shows the compliance weight (controls · statements · objectives)');
+assert(ccov.collapsed, 'Control Coverage: each capability is collapsed by default');
+assert(ccov.textShown, 'Control Coverage: statements and objectives are written out, not just refs');
+assert(ccov.detailUnderRow, 'Control Coverage: selecting an objective opens the details box beneath its row, listing the controls that cover it');
+assert(ccov.filters.join(',') === 'Everything,Not effective,No DORA objective', `Control Coverage: filters (${ccov.filters.join(', ')})`);
 
 // Capability-lens drill-down headers aligned with the scorecard (Documented / Implemented / Effective)
 // restore the DORA report for the assertions that follow

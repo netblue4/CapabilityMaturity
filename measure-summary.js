@@ -695,7 +695,7 @@ function renderCapTrace(arts, source) {
         <span class="bd-art-title">${escHtml(a.article)}</span>
         <span class="bd-art-meta">${meta}</span>${chev}
       </button>
-      ${open ? `<div class="bd-art-body"><div class="bd-trace-head" aria-hidden="true"><span>${escHtml(LL)} objective</span><span>Policy statement</span><span>Control</span></div>${rows}</div>` : ''}
+      ${open ? `<div class="bd-art-body"><div class="bd-trace-head" aria-hidden="true"><span>${escHtml(LL)} objective</span><span>Documented</span><span>Implemented / Effective</span></div>${rows}</div>` : ''}
     </section>`;
   }).join('');
 

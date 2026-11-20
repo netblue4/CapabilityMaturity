@@ -3722,6 +3722,27 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
   .pgsa-doc, .pgsa-srccell { padding-top: 0; }
   .pgsa-doc .sr-only { position: static; width: auto; height: auto; margin: 0; clip: auto; }
 }
+
+/* Control Coverage report — collapsible capability cards, control → statements → DORA */
+.ccov-summary { cursor: pointer; list-style: none; }
+.ccov-summary::-webkit-details-marker { display: none; }
+.ccov-summary h2 { display: inline-flex; align-items: center; gap: .5rem; }
+.ccov-summary h2::before { content: '▸'; color: var(--text-muted); font-size: .85em; transition: transform .15s; }
+.ccov-card[open] .ccov-summary h2::before { transform: rotate(90deg); }
+.ccov-table { min-width: 760px; }
+.ccov-head, .ccov-row { display: grid; grid-template-columns: minmax(220px, 1.8fr) minmax(190px, 1.6fr) minmax(170px, 1.4fr); gap: 1rem; padding: .7rem 1.5rem; }
+.ccov-head { padding-top: .9rem; padding-bottom: .9rem; border-bottom: 1px solid var(--border); font-size: .8rem; font-weight: 600; color: var(--text-muted); }
+.ccov-row { min-height: 56px; align-items: start; border-bottom: 1px solid var(--border-subtle); }
+.ccov-row:last-child { border-bottom: 0; }
+.ccov-ctrl { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; }
+.ccov-ctrl-name { font-size: .9rem; font-weight: 500; }
+.ccov-cell { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; }
+.ccov-n { font-size: 1.05rem; }
+.ccov-refs { display: flex; flex-wrap: wrap; gap: .3rem; }
+.ccov-ref, .ccov-obj { display: inline-block; padding: .08rem .45rem; border-radius: 6px; font-size: .74rem; font-family: var(--font-mono); white-space: nowrap; }
+.ccov-ref { background: color-mix(in srgb, var(--accent) 12%, transparent); color: color-mix(in srgb, var(--accent) 85%, var(--text)); }
+.ccov-obj { background: color-mix(in srgb, var(--clr-success) 13%, transparent); color: color-mix(in srgb, var(--clr-success) 80%, var(--text)); }
+.ccov-none { color: var(--text-muted); }
 .bd-cap-name { display: flex; flex-direction: column; font-size: 1rem; font-weight: 500; }
 .bd-cap-name small { font-size: .8rem; font-weight: 400; color: var(--text-muted); }
 .bd-cap-cell { display: flex; flex-direction: column; gap: .35rem; font-size: .95rem; }

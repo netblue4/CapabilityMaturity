@@ -493,9 +493,41 @@ assert(pgsa.headers.join(' | ') === 'Document | Policy / Group Standard statemen
 assert(pgsa.hasSrc && pgsa.hasEff, 'Attestation (RICA) report: statements show their source + each control\'s effectiveness');
 assert(pgsa.detailUnderRow, 'Attestation (RICA) report: selecting a control opens the details box beneath its row');
 assert(pgsa.filters.join(',') === 'Everything,Not implemented,Not effective', `Attestation (RICA) report: gap filters (${pgsa.filters.join(', ')})`);
+
+// ── New report: Control Coverage (control → statements → DORA objectives) ──
+const ccovBtn = await page.evaluate(() => !!document.querySelector('#view-dashboard button[onclick="showReportModal(\'ctrlcov\')"]'));
+assert(ccovBtn, 'Dashboard: "Control Coverage" report button present');
+const ccov = await page.evaluate(() => {
+  showReportModal('ctrlcov'); document.getElementById('exec-curr-sel').value = 'demo'; generateReport();
+  const root = document.getElementById('ctrlcov-report-content');
+  const cards = [...root.querySelectorAll('.ccov-card')];
+  const firstRow = cards[0] && (cards[0].open = true, cards[0].querySelector('.ccov-row'));
+  return {
+    view: document.getElementById('view-ctrlcov-report').classList.contains('active'),
+    cards: cards.length,
+    collapsed: cards.length > 0 && cards.every((c, i) => i === 0 ? true : !c.open),
+    headers: cards[0] ? [...cards[0].querySelectorAll('.ccov-head span')].map(s => s.textContent.trim()) : [],
+    hasStmtRef: !!root.querySelector('.ccov-ref'),
+    hasObjRef: !!root.querySelector('.ccov-obj'),
+    hasEff: !!root.querySelector('.ccov-ctrl .bd-chip'),
+    hasWeight: /control.*·.*statement.*·.*DORA objective/.test(cards[0]?.querySelector('.ccov-summary span')?.textContent || ''),
+  };
+});
+assert(ccov.view && ccov.cards >= 3, `Control Coverage: one card per capability (${ccov.cards})`);
+assert(ccov.headers.join(' | ') === 'Control | Implements (policy / GS statements) | Covers (DORA objectives)', `Control Coverage: control → statements → DORA columns (${ccov.headers.join(' | ')})`);
+assert(ccov.hasStmtRef && ccov.hasObjRef && ccov.hasEff, 'Control Coverage: each control lists its statements + DORA objectives with an effectiveness chip');
+assert(ccov.hasWeight, 'Control Coverage: capability summary shows the compliance weight (controls · statements · objectives)');
+
+// Capability-lens drill-down headers aligned with the scorecard (Documented / Implemented / Effective)
 // restore the DORA report for the assertions that follow
 await page.evaluate(() => { showReportModal('dora'); document.getElementById('exec-prev-sel').value = 'demo-q2'; document.getElementById('exec-curr-sel').value = 'demo'; generateReport(); });
 await page.waitForSelector('#exec-report-content .bd-summary');
+const traceHdr = await page.evaluate(() => {
+  const art = document.querySelector('#exec-report-content .caplens-card .bd-art-hd'); if (art) art.click();
+  const head = document.querySelector('#exec-report-content .caplens-card .bd-trace-head');
+  return head ? [...head.querySelectorAll('span')].map(s => s.textContent.trim()) : [];
+});
+assert(traceHdr.join(' | ') === 'DORA objective | Documented | Implemented / Effective', `Capability-lens drill-down headers aligned with the scorecard (${traceHdr.join(' | ')})`);
 
 // ── Control 2 reframe: coverage & ownership (linked-or-excepted), not live-only.
 // A draft-only control no longer fails Control 2; the figure reconciles with the

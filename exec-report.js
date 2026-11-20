@@ -21,7 +21,7 @@ function showReportModal(type) {
   document.getElementById('exec-prev-sel').value = db.assessments[Math.max(0, n - 2)].id;
   document.getElementById('exec-curr-sel').value = db.assessments[n - 1].id;
   const titleEl = document.getElementById('report-modal-title');
-  const names = { dora: 'DORA Reporting', mica: 'MiCA Reporting', nist: 'NIST CSF Reporting', roc: 'Risk Oversight Committee Reporting', pgsa: 'Policy and Group Standards Attestation (RICA)' };
+  const names = { dora: 'DORA Reporting', mica: 'MiCA Reporting', nist: 'NIST CSF Reporting', roc: 'Risk Oversight Committee Reporting', pgsa: 'Policy and Group Standards Attestation (RICA)', ctrlcov: 'Control Coverage' };
   if (titleEl) titleEl.textContent = 'Generate ' + (names[_reportType] || 'report');
   document.getElementById('exec-report-modal').style.display = 'flex';
 }
@@ -32,6 +32,7 @@ function closeExecReportModal() {
 function generateReport() {
   if (_reportType === 'roc') return generateRocReport();
   if (_reportType === 'pgsa') return generatePgsaReport();
+  if (_reportType === 'ctrlcov') return generateCtrlCoverageReport();
   if (_reportType === 'mica' || _reportType === 'nist') return generateLensReport(_reportType);
   return generateDoraForumReport();
 }

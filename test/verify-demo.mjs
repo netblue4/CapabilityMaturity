@@ -299,9 +299,12 @@ const doraRep = await page.evaluate(() => ({
   soa: !!document.querySelector('#exec-report-content .ev-soa-tbl'),
   trace: !!document.querySelector('#exec-report-content .trace-tbl'),
   boardHero: !!document.querySelector('#exec-report-content .bd-hero') || !!document.querySelector('#exec-report-content .bd-stages'),
-  boardPillars: [...document.querySelectorAll('#exec-report-content .bd-pillar h2')].map(h => h.textContent.trim()),
+  boardPillars: [...document.querySelectorAll('#exec-report-content .bd-pillar .bd-art-title')].map(h => h.textContent.trim()),
+  boardPillarsCollapsed: [...document.querySelectorAll('#exec-report-content .bd-pillar .bd-art-body')].every(b => b.hidden && b.offsetHeight === 0),
+  boardRisksInAppendix: !!document.querySelector('#exec-report-content .bd-appx .bd-risk-group') && !document.querySelector('#exec-report-content .bd-summary .bd-risk-group'),
+  lensNoPills: !document.querySelector('#exec-report-content .caplens-card .bd-pill'),
   boardTestingRow: (() => {
-    const t = [...document.querySelectorAll('#exec-report-content .bd-pillar')].find(c => /Digital Operational Resilience Testing/.test(c.querySelector('h2')?.textContent || ''));
+    const t = [...document.querySelectorAll('#exec-report-content .bd-pillar')].find(c => /Digital Operational Resilience Testing/.test(c.querySelector('.bd-art-title')?.textContent || ''));
     return !!t && !!t.querySelector('.bd-cap-row');
   })(),
   boardRiskPillars: [...document.querySelectorAll('#exec-report-content .bd-risk-pillar')].map(h => h.textContent.trim()),
@@ -448,6 +451,9 @@ assert(doraRep.boardPillars.length === 4
   && doraRep.boardPillars[3] === 'ICT Risk Management',
   `DORA Reporting: four DORA-pillar cards in order (${doraRep.boardPillars.join(' · ')})`);
 assert(doraRep.boardTestingRow, 'DORA Reporting: Resilience Testing pillar is in scope with a capability row (testing objectives mapped)');
+assert(doraRep.boardPillarsCollapsed, 'DORA Reporting: each By DORA pillar section is collapsed by default');
+assert(doraRep.boardRisksInAppendix, 'DORA Reporting: Risks threatening DORA objectives sits in the Appendix');
+assert(doraRep.lensNoPills, 'DORA Reporting: live view has no capability buttons (picked from By DORA pillar)');
 assert(doraRep.boardRiskPillars.some(p => /Incident/.test(p)) && doraRep.boardRiskPillars.some(p => /Risk Management/.test(p)), `DORA Reporting: risks grouped under their DORA pillar (${doraRep.boardRiskPillars.join(' · ')})`);
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');
@@ -599,7 +605,7 @@ const capSc = await page.evaluate(() => {
   // reconcile against the builder for the selected capability
   activeLens = 'dora';
   const a = db.assessments.find(x => x.id === 'demo');
-  const capId = card?.querySelector('.bd-pill.is-on')?.dataset.cap;
+  const capId = _capLensCapId;
   const s = buildCapabilitySummary(a, capId, 'all');
   const sameLook = s.scorecard.documented.n === s.coverage.covered && s.scorecard.documented.d === s.coverage.total
     && s.scorecard.effective.n === s.controls.effective && s.scorecard.effective.d === s.controls.implemented

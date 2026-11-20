@@ -111,6 +111,7 @@ function generateDoraForumReport() {
       ['Documented', renderExecCoverageMatrix(currentA)],
       ['Implemented', renderExecControl2(currentA, prevA)],
       ['Effective', renderExecControl3(currentA, prevA)],
+      ['Risks threatening DORA objectives', renderBoardRisks(currentA, prevA)],
       ['Policy statement ownership', renderOwnershipCard(currentA)],
       ['Full DORA → control traceability', renderTraceabilityCard(currentA)],
     ])}

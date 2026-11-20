@@ -72,7 +72,6 @@ function renderBoardSummary(currentA, prevA) {
   const LL = m.LL;
   const app = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
   const caps = bdCapSummaries(currentA);
-  const risks = bdRisks(currentA, prevA);
   const dimLbl = (typeof lensDimLabel === 'function') ? lensDimLabel() : 'Capability';
 
   const cell = sc => `<span class="bd-cap-cell"><b>${sc.d ? sc.pct + '%' : '—'}</b><span class="bd-bar bd-bar-sm"><i class="${sc.pct >= 100 ? 'bd-fill-ok' : sc.pct > 0 ? '' : 'bd-fill-gap'}" style="width:${sc.pct}%"></i></span></span>`;
@@ -85,32 +84,79 @@ function renderBoardSummary(currentA, prevA) {
     </button>`;
   };
 
-  // One card per DORA pillar: the "By capability" table filtered to that pillar's
-  // capabilities. Pillars with no in-scope capability (e.g. Resilience Testing)
-  // render their out-of-scope note instead of a table.
+  // One collapsible section per DORA pillar (collapsed by default, like the RICA
+  // and Control Coverage capability sections): the "By capability" table
+  // filtered to that pillar's capabilities. Pillars with no in-scope capability
+  // show their out-of-scope note on the header and don't expand.
+  const RANK = { red: 0, amber: 1, green: 2 };
+  const chev = '<svg class="bd-art-chev" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const pillarCard = pid => {
     const pdef = bdPillarDef(pid);
     const rows = caps.filter(c => (typeof doraPillarForCapabilityName === 'function') && doraPillarForCapabilityName(c.name) === pid);
     const chap = pdef.chapter ? `Chapter ${pdef.chapter}` : '';
     if (!rows.length) {
       const note = pdef.outNote || (pdef.inScope ? 'No capabilities with data in this pillar yet.' : 'Out of scope for us.');
-      return `<section class="bd-sec bd-pillar">
-        <div class="bd-sec-hd"><h2>${escHtml(pdef.name)}</h2><span>${escHtml(chap)}</span></div>
-        <p class="bd-pillar-empty">${escHtml(note)}</p>
+      return `<section class="bd-art bd-pillar">
+        <h2 class="bd-pillar-h"><span class="bd-art-hd bd-art-hd-static"><i class="bd-dot" aria-hidden="true"></i><span class="bd-art-title">${escHtml(pdef.name)}</span><span class="bd-art-meta">${chap ? escHtml(chap) + ' · ' : ''}${escHtml(note)}</span></span></h2>
       </section>`;
     }
-    return `<section class="bd-sec bd-pillar">
-      <div class="bd-sec-hd"><h2>${escHtml(pdef.name)}</h2><span class="no-print">${chap ? escHtml(chap) + ' · ' : ''}select a row to trace it in the live view</span></div>
-      <div class="bd-table-wrap"><div class="bd-cap-table">
-        <div class="bd-cap-head"><span>${escHtml(dimLbl)}</span><span>Documented</span><span>Implemented</span><span>Effective</span><span>Status</span></div>
-        ${rows.map(capRow).join('')}
-      </div></div>
+    const worst = rows.reduce((w, c) => (RANK[c.rag] ?? 1) < (RANK[w] ?? 1) ? c.rag : w, 'green');
+    const needs = rows.filter(c => c.rag !== 'green').length;
+    const meta = `${chap ? chap + ' · ' : ''}${rows.length} capabilit${rows.length === 1 ? 'y' : 'ies'}${needs ? ` · ${needs} need${needs === 1 ? 's' : ''} attention` : ''}`;
+    return `<section class="bd-art bd-pillar">
+      <h2 class="bd-pillar-h"><button type="button" class="bd-art-hd" aria-expanded="false" onclick="bdTogglePillar(this)">
+        <i class="bd-dot bd-dot-${worst}" aria-hidden="true"></i>
+        <span class="bd-art-title">${escHtml(pdef.name)}</span>
+        <span class="bd-art-meta">${escHtml(meta)}</span>${chev}
+      </button></h2>
+      <div class="bd-art-body" hidden>
+        <div class="bd-table-wrap"><div class="bd-cap-table">
+          <div class="bd-cap-head"><span>${escHtml(dimLbl)}</span><span>Documented</span><span>Implemented</span><span>Effective</span><span>Status</span></div>
+          ${rows.map(capRow).join('')}
+        </div></div>
+      </div>
     </section>`;
   };
   const pillarCards = BD_PILLAR_ORDER.map(pillarCard).join('');
 
-  // Risks grouped under the DORA pillar they threaten (the risk's owning
-  // capability → pillar). Only pillars with ≥1 threatening risk are shown.
+  return `
+  <div class="bd-summary">
+    <div class="bd-top">
+      <div>
+        <div class="exsc-eyebrow">◈ ${escHtml(app)}</div>
+        <h2 class="exsc-title bd-doc-title">${escHtml(LL)} Operationalisation Scorecard</h2>
+        <div class="bd-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)}${prevA ? ` · compared with ${escHtml(prevA.label)}` : ''}</div>
+      </div>
+      <div class="bd-actions no-print">
+        <button type="button" class="bd-btn bd-btn-primary" onclick="boardOpenLens()">Open live view <span aria-hidden="true">→</span></button>
+        <button type="button" class="bd-btn" onclick="window.print()">Print / save PDF</button>
+      </div>
+    </div>
+
+    <section class="bd-sec" aria-labelledby="bd-pillars-h">
+      <div class="bd-sec-hd"><h2 id="bd-pillars-h">By DORA pillar</h2><span class="no-print">Open a pillar, then select a capability to trace it in the live view</span></div>
+      <div class="bd-pillars">${pillarCards}</div>
+    </section>
+  </div>`;
+}
+
+// Open / close a pillar section in place (its table is already rendered).
+function bdTogglePillar(btn) {
+  const sec = btn.closest('.bd-pillar');
+  const body = sec && sec.querySelector('.bd-art-body');
+  if (!body) return;
+  const open = body.hidden;
+  body.hidden = !open;
+  sec.classList.toggle('is-open', open);
+  btn.setAttribute('aria-expanded', String(open));
+}
+
+// Risks that threaten DORA objectives, grouped under the DORA pillar they
+// threaten (the risk's owning capability → pillar). Shown in the Appendix.
+function renderBoardRisks(currentA, prevA) {
+  const LL = (typeof lensLabel === 'function') ? lensLabel() : 'DORA';
+  const risks = bdRisks(currentA, prevA);
+  if (!risks.length) return '';
   const BAND = [['High', 'bd-tone-gap'], ['Moderate', 'bd-tone-warn'], ['Low', 'bd-tone-ok'], ['Not assessed', 'bd-tone-muted']];
   const riskHead = `<div class="bd-risk-head"><span>Capability</span><span>Risk</span><span>Residual</span><span>Band</span></div>`;
   const riskRow = r => `<div class="bd-risk-row">
@@ -132,30 +178,9 @@ function renderBoardSummary(currentA, prevA) {
       <div class="bd-risks">${riskHead}${rs.map(riskRow).join('')}</div>
     </div>`;
   }).join('');
-
-  return `
-  <div class="bd-summary">
-    <div class="bd-top">
-      <div>
-        <div class="exsc-eyebrow">◈ ${escHtml(app)}</div>
-        <h2 class="exsc-title bd-doc-title">${escHtml(LL)} Operationalisation Scorecard</h2>
-        <div class="bd-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)}${prevA ? ` · compared with ${escHtml(prevA.label)}` : ''}</div>
-      </div>
-      <div class="bd-actions no-print">
-        <button type="button" class="bd-btn bd-btn-primary" onclick="boardOpenLens()">Open live view <span aria-hidden="true">→</span></button>
-        <button type="button" class="bd-btn" onclick="window.print()">Print / save PDF</button>
-      </div>
-    </div>
-
-    <section class="bd-sec" aria-labelledby="bd-pillars-h">
-      <div class="bd-sec-hd"><h2 id="bd-pillars-h">By DORA pillar</h2><span>Each pillar's capabilities, Documented → Implemented → Effective</span></div>
-    </section>
-    ${pillarCards}
-
-    ${risks.length ? `<section class="bd-sec" aria-labelledby="bd-risks-h">
-      <div class="bd-sec-hd"><h2 id="bd-risks-h">Risks threatening ${escHtml(LL)} objectives</h2><span>Grouped by DORA pillar · residual after controls · High ≥ 20 · Moderate 12–19 · Low &lt; 12</span></div>
-      ${riskGroups}
-    </section>` : ''}
+  return `<div class="card measure-card bd-risks-card">
+    <p class="bd-risks-note">Risks that threaten ${escHtml(LL)} objectives, grouped by DORA pillar · residual after controls · High ≥ 20 · Moderate 12–19 · Low &lt; 12</p>
+    ${riskGroups}
   </div>`;
 }
 
@@ -169,9 +194,11 @@ function renderBoardAppendix(sections) {
 }
 window.addEventListener('beforeprint', () => {
   document.querySelectorAll('.bd-appx').forEach(d => { d.dataset.wasOpen = d.open ? '1' : ''; d.open = true; });
+  document.querySelectorAll('.bd-pillar .bd-art-body').forEach(b => { b.dataset.wasHidden = b.hidden ? '1' : ''; b.hidden = false; });
 });
 window.addEventListener('afterprint', () => {
   document.querySelectorAll('.bd-appx').forEach(d => { d.open = d.dataset.wasOpen === '1'; });
+  document.querySelectorAll('.bd-pillar .bd-art-body').forEach(b => { b.hidden = b.dataset.wasHidden === '1'; });
 });
 
 // Jump to the live view, optionally switching it to one capability first.

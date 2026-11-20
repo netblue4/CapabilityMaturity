@@ -441,12 +441,19 @@ function renderCapabilityLensCard(assessment) {
   const ragOf = c => { const s = buildCapabilitySummary(assessment, c.id, 'all'); return s && s.hasData ? (RANK[s.rag] ?? 3) : 4; };
   const worst = _capLensDims.reduce((best, c) => (ragOf(c) < ragOf(best) ? c : best), _capLensDims[0]);
   const firstCap = _capLensDims.find(c => c.id === _capLensCapId) || worst;
+  // On DORA Reporting the capability is picked from the By DORA pillar table
+  // above (boardOpenLens), so the live view carries no picker of its own; the
+  // MiCA / NIST reports have no such table and keep the buttons.
+  const isDora = (typeof activeLens === 'undefined') || activeLens === 'dora';
+  const how = isDora
+    ? `Pick a ${escHtml(dimLbl.toLowerCase())} in <b>By ${escHtml(lensGroupLabel())}</b> above, open an article, then select any item for its details.`
+    : 'Open an article, then select any item for its details.';
   return `
     <div class="card measure-card caplens-card bd-lens">
       <div class="bd-lens-hd">
         <div>
           <h3 class="measure-card-title">Live view &mdash; trace a ${escHtml(dimLbl.toLowerCase())} to its ${escHtml(lensLabel())} objectives</h3>
-          <p class="measure-card-desc">From ${escHtml(lensLabel())} objective to the policy statement and the control that proves it. Open an article, then select any item for its details.</p>
+          <p class="measure-card-desc">From ${escHtml(lensLabel())} objective to the policy statement and the control that proves it. ${how}</p>
         </div>
         <div class="caplens-src-lbl">Source
           <div class="caplens-src" role="tablist" aria-label="Statement source">
@@ -454,7 +461,7 @@ function renderCapabilityLensCard(assessment) {
           </div>
         </div>
       </div>
-      <nav class="bd-pills" id="caplens-pills" aria-label="${escHtml(dimLbl)}">${capLensPills(firstCap.id)}</nav>
+      ${isDora ? '' : `<nav class="bd-pills" id="caplens-pills" aria-label="${escHtml(dimLbl)}">${capLensPills(firstCap.id)}</nav>`}
       <div id="caplens-body">${capLensBody(assessment, firstCap.id)}</div>
     </div>`;
 }

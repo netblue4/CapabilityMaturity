@@ -138,8 +138,6 @@ function renderBoardSummary(currentA, prevA) {
       <div class="bd-pillars">${pillarCards}</div>
     </section>
 
-    ${renderBoardGaps(currentA, caps)}
-    ${renderBoardFixFirst(currentA)}
   </div>`;
 }
 
@@ -203,10 +201,11 @@ function renderBoardGaps(currentA, caps) {
     </section>`;
   }).filter(Boolean);
   if (!sections.length) return '';
-  return `<section class="bd-sec" aria-labelledby="bd-gaps-h">
-    <div class="bd-sec-hd"><h2 id="bd-gaps-h">Gaps for the next review cycle</h2><span>DORA objectives our policies and group standards don't document, and our statements DORA doesn't ask for</span></div>
+  // Shown in the Appendix, under its own heading.
+  return `<div class="card measure-card bd-appx-card bd-gaps">
+    <p class="bd-appx-note">DORA objectives our policies and group standards don't document, and our statements DORA doesn't ask for — one section per capability.</p>
     <div class="bd-pillars">${sections.join('')}</div>
-  </section>`;
+  </div>`;
 }
 
 // ── Fix first (are documented objectives implemented by controls that work?) ──
@@ -242,13 +241,14 @@ function renderBoardFixFirst(currentA) {
       <span class="bd-fix-objs"><span><b>${c.objs.size}</b> DORA objective${c.objs.size === 1 ? '' : 's'}</span>${c.objs.size ? `<small>${[...c.objs.keys()].map(escHtml).join(' · ')}</small>` : ''}</span>
     </div>`;
   }).join('');
-  return `<section class="bd-sec" aria-labelledby="bd-fix-h">
-    <div class="bd-sec-hd"><h2 id="bd-fix-h">Fix first</h2><span>Controls not yet effective, ranked by the residual risk they should reduce, then the DORA objectives that depend on them</span></div>
+  // Shown in the Appendix, under its own heading.
+  return `<div class="card measure-card bd-appx-card bd-fixfirst">
+    <p class="bd-appx-note">Controls not yet effective, ranked by the residual risk they should reduce, then the DORA objectives that depend on them.</p>
     <div class="bd-table-wrap"><div class="bd-fix-table">
       <div class="bd-fix-head"><span>#</span><span>Control</span><span>Risks it treats (residual)</span><span>Protects</span></div>
       ${rows}
     </div></div>
-  </section>`;
+  </div>`;
 }
 
 // Open / close a collapsible board section in place (its content is already rendered).

@@ -467,11 +467,15 @@ const gapsFix = await page.evaluate(() => {
     fixFirst: fixRows[0]?.querySelector('.bd-fix-ctrl .bd-code')?.textContent.trim(),
     fixSorted: tops.every((t, i) => i === 0 || tops[i - 1] >= t),
     fixHasObj: fixRows.every(r => r.querySelector('.bd-fix-objs')),
+    inAppendix: !!root.querySelector('.bd-appx .bd-gapcap') && !!root.querySelector('.bd-appx .bd-fix-row')
+      && !root.querySelector('.bd-summary .bd-gapcap') && !root.querySelector('.bd-summary .bd-fix-row'),
+    appxOrder: [...root.querySelectorAll('.bd-appx > summary')].map(x => x.textContent.trim()),
   };
 });
 assert(gapsFix.collapsed && gapsFix.tpPolicyGap, 'DORA Reporting gaps: per-capability (collapsed); Third-Party policy gap lists ART-29-1');
 assert(gapsFix.incCross, 'DORA Reporting gaps: notes when the other source covers an objective (Incident: policy ↔ group standard)');
 assert(gapsFix.fixFirst === 'CTRL-1007' && gapsFix.fixSorted && gapsFix.fixHasObj, `DORA Reporting Fix first: ranked by residual risk (first ${gapsFix.fixFirst})`);
+assert(gapsFix.inAppendix && gapsFix.appxOrder.join(' | ').startsWith('Documented | Gaps for the next review cycle | Implemented | Effective | Fix first'), `DORA Reporting: Gaps and Fix first sit in the Appendix (${gapsFix.appxOrder.join(' | ')})`);
 assert(doraRep.boardRiskPillars.some(p => /Incident/.test(p)) && doraRep.boardRiskPillars.some(p => /Risk Management/.test(p)), `DORA Reporting: risks grouped under their DORA pillar (${doraRep.boardRiskPillars.join(' · ')})`);
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');

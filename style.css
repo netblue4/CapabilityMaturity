@@ -3922,3 +3922,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .bd-fix-risk { display: grid; grid-template-columns: minmax(0, 1fr) 2rem auto; gap: .6rem; align-items: center; font-size: .92rem; }
 .bd-fix-risk b { font-family: var(--font-mono); text-align: right; }
 .bd-fix-objs { display: flex; flex-direction: column; gap: .2rem; font-size: .92rem; }
+
+/* Gaps / Fix first inside the Appendix */
+.bd-appx-card { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem; }
+.bd-appx-note { margin: 0; font-size: .9rem; color: var(--text-muted); }

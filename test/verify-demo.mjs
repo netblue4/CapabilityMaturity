@@ -570,13 +570,29 @@ const ccov = await page.evaluate(() => {
   };
 });
 assert(ccov.view && ccov.cards >= 3, `Control Coverage: one card per capability (${ccov.cards})`);
-assert(ccov.headers.join(' | ') === 'Control | Implements (policy / GS statements) | Covers (DORA objectives)', `Control Coverage: control → statements → DORA columns (${ccov.headers.join(' | ')})`);
+assert(ccov.headers.join(' | ') === 'Control | Implements (policy / GS statements) | Covers (DORA objectives) | Treats (risks)', `Control Coverage: control → statements → DORA → risks columns (${ccov.headers.join(' | ')})`);
 assert(ccov.hasStmtRef && ccov.hasObjRef && ccov.hasEff, 'Control Coverage: each control lists its statements + DORA objectives with an effectiveness chip');
 assert(ccov.hasWeight, 'Control Coverage: capability summary shows the compliance weight (controls · statements · objectives)');
 assert(ccov.collapsed, 'Control Coverage: each capability is collapsed by default');
 assert(ccov.textShown, 'Control Coverage: statements and objectives are written out, not just refs');
 assert(ccov.detailUnderRow, 'Control Coverage: selecting an objective opens the details box beneath its row, listing the controls that cover it');
 assert(ccov.filters.join(',') === 'Everything,Not effective,No DORA objective', `Control Coverage: filters (${ccov.filters.join(', ')})`);
+const ccovKey = await page.evaluate(() => {
+  showReportModal('ctrlcov'); document.getElementById('exec-curr-sel').value = 'demo'; generateReport();
+  const root = document.getElementById('ctrlcov-report-content');
+  const rows = [...root.querySelectorAll('.ccov-key-row')];
+  const weights = rows.map(r => [...r.querySelectorAll('.ccov-key-w b')].slice(0, 3).reduce((n, b) => n + (+b.textContent || 0), 0));
+  const firstNum = rows[0]?.querySelector('.bd-code')?.textContent.trim();
+  rows[0]?.click();   // opens the control's capability and selects it
+  const det = root.querySelector('.ccov-detail');
+  return {
+    rows: rows.length, sorted: weights.every((w, i) => i === 0 || weights[i - 1] >= w),
+    profile: !!det && /Implements/.test(det.textContent) && /Covers/.test(det.textContent) && /Treats/.test(det.textContent) && det.textContent.includes(firstNum),
+    risksShown: !!root.querySelector('.ccov-card.is-open .ccov-risk'),
+  };
+});
+assert(ccovKey.rows > 0 && ccovKey.sorted, `Control Coverage: Key controls ranked by weight (${ccovKey.rows} rows)`);
+assert(ccovKey.profile && ccovKey.risksShown, 'Control Coverage: selecting a key control opens its full profile (statements, objectives, risks)');
 
 // Capability-lens drill-down headers aligned with the scorecard (Documented / Implemented / Effective)
 // restore the DORA report for the assertions that follow

@@ -52,10 +52,28 @@ function ccovModel(currentA) {
       (objCtrls.get(r._oKey) || objCtrls.set(r._oKey, new Set()).get(r._oKey)).add(r._cKey);
     }
   });
-  const ctrls = [...byCtrl.values()].map(c => Object.assign(c, {
-    stmtList: [...c.stmts.values()].sort((x, y) => String(x.ref).localeCompare(String(y.ref))),
-    objList: [...c.objs.values()].sort((x, y) => String(x.id).localeCompare(String(y.id))),
-  }));
+  // The risks each control treats (with residual), from the RCSA facts — keyed
+  // the same way as the traceability rows (capId|number|name).
+  const LPol = (typeof lensPolicy === 'function') ? lensPolicy(currentA) : (currentA.policyRows || []);
+  const LFac = (typeof lensFacts === 'function') ? lensFacts(currentA) : (currentA.riskPolicyFacts || []);
+  const residual = new Map(buildRiskProfile(LFac).map(k => [k.title, k.residual || 0]));
+  const opByKey = new Map(buildBackingControlOps(LPol, LFac).controls.map(o => [o.capId + '|' + ftNorm(o.number) + '|' + ftNorm(o.name), o]));
+  const riskCtrls = new Map();
+  const ctrls = [...byCtrl.values()].map(c => {
+    const op = opByKey.get(c.key) || {};
+    const risks = [...(op.risks || [])].map(t => ({ title: t, residual: residual.get(t) || 0 })).sort((x, y) => y.residual - x.residual || x.title.localeCompare(y.title));
+    risks.forEach(r => (riskCtrls.get(r.title) || riskCtrls.set(r.title, new Set()).get(r.title)).add(c.key));
+    const stmtList = [...c.stmts.values()].sort((x, y) => String(x.ref).localeCompare(String(y.ref)));
+    return Object.assign(c, {
+      stmtList, risks,
+      objList: [...c.objs.values()].sort((x, y) => String(x.id).localeCompare(String(y.id))),
+      docs: [...new Set(stmtList.map(st => st.document).filter(Boolean))],
+      owner: c.owner || op.owner || '',
+      // Weight: everything the control carries — statements, objectives and risks.
+      weight: c.stmts.size + c.objs.size + risks.length,
+      topResidual: risks.length ? risks[0].residual : 0,
+    });
+  });
   // Sense-check flags.
   ctrls.forEach(c => {
     c.flags = [];
@@ -68,7 +86,10 @@ function ccovModel(currentA) {
   byCap.forEach(list => list.sort((a, b) => b.objs.size - a.objs.size || b.stmts.size - a.stmts.size || String(a.num || a.label).localeCompare(String(b.num || b.label))));
   const order = caps.map(c => c.name).filter(n => byCap.has(n));
   [...byCap.keys()].forEach(n => { if (!order.includes(n)) order.push(n); });
-  return { ctrls, byCtrl, stmtCtrls, objCtrls, caps: order.map(name => ({ name, ctrls: byCap.get(name) })) };
+  const capList = order.map(name => ({ name, ctrls: byCap.get(name) }));
+  const pos = new Map();
+  capList.forEach((cap, ci) => cap.ctrls.forEach((c, ki) => pos.set(c.key, { ci, ki })));
+  return { ctrls, byCtrl, stmtCtrls, objCtrls, riskCtrls, pos, caps: capList };
 }
 
 function renderCtrlCoverageReport(currentA) {
@@ -99,6 +120,16 @@ function ccovRefresh() {
 }
 function ccovSetMode(mode) { _ccov.mode = mode; _ccov.sel = null; _ccov.open = {}; ccovRefresh(); }
 function ccovSelect(key) { _ccov.sel = _ccov.sel === key ? null : key; _ccov.focus = key; ccovRefresh(); }
+// From the Key controls list: open the control's capability and select it.
+function ccovFocusCtrl(ci, ki) {
+  _ccov.mode = 'all';
+  _ccov.open = { [ci]: true };
+  _ccov.sel = `c${ci}-k${ki}`;
+  _ccov.focus = _ccov.sel;
+  ccovRefresh();
+  const el = document.querySelector(`#ccov-body [data-key="c${ci}-k${ki}"]`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 function ccovToggleCap(i) {
   const open = _ccov.open[i] !== undefined ? _ccov.open[i] : _ccov.mode !== 'all';
   _ccov.open[i] = !open;
@@ -158,6 +189,8 @@ function ccovBody() {
         [['Control owner', c.owner], ['Origin', c.provenance],
           ['Implements', c.stmtList.map(s => `${s.ref} — ${s.header || ''}`)],
           ['Covers', c.objList.length ? c.objList.map(o => `${o.id} — ${o.requirement || o.article}`) : 'No DORA objective — its statements are not mapped to one'],
+          ['Treats', c.risks.length ? c.risks.map(r => `${r.title} (residual ${r.residual || '—'})`) : ''],
+          [c.docs.length > 1 ? `Spans ${c.docs.length} documents` : 'Document', c.docs.length > 1 ? c.docs : c.docs[0]],
           ['Sense check', c.flags.map(f => f.text).join(' · ')]]);
       const stmts = c.stmtList.map((s, j) => {
         const key = `${kKey}-s${j}`;
@@ -181,16 +214,27 @@ function ccovBody() {
         return `<button type="button" class="ccov-item ccov-obj${on(key)}" ${pick(key)}><span class="bd-code">${escHtml(o.id || '')}</span><span class="ccov-item-text">${escHtml(o.requirement || o.article)}</span><span class="ccov-item-sub">${escHtml(o.article)}</span></button>`;
       }).join('')
         : `<button type="button" class="bd-gap ccov-gap${on(kKey)}" ${pick(kKey)}><b>No DORA objective</b><span>The statements this control implements are not mapped to a DORA objective.</span></button>`;
+      const risks = c.risks.length ? c.risks.map((r, j) => {
+        const key = `${kKey}-r${j}`;
+        const b = ccovBand(r.residual);
+        if (sel === key) {
+          const others = [...(M.riskCtrls.get(r.title) || [])];
+          detail = detailBox('Risk', '', r.title, null, `Residual ${r.residual || 'not assessed'}${r.residual ? ` — ${b[0].toLowerCase()} after controls` : ''}.`,
+            [[others.length > 1 ? `Treated by ${others.length} controls` : 'Treated by', others.map(ctrlLine)]]);
+        }
+        return `<button type="button" class="ccov-item ccov-risk${on(key)}" ${pick(key)}><span class="ccov-risk-top"><span class="ccov-item-text">${escHtml(r.title)}</span><span class="bd-chip bd-tone-${b[1]}">${r.residual || '—'} · ${b[0]}</span></span></button>`;
+      }).join('') : '<span class="ccov-none-note">No risk linked</span>';
       return `<div class="ccov-row${detail ? ' has-detail' : ''}">
         <button type="button" class="bd-ctrl ccov-ctrl bd-ctrl-${CCOV_ST[c.level].key}${on(kKey)}" ${pick(kKey)}>
           <span class="bd-ctrl-top"><span class="bd-code">${escHtml(c.num || '')}</span>${chip(c.level)}</span>
           <span class="bd-ctrl-name">${escHtml(c.label)}</span>
           ${c.desc ? `<span class="ccov-desc">${escHtml(c.desc)}</span>` : ''}
-          <span class="ccov-weight">${plural(c.stmts.size, 'statement')} · ${plural(c.objs.size, 'objective')}</span>
+          <span class="ccov-weight">${plural(c.stmts.size, 'statement')} · ${plural(c.objs.size, 'objective')} · ${plural(c.risks.length, 'risk')} · ${plural(c.docs.length, 'document')}</span>
           ${c.flags.length ? `<span class="ccov-flags">${c.flags.map(f => `<span class="bd-chip bd-tone-${f.tone}">${escHtml(f.text)}</span>`).join('')}</span>` : ''}
         </button>
         <div class="ccov-stack">${stmts}</div>
         <div class="ccov-stack">${objs}</div>
+        <div class="ccov-stack">${risks}</div>
       </div>${detail}`;
     }).join('');
 
@@ -200,7 +244,7 @@ function ccovBody() {
         <span class="bd-art-title">${escHtml(cap.name)}</span>
         <span class="bd-art-meta">${meta}</span>${chev}
       </button>
-      ${open ? `<div class="bd-art-body"><div class="ccov-head"><span>Control</span><span>Implements (policy / GS statements)</span><span>Covers (DORA objectives)</span></div>${rows}</div>` : ''}
+      ${open ? `<div class="bd-art-body"><div class="ccov-head"><span>Control</span><span>Implements (policy / GS statements)</span><span>Covers (DORA objectives)</span><span>Treats (risks)</span></div>${rows}</div>` : ''}
     </section>`;
   }).join('');
 
@@ -217,6 +261,8 @@ function ccovBody() {
       <div class="bd-mini"><span class="exsum-lbl">Statements implemented</span><b>${stmtN}</b><span class="exsum-frac">policy &amp; group standard</span></div>
       <div class="bd-mini"><span class="exsum-lbl">DORA objectives covered</span><b>${objN}</b><span class="exsum-frac">${unprovenObjs ? `${unprovenObjs} on unproven controls only` : 'each has a proven control'}</span></div>
     </div>
+    ${ccovKeyControls(M)}
+    <div class="bd-sec-hd ccov-detail-hd"><h2>Controls by capability</h2><span class="no-print">Open a capability, then select any item for its details</span></div>
     <div class="bd-lens-bar">
       <div class="bd-seg" role="group" aria-label="Show">
         ${CCOV_MODES.map(([v, l]) => `<button type="button" aria-pressed="${v === mode}" onclick="ccovSetMode('${v}')">${l}${v === 'all' ? '' : ` <span class="bd-seg-n">${counts[v]}</span>`}</button>`).join('')}
@@ -228,6 +274,37 @@ function ccovBody() {
       </div>
     </div>
     <div class="bd-trace ccov-trace">${sections || `<div class="bd-empty">${EMPTY[mode]}</div>`}</div>`;
+}
+
+// Residual band, as on DORA Reporting: High ≥ 20 · Moderate 12–19 · Low < 12.
+function ccovBand(r) { return r >= 20 ? ['High', 'gap'] : r >= 12 ? ['Moderate', 'warn'] : r > 0 ? ['Low', 'ok'] : ['Not assessed', 'muted']; }
+
+// Key controls: the controls carrying the most (statements + DORA objectives +
+// risks) across every capability, heaviest first — to highlight key controls
+// and to walk an owner through what theirs covers.
+function ccovKeyControls(M) {
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const top = M.ctrls.slice().sort((a, b) => b.weight - a.weight || b.topResidual - a.topResidual || String(a.num).localeCompare(String(b.num))).slice(0, 10);
+  if (!top.length) return '';
+  const rows = top.map((c, i) => {
+    const p = M.pos.get(c.key);
+    return `<button type="button" class="ccov-key-row" onclick="ccovFocusCtrl(${p.ci}, ${p.ki})">
+      <span class="bd-fix-rank">${i + 1}</span>
+      <span class="ccov-key-ctrl"><span class="bd-code">${escHtml(c.num || '')}</span><b>${escHtml(c.label)}</b><small>${escHtml(c.capability)}${c.owner ? ' · ' + escHtml(c.owner) : ''}</small></span>
+      <span class="ccov-key-w"><b>${c.stmts.size}</b><small>statement${c.stmts.size === 1 ? '' : 's'}</small></span>
+      <span class="ccov-key-w"><b>${c.objs.size}</b><small>DORA objective${c.objs.size === 1 ? '' : 's'}</small></span>
+      <span class="ccov-key-w"><b>${c.risks.length}</b><small>risk${c.risks.length === 1 ? '' : 's'}${c.topResidual ? ` · top ${c.topResidual}` : ''}</small></span>
+      <span class="ccov-key-w"><b>${c.docs.length}</b><small>document${c.docs.length === 1 ? '' : 's'}</small></span>
+      <span class="bd-chip bd-tone-${CCOV_ST[c.level].key}">${CCOV_ST[c.level].label}</span>
+    </button>`;
+  }).join('');
+  return `<section class="bd-sec ccov-key" aria-labelledby="ccov-key-h">
+    <div class="bd-sec-hd"><h2 id="ccov-key-h">Key controls</h2><span class="no-print">The controls carrying the most — select one to see everything it covers</span></div>
+    <div class="bd-table-wrap"><div class="ccov-key-table">
+      <div class="ccov-key-head"><span>#</span><span>Control</span><span>Statements</span><span>Objectives</span><span>Risks</span><span>Documents</span><span>Status</span></div>
+      ${rows}
+    </div></div>
+  </section>`;
 }
 
 function generateCtrlCoverageReport() {

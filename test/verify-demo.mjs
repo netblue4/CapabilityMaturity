@@ -499,6 +499,27 @@ assert(pgsa.headers.join(' | ') === 'Document | Policy / Group Standard statemen
 assert(pgsa.hasSrc && pgsa.hasEff, 'Attestation (RICA) report: statements show their source + each control\'s effectiveness');
 assert(pgsa.detailUnderRow, 'Attestation (RICA) report: selecting a control opens the details box beneath its row');
 assert(pgsa.filters.join(',') === 'Everything,Not implemented,Not effective', `Attestation (RICA) report: gap filters (${pgsa.filters.join(', ')})`);
+const pgsaSum = await page.evaluate(() => {
+  showReportModal('pgsa'); document.getElementById('exec-curr-sel').value = 'demo'; generateReport();
+  const root = document.getElementById('pgsa-report-content');
+  const sumRows = root.querySelectorAll('.pgsa-sum-row').length;
+  const cards = root.querySelectorAll('.pgsa-card').length;
+  const sumBeforeCards = !!root.querySelector('.pgsa-sum') && (root.querySelector('.pgsa-sum').compareDocumentPosition(root.querySelector('.pgsa-card')) & Node.DOCUMENT_POSITION_FOLLOWING) > 0;
+  const docsShown = [...root.querySelectorAll('.pgsa-sum-row')].every(r => r.querySelector('.pgsa-doc-name'));
+  // Selecting a summary row opens that capability's section beneath.
+  root.querySelectorAll('.pgsa-sum-row')[1].click();
+  const opened = root.querySelectorAll('.pgsa-card')[1].classList.contains('is-open');
+  // Source filter: Group Standard only.
+  pgsaSetSource('group');
+  const gsOnly = [...root.querySelectorAll('.pgsa-sum .pgsa-src')].every(c => c.classList.contains('pgsa-src-gs')) && root.querySelectorAll('.pgsa-sum-row').length > 0;
+  const tabs = [...document.querySelectorAll('.pgsa-src-tabs .cls-tab')].map(b => b.textContent.trim() + (b.classList.contains('cls-tab-on') ? '*' : ''));
+  pgsaSetSource('all');
+  return { sumRows, cards, sumBeforeCards, docsShown, opened, gsOnly, tabs };
+});
+assert(pgsaSum.sumRows === pgsaSum.cards && pgsaSum.sumBeforeCards, `Attestation (RICA) report: per-capability summary above the capability sections (${pgsaSum.sumRows} rows)`);
+assert(pgsaSum.docsShown, 'Attestation (RICA) report: summary lists each capability\'s policies & group standards');
+assert(pgsaSum.opened, 'Attestation (RICA) report: selecting a summary row opens that capability below');
+assert(pgsaSum.gsOnly && pgsaSum.tabs.join(',') === 'Both,Policy,Group Standard*', `Attestation (RICA) report: source filter (${pgsaSum.tabs.join(', ')})`);
 
 // ── New report: Control Coverage (control → statements → DORA objectives) ──
 const ccovBtn = await page.evaluate(() => !!document.querySelector('#view-dashboard button[onclick="showReportModal(\'ctrlcov\')"]'));

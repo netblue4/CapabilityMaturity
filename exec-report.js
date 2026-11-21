@@ -109,8 +109,10 @@ function generateDoraForumReport() {
     <div class="exec-rcsa-wrap" id="board-live-view">${renderCapabilityLensCard(currentA)}</div>
     ${renderBoardAppendix([
       ['Documented', renderExecCoverageMatrix(currentA)],
+      ['Gaps for the next review cycle', renderBoardGaps(currentA, bdCapSummaries(currentA))],
       ['Implemented', renderExecControl2(currentA, prevA)],
       ['Effective', renderExecControl3(currentA, prevA)],
+      ['Fix first', renderBoardFixFirst(currentA)],
       ['Risks threatening DORA objectives', renderBoardRisks(currentA, prevA)],
       ['Policy statement ownership', renderOwnershipCard(currentA)],
       ['Full DORA → control traceability', renderTraceabilityCard(currentA)],

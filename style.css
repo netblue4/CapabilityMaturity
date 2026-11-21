@@ -3709,6 +3709,16 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 /* RICA attestation — the live-view layout applied to policy & group-standard statements */
 .pgsa { gap: 1.75rem; }
 #pgsa-body { display: flex; flex-direction: column; gap: 1.5rem; }
+.pgsa-sum-head, .pgsa-sum-row { grid-template-columns: minmax(200px, 1.3fr) minmax(240px, 2fr) minmax(130px, 1fr) minmax(130px, 1fr) 140px; }
+.pgsa-sum-table { min-width: 900px; }
+.pgsa-sum-row { align-items: center; padding-top: .8rem; padding-bottom: .8rem; }
+.pgsa-sum-row .bd-cap-cell small { font-size: .78rem; color: var(--text-muted); }
+.pgsa-docs { display: flex; flex-direction: column; gap: .35rem; }
+.pgsa-doc-chip { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.pgsa-doc-name { font-size: .88rem; }
+.pgsa-detail-hd { margin-top: .5rem; }
+.pgsa-detail-hd h2 { margin: 0; font-family: 'Space Grotesk', var(--font-body); font-size: 1.6rem; font-weight: 600; }
+.bd-actions .caplens-src-lbl { align-self: center; }
 .pgsa-headline { font-size: clamp(1.6rem, 3vw, 2.4rem); max-width: 1000px; }
 .pgsa .pgsa-minis { max-width: 760px; flex: none; }
 .pgsa-trace { gap: .6rem; }

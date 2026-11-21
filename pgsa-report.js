@@ -10,7 +10,10 @@
 
 // View state: the assessment, the active filter, the selected item and which
 // capability sections are open (unset = the filter's default).
-const _pgsa = { a: null, mode: 'all', sel: null, open: {}, focus: null };
+const _pgsa = { a: null, mode: 'all', src: 'all', sel: null, open: {}, focus: null };
+// Statement-source filter, as on DORA Reporting: both sources, Local Policy only
+// or Group Standard only. Applies to the summary and the detail alike.
+const PGSA_SOURCES = [['all', 'Both', null], ['policy', 'Policy', 'Local Policy'], ['group', 'Group Standard', 'Group Standard']];
 const PGSA_MODES = [
   ['all',    'Everything'],
   ['unimpl', 'Not implemented'],
@@ -75,6 +78,11 @@ function renderPgsaReport(currentA) {
         <div class="bd-sub">${escHtml(currentA.label)} · ${formatDate(currentA.date)} · each statement attested by the controls that implement it</div>
       </div>
       <div class="bd-actions no-print">
+        <div class="caplens-src-lbl">Source
+          <div class="caplens-src pgsa-src-tabs" role="tablist" aria-label="Statement source">
+            ${PGSA_SOURCES.map(([v, l]) => `<button type="button" class="cls-tab${v === _pgsa.src ? ' cls-tab-on' : ''}" role="tab" aria-selected="${v === _pgsa.src}" data-src="${v}" onclick="pgsaSetSource('${v}')">${l}</button>`).join('')}
+          </div>
+        </div>
         <button type="button" class="bd-btn" onclick="window.print()">Print / save PDF</button>
       </div>
     </div>
@@ -91,6 +99,21 @@ function pgsaRefresh() {
   _pgsa.focus = null;
 }
 function pgsaSetMode(mode) { _pgsa.mode = mode; _pgsa.sel = null; _pgsa.open = {}; pgsaRefresh(); }
+function pgsaSetSource(src) {
+  _pgsa.src = src; _pgsa.sel = null; _pgsa.open = {};
+  document.querySelectorAll('.pgsa-src-tabs .cls-tab').forEach(b => {
+    const on = b.dataset.src === src; b.classList.toggle('cls-tab-on', on); b.setAttribute('aria-selected', on);
+  });
+  pgsaRefresh();
+}
+// From a summary row: open that capability's section beneath and bring it into view.
+function pgsaOpenCap(i) {
+  _pgsa.open[i] = true;
+  _pgsa.focus = 'cap' + i;
+  pgsaRefresh();
+  const hd = document.querySelector(`#pgsa-body [data-key="cap${i}"]`);
+  if (hd) hd.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function pgsaSelect(key) { _pgsa.sel = _pgsa.sel === key ? null : key; _pgsa.focus = key; pgsaRefresh(); }
 function pgsaToggleCap(i) {
   const open = _pgsa.open[i] !== undefined ? _pgsa.open[i] : _pgsa.mode !== 'all';
@@ -100,7 +123,10 @@ function pgsaToggleCap(i) {
 }
 
 function pgsaBody() {
-  const caps = pgsaModel(_pgsa.a);
+  const srcLabel = (PGSA_SOURCES.find(x => x[0] === _pgsa.src) || [])[2];
+  const caps = pgsaModel(_pgsa.a)
+    .map(c => Object.assign({}, c, { stmts: srcLabel ? c.stmts.filter(s => s.source === srcLabel) : c.stmts }))
+    .filter(c => c.stmts.length);
   const all = caps.flatMap(c => c.stmts);
   const total = all.length;
   // Implemented = linked to a control or carrying a disclosed exception (Control 2).
@@ -111,11 +137,11 @@ function pgsaBody() {
   const counts = { unimpl: all.filter(notImpl).length, uneff: all.reduce((n, s) => n + s.ctrls.filter(notEff).length, 0) };
   const pct = (n, d) => d ? Math.round(100 * n / d) + '%' : '—';
 
-  if (!total) return '<section class="bd-sec"><p class="bd-pillar-empty">No policy or group-standard statements imported yet.</p></section>';
+  if (!total) return `<section class="bd-sec"><p class="bd-pillar-empty">${srcLabel ? `No ${escHtml(srcLabel.toLowerCase())} statements imported yet.` : 'No policy or group-standard statements imported yet.'}</p></section>`;
 
   const headline = effective === total
     ? `All ${total} statements are backed by effective controls.`
-    : `${implemented} of ${total} statements are implemented — but only ${effective} are backed by controls proven to work.`;
+    : `${implemented} of ${total} statement${total === 1 ? ' is' : 's are'} implemented — but ${effective === 0 ? 'none are' : effective === 1 ? 'only 1 is' : `only ${effective} are`} backed by controls proven to work.`;
 
   const mode = _pgsa.mode, sel = _pgsa.sel;
   const on = k => k === sel ? ' is-sel' : '';
@@ -202,6 +228,8 @@ function pgsaBody() {
       <div class="bd-mini"><span class="exsum-lbl">Implemented</span><b>${pct(implemented, total)}</b><span class="exsum-frac">${implemented} of ${total} with a control or exception</span></div>
       <div class="bd-mini"><span class="exsum-lbl">Effective</span><b>${pct(effective, total)}</b><span class="exsum-frac">${effective} of ${total} backed by effective controls</span></div>
     </div>
+    ${pgsaSummary(caps)}
+    <div class="bd-sec-hd pgsa-detail-hd"><h2>Statements by capability</h2><span class="no-print">Open a capability to see each statement and the controls behind it</span></div>
     <div class="bd-lens-bar">
       <div class="bd-seg" role="group" aria-label="Show">
         ${PGSA_MODES.map(([v, l]) => `<button type="button" aria-pressed="${v === mode}" onclick="pgsaSetMode('${v}')">${l}${v === 'all' ? '' : ` <span class="bd-seg-n">${counts[v]}</span>`}</button>`).join('')}
@@ -216,13 +244,45 @@ function pgsaBody() {
     <div class="bd-trace pgsa-trace">${sections || `<div class="bd-empty">${EMPTY[mode]}</div>`}</div>`;
 }
 
+// Per-capability summary: its policies & group standards, how many of its
+// statements are implemented and how many are backed by effective controls.
+// Selecting a row opens that capability's detail section beneath.
+function pgsaSummary(caps) {
+  const RAG = { gap: ['At risk', 'bd-tone-gap'], warn: ['Needs attention', 'bd-tone-warn'], ok: ['On track', 'bd-tone-ok'] };
+  const bar = (n, d) => {
+    const p = d ? Math.round(100 * n / d) : 0;
+    return `<span class="bd-cap-cell"><b>${d ? p + '%' : '—'}</b><span class="bd-bar bd-bar-sm"><i class="${p >= 100 ? 'bd-fill-ok' : p > 0 ? '' : 'bd-fill-gap'}" style="width:${p}%"></i></span><small>${n} of ${d} statement${d === 1 ? '' : 's'}</small></span>`;
+  };
+  const rows = caps.map((cap, ci) => {
+    const n = cap.stmts.length;
+    const impl = cap.stmts.filter(s => s.ctrls.length || s.exception).length;
+    const eff = cap.stmts.filter(s => s.level === 0).length;
+    const docs = new Map();
+    cap.stmts.forEach(s => { if (!docs.has(s.document)) docs.set(s.document, s.source); });
+    const rag = impl < n ? RAG.gap : eff < n ? RAG.warn : RAG.ok;
+    return `<button type="button" class="bd-cap-row pgsa-sum-row" onclick="pgsaOpenCap(${ci})">
+      <span class="bd-cap-name">${escHtml(cap.name)}<small>${n} statement${n === 1 ? '' : 's'}</small></span>
+      <span class="pgsa-docs">${[...docs].map(([d, src]) => `<span class="pgsa-doc-chip"><span class="pgsa-doc-name">${escHtml(d)}</span>${pgsaSrcChip(src)}</span>`).join('')}</span>
+      ${bar(impl, n)}${bar(eff, n)}
+      <span class="bd-chip ${rag[1]}">${rag[0]}</span>
+    </button>`;
+  }).join('');
+  return `<section class="bd-sec pgsa-sum" aria-labelledby="pgsa-sum-h">
+    <div class="bd-sec-hd"><h2 id="pgsa-sum-h">By capability</h2><span class="no-print">Select a capability to open its statements below</span></div>
+    <div class="bd-table-wrap"><div class="bd-cap-table pgsa-sum-table">
+      <div class="bd-cap-head pgsa-sum-head"><span>Capability</span><span>Policies &amp; group standards</span><span>Implemented</span><span>Effective</span><span>Status</span></div>
+      ${rows}
+    </div></div>
+  </section>`;
+}
+
 function generatePgsaReport() {
   const currentA = db.assessments.find(a => a.id === document.getElementById('exec-curr-sel').value);
   if (!currentA) return;
   closeExecReportModal();
   if (typeof setImportLens === 'function') setImportLens('dora');
   if (typeof updateSiteSubtitle === 'function') updateSiteSubtitle();
-  _pgsa.mode = 'all'; _pgsa.sel = null; _pgsa.open = {};
+  _pgsa.mode = 'all'; _pgsa.src = 'all'; _pgsa.sel = null; _pgsa.open = {};
   const runWithLens = (typeof withLens === 'function') ? withLens : (k, fn) => fn();
   const content = document.getElementById('pgsa-report-content');
   content.classList.add('board');

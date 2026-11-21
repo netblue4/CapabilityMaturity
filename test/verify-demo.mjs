@@ -454,6 +454,24 @@ assert(doraRep.boardTestingRow, 'DORA Reporting: Resilience Testing pillar is in
 assert(doraRep.boardPillarsCollapsed, 'DORA Reporting: each By DORA pillar section is collapsed by default');
 assert(doraRep.boardRisksInAppendix, 'DORA Reporting: Risks threatening DORA objectives sits in the Appendix');
 assert(doraRep.lensNoPills, 'DORA Reporting: live view has no capability buttons (picked from By DORA pillar)');
+const gapsFix = await page.evaluate(() => {
+  const root = document.getElementById('exec-report-content');
+  const tp = [...root.querySelectorAll('.bd-gapcap')].find(g => /Third-Party/.test(g.querySelector('.bd-art-title')?.textContent || ''));
+  const inc = [...root.querySelectorAll('.bd-gapcap')].find(g => /ICT Incident/.test(g.querySelector('.bd-art-title')?.textContent || ''));
+  const fixRows = [...root.querySelectorAll('.bd-fix-row')];
+  const tops = fixRows.map(r => Math.max(0, ...[...r.querySelectorAll('.bd-fix-risk b')].map(b => +b.textContent || 0)));
+  return {
+    collapsed: [...root.querySelectorAll('.bd-gapcap .bd-art-body')].every(b => b.hidden),
+    tpPolicyGap: !!tp && /ART-29-1/.test(tp.querySelector('.bd-gap-col')?.textContent || ''),
+    incCross: !!inc && /Group standard covers it/.test(inc.textContent) && /Policy covers it/.test(inc.textContent),
+    fixFirst: fixRows[0]?.querySelector('.bd-fix-ctrl .bd-code')?.textContent.trim(),
+    fixSorted: tops.every((t, i) => i === 0 || tops[i - 1] >= t),
+    fixHasObj: fixRows.every(r => r.querySelector('.bd-fix-objs')),
+  };
+});
+assert(gapsFix.collapsed && gapsFix.tpPolicyGap, 'DORA Reporting gaps: per-capability (collapsed); Third-Party policy gap lists ART-29-1');
+assert(gapsFix.incCross, 'DORA Reporting gaps: notes when the other source covers an objective (Incident: policy ↔ group standard)');
+assert(gapsFix.fixFirst === 'CTRL-1007' && gapsFix.fixSorted && gapsFix.fixHasObj, `DORA Reporting Fix first: ranked by residual risk (first ${gapsFix.fixFirst})`);
 assert(doraRep.boardRiskPillars.some(p => /Incident/.test(p)) && doraRep.boardRiskPillars.some(p => /Risk Management/.test(p)), `DORA Reporting: risks grouped under their DORA pillar (${doraRep.boardRiskPillars.join(' · ')})`);
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');

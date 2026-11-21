@@ -3877,3 +3877,31 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
   .bd-stage-key { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .bd-lens-bar, .bd-detail, .bd-pills { display: none; }
 }
+
+/* DORA Reporting — Gaps for the next review cycle, and Fix first */
+.bd-gapcap .bd-art-body { gap: 1rem; padding: 0 1.1rem 1.1rem; }
+.bd-gap-docs { margin: 0; font-size: .9rem; }
+.bd-gap-src { color: var(--text-muted); }
+.bd-gap-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+.bd-gap-col { display: flex; flex-direction: column; gap: .5rem; padding: .9rem 1rem; border-radius: 12px; background: var(--bg2); }
+.bd-gap-col h4 { margin: 0; font-size: .95rem; font-weight: 600; }
+.bd-gap-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bd-gap-li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .4rem .75rem; align-items: start; padding: .55rem 0; border-top: 1px solid var(--border); }
+.bd-gap-li:first-child { border-top: 0; }
+.bd-gap-li-text { display: flex; flex-direction: column; font-size: .92rem; }
+.bd-gap-li-text small { font-size: .78rem; color: var(--text-muted); }
+.bd-gap-none { margin: 0; font-size: .9rem; color: var(--text-muted); }
+.bd-gap-ok { color: var(--clr-success); }
+.bd-fix-table { min-width: 860px; }
+.bd-fix-head, .bd-fix-row { display: grid; grid-template-columns: 2.5rem minmax(240px, 1.4fr) minmax(260px, 1.5fr) minmax(160px, 1fr); gap: 1rem; padding: .75rem 1.5rem; }
+.bd-fix-head { padding-top: .9rem; padding-bottom: .9rem; border-bottom: 1px solid var(--border); font-size: .8rem; font-weight: 600; color: var(--text-muted); }
+.bd-fix-row { align-items: start; border-bottom: 1px solid var(--border-subtle); }
+.bd-fix-row:last-child { border-bottom: 0; }
+.bd-fix-rank { font-family: 'Space Grotesk', var(--font-body); font-size: 1.4rem; font-weight: 600; line-height: 1.2; color: var(--text-muted); }
+.bd-fix-ctrl { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
+.bd-fix-ctrl b { font-size: .95rem; font-weight: 600; }
+.bd-fix-ctrl small, .bd-fix-objs small { font-size: .8rem; color: var(--text-muted); }
+.bd-fix-risks { display: flex; flex-direction: column; gap: .4rem; }
+.bd-fix-risk { display: grid; grid-template-columns: minmax(0, 1fr) 2rem auto; gap: .6rem; align-items: center; font-size: .92rem; }
+.bd-fix-risk b { font-family: var(--font-mono); text-align: right; }
+.bd-fix-objs { display: flex; flex-direction: column; gap: .2rem; font-size: .92rem; }

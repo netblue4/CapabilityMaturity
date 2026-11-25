@@ -3218,7 +3218,7 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .ev-soa-tbl tbody td { padding: .45rem .6rem; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
 .ev-soa-tbl tbody tr:last-child td { border-bottom: none; }
 .soa-ref { font-weight: 600; }
-.soa-ch { font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; }
+.soa-ch { color: var(--text-muted); }
 .soa-why { color: var(--text-muted); }
 .soa-row-app td { background: color-mix(in srgb, var(--clr-success) 8%, transparent); }
 .soa-row-app .soa-ref { border-left: 3px solid var(--clr-success); padding-left: .45rem; }

@@ -1110,10 +1110,12 @@ const soaUpload = await page.evaluate(async () => {
   window.alert = oa;
   const info = (document.getElementById('dora-soa-upload-info') || {}).textContent || '';
   const reviewShown = (document.getElementById('dora-soa-review') || {}).style?.display === 'block';
-  return { alerted, info, reviewShown };
+  const chCell = (document.querySelector('#dora-soa-review-wrap .soa-ch') || {}).textContent || '';
+  return { alerted, info, reviewShown, chCell };
 });
 assert(!soaUpload.alerted && soaUpload.reviewShown, `DORA SOA: uploading the new on-screen shape is accepted (no "old columns" error)${soaUpload.alerted ? ' — got alert: ' + soaUpload.alerted : ''}`);
 assert(/2\s+DORA|applicable/i.test(soaUpload.info), `DORA SOA: new-shape upload parses the rows (${soaUpload.info.trim()})`);
+assert(soaUpload.chCell === 'chapter II - ICT risk management', `DORA SOA: the review shows the full chapter name, not just the numeral (${soaUpload.chCell})`);
 
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();

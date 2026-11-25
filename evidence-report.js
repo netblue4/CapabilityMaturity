@@ -270,7 +270,8 @@
     const idxOf = s => (typeof soaIndexKey === 'function') ? soaIndexKey(s) : String(s || '').toUpperCase();
     const artCov = {};
     (ctx.model.articles || []).forEach(a => {
-      artCov[idxOf(a.article)] = { cov: a.obligations.filter(o => o.covered).length, tot: a.obligations.length };
+      const app = a.obligations.filter(o => o.applicable !== false);   // not-applicable objectives are out of scope
+      artCov[idxOf(a.article)] = { cov: app.filter(o => o.covered).length, tot: app.length };
     });
     const total = soa.length, applicable = soa.filter(r => r.applicable);
     const mapped = applicable.filter(r => artCov[r.idx]).length;

@@ -1117,6 +1117,35 @@ assert(!soaUpload.alerted && soaUpload.reviewShown, `DORA SOA: uploading the new
 assert(/2\s+DORA|applicable/i.test(soaUpload.info), `DORA SOA: new-shape upload parses the rows (${soaUpload.info.trim()})`);
 assert(soaUpload.chCell === 'chapter II - ICT risk management', `DORA SOA: the review shows the full chapter name, not just the numeral (${soaUpload.chCell})`);
 
+// ── Framework Browser: "show only" gap filters (not documented / implemented / effective) ──
+const fbFilt = await page.evaluate(() => {
+  openFrameworkBrowser('demo');
+  const body = document.getElementById('fb-body');
+  const filterBtns = [...body.querySelectorAll('.fb-filter')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
+  const colsBefore = body.querySelectorAll('.fb-col').length;
+  // prove each filter genuinely prunes siblings somewhere in the DORA tree
+  const M = _fb.M.dora;
+  const anyShrink = nodes => !nodes || !nodes.length ? false
+    : (fbVisible(nodes).length < nodes.length) || nodes.some(n => anyShrink(n.children));
+  _fb.filters = { doc: false, impl: false, eff: true }; const effShrinks = anyShrink(M);
+  _fb.filters = { doc: true, impl: false, eff: false }; const docShrinks = anyShrink(M);
+  _fb.filters = { doc: false, impl: true, eff: false }; const implShrinks = anyShrink(M);
+  _fb.filters = { doc: false, impl: false, eff: false };
+  // turning a filter on in the DOM keeps the column count unchanged (nothing appears/disappears)
+  fbToggleFilter('impl');
+  const body2 = document.getElementById('fb-body');
+  const colsAfter = body2.querySelectorAll('.fb-col').length;
+  const clearShown = !!body2.querySelector('.fb-filter-clear');
+  fbClearFilters();
+  const clearGone = !document.getElementById('fb-body').querySelector('.fb-filter-clear');
+  return { filterBtns, colsBefore, colsAfter, effShrinks, docShrinks, implShrinks, clearShown, clearGone };
+});
+const fbLabels = fbFilt.filterBtns.join(' · ');
+assert(/Not documented/.test(fbLabels) && /Not implemented/.test(fbLabels) && /Not effective/.test(fbLabels), `Framework Browser: three "show only" gap filters present (${fbLabels})`);
+assert(fbFilt.colsBefore === fbFilt.colsAfter && fbFilt.colsBefore >= 7, `Framework Browser: toggling a filter keeps the column architecture intact (${fbFilt.colsBefore} columns before, ${fbFilt.colsAfter} after)`);
+assert(fbFilt.effShrinks && fbFilt.docShrinks && fbFilt.implShrinks, `Framework Browser: each gap filter actually prunes the tree (doc ${fbFilt.docShrinks}, impl ${fbFilt.implShrinks}, eff ${fbFilt.effShrinks})`);
+assert(fbFilt.clearShown && fbFilt.clearGone, 'Framework Browser: a Clear control appears when a filter is on and disappears when cleared');
+
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();
 process.exit(fails ? 1 : 0);

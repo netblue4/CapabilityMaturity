@@ -113,7 +113,7 @@
     };
     const body = _sEntries.map(e => `<tr class="${e.applicable ? 'soa-row-app' : 'soa-row-na'}">
         <td class="soa-ref">${esc(e.ref)}</td>
-        <td class="soa-ch">${esc(e.chapter)}</td>
+        <td class="soa-ch">${esc(e.chapterFull || e.chapter)}</td>
         <td>${e.applicable ? '<span class="soa-app soa-app-yes">Applicable</span>' : '<span class="soa-app soa-app-no">Out of scope</span>'}</td>
         <td>${covCell(e)}</td>
       </tr>`).join('');

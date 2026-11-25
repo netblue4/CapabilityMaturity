@@ -292,7 +292,7 @@
       : DASH;
     const rows = soa.map(r => `<tr class="${r.applicable ? 'soa-row-app' : 'soa-row-na'}">
         <td class="soa-ref">${esc(r.ref)}</td>
-        <td class="soa-ch">${esc(r.chapter)}</td>
+        <td class="soa-ch">${esc(r.chapterFull || r.chapter)}</td>
         <td>${appCell(r)}</td>
         <td>${covCell(r)}</td>
         <td class="soa-why">${refCell(r)}</td>

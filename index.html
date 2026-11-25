@@ -51,6 +51,7 @@
           <button class="btn btn-outline" onclick="showReportModal('roc')">📊 Risk Oversight Committee Reporting</button>
           <button class="btn btn-outline" onclick="showReportModal('pgsa')">📑 Policy and Group Standards Attestation (RICA)</button>
           <button class="btn btn-outline" onclick="showReportModal('ctrlcov')">🔗 Control Coverage</button>
+          <button id="btn-framework-browser" class="btn btn-outline" onclick="openFrameworkBrowser()">🧭 Framework Browser</button>
           <button id="btn-load-demo" class="btn btn-outline" onclick="loadDemoData()" title="Seed two quarters (Q2 & Q3) of sample data">🧪 Load demo data</button>
           <button id="btn-prompt-hotspot" class="prompt-hotspot" onclick="promptHotspot()" aria-hidden="true" tabindex="-1"></button>
         </div>
@@ -158,6 +159,14 @@
         <h2>Control Coverage</h2>
       </div>
       <div id="ctrlcov-report-content"></div>
+    </section>
+
+    <section id="view-framework-browser" class="view">
+      <div class="section-header no-print">
+        <button class="btn btn-ghost" onclick="showView('dashboard')">← Back</button>
+        <h2>Framework Browser</h2>
+      </div>
+      <div id="fb-content"></div>
     </section>
 
     <!-- Report Chooser Modal (DORA Forum / ROC) -->
@@ -574,6 +583,7 @@
   <script src="board-report.js"></script>
   <script src="pgsa-report.js"></script>
   <script src="ctrl-coverage-report.js"></script>
+  <script src="framework-browser.js"></script>
   <script src="riskonnect-import.js"></script>
   <script src="policy-import.js"></script>
   <script src="dora-import.js"></script>

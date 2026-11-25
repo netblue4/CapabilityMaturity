@@ -93,6 +93,7 @@
       capability:  find('capability', 'process', 'domain', 'function'),
       article:     find('dora article', 'mica article', 'nist subcategory', 'subcategory', 'article', 'regulation', 'dora'),
       group:       find('pillar', 'lens group', 'framework group'),
+      applicable:  find('objective applicable', 'applicable', 'in scope', 'in-scope'),
     };
   }
 
@@ -133,6 +134,9 @@
           capability:      _dCols.capability   ? (row[_dCols.capability]   || '').trim() : '',
           group:           _dCols.group        ? (row[_dCols.group]        || '').trim() : '',
           unmapped:        isUnmapped(ref, doc),
+          // Objective-level applicability. Blank / Y / Yes = applicable (default);
+          // N / No / Not applicable / Out of scope / false / 0 = not applicable.
+          applicable:      _dCols.applicable ? !/^\s*(n|no|not[\s-]*applicable|out[\s-]*of[\s-]*scope|false|0)\s*$/i.test(row[_dCols.applicable] || '') : true,
         };
       }).filter(r => r.obligationId);
 
@@ -154,9 +158,10 @@
 
     const countEl = document.getElementById('dora-review-count');
     if (countEl) {
+      const na = model.notApplicable ? ` · ${model.notApplicable} not applicable (excluded)` : '';
       countEl.textContent = policyRows.length
-        ? `${model.totalObligations} obligations · ${model.coveredObligations} covered (${model.completenessPct}%) · ${model.totalObligations - model.coveredObligations} uncovered — review and save.`
-        : `${model.totalObligations} obligations detected. No policy statements uploaded yet, so coverage will compute once policy data is imported.`;
+        ? `${model.totalObligations} applicable obligations · ${model.coveredObligations} covered (${model.completenessPct}%) · ${model.totalObligations - model.coveredObligations} uncovered${na} — review and save.`
+        : `${model.totalObligations} applicable obligations${na}. No policy statements uploaded yet, so coverage will compute once policy data is imported.`;
     }
 
     const wrap = document.getElementById('dora-review-wrap');
@@ -164,25 +169,28 @@
     const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     const artBlocks = model.articles.map(a => {
-      const cov = a.obligations.filter(o => o.covered).length;
+      const cov = a.obligations.filter(o => o.covered && o.applicable !== false).length;
       const body = a.obligations.map(o => {
         const refs = o.mappedRefs.length
           ? o.mappedRefs.map(m => `<span class="dora-ref">${esc(m.ref)}</span>`).join(' ')
           : '<span class="dora-uncov-tag">No matching policy</span>';
+        const na = o.applicable === false;
         return `
-          <tr class="${o.covered ? '' : 'dora-row-uncov'}">
+          <tr class="${na ? 'dora-row-na' : o.covered ? '' : 'dora-row-uncov'}">
             <td class="dora-obl">${esc(o.obligationId)}</td>
             <td>${esc(o.capability)}</td>
             <td class="dora-req">${esc(o.requirement)}</td>
-            <td class="dora-cov">${o.covered ? '<span class="dora-cov-yes">Covered</span>' : '<span class="dora-cov-no">Uncovered</span>'}</td>
+            <td>${na ? '<span class="dora-cov-no">Not applicable</span>' : 'Applicable'}</td>
+            <td class="dora-cov">${na ? '—' : o.covered ? '<span class="dora-cov-yes">Covered</span>' : '<span class="dora-cov-no">Uncovered</span>'}</td>
             <td>${refs}</td>
           </tr>`;
       }).join('');
+      const naCount = a.obligations.filter(o => o.applicable === false).length;
       return `
         <div class="dora-art-block">
-          <div class="dora-art-hdr"><span class="dora-art-name">${esc(a.article)}</span><span class="dora-art-count">${cov}/${a.obligations.length} covered</span></div>
+          <div class="dora-art-hdr"><span class="dora-art-name">${esc(a.article)}</span><span class="dora-art-count">${cov}/${a.obligations.length - naCount} covered${naCount ? ` · ${naCount} n/a` : ''}</span></div>
           <table class="dora-tbl">
-            <thead><tr><th>Obligation</th><th>Capability</th><th>Requirement</th><th>Coverage</th><th>Policy / Standard ref</th></tr></thead>
+            <thead><tr><th>Obligation</th><th>Capability</th><th>Requirement</th><th>Applicable</th><th>Coverage</th><th>Policy / Standard ref</th></tr></thead>
             <tbody>${body}</tbody>
           </table>
         </div>`;
@@ -215,6 +223,49 @@
     openAssessmentForm(editingId);
   }
 
+  // ── Download the recorded mapping as CSV (round-trip: edit Applicable, re-upload) ──
+  // One row per (objective × statement), enriched with the SOA's full chapter name
+  // and EUR-Lex URL (joined by article) and the computed coverage. The Applicable
+  // column round-trips; Chapter / EUR-Lex URL / Coverage are reference-only and are
+  // ignored on re-import.
+  function _csvCell(s) { s = String(s == null ? '' : s); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function downloadDoraMappingCsv() {
+    const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
+    const fw = (typeof activeFramework === 'function') ? activeFramework() : { rowsKey: 'doraRows', label: 'DORA' };
+    const rows = _dRows.length ? _dRows : ((assessment && assessment[fw.rowsKey]) || []);
+    if (!rows.length) { alert('No mapping to download yet — open an assessment with a DORA mapping, or upload one first.'); return; }
+    const policyRows = (assessment && assessment.policyRows) || [];
+    const facts      = (assessment && assessment.riskPolicyFacts) || [];
+    const model = (typeof buildDoraObligations === 'function') ? buildDoraObligations(rows, policyRows, facts) : { obligations: [] };
+    const coveredById = {}; (model.obligations || []).forEach(o => { coveredById[o.obligationId] = o.covered; });
+
+    const soa = (assessment && assessment.doraSoa) || (typeof DORA_SOA !== 'undefined' ? DORA_SOA : []);
+    const soaByIdx = {}; (soa || []).forEach(e => { if (e && e.idx && !soaByIdx[e.idx]) soaByIdx[e.idx] = e; });
+    const soaKey = (typeof soaIndexKey === 'function') ? soaIndexKey : (s => (s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''));
+
+    const cols = ['DORA Article', 'Chapter', 'EUR-Lex URL', 'Paragraph Reference', 'Digital Resilience Objective', 'Applicable', 'Coverage', 'Statement Ref', 'Statement Header', 'Document', 'Capability'];
+    const lines = [cols.map(_csvCell).join(',')];
+    rows.forEach(r => {
+      const e = soaByIdx[soaKey(r.article)] || {};
+      const cov = r.applicable === false ? 'Not applicable' : (coveredById[r.obligationId] ? 'Covered' : 'Uncovered');
+      lines.push([
+        r.article || '', e.chapterFull || e.chapter || '', e.url || '',
+        r.obligationId || '', r.requirement || '',
+        r.applicable === false ? 'N' : 'Y', cov,
+        r.unmapped ? '' : (r.statementRef || ''), r.statementHeader || '', r.document || '', r.capability || '',
+      ].map(_csvCell).join(','));
+    });
+    const csv = '﻿' + lines.join('\r\n');   // BOM so Excel keeps UTF-8
+    const label = assessment ? (assessment.label || assessment.id) : 'export';
+    const name = ((fw.label || 'DORA') + '-mapping-' + label + '.csv').replace(/[^\w.\-]+/g, '_');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
   // ── Section toggle helper ────────────────────────────────────────
   function showDoraSection(id) {
     ['dora-upload', 'dora-review'].forEach(s => {
@@ -227,4 +278,5 @@
   window.initDoraImport = initDoraImport;
   window.handleDoraFile = handleDoraFile;
   window.saveDoraImport = saveDoraImport;
+  window.downloadDoraMappingCsv = downloadDoraMappingCsv;
 })();

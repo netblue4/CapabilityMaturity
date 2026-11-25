@@ -3157,6 +3157,8 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .dora-cov-yes { color: var(--clr-success); font-weight: 700; font-size: .74rem; }
 .dora-cov-no  { color: var(--clr-danger); font-weight: 700; font-size: .74rem; }
 .dora-row-uncov td { background: color-mix(in srgb, var(--clr-danger) 7%, transparent); }
+.dora-row-na td { opacity: .55; }
+.dora-row-na .dora-req { text-decoration: line-through; }
 .dora-ref { display: inline-block; font-family: var(--font-mono); font-size: .68rem; font-weight: 700; padding: .1rem .4rem; border-radius: 4px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); margin: 1px 0; }
 .dora-uncov-tag { font-size: .72rem; color: var(--clr-danger); font-style: italic; }
 

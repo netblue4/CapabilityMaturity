@@ -823,6 +823,7 @@ function buildTraceabilityRows(assessment) {
 
   // 1) The DORA spine: obligation → statement → control (and the gap rows).
   model.obligations.forEach(o => {
+    if (o.applicable === false) return;   // not-applicable objectives are out of scope — excluded from every view
     if (!o.covered) { pushRow(o, null, null); return; }
     (o.mappedRefs || []).forEach(m => {
       const st = mkStmt(m);
@@ -1174,10 +1175,11 @@ function buildDoraObligations(doraRows, policyRows, facts) {
     const id = (row.obligationId || '').trim();
     if (!id) return;
     if (!oblMap[id]) {
-      oblMap[id] = { obligationId: id, article: (row.article || '').trim(), requirement: (row.requirement || '').trim(), capability: (row.capability || '').trim(), group: (row.group || '').trim(), mappedRefs: [], _seen: new Set() };
+      oblMap[id] = { obligationId: id, article: (row.article || '').trim(), requirement: (row.requirement || '').trim(), capability: (row.capability || '').trim(), group: (row.group || '').trim(), applicable: true, mappedRefs: [], _seen: new Set() };
       oblOrder.push(id);
     }
     const o = oblMap[id];
+    if (row.applicable === false) o.applicable = false;   // objective-level applicability (from the mapping)
     if (!o.requirement && row.requirement) o.requirement = row.requirement.trim();
     if (!o.article && row.article)         o.article     = row.article.trim();
     if (!o.capability && row.capability)   o.capability   = row.capability.trim();
@@ -1225,11 +1227,16 @@ function buildDoraObligations(doraRows, policyRows, facts) {
   });
   const obligations = articles.flatMap(a => a.obligations);
 
-  const totalObligations   = obligations.length;
-  const coveredObligations = obligations.filter(o => o.covered).length;
+  // Objective-level applicability drives every count: a not-applicable objective
+  // is out of the applicable universe (so it is not counted and, via
+  // buildTraceabilityRows skipping it, drops from every report).
+  const applicableObls     = obligations.filter(o => o.applicable !== false);
+  const totalObligations   = applicableObls.length;
+  const coveredObligations = applicableObls.filter(o => o.covered).length;
+  const notApplicable      = obligations.length - applicableObls.length;
   const completenessPct    = totalObligations ? Math.round(100 * coveredObligations / totalObligations) : 0;
 
-  return { articles, obligations, totalObligations, coveredObligations, completenessPct };
+  return { articles, obligations, totalObligations, coveredObligations, completenessPct, notApplicable };
 }
 
 // ── Statement coverage (Control 2) ────────────────────────────────

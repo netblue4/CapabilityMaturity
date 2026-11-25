@@ -23,7 +23,7 @@ const FB_ST = [
   { key: 'gap',   label: 'Gap' },
 ];
 const FB_LENSES = [
-  { key: 'dora', name: 'DORA Lens',       path: 'Pillar → article → objective → statement → control', levels: ['DORA pillar', 'Article', 'Objective', 'Statement', 'Control'] },
+  { key: 'dora', name: 'DORA Lens',       path: 'Pillar → article → objective → document → statement → control', levels: ['DORA pillar', 'Article', 'Objective', 'Policy / group standard', 'Statement', 'Control'] },
   { key: 'risk', name: 'Risk Lens',       path: 'Capability → risk → control',                         levels: ['Capability', 'Risk', 'Control'] },
   { key: 'gov',  name: 'Governance Lens', path: 'Capability → document → statement → control',         levels: ['Capability', 'Policy / group standard', 'Statement', 'Control'] },
 ];
@@ -120,6 +120,8 @@ function fbModel(a) {
           ['DORA objectives', s.objs.size ? [...s.objs.values()] : 'Not mapped to a DORA objective']] } };
   };
 
+  const DOC_ST = { approved: 'Approved', partial: 'Partially approved', draft: 'Draft' };
+
   // ── DORA Lens ──
   const pillars = (typeof DORA_PILLARS !== 'undefined' ? DORA_PILLARS : []);
   const dora = pillars.map(p => {
@@ -131,8 +133,15 @@ function fbModel(a) {
       const objs = [...new Set(aRows.map(r => r._oKey))].map(ok => {
         const oRows = aRows.filter(r => r._oKey === ok), o = oRows[0];
         const sks = [...new Set(oRows.map(r => r._sKey).filter(Boolean))];
-        const kids = sks.length ? sks.map(sk => stmtNode(sk, 'o:' + ok + '>'))
-          : [gap('o:' + ok + '>gap', 'No policy statement', 'Nothing in our policies or group standards covers this objective yet.')];
+        // Objective → the policies / group standards that document it → their statements.
+        const kids = sks.length ? [...new Set(sks.map(sk => stmts.get(sk).document))].map(d => {
+          const ds = sks.filter(sk => stmts.get(sk).document === d).map(sk => stmts.get(sk));
+          const dKids = ds.map(st => stmtNode(st.key, 'o:' + ok + '>d:' + d + '>'));
+          const src = ds.find(st => st.source)?.source || '', st0 = ds.find(st => st.docStatus)?.docStatus || '', status = DOC_ST[ftNorm(st0)] || st0;
+          const dl = fbWorst(dKids);
+          return { key: 'o:' + ok + '>d:' + d, title: d, sub: [src, status].filter(Boolean).join(' · '), lvl: dl, children: dKids,
+            detail: { kind: src || 'Document', title: d, lvl: dl, says: `Documents this objective in ${fbPlural(dKids.length, 'statement')}.`, rows: [['Source', src], ['Document status', status], ['Statements', ds.map(st => `${st.ref} — ${st.header || ''}`)]] } };
+        }) : [gap('o:' + ok + '>gap', 'No policy or group standard', 'Nothing in our policies or group standards documents this objective yet.')];
         const lvl = fbWorst(kids);
         return { key: 'o:' + ok, title: o.objective || ok, sub: o.objectiveId, lvl, children: kids,
           detail: { kind: 'DORA objective', code: o.objectiveId, title: o.objective, lvl, label: sks.length ? null : 'Not documented',
@@ -153,7 +162,6 @@ function fbModel(a) {
   const inPlay = new Set(trace.map(r => r.capability).filter(Boolean));
   risks.forEach(r => inPlay.add(capName(r.capId)));
   const capsInPlay = caps.filter(c => inPlay.has(c.name));
-  const DOC_ST = { approved: 'Approved', partial: 'Partially approved', draft: 'Draft' };
 
   // ── Risk Lens ──
   const risk = capsInPlay.map(cap => {
@@ -207,21 +215,30 @@ function fbBody() {
   const L = FB_LENSES.find(l => l.key === _fb.lens);
   const tree = _fb.M[_fb.lens];
   const columns = [], crumbs = [];
-  let list = tree, sel = null;
-  for (let d = 0; list && list.length; d++) {
-    const s = list.find(n => n.key === _fb.path[d]);
-    columns.push({ d, label: L.levels[d] || '', nodes: list, selKey: s && s.key });
-    if (!s) break;
-    sel = s;
-    crumbs.push(/^(RTS|ART|[A-Z]{2,}-)/.test((s.sub || '').split(' · ')[0]) ? s.sub.split(' · ')[0] : s.title);
-    list = s.children;
+  // Every level of the lens is always on screen; a column only fills once
+  // the item to its left is selected, so nothing appears or disappears.
+  let list = tree, sel = null, hint = '';
+  for (let d = 0; d < L.levels.length; d++) {
+    const nodes = list || [];
+    const s = nodes.find(n => n.key === _fb.path[d]);
+    columns.push({ d, label: L.levels[d], nodes, selKey: s && s.key,
+      hint: nodes.length ? '' : (hint || `Select ${/^[aeiou]/i.test(L.levels[d - 1] || '') ? 'an' : 'a'} ${(L.levels[d - 1] || '').toLowerCase().replace('dora', 'DORA')}`) });
+    if (s) {
+      sel = s;
+      const code = (s.sub || '').split(' · ')[0];
+      crumbs.push(/^(RTS|ART|[A-Z]{2,}-)/.test(code) ? code : s.title);
+      list = s.children;
+      if (!list || !list.length) hint = s.gap ? 'Nothing below a gap' : 'Nothing further';
+    } else {
+      list = null;
+    }
   }
 
   const tabs = FB_LENSES.map(l => `<button type="button" role="tab" class="fb-tab" aria-selected="${l.key === _fb.lens}" onclick="fbSetLens('${l.key}')">
       <span class="fb-tab-name">${l.name}</span><span class="fb-tab-path">${l.path}</span></button>`).join('');
 
   const cols = columns.map(col => {
-    const real = col.nodes.filter(n => !n.gap).length;
+    const real = col.nodes.length ? col.nodes.filter(n => !n.gap).length : '';
     const items = col.nodes.map((n, i) => {
       const on = n.key === col.selKey;
       const dot = n.lvl >= 0 ? `bd-dot-${FB_ST[n.lvl].key}` : '';
@@ -233,7 +250,7 @@ function fbBody() {
     }).join('');
     return `<section class="fb-col" aria-label="${escHtml(col.label)}">
       <div class="fb-col-hd"><h3>${escHtml(col.label)}</h3><span>${real}</span></div>
-      <div class="fb-col-list">${items}</div>
+      <div class="fb-col-list">${items || `<p class="fb-col-empty">${escHtml(col.hint)}</p>`}</div>
     </section>`;
   }).join('');
 
@@ -256,7 +273,7 @@ function fbBody() {
 
   return `<div class="fb-tabs" role="tablist" aria-label="Lens">${tabs}</div>
     <div class="fb-bar">
-      <nav class="fb-crumbs" aria-label="Path"><b>${L.name}</b>${crumbs.map(c => `<span aria-hidden="true">›</span><span>${escHtml(c)}</span>`).join('')}</nav>
+      <nav class="fb-crumbs" aria-label="Path"><b>${L.name}</b>${crumbs.map(c => `<span aria-hidden="true">›</span><span class="fb-crumb" title="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</nav>
       <div class="bd-legend">
         <span><i class="bd-dot bd-dot-ok" aria-hidden="true"></i>Effective</span>
         <span><i class="bd-dot bd-dot-warn" aria-hidden="true"></i>Live, not yet effective</span>
@@ -271,14 +288,15 @@ function fbRefresh() {
   const body = document.getElementById('fb-body');
   if (!body || !_fb.M) return;
   const scroller = body.querySelector('.fb-cols');
+  const left = scroller ? scroller.scrollLeft : 0;
   const tops = [...body.querySelectorAll('.fb-col-list')].map(el => el.scrollTop);
   body.innerHTML = fbBody();
   body.querySelectorAll('.fb-col-list').forEach((el, i) => { if (tops[i] != null) el.scrollTop = tops[i]; });
   const cols = body.querySelector('.fb-cols');
-  if (cols) cols.scrollLeft = scroller ? Math.max(scroller.scrollLeft, cols.scrollWidth - cols.clientWidth) : 0;
+  if (cols) cols.scrollLeft = left;
   if (_fb.focus) {
     const el = [...body.querySelectorAll('.fb-node')].find(n => n.dataset.key === _fb.focus);
-    if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+    if (el) el.focus({ preventScroll: true });
     _fb.focus = null;
   }
 }

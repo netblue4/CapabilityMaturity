@@ -3938,8 +3938,12 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .fb-tab[aria-selected="true"] { background: #14212e; border-color: #14212e; color: #fff; }
 .fb-tab-name { font-family: 'Space Grotesk', var(--font-body); font-size: 1.1rem; font-weight: 600; }
 .fb-tab-path { font-size: .8rem; opacity: .85; }
-.fb-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; }
-.fb-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; font-size: .88rem; color: var(--text-muted); min-height: 24px; }
+.fb-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 28px; }
+.fb-crumbs { flex: 1; min-width: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: .4rem; overflow: hidden; white-space: nowrap; font-size: .88rem; color: var(--text-muted); }
+.fb-crumbs > * { flex: none; }
+.fb-crumb { flex: 0 1 auto; min-width: 3ch; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; }
+.fb-bar .bd-legend { flex: none; flex-wrap: nowrap; white-space: nowrap; }
+.fb-col-empty { margin: 1rem .5rem; font-size: .85rem; color: var(--text-muted); }
 .fb-crumbs b, .fb-crumbs span:not([aria-hidden]) { color: var(--text); }
 .fb-cols { display: flex; gap: .75rem; align-items: stretch; overflow-x: auto; padding-bottom: .4rem; }
 .fb-col { flex: 0 0 260px; display: flex; flex-direction: column; height: 600px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border); }
@@ -3968,4 +3972,4 @@ col.gp-c-cap { width: 12%; } col.gp-c-doc { width: 20%; } col.gp-c-track { width
 .fb-pivots { align-self: stretch; display: flex; flex-direction: column; gap: .5rem; padding-top: .75rem; border-top: 1px solid #2a3a4b; font-size: .78rem; color: #9fb0c2; }
 .fb-pivot { min-height: 40px; padding: 0 .9rem; border-radius: 8px; border: 1px solid #3a4e63; background: transparent; color: #fff; font: 400 .9rem var(--font-body); text-align: left; cursor: pointer; }
 .fb-pivot:hover { background: #2a3a4b; }
-@media (max-width: 760px) { .fb-tabs { grid-template-columns: 1fr; } .fb-col, .fb-detail { height: 460px; } .fb-col { flex-basis: 230px; } .fb-detail { flex-basis: 290px; } }
+@media (max-width: 760px) { .fb-bar .bd-legend { display: none; } .fb-tabs { grid-template-columns: 1fr; } .fb-col, .fb-detail { height: 460px; } .fb-col { flex-basis: 230px; } .fb-detail { flex-basis: 290px; } }

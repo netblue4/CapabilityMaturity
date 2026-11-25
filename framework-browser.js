@@ -13,7 +13,7 @@
 // it reconciles with DORA Reporting, RICA and Control Coverage.
 // ══════════════════════════════════════════════════════════════════
 
-const _fb = { a: null, M: null, lens: 'dora', path: [], focus: null };
+const _fb = { a: null, M: null, lens: 'dora', path: [], focus: null, filters: { doc: false, impl: false, eff: false } };
 
 // 0 effective · 1 live, not yet effective · 2 draft · 3 gap (worst wins).
 const FB_ST = [
@@ -22,6 +22,38 @@ const FB_ST = [
   { key: 'draft', label: 'Draft' },
   { key: 'gap',   label: 'Gap' },
 ];
+
+// "Show only" deficiency toggles. Each maps to a bit on a node's rolled-up
+// deficiency mask (fbFlags): doc = an objective/statement/capability with no
+// documentation; impl = a draft control or a statement/risk with no control;
+// eff = a control that is live but not yet rated effective. When any toggle is
+// on, every column is pruned to the branches that still contain that gap.
+const FB_FILTERS = [
+  { key: 'doc',  bit: 1, label: 'Not documented', dot: 'gap' },
+  { key: 'impl', bit: 2, label: 'Not implemented', dot: 'draft' },
+  { key: 'eff',  bit: 4, label: 'Not effective',  dot: 'warn' },
+];
+// Rolled-up deficiency mask for a node (self + every descendant), memoised.
+function fbFlags(n) {
+  if (n._fl != null) return n._fl;
+  let f = 0;
+  if (n.gap) {
+    const t = n.title || '';
+    if (/not documented|no policy or group standard/i.test(t)) f |= 1;
+    else if (/no control/i.test(t)) f |= 2;
+  } else if (n.ctrl) {
+    if (n.lvl === 2) f |= 2;       // draft → not implemented
+    else if (n.lvl === 1) f |= 4;  // live, not yet effective → not effective
+  }
+  (n.children || []).forEach(c => { f |= fbFlags(c); });
+  n._fl = f;
+  return f;
+}
+function fbMask() { let m = 0; FB_FILTERS.forEach(f => { if (_fb.filters[f.key]) m |= f.bit; }); return m; }
+// Prune a sibling list to the nodes whose subtree contains an active gap.
+function fbVisible(nodes) { const m = fbMask(); return m ? (nodes || []).filter(n => fbFlags(n) & m) : (nodes || []); }
+function fbToggleFilter(k) { _fb.filters[k] = !_fb.filters[k]; fbRefresh(); }
+function fbClearFilters() { _fb.filters = { doc: false, impl: false, eff: false }; fbRefresh(); }
 const FB_LENSES = [
   { key: 'dora', name: 'DORA Lens',       path: 'Pillar → capability → article → objective → document → statement → control', levels: ['DORA pillar', 'Capability', 'Article', 'Objective', 'Policy / group standard', 'Statement', 'Control'] },
   { key: 'risk', name: 'Risk Lens',       path: 'Capability → risk → control',                         levels: ['Capability', 'Risk', 'Control'] },
@@ -230,10 +262,13 @@ function fbBody() {
   // the item to its left is selected, so nothing appears or disappears.
   let list = tree, sel = null, hint = '';
   for (let d = 0; d < L.levels.length; d++) {
-    const nodes = list || [];
+    const raw = list || [];
+    const nodes = fbVisible(raw);
     const s = nodes.find(n => n.key === _fb.path[d]);
-    columns.push({ d, label: L.levels[d], nodes, selKey: s && s.key,
-      hint: nodes.length ? '' : (hint || `Select ${/^[aeiou]/i.test(L.levels[d - 1] || '') ? 'an' : 'a'} ${(L.levels[d - 1] || '').toLowerCase().replace('dora', 'DORA')}`) });
+    const colHint = nodes.length ? ''
+      : (raw.length ? 'No matches for this filter'
+        : (hint || `Select ${/^[aeiou]/i.test(L.levels[d - 1] || '') ? 'an' : 'a'} ${(L.levels[d - 1] || '').toLowerCase().replace('dora', 'DORA')}`));
+    columns.push({ d, label: L.levels[d], nodes, selKey: s && s.key, hint: colHint });
     if (s) {
       sel = s;
       const code = (s.sub || '').split(' · ')[0];
@@ -292,6 +327,11 @@ function fbBody() {
         <span><i class="bd-dot bd-dot-gap" aria-hidden="true"></i>Gap</span>
       </div>
     </div>
+    <div class="fb-filters no-print" role="group" aria-label="Show only gaps">
+      <span class="fb-filters-lbl">Show only</span>
+      ${FB_FILTERS.map(f => `<button type="button" class="fb-filter${_fb.filters[f.key] ? ' is-on' : ''}" aria-pressed="${!!_fb.filters[f.key]}" onclick="fbToggleFilter('${f.key}')"><i class="bd-dot bd-dot-${f.dot}" aria-hidden="true"></i>${f.label}</button>`).join('')}
+      ${fbMask() ? '<button type="button" class="fb-filter-clear" onclick="fbClearFilters()">Clear</button>' : ''}
+    </div>
     <div class="fb-cols">${cols}<aside class="fb-detail" aria-label="Details" aria-live="polite">${detail}</aside></div>`;
 }
 
@@ -315,7 +355,7 @@ function fbSetLens(key) { _fb.lens = key; _fb.path = []; fbRefresh(); }
 function fbPick(depth, i) {
   let list = _fb.M[_fb.lens];
   for (let d = 0; d < depth; d++) list = (list.find(n => n.key === _fb.path[d]) || {}).children || [];
-  const n = list[i];
+  const n = fbVisible(list)[i]; // the displayed column is pruned — index the same view
   if (!n) return;
   _fb.path = _fb.path.slice(0, depth).concat(n.key);
   _fb.focus = n.key;
@@ -346,6 +386,7 @@ function openFrameworkBrowser(assessmentId, keepLens) {
   _fb.M = runWithLens('dora', () => fbModel(a));
   if (!keepLens) _fb.lens = 'dora';
   _fb.path = [];
+  _fb.filters = { doc: false, impl: false, eff: false };
   const app = (CONFIG && CONFIG.appTitle) || 'Measurable IT Regulatory Oversight Model';
   const opts = db.assessments.map(x => `<option value="${x.id}"${x.id === a.id ? ' selected' : ''}>${escHtml(x.label)} · ${formatDate(x.date)}</option>`).join('');
   const content = document.getElementById('fb-content');

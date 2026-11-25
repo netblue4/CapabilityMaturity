@@ -933,6 +933,63 @@ assert(/TASK — VALIDATE THE RISK/.test(promptsOut.out.validate) && /VALID —/
 assert(/TASK — CONTROL COVERAGE/.test(promptsOut.out.coverage) && /\| Statement ref \| Control name \| Control objective \| Control description \|/.test(promptsOut.out.coverage), 'Prompts: Control-coverage prompt + output table spec');
 assert(/TASK — REDUCE NUMBER OF CONTROLS/.test(promptsOut.out.reduce) && /\| Controls to merge \| Control name \| Control objective \| Control description \|/.test(promptsOut.out.reduce), 'Prompts: Reduce-controls prompt + output table spec');
 
+// ── Framework Browser: three lenses, Finder-style columns, pivots ──
+const fbBtn = await page.evaluate(() => !!document.querySelector('#view-dashboard #btn-framework-browser'));
+assert(fbBtn, 'Dashboard: "Framework Browser" button present in the top button row');
+const fb = await page.evaluate(() => {
+  showView('dashboard'); openFrameworkBrowser('demo');
+  const q = s => [...document.querySelectorAll(s)];
+  const col = i => q('.fb-col')[i];
+  const nodes = i => [...col(i).querySelectorAll('.fb-node')];
+  const click = (i, txt) => { const n = nodes(i).find(b => b.textContent.includes(txt)); if (n) n.click(); return !!n; };
+  const out = {};
+  out.view = document.getElementById('view-framework-browser').classList.contains('active');
+  out.tabs = q('.fb-tab .fb-tab-name').map(e => e.textContent);
+  out.pillars = nodes(0).length;
+  out.outOfScope = nodes(0).some(b => b.classList.contains('is-muted') && /out of scope/.test(b.textContent));
+  out.noDetailYet = /Select anything/.test(document.querySelector('.fb-detail').textContent);
+  click(0, 'ICT Risk Management'); click(1, 'RTS 4'); click(2, 'RTS-4-2-4');
+  out.objGap = nodes(3).length === 1 && nodes(3)[0].classList.contains('is-gap') && /No policy statement/.test(nodes(3)[0].textContent);
+  click(2, 'RTS-4-2-2'); click(3, 'LP-01 PS02'); click(4, 'CTRL-1003');
+  out.cols = q('.fb-col').length;
+  out.crumbs = document.querySelector('.fb-crumbs').innerText.replace(/\s*›\s*/g, ' › ').replace(/\s+/g, ' ').trim();
+  const det = document.querySelector('.fb-detail').textContent;
+  out.ctrlDetail = /CTRL-1003/.test(det) && /Control Owner 3/.test(det) && /Asset data integrity gaps/.test(det) && /Draft/.test(det);
+  out.pivots = q('.fb-pivot').map(b => b.textContent.trim());
+  q('.fb-pivot').find(b => /Risk Lens/.test(b.textContent)).click();
+  out.riskTab = document.querySelector('.fb-tab[aria-selected="true"]').textContent.includes('Risk Lens');
+  out.riskPath = document.querySelector('.fb-crumbs').innerText.replace(/\s*›\s*/g, ' › ').replace(/\s+/g, ' ').trim();
+  out.riskSel = (document.querySelector('.fb-col:last-of-type .fb-node.is-sel') || {}).textContent || '';
+  q('.fb-pivot').find(b => /Governance Lens/.test(b.textContent)).click();
+  out.govPath = document.querySelector('.fb-crumbs').innerText.replace(/\s*›\s*/g, ' › ').replace(/\s+/g, ' ').trim();
+  // Risk Lens: capabilities in play only; risks sorted by residual; testing has a gap.
+  fbSetLens('risk');
+  out.riskCaps = nodes(0).map(b => b.querySelector('.fb-node-title').textContent);
+  click(0, 'Access Control');
+  out.risksSub = nodes(1).map(b => b.querySelector('.fb-node-sub').textContent);
+  click(0, 'Resilience Testing');
+  out.testingGap = nodes(1).length === 1 && nodes(1)[0].classList.contains('is-gap') && /No risks recorded/.test(nodes(1)[0].textContent);
+  // Governance Lens: document status + a statement with no control.
+  fbSetLens('gov'); click(0, 'Third-Party');
+  out.govDoc = nodes(1).map(b => b.textContent.replace(/\s+/g, ' ').trim()).join(' | ');
+  click(1, 'Third-Party Policy'); click(2, 'LP-04 PS02');
+  out.stmtGap = nodes(3).length === 1 && /Self-declared implemented, but no control/.test(nodes(3)[0].textContent);
+  return out;
+});
+assert(fb.view && fb.tabs.join(',') === 'DORA Lens,Risk Lens,Governance Lens', `Framework Browser: opens with three lenses (${fb.tabs.join(', ')})`);
+assert(fb.pillars === 5 && fb.outOfScope && fb.noDetailYet, `Framework Browser: DORA Lens lists 5 pillars, Information-Sharing out of scope (${fb.pillars})`);
+assert(fb.objGap, 'Framework Browser: an undocumented objective (RTS-4-2-4) shows a "No policy statement" gap');
+assert(fb.cols === 5 && /RTS-4-2-2 › LP-01 PS02 › CTRL-1003$/.test(fb.crumbs), `Framework Browser: pillar → article → objective → statement → control columns + path (${fb.crumbs})`);
+assert(fb.ctrlDetail, 'Framework Browser: control details show owner, status and the risk it treats');
+assert(fb.pivots.length === 2, `Framework Browser: a control offers "Open in" the other two lenses (${fb.pivots.join(', ')})`);
+assert(fb.riskTab && /Asset data integrity gaps › CTRL-1003$/.test(fb.riskPath) && /Asset ownership assignment/.test(fb.riskSel), `Framework Browser: pivot to Risk Lens selects the same control (${fb.riskPath})`);
+assert(/Local ICT Asset Management Policy › LP-01 PS02 › CTRL-1003$/.test(fb.govPath), `Framework Browser: pivot to Governance Lens selects the same control (${fb.govPath})`);
+assert(fb.riskCaps.length === 7 && fb.riskCaps.includes('Digital Operational Resilience Testing'), `Framework Browser: Risk Lens lists the capabilities in play (${fb.riskCaps.length})`);
+assert(fb.risksSub.length === 1 && /Residual 20 · High · Risk Owner D/.test(fb.risksSub[0]), `Framework Browser: risks show residual, band and owner (${fb.risksSub.join(' | ')})`);
+assert(fb.testingGap, 'Framework Browser: a capability with no risks shows a "No risks recorded" gap');
+assert(/Local ICT Third-Party Policy.*Local Policy · Partially approved/.test(fb.govDoc), `Framework Browser: Governance Lens shows document source and status (${fb.govDoc})`);
+assert(fb.stmtGap, 'Framework Browser: a self-declared statement with no control shows as a gap');
+
 // ── Capability lens: funnel APPLICABLE must equal the drill-down's distinct
 // objective count when a statement is filed under a capability. Regression for
 // the funnel undercounting because it leaned on the GLOBAL firstObj flag. ──

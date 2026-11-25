@@ -1086,6 +1086,35 @@ assert(soa.btn && soa.fn, 'DORA SOA: "Download current SOA (CSV)" button + funct
 assert(soa.header === 'DORA Article / RTS,Chapter,Applicable,Coverage,Reference', `DORA SOA download: columns match the on-screen table (${soa.header})`);
 assert(soa.reLen === soa.origLen && soa.reApp === soa.origApp && soa.idxMatch, `DORA SOA: download → re-upload round-trips in the new shape (${soa.origLen} items, ${soa.origApp} applicable)`);
 
+// ── The actual upload handler accepts the new on-screen shape (not just the parser) ──
+const soaUpload = await page.evaluate(async () => {
+  const a = db.assessments.find(x => x.id === 'demo');
+  openAssessmentForm(a.id); showView('dora-soa-import'); initDoraSoaImport();
+  // a minimal new-shape SOA file, including a ref with an embedded comma (quoted)
+  const csv = '﻿' + [
+    'DORA Article / RTS,Chapter,Applicable,Reference',
+    'Article 5 — Governance,chapter II - ICT risk management,Y,https://eur-lex.europa.eu/x#art_5',
+    '"RTS 16 — Acquisition, development",chapter II - ICT risk management,N,https://eur-lex.europa.eu/x#art_16',
+  ].join('\r\n');
+  const file = new File([csv], 'my-soa.csv', { type: 'text/csv' });
+  const input = document.getElementById('dora-soa-file-input');
+  const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+  let alerted = null; const oa = window.alert; window.alert = m => { alerted = m; };
+  handleDoraSoaFile(input);
+  // FileReader is async — wait for the review section to appear
+  await new Promise(r => { const t0 = Date.now(); (function poll(){
+    const rv = document.getElementById('dora-soa-review');
+    if ((rv && rv.style.display === 'block') || alerted || Date.now() - t0 > 3000) return r();
+    setTimeout(poll, 25);
+  })(); });
+  window.alert = oa;
+  const info = (document.getElementById('dora-soa-upload-info') || {}).textContent || '';
+  const reviewShown = (document.getElementById('dora-soa-review') || {}).style?.display === 'block';
+  return { alerted, info, reviewShown };
+});
+assert(!soaUpload.alerted && soaUpload.reviewShown, `DORA SOA: uploading the new on-screen shape is accepted (no "old columns" error)${soaUpload.alerted ? ' — got alert: ' + soaUpload.alerted : ''}`);
+assert(/2\s+DORA|applicable/i.test(soaUpload.info), `DORA SOA: new-shape upload parses the rows (${soaUpload.info.trim()})`);
+
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();
 process.exit(fails ? 1 : 0);

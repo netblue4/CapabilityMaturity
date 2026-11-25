@@ -60,8 +60,12 @@
     reader.onload = function (e) {
       const { headers, rows } = sParseCSV(e.target.result);
       if (!rows.length) { alert('No data rows found in the CSV file.'); return; }
-      if (!headers.includes('DORA_Article_Index') && !headers.includes('RTS_Article_Index')) {
-        alert('This does not look like a DORA SOA export — expected columns like DORA_Article_Index / RTS_Article_Index.\nColumns found: ' + headers.join(', '));
+      // Accept BOTH shapes: the new on-screen shape (a "DORA Article / RTS"
+      // column) and the legacy export (DORA_Article_Index / RTS_Article_Index).
+      const newShape = headers.includes('DORA Article / RTS') || headers.includes('DORA Article/RTS') || headers.includes('Article / RTS');
+      const oldShape = headers.includes('DORA_Article_Index') || headers.includes('RTS_Article_Index');
+      if (!newShape && !oldShape) {
+        alert('This does not look like a DORA SOA file — expected a "DORA Article / RTS" column (the current shape) or the legacy DORA_Article_Index / RTS_Article_Index columns.\nColumns found: ' + headers.join(', '));
         return;
       }
       if (typeof buildSoaEntries !== 'function') { alert('SOA transform not loaded (dora-soa.js).'); return; }

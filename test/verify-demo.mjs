@@ -1017,6 +1017,32 @@ const capLensConsistency = await page.evaluate(() => {
 assert(capLensConsistency.incident.applicable === capLensConsistency.incident.tree && capLensConsistency.incident.tree === 1,
   `Capability lens: funnel APPLICABLE equals the drill-down tree (funnel ${capLensConsistency.incident.applicable} = tree ${capLensConsistency.incident.tree})`);
 
+// ── Objective-level applicability (DORA mapping): a not-applicable objective is
+// excluded from the Applicable count and from the traceability (cascades to every view). ──
+const applic = await page.evaluate(() => {
+  if (typeof activeLens !== 'undefined') activeLens = 'dora';
+  const a = db.assessments.find(x => x.id === 'demo');
+  const rows = a.doraRows || [];
+  const base = buildDoraObligations(rows, a.policyRows || [], a.riskPolicyFacts || []);
+  const target = base.obligations.find(o => o.covered && o.applicable !== false) || base.obligations[0];
+  const tid = target.obligationId;
+  const mutated = rows.map(r => r.obligationId === tid ? Object.assign({}, r, { applicable: false }) : r);
+  const after = buildDoraObligations(mutated, a.policyRows || [], a.riskPolicyFacts || []);
+  const a2 = Object.assign({}, a, { doraRows: mutated });
+  const afterTrace = new Set(buildTraceabilityRows(a2).rows.map(r => r._oKey).filter(Boolean));
+  return {
+    hasColumn: rows.some(r => 'applicable' in r),
+    baseTotal: base.totalObligations, afterTotal: after.totalObligations, notApplicable: after.notApplicable,
+    targetExcluded: !afterTrace.has(tid),
+    btn: !!document.querySelector('#view-dora-import button[onclick="downloadDoraMappingCsv()"]'),
+    fn: typeof window.downloadDoraMappingCsv === 'function',
+  };
+});
+assert(applic.hasColumn, 'DORA mapping: Applicable column is parsed (rows carry the flag)');
+assert(applic.afterTotal === applic.baseTotal - 1 && applic.notApplicable === 1, `Objective applicability: marking one objective N drops it from the Applicable count (${applic.baseTotal} → ${applic.afterTotal}, n/a ${applic.notApplicable})`);
+assert(applic.targetExcluded, 'Objective applicability: a not-applicable objective is excluded from the traceability (cascades to every report)');
+assert(applic.btn && applic.fn, 'DORA mapping: "Download current mapping (CSV)" button + function present');
+
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();
 process.exit(fails ? 1 : 0);

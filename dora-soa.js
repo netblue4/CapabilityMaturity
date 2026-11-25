@@ -27,7 +27,7 @@ function soaArticleEntry(row){
   var artIdx=_soaNorm(row['DORA_Article_Index']); var artTitle=_soaNorm(row['DORA_Title']);
   var ref=_soaTitleIndex(artIdx)+(artTitle?' — '+artTitle:'');
   return { order: parseFloat(_soaNorm(row['DisplayOrder']))||0, ref:ref, idx:soaIndexKey(artIdx), kind:'Article',
-    chapter:soaChapterRoman(row['DORA_Chapter']), section:_soaNorm(row['DORA_Section']),
+    chapter:soaChapterRoman(row['DORA_Chapter']), chapterFull:_soaNorm(row['DORA_Chapter']), section:_soaNorm(row['DORA_Section']),
     applicable:/^y/i.test(_soaNorm(row['Article Applicable'])),
     url:_soaNorm(row['DORA_URL']),
     article:ref, rationale:'' };
@@ -38,7 +38,7 @@ function soaRtsEntry(row){
   var artIdx=_soaNorm(row['DORA_Article_Index']); var artTitle=_soaNorm(row['DORA_Title']);
   var kind=/^mic/i.test(rtsIdx)?'MIC':/^mir/i.test(rtsIdx)?'MIR':'RTS';
   return { order: parseFloat(_soaNorm(row['DisplayOrder']))||0, ref:_soaTitleIndex(rtsIdx)+(title?' — '+title:''), idx:soaIndexKey(rtsIdx), kind:kind,
-    chapter:soaChapterRoman(row['DORA_Chapter']),
+    chapter:soaChapterRoman(row['DORA_Chapter']), chapterFull:_soaNorm(row['DORA_Chapter']),
     section:_soaNorm(row['RTS_Section'])||_soaNorm(row['DORA_Section']),
     applicable:/^y/i.test(_soaNorm(row['RTS Applicable'])),
     url:_soaNorm(row['RTS_URL'])||_soaNorm(row['DORA_URL']),

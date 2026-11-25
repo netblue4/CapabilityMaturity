@@ -23,7 +23,7 @@ const FB_ST = [
   { key: 'gap',   label: 'Gap' },
 ];
 const FB_LENSES = [
-  { key: 'dora', name: 'DORA Lens',       path: 'Pillar → article → objective → document → statement → control', levels: ['DORA pillar', 'Article', 'Objective', 'Policy / group standard', 'Statement', 'Control'] },
+  { key: 'dora', name: 'DORA Lens',       path: 'Pillar → capability → article → objective → document → statement → control', levels: ['DORA pillar', 'Capability', 'Article', 'Objective', 'Policy / group standard', 'Statement', 'Control'] },
   { key: 'risk', name: 'Risk Lens',       path: 'Capability → risk → control',                         levels: ['Capability', 'Risk', 'Control'] },
   { key: 'gov',  name: 'Governance Lens', path: 'Capability → document → statement → control',         levels: ['Capability', 'Policy / group standard', 'Statement', 'Control'] },
 ];
@@ -128,8 +128,14 @@ function fbModel(a) {
     const rows = trace.filter(r => r._oKey && r._pillarId === p.id);
     if (!rows.length) return { key: 'p:' + p.id, title: p.name, sub: `Chapter ${p.chapter} · ${p.inScope ? 'no objectives loaded' : 'out of scope'}`, lvl: -1, muted: true, children: [],
       detail: { kind: 'DORA pillar', title: p.name, lvl: null, says: p.outNote || 'No DORA objectives are tracked under this pillar.', rows: [['Chapter', p.chapter]] } };
-    const arts = [...new Set(rows.map(r => r.article || '(no article)'))].map(art => {
-      const aRows = rows.filter(r => (r.article || '(no article)') === art);
+    // Pillar → capability → article: group the pillar's articles by the
+    // capability that owns them (catalogue order, unknown names last).
+    const capOrder = n => { const i = caps.findIndex(c => c.name === n); return i < 0 ? 1e6 : i; };
+    const capNames = [...new Set(rows.map(r => r.capability || '(no capability)'))].sort((x, y) => capOrder(x) - capOrder(y) || x.localeCompare(y));
+    const capNodes = capNames.map(cn => {
+    const cRows = rows.filter(r => (r.capability || '(no capability)') === cn);
+    const arts = [...new Set(cRows.map(r => r.article || '(no article)'))].map(art => {
+      const aRows = cRows.filter(r => (r.article || '(no article)') === art);
       const objs = [...new Set(aRows.map(r => r._oKey))].map(ok => {
         const oRows = aRows.filter(r => r._oKey === ok), o = oRows[0];
         const sks = [...new Set(oRows.map(r => r._sKey).filter(Boolean))];
@@ -149,12 +155,17 @@ function fbModel(a) {
             rows: [['Article', art], ['Capability', o.capability], ['Statements', sks.map(sk => `${stmts.get(sk).ref} — ${stmts.get(sk).header || ''}`)]] } };
       });
       const doc = objs.filter(o => !o.children[0].gap).length, lvl = fbWorst(objs);
-      return { key: 'a:' + art, title: art, sub: `${doc} of ${fbPlural(objs.length, 'objective')} documented`, lvl, children: objs,
-        detail: { kind: 'DORA article', title: art, lvl, says: `${doc} of ${fbPlural(objs.length, 'objective')} documented in a policy or group standard.`, rows: [] } };
+      return { key: 'a:' + cn + '|' + art, title: art, sub: `${doc} of ${fbPlural(objs.length, 'objective')} documented`, lvl, children: objs,
+        detail: { kind: 'DORA article', title: art, lvl, says: `${doc} of ${fbPlural(objs.length, 'objective')} documented in a policy or group standard.`, rows: [['Capability', cn]] } };
     });
-    const nObj = new Set(rows.map(r => r._oKey)).size, lvl = fbWorst(arts);
-    return { key: 'p:' + p.id, title: p.name, sub: `Chapter ${p.chapter} · ${fbPlural(arts.length, 'article')}`, lvl, children: arts,
-      detail: { kind: 'DORA pillar', title: p.name, lvl, says: `Chapter ${p.chapter}. ${fbPlural(nObj, 'applicable objective')} across ${fbPlural(arts.length, 'article')}.`, rows: [] } };
+    const cObj = new Set(cRows.map(r => r._oKey)), cDoc = new Set(cRows.filter(r => r._sKey).map(r => r._oKey)).size, cl = fbWorst(arts);
+    return { key: 'pc:' + p.id + '|' + cn, title: cn, sub: `${fbPlural(arts.length, 'article')} · ${cDoc} of ${fbPlural(cObj.size, 'objective')} documented`, lvl: cl, children: arts,
+      detail: { kind: 'Capability', title: cn, lvl: cl, says: `${cDoc} of ${fbPlural(cObj.size, 'DORA objective')} documented in a policy or group standard, across ${fbPlural(arts.length, 'article')}.`,
+        rows: [['DORA pillar', p.name], ['Articles', arts.map(a => a.title)]] } };
+    });
+    const nObj = new Set(rows.map(r => r._oKey)).size, nArt = new Set(rows.map(r => r.article || '(no article)')).size, lvl = fbWorst(capNodes);
+    return { key: 'p:' + p.id, title: p.name, sub: `Chapter ${p.chapter} · ${fbPlural(capNodes.length, 'capability').replace('capabilitys', 'capabilities')}`, lvl, children: capNodes,
+      detail: { kind: 'DORA pillar', title: p.name, lvl, says: `Chapter ${p.chapter}. ${fbPlural(nObj, 'applicable objective')} across ${fbPlural(nArt, 'article')}.`, rows: [['Capabilities', capNodes.map(c => c.title)]] } };
   });
 
   // Capabilities in play: those with a DORA objective, a statement or a risk

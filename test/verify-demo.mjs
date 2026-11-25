@@ -948,9 +948,13 @@ const fb = await page.evaluate(() => {
   out.pillars = nodes(0).length;
   out.outOfScope = nodes(0).some(b => b.classList.contains('is-muted') && /out of scope/.test(b.textContent));
   out.noDetailYet = /Select anything/.test(document.querySelector('.fb-detail').textContent);
+  out.colsAtStart = q('.fb-col').map(c => c.querySelector('h3').textContent);
+  out.emptyHint = /Select a DORA pillar/.test(col(1).textContent);
   click(0, 'ICT Risk Management'); click(1, 'RTS 4'); click(2, 'RTS-4-2-4');
-  out.objGap = nodes(3).length === 1 && nodes(3)[0].classList.contains('is-gap') && /No policy statement/.test(nodes(3)[0].textContent);
-  click(2, 'RTS-4-2-2'); click(3, 'LP-01 PS02'); click(4, 'CTRL-1003');
+  out.objGap = nodes(3).length === 1 && nodes(3)[0].classList.contains('is-gap') && /No policy or group standard/.test(nodes(3)[0].textContent)
+    && /Select a policy \/ group standard/.test(col(4).textContent) && q('.fb-col').length === 6;
+  click(2, 'RTS-4-2-2'); out.docCol = nodes(3).map(b => b.textContent.replace(/\s+/g, ' ').trim()).join(' | ');
+  click(3, 'Asset Management Policy'); click(4, 'LP-01 PS02'); click(5, 'CTRL-1003');
   out.cols = q('.fb-col').length;
   out.crumbs = document.querySelector('.fb-crumbs').innerText.replace(/\s*›\s*/g, ' › ').replace(/\s+/g, ' ').trim();
   const det = document.querySelector('.fb-detail').textContent;
@@ -978,8 +982,10 @@ const fb = await page.evaluate(() => {
 });
 assert(fb.view && fb.tabs.join(',') === 'DORA Lens,Risk Lens,Governance Lens', `Framework Browser: opens with three lenses (${fb.tabs.join(', ')})`);
 assert(fb.pillars === 5 && fb.outOfScope && fb.noDetailYet, `Framework Browser: DORA Lens lists 5 pillars, Information-Sharing out of scope (${fb.pillars})`);
-assert(fb.objGap, 'Framework Browser: an undocumented objective (RTS-4-2-4) shows a "No policy statement" gap');
-assert(fb.cols === 5 && /RTS-4-2-2 › LP-01 PS02 › CTRL-1003$/.test(fb.crumbs), `Framework Browser: pillar → article → objective → statement → control columns + path (${fb.crumbs})`);
+assert(fb.colsAtStart.join(',') === 'DORA pillar,Article,Objective,Policy / group standard,Statement,Control' && fb.emptyHint, `Framework Browser: every DORA column is on screen from the start (${fb.colsAtStart.join(', ')})`);
+assert(fb.objGap, 'Framework Browser: an undocumented objective (RTS-4-2-4) shows a "No policy or group standard" gap, columns stay put');
+assert(/Local ICT Asset Management Policy.*Local Policy · Approved/.test(fb.docCol), `Framework Browser: DORA Lens lists the document an objective is documented in (${fb.docCol})`);
+assert(fb.cols === 6 && /RTS-4-2-2 › Local ICT Asset Management Policy › LP-01 PS02 › CTRL-1003$/.test(fb.crumbs), `Framework Browser: pillar → article → objective → document → statement → control columns + path (${fb.crumbs})`);
 assert(fb.ctrlDetail, 'Framework Browser: control details show owner, status and the risk it treats');
 assert(fb.pivots.length === 2, `Framework Browser: a control offers "Open in" the other two lenses (${fb.pivots.join(', ')})`);
 assert(fb.riskTab && /Asset data integrity gaps › CTRL-1003$/.test(fb.riskPath) && /Asset ownership assignment/.test(fb.riskSel), `Framework Browser: pivot to Risk Lens selects the same control (${fb.riskPath})`);

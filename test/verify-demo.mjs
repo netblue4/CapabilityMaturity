@@ -1043,6 +1043,49 @@ assert(applic.afterTotal === applic.baseTotal - 1 && applic.notApplicable === 1,
 assert(applic.targetExcluded, 'Objective applicability: a not-applicable objective is excluded from the traceability (cascades to every report)');
 assert(applic.btn && applic.fn, 'DORA mapping: "Download current mapping (CSV)" button + function present');
 
+// ── SOA: new upload shape (matches the on-screen table) + "download SOA" CSV round-trip ──
+const soa = await page.evaluate(async () => {
+  if (typeof activeLens !== 'undefined') activeLens = 'dora';
+  const a = db.assessments.find(x => x.id === 'demo');
+  openAssessmentForm(a.id); showView('dora-soa-import'); initDoraSoaImport();
+  const orig = (typeof lensSoa === 'function') ? lensSoa(a) : (a.doraSoa || []);
+  const btn = !!document.querySelector('#view-dora-soa-import button[onclick="downloadDoraSoaCsv()"]');
+  const fn = typeof window.downloadDoraSoaCsv === 'function';
+  // capture the download blob
+  let captured = null; const oc = URL.createObjectURL; URL.createObjectURL = b => { captured = b; return 'blob:x'; };
+  downloadDoraSoaCsv();
+  URL.createObjectURL = oc;
+  const text = captured ? await captured.text() : '';
+  // quote-aware CSV parse (refs contain commas, so they are quoted by the writer)
+  const parseCsv = (s) => {
+    s = String(s).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+    const grid = []; let row = [], cur = '', inQ = false;
+    for (let i = 0; i < s.length; i++) { const ch = s[i];
+      if (inQ) { if (ch === '"') { if (s[i + 1] === '"') { cur += '"'; i++; } else inQ = false; } else cur += ch; }
+      else if (ch === '"') inQ = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n') { row.push(cur); grid.push(row); row = []; cur = ''; }
+      else cur += ch; }
+    if (cur !== '' || row.length) { row.push(cur); grid.push(row); }
+    return grid.filter(r => !(r.length === 1 && r[0] === ''));
+  };
+  const grid = parseCsv(text);
+  const header = (grid[0] || []).join(',');
+  const cols = grid[0] || [];
+  const rows = grid.slice(1).map(v => { const o = {}; cols.forEach((c, i) => { o[c] = (v[i] || ''); }); return o; });
+  const reparsed = buildSoaEntries(rows);
+  const appCount = es => es.filter(e => e.applicable).length;
+  return {
+    btn, fn, header,
+    origLen: orig.length, reLen: reparsed.length,
+    origApp: appCount(orig), reApp: appCount(reparsed),
+    idxMatch: reparsed.length > 0 && reparsed.every(e => orig.some(o => o.idx === e.idx)),
+  };
+});
+assert(soa.btn && soa.fn, 'DORA SOA: "Download current SOA (CSV)" button + function present');
+assert(soa.header === 'DORA Article / RTS,Chapter,Applicable,Coverage,Reference', `DORA SOA download: columns match the on-screen table (${soa.header})`);
+assert(soa.reLen === soa.origLen && soa.reApp === soa.origApp && soa.idxMatch, `DORA SOA: download → re-upload round-trips in the new shape (${soa.origLen} items, ${soa.origApp} applicable)`);
+
 console.log(fails === 0 ? '\n=== ALL CHECKS PASSED ===' : `\n=== ${fails} FAILED ===`);
 await browser.close();
 process.exit(fails ? 1 : 0);

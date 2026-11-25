@@ -524,12 +524,13 @@
       <!-- Step 1: Upload -->
       <div id="dora-soa-upload" class="card rk-section">
         <h3 class="rk-step-title">Step 1 — Upload the DORA SOA CSV</h3>
-        <p class="rk-step-desc">Upload your DORA Statement of Applicability — one row per DORA article &times; related RTS/MIC/MIR (article-only rows leave the <strong>RTS_*</strong> columns blank). Expected columns: <code>DisplayOrder, DORA_Chapter, DORA_Section, DORA_URL, DORA_Article_Index, DORA_Title, Article Applicable, RTS_Title, RTS_Chapter, RTS_Section, RTS_URL, RTS_Article_Index, RTS_Article_Title, RTS Applicable</code>. Applicability is taken from <strong>RTS Applicable</strong> when a row has an RTS, otherwise <strong>Article Applicable</strong> (blank = not applicable). It feeds the DORA SOA display on the Control 1 evidence page.</p>
+        <p class="rk-step-desc">Upload your DORA Statement of Applicability — <strong>one row per article / RTS</strong>, in the same shape as the on-screen SOA table. Columns: <code>DORA Article / RTS, Chapter, Applicable, Reference</code> (plus an optional <code>Coverage</code> column, which is computed and ignored on import). <strong>Applicable</strong> is <em>Y</em> / <em>N</em> (blank = not applicable); <strong>Reference</strong> is the EUR-Lex URL. The easiest way to edit it is to <strong>download the current SOA</strong>, change the <strong>Applicable</strong> cells, and re-upload to replace it. (Legacy 14-column files are still accepted.)</p>
         <div class="rk-upload-row">
           <label class="btn btn-primary rk-file-label">
             Choose CSV file
             <input type="file" id="dora-soa-file-input" accept=".csv,.txt" style="display:none" onchange="handleDoraSoaFile(this)" />
           </label>
+          <button class="btn btn-outline" onclick="downloadDoraSoaCsv()">⬇ Download current SOA (CSV)</button>
           <span id="dora-soa-upload-info" class="rk-upload-info"></span>
         </div>
       </div>

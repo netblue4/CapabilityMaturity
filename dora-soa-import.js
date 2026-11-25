@@ -142,7 +142,47 @@
     });
   }
 
+  // ── Download the recorded SOA as CSV (round-trip: edit Applicable, re-upload to replace) ──
+  // The on-screen table as a file: DORA Article / RTS · Chapter (full name) ·
+  // Applicable · Coverage · Reference (EUR-Lex URL). Coverage is computed and is
+  // ignored on re-import; the file re-uploads in the same shape.
+  function _soaCsvCell(s) { s = String(s == null ? '' : s); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function downloadDoraSoaCsv() {
+    const assessment = editingId ? db.assessments.find(a => a.id === editingId) : null;
+    const fw = (typeof activeFramework === 'function') ? activeFramework() : { soaKey: 'doraSoa', rowsKey: 'doraRows', label: 'DORA' };
+    const soa = _sEntries.length ? _sEntries
+      : ((assessment && assessment[fw.soaKey] && assessment[fw.soaKey].length) ? assessment[fw.soaKey]
+      : (typeof DORA_SOA !== 'undefined' ? DORA_SOA : []));
+    if (!soa || !soa.length) { alert('No SOA to download yet — open an assessment with a DORA SOA, or upload one first.'); return; }
+    const dRows = (assessment && assessment[fw.rowsKey]) || [];
+    const model = (typeof buildDoraObligations === 'function') ? buildDoraObligations(dRows, (assessment && assessment.policyRows) || [], (assessment && assessment.riskPolicyFacts) || []) : { articles: [] };
+    const idxOf = s => (typeof soaIndexKey === 'function') ? soaIndexKey(s) : String(s || '').toUpperCase();
+    const artCov = {};
+    (model.articles || []).forEach(a => { const app = a.obligations.filter(o => o.applicable !== false); artCov[idxOf(a.article)] = { cov: app.filter(o => o.covered).length, tot: app.length }; });
+    const covLabel = e => {
+      if (!e.applicable) return '—';
+      const c = artCov[e.idx];
+      if (!c) return 'Not yet mapped';
+      if (c.tot > 0 && c.cov === c.tot) return 'Covered';
+      if (c.cov > 0) return 'Partial ' + c.cov + '/' + c.tot;
+      return 'Uncovered';
+    };
+    const cols = ['DORA Article / RTS', 'Chapter', 'Applicable', 'Coverage', 'Reference'];
+    const lines = [cols.map(_soaCsvCell).join(',')];
+    soa.forEach(e => { lines.push([e.ref || '', e.chapterFull || e.chapter || '', e.applicable ? 'Y' : 'N', covLabel(e), e.url || ''].map(_soaCsvCell).join(',')); });
+    const csv = '﻿' + lines.join('\r\n');
+    const label = assessment ? (assessment.label || assessment.id) : 'export';
+    const name = ((fw.label || 'DORA') + '-SOA-' + label + '.csv').replace(/[^\w.\-]+/g, '_');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
   window.initDoraSoaImport = initDoraSoaImport;
   window.handleDoraSoaFile = handleDoraSoaFile;
   window.saveDoraSoaImport = saveDoraSoaImport;
+  window.downloadDoraSoaCsv = downloadDoraSoaCsv;
 })();

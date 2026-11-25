@@ -16,7 +16,7 @@
 //   rationale - reserved; the display shows the EUR-Lex link in its place for now
 
 function _soaNorm(s){ return (s==null?'':String(s)).trim(); }
-function soaChapterRoman(d){ var m=/chapter\s+([ivxlc]+)/i.exec(d||''); return m?m[1].toUpperCase():''; }
+function soaChapterRoman(d){ d=String(d==null?'':d).trim(); var m=/chapter\s+([ivxlc]+)/i.exec(d); if(m) return m[1].toUpperCase(); if(/^[ivxlc]+$/i.test(d)) return d.toUpperCase(); return ''; }
 function soaIndexKey(label){ var m=/(RTS|MIC|MIR|ITS|Article)\s*0*(\d+)/i.exec(label||''); return m?(m[1].toUpperCase()+m[2]):((label||'').toUpperCase().replace(/[^A-Z0-9]/g,'')); }
 function _soaTitleIndex(idx){ var m=/^(rts|mic|mir|its|article)\s*(\d+)/i.exec((idx||'').trim()); if(!m) return (idx||'').trim(); var t=m[1].toUpperCase()==='ARTICLE'?'Article':m[1].toUpperCase(); return t+' '+m[2]; }
 // Article-level SOA entry — the DORA article itself, applicability from the
@@ -50,9 +50,32 @@ function soaEntryFromRow(row){ return _soaNorm(row['RTS_Article_Index']) ? soaRt
 // Build the full SOA: one article-level entry per distinct DORA article (so the
 // "Article Applicable" decision is always surfaced, even for articles that only
 // appear with RTS rows) PLUS one entry per RTS/MIC/MIR row.
+// NEW shape — one row per SOA item, matching the on-screen table + the download:
+// "DORA Article / RTS", "Chapter", "Applicable", "Reference" (+ an ignored
+// "Coverage" column, which is computed, not uploaded).
+function soaNewEntry(row, order){
+  var label=_soaNorm(row['DORA Article / RTS']||row['DORA Article/RTS']||row['Article / RTS']||row['Article/RTS']||'');
+  if(!label) return null;
+  var pfx=((/(RTS|MIC|MIR|ITS|Article)/i.exec(label)||[0,''])[1]||'').toUpperCase();
+  var kind=pfx==='MIC'?'MIC':pfx==='MIR'?'MIR':pfx==='RTS'?'RTS':pfx==='ITS'?'ITS':'Article';
+  var chFull=_soaNorm(row['Chapter']||'');
+  var appRaw=_soaNorm(row['Applicable']||'');
+  return { order: (parseFloat(_soaNorm(row['Display Order']||row['Order']||''))||order||0),
+    ref: label, idx: soaIndexKey(label), kind: kind,
+    chapter: soaChapterRoman(chFull), chapterFull: chFull, section:'',
+    applicable: /^(y|yes|applicable|true|1)/i.test(appRaw),
+    url: _soaNorm(row['Reference']||row['EUR-Lex URL']||row['URL']||''),
+    article: label, rationale:'' };
+}
 function buildSoaEntries(rows){
+  rows = rows||[];
+  // Detect the on-screen / download shape by its header; otherwise the legacy
+  // per-(article × RTS) shape.
+  if(rows.length && (('DORA Article / RTS' in rows[0]) || ('DORA Article/RTS' in rows[0]) || ('Article / RTS' in rows[0]))){
+    return rows.map(function(r,i){ return soaNewEntry(r,i+1); }).filter(function(e){return e&&e.ref;}).sort(function(a,b){return a.order-b.order;});
+  }
   var out=[]; var seenArt={};
-  (rows||[]).forEach(function(row){
+  rows.forEach(function(row){
     var artIdxRaw=_soaNorm(row['DORA_Article_Index']);
     if(artIdxRaw){ var k=soaIndexKey(artIdxRaw); if(!seenArt[k]){ seenArt[k]=1; out.push(soaArticleEntry(row)); } }
     if(_soaNorm(row['RTS_Article_Index'])) out.push(soaRtsEntry(row));

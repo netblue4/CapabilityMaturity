@@ -475,7 +475,7 @@ const gapsFix = await page.evaluate(() => {
 assert(gapsFix.collapsed && gapsFix.tpPolicyGap, 'DORA Reporting gaps: per-capability (collapsed); Third-Party policy gap lists ART-29-1');
 assert(gapsFix.incCross, 'DORA Reporting gaps: notes when the other source covers an objective (Incident: policy ↔ group standard)');
 assert(gapsFix.fixFirst === 'CTRL-1007' && gapsFix.fixSorted && gapsFix.fixHasObj, `DORA Reporting Fix first: ranked by residual risk (first ${gapsFix.fixFirst})`);
-assert(gapsFix.inAppendix && gapsFix.appxOrder.join(' | ').startsWith('Documented | Gaps for the next review cycle | Implemented | Effective | Fix first'), `DORA Reporting: Gaps and Fix first sit in the Appendix (${gapsFix.appxOrder.join(' | ')})`);
+assert(gapsFix.inAppendix && gapsFix.appxOrder.join(' | ').startsWith('Documented - DORA objectives covered by policy and group standards | Documented - Policy and Group standard review | Implemented - Policy & Group Standard statements covered controls | Effectiveness - Control effectiveness in treating risk | Effectiveness Gaps - ICT Risk & Control design'), `DORA Reporting: Gaps and Fix first sit in the Appendix (${gapsFix.appxOrder.join(' | ')})`);
 assert(doraRep.boardRiskPillars.some(p => /Incident/.test(p)) && doraRep.boardRiskPillars.some(p => /Risk Management/.test(p)), `DORA Reporting: risks grouped under their DORA pillar (${doraRep.boardRiskPillars.join(' · ')})`);
 assert(doraRep.caplens, 'DORA Reporting: Capability Lens card moved in');
 assert(doraRep.heatmap && doraRep.heatNotAssessed, 'DORA Reporting Control 3: residual risk heatmap (with NOT ASSESSED lane)');
@@ -597,6 +597,11 @@ const ccovKey = await page.evaluate(() => {
 });
 assert(ccovKey.rows > 0 && ccovKey.sorted, `Control Coverage: Key controls ranked by weight (${ccovKey.rows} rows)`);
 assert(ccovKey.profile && ccovKey.risksShown, 'Control Coverage: selecting a key control opens its full profile (statements, objectives, risks)');
+const ccovAppx = await page.evaluate(() => ({
+  summaries: [...document.querySelectorAll('#ctrlcov-report-content .bd-appx > summary')].map(s => s.textContent.trim()),
+  keyInAppx: !!document.querySelector('#ctrlcov-report-content .bd-appx .ccov-key-row'),
+}));
+assert(ccovAppx.summaries.includes('Key controls') && ccovAppx.keyInAppx, `Control Coverage: Key controls sits in an Appendix (${ccovAppx.summaries.join(' | ')})`);
 
 // Capability-lens drill-down headers aligned with the scorecard (Documented / Implemented / Effective)
 // restore the DORA report for the assertions that follow
@@ -885,6 +890,8 @@ const rcx = await page.evaluate(() => {
 assert(rcx.hasRiskDesc, 'Risk & control extract: Risk description column present');
 assert(rcx.descsPopulated, 'Risk & control extract: risk descriptions flow through from the import');
 assert(!rcx.promptsBtn, 'Risk & control extract: ✨ Prompts button removed from the card (moved to Prompt Console)');
+const rocAppx = await page.evaluate(() => [...document.querySelectorAll('#roc-report-content .bd-appx > summary')].map(s => s.textContent.trim()));
+assert(rocAppx.join(' | ') === 'Risk control-action list | Risk & control (full extract)', `ROC Reporting: the two extracts sit in an Appendix (${rocAppx.join(' | ')})`);
 
 const promptsOut = await page.evaluate(() => {
   openPromptsModal();

@@ -108,11 +108,11 @@ function generateDoraForumReport() {
     ${renderBoardSummary(currentA, prevA)}
     <div class="exec-rcsa-wrap" id="board-live-view">${renderCapabilityLensCard(currentA)}</div>
     ${renderBoardAppendix([
-      ['Documented', renderExecCoverageMatrix(currentA)],
-      ['Gaps for the next review cycle', renderBoardGaps(currentA, bdCapSummaries(currentA))],
-      ['Implemented', renderExecControl2(currentA, prevA)],
-      ['Effective', renderExecControl3(currentA, prevA)],
-      ['Fix first', renderBoardFixFirst(currentA)],
+      ['Documented - DORA objectives covered by policy and group standards', renderExecCoverageMatrix(currentA)],
+      ['Documented - Policy and Group standard review', renderBoardGaps(currentA, bdCapSummaries(currentA))],
+      ['Implemented - Policy & Group Standard statements covered controls', renderExecControl2(currentA, prevA)],
+      ['Effectiveness - Control effectiveness in treating risk', renderExecControl3(currentA, prevA)],
+      ['Effectiveness Gaps - ICT Risk & Control design', renderBoardFixFirst(currentA)],
       ['Risks threatening DORA objectives', renderBoardRisks(currentA, prevA)],
       ['Policy statement ownership', renderOwnershipCard(currentA)],
       ['Full DORA → control traceability', renderTraceabilityCard(currentA)],
@@ -142,8 +142,10 @@ function generateRocReport() {
       <button class="btn btn-outline" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
     ${renderExecProgress(currentA, prevA)}
-    <div class="exec-rcsa-wrap">${renderRiskActionList(currentA, prevA)}</div>
-    <div class="exec-rcsa-wrap">${renderRiskControlExtract(currentA)}</div>
+    ${renderBoardAppendix([
+      ['Risk control-action list', renderRiskActionList(currentA, prevA)],
+      ['Risk & control (full extract)', renderRiskControlExtract(currentA)],
+    ])}
   `);
   showView('roc-report');
 }

@@ -261,7 +261,6 @@ function ccovBody() {
       <div class="bd-mini"><span class="exsum-lbl">Statements implemented</span><b>${stmtN}</b><span class="exsum-frac">policy &amp; group standard</span></div>
       <div class="bd-mini"><span class="exsum-lbl">DORA objectives covered</span><b>${objN}</b><span class="exsum-frac">${unprovenObjs ? `${unprovenObjs} on unproven controls only` : 'each has a proven control'}</span></div>
     </div>
-    ${ccovKeyControls(M)}
     <div class="bd-sec-hd ccov-detail-hd"><h2>Controls by capability</h2><span class="no-print">Open a capability, then select any item for its details</span></div>
     <div class="bd-lens-bar">
       <div class="bd-seg" role="group" aria-label="Show">
@@ -273,7 +272,8 @@ function ccovBody() {
         <span><i class="bd-dot bd-dot-draft" aria-hidden="true"></i>Draft</span>
       </div>
     </div>
-    <div class="bd-trace ccov-trace">${sections || `<div class="bd-empty">${EMPTY[mode]}</div>`}</div>`;
+    <div class="bd-trace ccov-trace">${sections || `<div class="bd-empty">${EMPTY[mode]}</div>`}</div>
+    ${(() => { const k = ccovKeyControls(M, true); return k ? renderBoardAppendix([['Key controls', k]]) : ''; })()}`;
 }
 
 // Residual band, as on DORA Reporting: High ≥ 20 · Moderate 12–19 · Low < 12.
@@ -282,7 +282,7 @@ function ccovBand(r) { return r >= 20 ? ['High', 'gap'] : r >= 12 ? ['Moderate',
 // Key controls: the controls carrying the most (statements + DORA objectives +
 // risks) across every capability, heaviest first — to highlight key controls
 // and to walk an owner through what theirs covers.
-function ccovKeyControls(M) {
+function ccovKeyControls(M, bare) {
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
   const top = M.ctrls.slice().sort((a, b) => b.weight - a.weight || b.topResidual - a.topResidual || String(a.num).localeCompare(String(b.num))).slice(0, 10);
   if (!top.length) return '';
@@ -298,12 +298,14 @@ function ccovKeyControls(M) {
       <span class="bd-chip bd-tone-${CCOV_ST[c.level].key}">${CCOV_ST[c.level].label}</span>
     </button>`;
   }).join('');
-  return `<section class="bd-sec ccov-key" aria-labelledby="ccov-key-h">
-    <div class="bd-sec-hd"><h2 id="ccov-key-h">Key controls</h2><span class="no-print">The controls carrying the most — select one to see everything it covers</span></div>
-    <div class="bd-table-wrap"><div class="ccov-key-table">
+  const inner = `<div class="bd-table-wrap"><div class="ccov-key-table">
       <div class="ccov-key-head"><span>#</span><span>Control</span><span>Statements</span><span>Objectives</span><span>Risks</span><span>Documents</span><span>Status</span></div>
       ${rows}
-    </div></div>
+    </div></div>`;
+  if (bare) return inner;
+  return `<section class="bd-sec ccov-key" aria-labelledby="ccov-key-h">
+    <div class="bd-sec-hd"><h2 id="ccov-key-h">Key controls</h2><span class="no-print">The controls carrying the most — select one to see everything it covers</span></div>
+    ${inner}
   </section>`;
 }
 

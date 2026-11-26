@@ -35,7 +35,7 @@ const PROMPT_KINDS = [
 ];
 // Static prompt texts held as repo files (kept out of JS so their backticks / paths /
 // angle-brackets need no escaping), loaded once and cached.
-let _csaText = '', _ratText = '', _cdText = '', _attText = '';
+let _csaText = '', _ratText = '', _cdText = '', _attText = '', _sdText = '';
 function _loadFileText(url, set, cb) {
   try { fetch(url).then(r => r.ok ? r.text() : '').then(t => { if (t) set(t); if (cb) cb(); }).catch(() => {}); } catch (e) {}
 }
@@ -43,7 +43,8 @@ function _loadCsaText(cb) { if (_csaText) { if (cb) cb(); return; } _loadFileTex
 function _loadRatText(cb) { if (_ratText) { if (cb) cb(); return; } _loadFileText('docs/risk-rationale-prompt.md', t => { _ratText = t; }, cb); }
 function _loadCdText(cb) { if (_cdText) { if (cb) cb(); return; } _loadFileText('docs/control-coverage-prompt.md', t => { _cdText = t; }, cb); }
 function _loadAttText(cb) { if (_attText) { if (cb) cb(); return; } _loadFileText('docs/attestation-prompt.md', t => { _attText = t; }, cb); }
-if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); _loadCdText(); _loadAttText(); }
+function _loadSdText(cb) { if (_sdText) { if (cb) cb(); return; } _loadFileText('docs/control-design-prompt.md', t => { _sdText = t; }, cb); }
+if (typeof fetch === 'function') { _loadCsaText(); _loadRatText(); _loadCdText(); _loadAttText(); _loadSdText(); }
 
 // The "CONTROLS TO PROCESS" block for option 4 — the selected risk's distinct
 // controls (Control No, Name, Status, Frequency, Description, Owner).
@@ -680,6 +681,67 @@ function copyCtrlDescPrompt(btn) {
 }
 function closeCtrlDescModal() { const m = document.getElementById('ctrl-desc-modal'); if (m) m.style.display = 'none'; }
 
+// ── Design controls for statements — the mirror of Operationalise controls ──
+// You pick STATEMENTS (one or more, across one or more documents) and the prompt
+// designs the control(s) from scratch to satisfy them (grouping allowed) — for
+// onboarding new policies / group standards with no risk or control yet. Reuses
+// _attStatements() (every statement, incl. those with no control) for the picker.
+function _sdStatementBlock(s) {
+  const existing = (s.controls || []).length
+    ? (s.controls || []).map(c => '- ' + ((c.no ? c.no + ' — ' : '') + c.name) + ' (' + c.status + ')').join('\n')
+    : 'None — new statement, design the control(s) from scratch.';
+  return `## STATEMENT: ${(s.ref ? s.ref + ' — ' : '') + (s.header || '(no header)')}
+Document: ${s.document} (${s.source}) · Capability: ${s.capName}
+Statement Ref: ${s.ref || '(none)'}
+Statement Header: ${s.header || '(none)'}
+Statement text (may contain multiple obligations):
+${s.detail || '(no statement detail provided)'}
+
+Existing controls mapped (context only — do not rewrite): ${(s.controls || []).length ? '\n' + existing : existing}`;
+}
+function openCtrlDesignModal() {
+  const m = document.getElementById('ctrl-design-modal');
+  if (!m || !_amA) return;
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  const stmts = _attStatements();
+  const host = document.getElementById('sd-stmts');
+  if (host) {
+    if (!stmts.length) host.innerHTML = '<p class="policy-no-data" style="margin:.3rem 0">No policy / group-standard statements in this assessment yet.</p>';
+    else {
+      const byDoc = new Map();
+      stmts.forEach(s => { const g = byDoc.get(s.document) || { type: s.source, list: [] }; g.list.push(s); byDoc.set(s.document, g); });
+      const byType = {};
+      [...byDoc.entries()].forEach(([doc, g]) => { (byType[g.type] = byType[g.type] || []).push([doc, g.list]); });
+      host.innerHTML = Object.keys(byType).sort().map(type =>
+        `<div class="am-doc-group"><div class="am-doc-type">${esc(type)}</div>${byType[type].sort((a, b) => a[0].localeCompare(b[0])).map(([doc, list]) =>
+          `<details class="cd-doc-det"><summary class="cd-doc-sum">${esc(doc)} <span class="am-doc-n">(${list.length} statement${list.length === 1 ? '' : 's'})</span></summary>${list.map(s =>
+            `<label class="am-doc cd-ctrl"><input type="checkbox" class="sd-stmt-cb" value="${esc(s.key)}"> ${esc((s.ref ? s.ref + ' — ' : '') + s.header)} <span class="am-doc-n">(${s.controls.length} control${s.controls.length === 1 ? '' : 's'})</span></label>`).join('')}</details>`).join('')}</div>`).join('');
+    }
+  }
+  const out = document.getElementById('sd-prompt'); if (out) out.value = '';
+  m.style.display = 'flex';
+}
+function generateCtrlDesignPrompt() {
+  const out = document.getElementById('sd-prompt'); if (!out) return;
+  const keys = [...document.querySelectorAll('#sd-stmts .sd-stmt-cb:checked')].map(c => c.value);
+  if (!keys.length) { out.value = '⚠ Expand a policy / group standard and tick one or more statements to design controls for.'; return; }
+  if (!_sdText) { out.value = '⚠ Prompt template still loading — try again in a moment.'; _loadSdText(); return; }
+  const all = _attStatements();
+  const stmts = keys.map(k => all.find(x => x.key === k)).filter(Boolean)
+    .sort((a, b) => (a.document + (a.ref || a.header)).localeCompare(b.document + (b.ref || b.header)));
+  if (!stmts.length) { out.value = '⚠ The selected statement(s) are no longer in the data — reopen the popup.'; return; }
+  const blocks = stmts.map(_sdStatementBlock).join('\n\n');
+  out.value = _sdText.replace('{{STATEMENTS_DATA}}', blocks);
+}
+function copyCtrlDesignPrompt(btn) {
+  const ta = document.getElementById('sd-prompt'); if (!ta || !ta.value) return;
+  const done = ok => { const o = btn.textContent; btn.textContent = ok ? 'Copied ✓' : 'Copy failed'; setTimeout(() => { btn.textContent = o; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(() => done(true)).catch(() => { ta.select(); done(false); });
+  } else { ta.select(); try { document.execCommand('copy'); done(true); } catch (e) { done(false); } }
+}
+function closeCtrlDesignModal() { const m = document.getElementById('ctrl-design-modal'); if (m) m.style.display = 'none'; }
+
 // ── Attestation prompt — one policy / group-standard statement + its controls ──
 // Each statement (deduped by capId||ref) with the controls mapped to it, carrying
 // control description, status (Implemented/Draft) and effectiveness — so the
@@ -820,4 +882,8 @@ if (typeof window !== 'undefined') {
   window.generateCtrlDescPrompt = generateCtrlDescPrompt;
   window.copyCtrlDescPrompt = copyCtrlDescPrompt;
   window.closeCtrlDescModal = closeCtrlDescModal;
+  window.openCtrlDesignModal = openCtrlDesignModal;
+  window.generateCtrlDesignPrompt = generateCtrlDesignPrompt;
+  window.copyCtrlDesignPrompt = copyCtrlDesignPrompt;
+  window.closeCtrlDesignModal = closeCtrlDesignModal;
 }

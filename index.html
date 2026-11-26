@@ -283,6 +283,28 @@
       </div>
     </div>
 
+    <!-- Design controls for statements (onboarding: statements → new controls) -->
+    <div id="ctrl-design-modal" class="modal-overlay" onclick="if(event.target===this)closeCtrlDesignModal()" style="display:none">
+      <div class="modal-box prompts-box am-box">
+        <div class="modal-header">
+          <h3>✨ Design controls for statements</h3>
+          <button class="modal-close" onclick="closeCtrlDesignModal()">✕</button>
+        </div>
+        <p class="am-intro">The mirror of <b>Operationalise controls</b> — use it when you <b>onboard a new policy or group standard</b> and have no risk or control to work from yet. <b>Expand a policy / group standard</b> below and <b>tick one or more statements</b> (across one or more documents). The prompt reads the selected statements, decomposes each into its obligations, then <b>proposes a control set</b> — grouping statements into a shared control where that's the natural design (e.g. a data-inventory standard's "how to classify" and "how to assess" statements) — and <b>asks you to confirm</b> before it writes the full <b>operational control(s)</b> and <b>CSA test(s)</b> to the house standard. It designs to <b>satisfy the statements only</b> — no risk is invented (you assign the risk separately); every unknown is left as a clearly-named <code>[@placeholder]</code> for the owner. It runs as a <b>dialogue</b>: propose first, build after you reply.</p>
+        <label class="am-label">1 · Policies / group standards — expand &amp; tick the statements to design controls for</label>
+        <div id="sd-stmts" class="am-docs"></div>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="generateCtrlDesignPrompt()">Generate prompt</button>
+          <span class="prompt-hint">Generate, copy, run in your LLM to get the proposed control set, then the operational controls &amp; CSA tests.</span>
+        </div>
+        <label class="am-label">Prompt</label>
+        <textarea id="sd-prompt" class="prompt-text" readonly spellcheck="false"></textarea>
+        <div class="prompts-actions">
+          <button class="btn btn-primary" onclick="copyCtrlDesignPrompt(this)">⧉ Copy prompt</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Attestation statement generator -->
     <div id="attest-modal" class="modal-overlay" onclick="if(event.target===this)closeAttestModal()" style="display:none">
       <div class="modal-box prompts-box am-box">
